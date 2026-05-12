@@ -39,9 +39,25 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 #### Pull Request Process
 
 1. Update the README.md or documentation with details of changes if applicable
-2. Ensure all tests pass and code coverage is maintained
+2. Ensure all tests pass and the coverage floor is met (see "Coverage ratchet" below).
 3. Your PR will be reviewed by maintainers
 4. Once approved, your PR will be merged
+
+#### Coverage ratchet
+
+Core CI runs `vendor/bin/pest --coverage --min=N` where `N` is a floor
+the suite currently meets. The number lives in
+`.github/workflows/tests.yml` next to the test command. The rules:
+
+- **Only goes up.** Once CI is green at `N`, the next person to push
+  coverage stably above `N + 5` bumps the floor by +5pp. Never lower
+  the floor without a release-note explaining why.
+- **Target: 80%.** That's the ecosystem-wide goal. Hardening rounds
+  should focus on uncovered Services / Support / Traits paths first.
+- **Excluded from coverage**: `src/Providers`, `src/Commands`,
+  `src/Jobs`, `src/Listeners`, `src/View`, `src/Facades`. These are
+  integration-tested via Feature suite + Testbench boot, not via
+  direct unit instantiation. See `phpunit.xml.dist` source/exclude.
 
 ## Development Setup
 
