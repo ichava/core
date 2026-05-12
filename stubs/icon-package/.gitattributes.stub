@@ -1,0 +1,18 @@
+# Force LF line endings on shell + text files so Windows clones don't
+# break shebangs or line-aware tooling.
+*.sh    text eol=lf
+*.bash  text eol=lf
+*.json  text
+*.yml   text
+*.yaml  text
+
+# SVG icons are binary-stable.
+*.svg   -text
+
+# Files that should not be exported in distribution archives.
+/.github            export-ignore
+/tests              export-ignore
+/.gitignore         export-ignore
+/.gitattributes     export-ignore
+/phpunit.xml.dist   export-ignore
+/CHANGELOG.md       export-ignore

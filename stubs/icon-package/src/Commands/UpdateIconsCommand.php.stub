@@ -1,0 +1,136 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}}\Commands;
+
+use Symfony\Component\Console\Attribute\AsCommand;
+use {{namespace}}\Constants\IconsConstants;
+use Simtabi\Laranail\Ichava\Commands\UpdateIconsCommand as BaseUpdateIconsCommand;
+
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\text;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\warning;
+
+/**
+ * Update {{studlyName}} Icons from source
+ *
+ * Extends the base update command with {{studlyName}}-specific configuration.
+ * All business logic is handled by the parent class.
+ *
+ * Usage:
+ *   php artisan ichava:update-{{kebabName}}-icons
+ *   php artisan ichava:update-{{kebabName}}-icons --source=/path/to/icons
+ *   php artisan ichava:update-{{kebabName}}-icons --force
+ *
+ * Note: Customize getRepository() and related methods based on your
+ * icons source (GitHub repository, local directory, zip file, CDN, etc.)
+ *
+ * @see https://laravel.com/docs/12.x/prompts
+ * @package {{namespace}}\Commands
+ */
+#[AsCommand(name: 'ichava:update-{{kebabName}}-icons')]
+class UpdateIconsCommand extends BaseUpdateIconsCommand
+{
+    protected $signature = 'ichava:update-{{kebabName}}-icons
+                            {--source= : Source path or URL for icons}
+                            {--force : Force update without confirmation}';
+
+    protected $description = 'Update {{studlyName}} Icons from source';
+
+    /**
+     * Get the source repository identifier
+     *
+     * Override this to return your icons source:
+     * - GitHub repository: 'vendor/repo'
+     * - Local path: '/path/to/icons'
+     * - URL: 'https://example.com/icons.zip'
+     */
+    protected function getRepository(): string
+    {
+        $source = $this->option('source');
+
+        if (empty($source)) {
+            // Prompt user for source if not provided via option
+            $source = text(
+                label: 'Icon source (GitHub repo or path)',
+                placeholder: '{{packageName}}',
+                default: '{{packageName}}',
+                hint: 'Enter GitHub repo (vendor/repo) or local path'
+            );
+        }
+
+        return $source;
+    }
+
+    /**
+     * Get the destination path for primary variant icons
+     */
+    protected function getIconsDestinationPath(): string
+    {
+        return IconsConstants::getSvgPath();
+    }
+
+    /**
+     * Get the SVG path within the downloaded archive
+     *
+     * This is the folder path inside the ZIP where SVG files are located.
+     * Examples: 'icons', 'svg', 'assets/icons'
+     */
+    protected function getSvgPathInArchive(): string
+    {
+        return 'icons';
+    }
+
+    /**
+     * Get the cache folder prefix for temporary files
+     */
+    protected function getCacheFolderPrefix(): string
+    {
+        return '{{kebabName}}-icons';
+    }
+
+    /**
+     * Process SVG content before saving (optional cleanup)
+     *
+     * Override this to perform package-specific transformations:
+     * - Remove unwanted attributes
+     * - Optimize SVG content
+     * - Normalize colors
+     */
+    protected function processSvgContent(string $content): string
+    {
+        // Add any package-specific SVG processing here
+        // Example: Remove class attributes
+        // return preg_replace('/class="[^"]*"\s+/', '', $content) ?? $content;
+
+        return $content;
+    }
+
+    /**
+     * Get additional variants to download (optional)
+     *
+     * Override this if your icon set has multiple variants (e.g., outline, filled, solid).
+     *
+     * @return array<int, array{name: string, archive_path: string, destination: string}>
+     */
+    protected function getAdditionalVariants(): array
+    {
+        // Example for multi-variant icon sets:
+        // return [
+        //     [
+        //         'name'         => 'filled',
+        //         'archive_path' => 'icons/filled',
+        //         'destination'  => IconsConstants::getSvgPath('filled'),
+        //     ],
+        // ];
+
+        return [];
+    }
+}

@@ -1,0 +1,97 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}}\Enums;
+
+use Simtabi\Laranail\Ichava\Traits\HasIconSetVariants;
+use Simtabi\Laranail\Ichava\Contracts\IconSetVariantInterface;
+use {{namespace}}\Constants\IconsConstants;
+
+/**
+ * {{studlyName}} Icons Variants
+ *
+ * Provides type-safe variant selection for {{studlyName}} icons.
+ * Uses the shared trait for consistent behavior across all icon packages.
+ *
+ * Usage:
+ *   Variant::DEFAULT->value      // Get variant value
+ *   Variant::DEFAULT->getPath()  // Get full path to variant icons
+ *   Variant::fromString('default') // Create from string
+ *
+ * Add additional cases as needed for your icon set variants:
+ *   case OUTLINE = 'outline';
+ *   case FILLED = 'filled';
+ *   case SOLID = 'solid';
+ *
+ * @package {{namespace}}\Enums
+ */
+enum Variant: string implements IconSetVariantInterface
+{
+    use HasIconSetVariants;
+
+    /**
+     * Default variant - the primary icon style
+     */
+    case DEFAULT = 'default';
+
+    // Add additional variants as needed:
+    // case OUTLINE = 'outline';
+    // case FILLED = 'filled';
+    // case SOLID = 'solid';
+    // case REGULAR = 'regular';
+    // case BOLD = 'bold';
+
+    /**
+     * Get the full path to this variant's icons
+     */
+    public function getPath(): string
+    {
+        return IconsConstants::getSvgPath($this->value);
+    }
+
+    /**
+     * Get the default variant value
+     */
+    protected static function getDefaultValue(): string
+    {
+        return IconsConstants::getDefaultVariant() ?? 'default';
+    }
+
+    /**
+     * Get the class prefix for this icon set
+     */
+    protected static function getClassPrefix(): string
+    {
+        return IconsConstants::getPrefix();
+    }
+
+    /**
+     * Get a human-readable label for the variant
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::DEFAULT => 'Default',
+            // Add labels for additional variants:
+            // self::OUTLINE => 'Outline',
+            // self::FILLED => 'Filled',
+            // self::SOLID => 'Solid',
+        };
+    }
+
+    /**
+     * Get a description of the variant
+     */
+    public function description(): string
+    {
+        return match ($this) {
+            self::DEFAULT => 'Default icon style',
+            // Add descriptions for additional variants:
+            // self::OUTLINE => 'Stroke-based outline icons',
+            // self::FILLED => 'Solid filled icons',
+            // self::SOLID => 'Solid filled icons',
+        };
+    }
+}
+

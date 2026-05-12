@@ -1,0 +1,71 @@
+[← {{humanName}} docs](README.md)
+
+# Customisation
+
+*How-to guide.*
+
+Pack-specific styling knobs for {{humanName}}.
+
+## Colour
+
+<!-- Document whether the icons use currentColor, fixed colours, or a mix.
+     If currentColor:                                                    -->
+
+All {{humanName}} icons use `currentColor`. Set the colour via Tailwind text utilities:
+
+```blade
+<x-ichava::icon name="{{packageName}}::heart" class="w-6 h-6 text-red-500" />
+```
+
+With the fluent helper:
+
+```blade
+{{ ichava('{{packageName}}::heart')->color('#ef4444')->class('w-6 h-6') }}
+```
+
+<!-- If the pack has fixed colours, document the exceptions here. -->
+
+## Size
+
+The bundled SVGs are <!-- e.g. 24×24 with viewBox="0 0 24 24" -->. Use any width/height utility:
+
+```blade
+<x-ichava::icon name="{{packageName}}::home" class="w-4 h-4" />     {{-- small --}}
+<x-ichava::icon name="{{packageName}}::home" class="w-6 h-6" />     {{-- default --}}
+<x-ichava::icon name="{{packageName}}::home" class="w-12 h-12" />   {{-- large --}}
+```
+
+## Pack-specific knobs
+
+<!-- Document any custom Blade attributes the pack respects, e.g.
+
+   <x-ichava::icon name="{{packageName}}::home" stroke-width="1.5" class="w-6 h-6" />
+
+   ...if your variants have a stroke-width concept. -->
+
+## Default class globally
+
+In `config/ichava.php`:
+
+```php
+'components' => [
+    'enabled'       => true,
+    'default_class' => 'w-5 h-5',
+],
+```
+
+Per-component `class="..."` overrides the default.
+
+## Accessibility
+
+```blade
+<x-ichava::icon name="{{packageName}}::trash" aria-label="Delete" class="w-5 h-5" />
+```
+
+Decorative icons (next to a text label) can omit the label, the renderer adds `aria-hidden="true"` automatically.
+
+## See also
+
+- [Variants](variants.md)
+- [Blade components](https://github.com/ichava/documentation/blob/main/core/blade-components.md)
+- [Global helper](https://github.com/ichava/documentation/blob/main/core/global-helper.md)

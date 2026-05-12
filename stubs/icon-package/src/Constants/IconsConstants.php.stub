@@ -1,0 +1,45 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}}\Constants;
+
+use Simtabi\Laranail\Ichava\Constants\JsonConfigConstants;
+use Simtabi\Laranail\Ichava\Support\PathResolver;
+
+/**
+ * IconsConstants
+ *
+ * All values automatically extracted from config.json via base class.
+ * No hardcoded constants - follows the standard JSON-driven pattern.
+ *
+ * Available methods (inherited from JsonConfigConstants):
+ * - getVendorName(): string       - Vendor name from package.name
+ * - getPackageName(): string      - Package name from package.name
+ * - getVendorPackage(): string    - Full vendor/package identifier
+ * - getPrefix(): string           - Icon prefix from config.icon_prefix
+ * - getCategories(): array        - Category slugs from metadata.data.categories
+ * - getVariants(): array          - Variant slugs from metadata.data.variants
+ * - getDefaultVariant(): ?string  - Default variant slug
+ *
+ * @see \Simtabi\Laranail\Ichava\Constants\JsonConfigConstants
+ * @package {{namespace}}\Constants
+ */
+final class IconsConstants extends JsonConfigConstants
+{
+    /**
+     * Get path to config.json directory
+     */
+    protected static function getConfigPath(): string
+    {
+        return PathResolver::resolvePackagePath(self::class, levelsUp: 3, append: 'resources/assets/svg');
+    }
+
+    /**
+     * Get default CSS class for icons
+     */
+    public static function getDefaultClass(): string
+    {
+        return self::getPrefix() . '-icon';
+    }
+}

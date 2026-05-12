@@ -1,0 +1,83 @@
+{
+    "name": "ichava/core",
+    "description": "Core engine for the Ichava Laravel icon ecosystem. Services, registry, seeder, scaffolder. Headless-friendly with no JS toolchain required.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "icons",
+        "svg",
+        "ichava",
+        "blade-components"
+    ],
+    "homepage": "https://github.com/ichava/core",
+    "authors": [
+        {
+            "name": "Imani Manyara",
+            "email": "imani@simtabi.com",
+            "homepage": "https://simtabi.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "ext-zip": "*",
+        "ajaxray/ansikit": "^0.3.1",
+        "illuminate/filesystem": "^13.0",
+        "illuminate/support": "^13.0",
+        "illuminate/view": "^13.0",
+        "laranail/package-tools": "^1.0"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/laranail/package-tools"
+        }
+    ],
+    "require-dev": {
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^3.0",
+        "laravel/pint": "^1.18"
+    },
+    "autoload": {
+        "psr-4": {
+            "Simtabi\\Laranail\\Ichava\\": "src/",
+            "Simtabi\\Laranail\\Ichava\\Factories\\": "database/factories/",
+            "Simtabi\\Laranail\\Ichava\\Seeders\\": "database/seeders/"
+        },
+        "files": [
+            "helpers/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Simtabi\\Laranail\\Ichava\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Simtabi\\Laranail\\Ichava\\Providers\\IchavaServiceProvider"
+            ],
+            "aliases": {
+                "Ichava": "Simtabi\\Laranail\\Ichava\\Facades\\IchavaFacade"
+            }
+        },
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "support": {
+        "source": "https://github.com/ichava/core",
+        "issues": "https://github.com/ichava/core/issues",
+        "security": "https://github.com/ichava/core/security/policy"
+    }
+}

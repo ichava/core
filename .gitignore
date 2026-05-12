@@ -1,0 +1,52 @@
+# Dependencies
+/vendor
+/node_modules
+
+# IDE / editor cruft
+/.idea
+/.vscode
+/.fleet
+/.zed
+*.swp
+*.swo
+*~
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Composer
+composer.lock
+auth.json
+
+# PHP test + lint caches
+/.phpunit.cache
+.phpunit.result.cache
+/.phpstan.cache
+/.pint.cache
+/.php-cs-fixer.cache
+/.psalm
+/coverage
+coverage.xml
+clover.xml
+
+# Frontend build output
+/public/build
+/public/.vite
+/public/hot
+/public/vendor
+
+# Local env / config overrides
+.env
+.env.local
+.env.*.local
+composer.local.json
+
+# Logs
+*.log
+
+# Local dev tooling — log directories created by .dev/ helper scripts.
+# Pattern matches .dev/.<basename>-logs/ for any helper following the
+# convention (current: .dev/.shadcn_vue_installer-logs/).
+/.dev/.*-logs/
+package-lock.json

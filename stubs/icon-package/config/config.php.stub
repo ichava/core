@@ -1,0 +1,52 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Icon Set Configuration
+    |--------------------------------------------------------------------------
+    |
+    | This file configures the {{studlyName}} icon set for the Ichava ecosystem.
+    | Most values are automatically loaded from config.json via JsonConfigConstants.
+    |
+    */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Enable/Disable Icon Set
+    |--------------------------------------------------------------------------
+    |
+    | Set to false to completely disable this icon set.
+    |
+    */
+
+    'enabled' => env('{{snakeNameUpper}}_ICONS_ENABLED', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Icons Path
+    |--------------------------------------------------------------------------
+    |
+    | The path to the SVG icons directory. This is typically auto-detected
+    | from the package structure, but can be overridden via environment variable.
+    |
+    */
+
+    'path' => env('{{snakeNameUpper}}_ICONS_PATH', dirname(__DIR__) . '/resources/assets/svg'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cache Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configure icon caching for improved performance.
+    |
+    */
+
+    'cache' => [
+        'enabled' => true,
+        'prefix'  => '{{prefix}}',
+    ],
+];
