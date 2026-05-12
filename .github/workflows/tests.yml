@@ -54,14 +54,17 @@ jobs:
         # stably reports above that bound for two consecutive runs.
         # NEVER lower the floor without a release note. See CONTRIBUTING.md
         # "Coverage ratchet" section.
-        run: vendor/bin/pest --coverage --min=15
+        # `--coverage-clover` produces the xml file codecov-action consumes.
+        run: vendor/bin/pest --coverage --min=15 --coverage-clover=coverage.xml
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         if: matrix.php == '8.4' && matrix.laravel == '13.*'
         with:
           files: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
-          fail_ci_if_error: true
+          # Don't fail the whole pipeline on a codecov upload glitch --
+          # the gate is the `--min=` flag above, not the upload step.
+          fail_ci_if_error: false
 
