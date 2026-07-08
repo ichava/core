@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Prompts\Progress;
+use Simtabi\Laranail\Console\Tools\Commands\Command;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
@@ -35,6 +35,10 @@ use function Laravel\Prompts\warning;
  * - Display helpers (headers, status rows, tables)
  * - Export functionality
  * - Table existence checks
+ *
+ * Extends the laranail/console command base, which unlocks the
+ * namespaced `laranail::<slug>.<command>` naming, capability-aware
+ * console services, and short-alias support for every Ichava command.
  *
  * @see https://laravel.com/docs/12.x/prompts
  */

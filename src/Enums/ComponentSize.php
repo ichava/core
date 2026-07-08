@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Enums;
 
+use Simtabi\Laranail\Enumerator\Concerns\HasEnumeratorBehavior;
+
 use Illuminate\Support\Str;
 
 /**
@@ -11,6 +13,8 @@ use Illuminate\Support\Str;
  */
 enum ComponentSize: string
 {
+    use HasEnumeratorBehavior;
+
     case XS = 'xs';
     case SM = 'sm';
     case MD = 'md';

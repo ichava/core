@@ -19,7 +19,7 @@ use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconSeederHelpers;
-use Simtabi\Laranail\PackageTools\Support\RuntimeConfigurator;
+use Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator;
 
 /**
  * Seed Icons Job

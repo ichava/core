@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Enums;
 
+use Simtabi\Laranail\Enumerator\Concerns\HasEnumeratorBehavior;
+
 enum OptimizationLevel: string
 {
+    use HasEnumeratorBehavior;
+
     case NONE = 'none';
     case BASIC = 'basic';
     case AGGRESSIVE = 'aggressive';

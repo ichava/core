@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Providers\IchavaServiceProvider;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
-use Simtabi\Laranail\PackageTools\Providers\PackageServiceProvider;
+use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
 
 /**
  * Abstract base that every Ichava icon package extends.
