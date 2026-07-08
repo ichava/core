@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Enums;
 
-use Simtabi\Laranail\Enumerator\Concerns\HasEnumeratorBehavior;
-
 use Illuminate\Support\Str;
+use Simtabi\Laranail\Enumerator\Concerns\HasEnumeratorBehavior;
 
 /**
  * Predefined named icon sizes with pixel and rem values.
