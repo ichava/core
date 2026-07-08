@@ -58,7 +58,7 @@ jobs:
         run: vendor/bin/pest --coverage --min=15 --coverage-clover=coverage.xml
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         if: matrix.php == '8.4' && matrix.laravel == '13.*'
         with:
           files: ./coverage.xml
