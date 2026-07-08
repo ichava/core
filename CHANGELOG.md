@@ -2,6 +2,15 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] - 2026-07-08
+
+### Changed
+
+- Composer metadata adopts the canonical OSS-portal URLs (products
+  homepage, docs support link); `laranail/enumerator` resolves from
+  Packagist (temporary `vcs` entry dropped).
+- CI test matrix runs on PHP 8.4/8.5 (the 2.0 floor); Pint style fix.
+
 ## [2.0.0] - 2026-07-08
 
 ### Changed (BREAKING)
