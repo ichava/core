@@ -10,7 +10,7 @@
         "ichava",
         "blade-components"
     ],
-    "homepage": "https://github.com/ichava/core",
+    "homepage": "https://opensource.simtabi.com/products/ichava/core",
     "authors": [
         {
             "name": "Imani Manyara",
@@ -74,6 +74,7 @@
     "support": {
         "source": "https://github.com/ichava/core",
         "issues": "https://github.com/ichava/core/issues",
-        "security": "https://github.com/ichava/core/security/policy"
+        "security": "https://github.com/ichava/core/security/policy",
+        "docs": "https://opensource.simtabi.com/documentation/ichava/core/"
     }
 }
