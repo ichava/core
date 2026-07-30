@@ -45,31 +45,38 @@ final class IconBrowserService
 
         $query = Icon::query();
 
-        // Handle search
+        /*
+         * Search NARROWS the filtered set; it does not replace it.
+         *
+         * These filters used to sit in an `else` branch behind `if (search)`, under the
+         * comment "Apply filters only when not searching". Selecting a package and then
+         * typing a query returned matches from every package -- the filter was not
+         * outranked by a better match, it was discarded. The same held for category and
+         * variant. It was easy to miss because each half works in isolation: filtering
+         * alone is correct, and searching alone is correct.
+         */
         if (! empty($filters['search'])) {
-            // Use fuzzySearch for better performance with large datasets
             $query = Icon::fuzzySearch($filters['search'], 10000);
-        } else {
-            // Apply filters only when not searching
-            if (! empty($filters['packages'])) {
-                $query->whereIn('package', $filters['packages']);
-            }
+        }
 
-            // Categories - filter by terms relationship
-            if (! empty($filters['categories'])) {
-                $query->whereHas('terms', function ($q) use ($filters) {
-                    $q->where('type', 'category')
-                        ->whereIn('slug', $filters['categories']);
-                });
-            }
+        if (! empty($filters['packages'])) {
+            $query->whereIn('package', $filters['packages']);
+        }
 
-            // Variants - filter by terms relationship
-            if (! empty($filters['variants'])) {
-                $query->whereHas('terms', function ($q) use ($filters) {
-                    $q->where('type', 'variant')
-                        ->whereIn('slug', $filters['variants']);
-                });
-            }
+        // Categories - filter by terms relationship
+        if (! empty($filters['categories'])) {
+            $query->whereHas('terms', function ($q) use ($filters) {
+                $q->where('type', 'category')
+                    ->whereIn('slug', $filters['categories']);
+            });
+        }
+
+        // Variants - filter by terms relationship
+        if (! empty($filters['variants'])) {
+            $query->whereHas('terms', function ($q) use ($filters) {
+                $q->where('type', 'variant')
+                    ->whereIn('slug', $filters['variants']);
+            });
         }
 
         // Apply sorting

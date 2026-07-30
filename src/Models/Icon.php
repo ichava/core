@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Simtabi\Laranail\Ichava\Support\AuditLogger;
+use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
@@ -210,9 +212,46 @@ final class Icon extends Model
 
                 $cacheKey = 'svg:'.$this->id.':'.($this->file_hash ?? md5($this->path));
 
+                /*
+                 * Sanitise here, at the single point every consumer reads through.
+                 *
+                 * This used to be a bare `File::get()`. The SVG endpoint's own comment
+                 * claimed the content "has been sanitised by SvgProcessingService" and
+                 * added nosniff plus a restrictive CSP as defence in depth -- but nothing
+                 * had sanitised it, so those headers were the only defence, and they only
+                 * apply to that one route.
+                 *
+                 * The path that mattered more is JSON: `IconBrowserService` puts
+                 * `svg_content` straight into an API payload, where no response header
+                 * helps, and the client injects it into the DOM. A pack shipping a hostile
+                 * file reached the browser verbatim -- and packs do contain
+                 * `foreignObject`, `script` and `image` elements today.
+                 *
+                 * The result is cached post-sanitisation, so this costs one pass per icon
+                 * per cache lifetime rather than one per request.
+                 */
                 return app(IconCacheService::class)->remember(
                     $cacheKey,
-                    fn (): string => File::get($this->absolute_path)
+                    function (): string {
+                        $raw = File::get($this->absolute_path);
+
+                        try {
+                            return app(SvgProcessingService::class)->process($raw, [], false);
+                        } catch (\Throwable $e) {
+                            /*
+                             * A file the sanitiser rejects is not served raw as a
+                             * fallback. Failing closed is the point: the rejection means
+                             * it could not be made safe.
+                             */
+                            app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
+                                'path' => $this->path,
+                                'package' => $this->package,
+                                'reason' => $e->getMessage(),
+                            ]);
+
+                            return '';
+                        }
+                    }
                 );
             }
         );
@@ -345,15 +384,36 @@ final class Icon extends Model
     {
         $like = '%'.$search.'%';
 
-        return $query->where(function (Builder $q) use ($like): void {
+        /*
+         * This is the path every non-PostgreSQL driver takes -- `scopeSearch` delegates
+         * here whenever the driver is not pgsql -- yet it was written entirely in
+         * PostgreSQL-only SQL. `jsonb_array_elements_text()` does not exist on SQLite or
+         * MySQL, and the `keywords` and `tags` scopes default to enabled, so any search on
+         * those drivers failed with "no such table: jsonb_array_elements_text".
+         *
+         * The bug was invisible to whoever wrote it, because on PostgreSQL this function is
+         * never reached.
+         *
+         * Elsewhere the jsonb form is kept: it matches array ELEMENTS, so searching "nav"
+         * cannot match the literal characters of a different key. The portable branch is a
+         * LIKE over the encoded JSON, which is looser but is what these drivers can express
+         * without a query per element.
+         */
+        $isPostgres = $query->getConnection()->getDriverName() === 'pgsql';
+
+        return $query->where(function (Builder $q) use ($like, $isPostgres): void {
             $q->where('name', 'LIKE', $like);
 
             if (FtsLanguageHelper::isScopeEnabled('keywords')) {
-                $q->orWhereRaw('EXISTS (SELECT 1 FROM jsonb_array_elements_text(keywords) AS kw WHERE kw LIKE ?)', [$like]);
+                $isPostgres
+                    ? $q->orWhereRaw('EXISTS (SELECT 1 FROM jsonb_array_elements_text(keywords) AS kw WHERE kw LIKE ?)', [$like])
+                    : $q->orWhere('keywords', 'LIKE', $like);
             }
 
             if (FtsLanguageHelper::isScopeEnabled('tags')) {
-                $q->orWhereRaw('EXISTS (SELECT 1 FROM jsonb_array_elements_text(tags) AS tag WHERE tag LIKE ?)', [$like]);
+                $isPostgres
+                    ? $q->orWhereRaw('EXISTS (SELECT 1 FROM jsonb_array_elements_text(tags) AS tag WHERE tag LIKE ?)', [$like])
+                    : $q->orWhere('tags', 'LIKE', $like);
             }
 
             if (FtsLanguageHelper::isScopeEnabled('categories') || FtsLanguageHelper::isScopeEnabled('variants')) {
