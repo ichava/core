@@ -25,14 +25,13 @@
     "ajaxray/ansikit": "^0.3.1",
     "illuminate/filesystem": "^13.0",
     "illuminate/support": "^13.0",
-    "illuminate/view": "^13.0",
     "laranail/console": "^0.1.0",
     "laranail/enumerator": "^0.1.0",
     "laranail/package-tools": "^0.1.0"
   },
   "require-dev": {
     "orchestra/testbench": "^11.0",
-    "pestphp/pest": "^3.0 || ^4.0",
+    "pestphp/pest": "^5.0",
     "laravel/pint": "^1.18"
   },
   "autoload": {
