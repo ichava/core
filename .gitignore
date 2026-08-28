@@ -16,7 +16,6 @@
 Thumbs.db
 
 # Composer
-composer.lock
 auth.json
 
 # PHP test + lint caches
