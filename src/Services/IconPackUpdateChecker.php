@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Closure;
+use Throwable;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Http;
 use Simtabi\Laranail\Ichava\Constants\JsonConfigConstants;
 use Simtabi\Laranail\Ichava\Events\IconPackUpdateAvailable;
-use Throwable;
 
 /**
  * Discovers registered icon packs that are behind their upstream source.
@@ -43,7 +44,7 @@ class IconPackUpdateChecker
         protected ?IchavaLogger $logger = null,
         protected int $cacheTtl = self::DEFAULT_CACHE_TTL,
         protected int $httpTimeout = 15,
-        protected ?\Closure $constantsResolver = null,
+        protected ?Closure $constantsResolver = null,
     ) {}
 
     /**
@@ -51,9 +52,9 @@ class IconPackUpdateChecker
      * inject canned IconsConstants subclasses without registering real
      * service providers; production code never calls it.
      *
-     * @param  \Closure(string):?class-string<JsonConfigConstants>  $resolver
+     * @param Closure(string):?class-string<JsonConfigConstants> $resolver
      */
-    public function setConstantsResolver(\Closure $resolver): void
+    public function setConstantsResolver(Closure $resolver): void
     {
         $this->constantsResolver = $resolver;
     }
@@ -138,13 +139,13 @@ class IconPackUpdateChecker
         $constantsClass = $this->resolveConstants($packageName);
         if ($constantsClass === null || ! $constantsClass::hasUpstream()) {
             return [
-                'package' => $packageName,
-                'source' => 'primary',
-                'status' => 'no-upstream',
-                'current' => null,
-                'latest' => null,
+                'package'     => $packageName,
+                'source'      => 'primary',
+                'status'      => 'no-upstream',
+                'current'     => null,
+                'latest'      => null,
                 'release_url' => null,
-                'reason' => 'Pack does not declare an upstream block in config.json',
+                'reason'      => 'Pack does not declare an upstream block in config.json',
             ];
         }
 
@@ -171,8 +172,8 @@ class IconPackUpdateChecker
         // Each additional source is a self-contained mini-upstream block.
         // The shape mirrors the primary one: source/current_version/url/cdn.
         $upstream = [
-            'source' => $extraSource,
-            'current_version' => $extraSource['current_version'] ?? null,
+            'source'            => $extraSource,
+            'current_version'   => $extraSource['current_version'] ?? null,
             'version_check_url' => $extraSource['version_check_url'] ?? null,
         ];
 
@@ -201,13 +202,13 @@ class IconPackUpdateChecker
 
         if (! $url) {
             return [
-                'package' => $packageName,
-                'source' => $sourceName,
-                'status' => 'no-upstream',
-                'current' => $current,
-                'latest' => null,
+                'package'     => $packageName,
+                'source'      => $sourceName,
+                'status'      => 'no-upstream',
+                'current'     => $current,
+                'latest'      => null,
                 'release_url' => null,
-                'reason' => 'upstream.version_check_url is missing',
+                'reason'      => 'upstream.version_check_url is missing',
             ];
         }
 
@@ -215,26 +216,26 @@ class IconPackUpdateChecker
             $payload = $this->fetch($url);
         } catch (Throwable $e) {
             return [
-                'package' => $packageName,
-                'source' => $sourceName,
-                'status' => 'unreachable',
-                'current' => $current,
-                'latest' => null,
+                'package'     => $packageName,
+                'source'      => $sourceName,
+                'status'      => 'unreachable',
+                'current'     => $current,
+                'latest'      => null,
                 'release_url' => null,
-                'reason' => $e->getMessage(),
+                'reason'      => $e->getMessage(),
             ];
         }
 
         $latest = $this->parseLatest($upstream, $payload);
         if ($latest === null) {
             return [
-                'package' => $packageName,
-                'source' => $sourceName,
-                'status' => 'error',
-                'current' => $current,
-                'latest' => null,
+                'package'     => $packageName,
+                'source'      => $sourceName,
+                'status'      => 'error',
+                'current'     => $current,
+                'latest'      => null,
                 'release_url' => $this->resolveReleaseUrl($upstream, $payload, null),
-                'reason' => 'Could not parse latest version from upstream response',
+                'reason'      => 'Could not parse latest version from upstream response',
             ];
         }
 
@@ -250,24 +251,24 @@ class IconPackUpdateChecker
             ));
 
             return [
-                'package' => $packageName,
-                'source' => $sourceName,
-                'status' => 'update-available',
-                'current' => $current,
-                'latest' => $latest,
+                'package'     => $packageName,
+                'source'      => $sourceName,
+                'status'      => 'update-available',
+                'current'     => $current,
+                'latest'      => $latest,
                 'release_url' => $releaseUrl,
-                'reason' => null,
+                'reason'      => null,
             ];
         }
 
         return [
-            'package' => $packageName,
-            'source' => $sourceName,
-            'status' => 'up-to-date',
-            'current' => $current,
-            'latest' => $latest,
+            'package'     => $packageName,
+            'source'      => $sourceName,
+            'status'      => 'up-to-date',
+            'current'     => $current,
+            'latest'      => $latest,
             'release_url' => $releaseUrl,
-            'reason' => null,
+            'reason'      => null,
         ];
     }
 
@@ -285,13 +286,13 @@ class IconPackUpdateChecker
         $source = $upstream['source'] ?? [];
 
         return match ($type) {
-            'github' => $payload['html_url'] ?? $this->githubReleaseUrl($source, $version),
+            'github'     => $payload['html_url'] ?? $this->githubReleaseUrl($source, $version),
             'github-tag' => $this->githubReleaseUrl($source, $version),
-            'npm' => $this->npmReleaseUrl($source, $version),
-            'packagist' => $this->packagistReleaseUrl($source, $version),
-            'url' => $this->interpolateTemplate(
+            'npm'        => $this->npmReleaseUrl($source, $version),
+            'packagist'  => $this->packagistReleaseUrl($source, $version),
+            'url'        => $this->interpolateTemplate(
                 $source['release_url_template'] ?? null,
-                ['version' => $version ?? '']
+                ['version' => $version ?? ''],
             ),
             default => null,
         };
@@ -357,7 +358,7 @@ class IconPackUpdateChecker
             return null;
         }
         foreach ($bindings as $key => $value) {
-            $template = str_replace('{'.$key.'}', (string) $value, $template);
+            $template = str_replace('{' . $key . '}', (string) $value, $template);
         }
 
         return $template;
@@ -385,7 +386,7 @@ class IconPackUpdateChecker
                 continue;
             }
             $namespace = substr($providerClass, 0, -strlen('\\Providers\\IconsServiceProvider'));
-            $constants = $namespace.'\\Constants\\IconsConstants';
+            $constants = $namespace . '\\Constants\\IconsConstants';
             if (! class_exists($constants) || ! is_subclass_of($constants, JsonConfigConstants::class)) {
                 continue;
             }
@@ -407,7 +408,7 @@ class IconPackUpdateChecker
      */
     protected function fetch(string $url): array
     {
-        $cacheKey = self::CACHE_PREFIX.md5($url);
+        $cacheKey = self::CACHE_PREFIX . md5($url);
 
         return Cache::remember($cacheKey, $this->cacheTtl, function () use ($url): array {
             $response = Http::timeout($this->httpTimeout)
@@ -449,14 +450,14 @@ class IconPackUpdateChecker
         $type = $upstream['source']['type'] ?? 'github';
 
         return match ($type) {
-            'github' => $this->trimVersion($payload['tag_name'] ?? null),
+            'github'     => $this->trimVersion($payload['tag_name'] ?? null),
             'github-tag' => $this->trimVersion(
-                $payload[0]['name'] ?? ($payload[0]['ref'] ?? null)
+                $payload[0]['name'] ?? ($payload[0]['ref'] ?? null),
             ),
-            'npm' => $this->trimVersion($payload['version'] ?? null),
+            'npm'       => $this->trimVersion($payload['version'] ?? null),
             'packagist' => $this->parsePackagist($upstream, $payload),
-            'url' => $this->parseDotPath($payload, $upstream['source']['version_field'] ?? 'version'),
-            default => $this->trimVersion($payload['version'] ?? $payload['tag_name'] ?? null),
+            'url'       => $this->parseDotPath($payload, $upstream['source']['version_field'] ?? 'version'),
+            default     => $this->trimVersion($payload['version'] ?? $payload['tag_name'] ?? null),
         };
     }
 
@@ -466,7 +467,7 @@ class IconPackUpdateChecker
      */
     protected function parsePackagist(array $upstream, array $payload): ?string
     {
-        $key = ($upstream['source']['vendor'] ?? '').'/'.($upstream['source']['package'] ?? '');
+        $key = ($upstream['source']['vendor'] ?? '') . '/' . ($upstream['source']['package'] ?? '');
         $key = trim($key, '/');
         if ($key === '') {
             return null;

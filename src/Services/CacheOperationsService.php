@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Exception;
+use RuntimeException;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
@@ -37,7 +39,7 @@ class CacheOperationsService
         protected IconRegistry $registry,
         protected IconsManifest $manifest,
         protected Filesystem $filesystem,
-        protected IchavaLogger $logger
+        protected IchavaLogger $logger,
     ) {}
 
     /**
@@ -51,7 +53,7 @@ class CacheOperationsService
             try {
                 $keys = $this->cacheService->forgetPattern($pattern);
                 $clearedKeys = array_merge($clearedKeys, $keys);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->logger->warning("Failed to clear cache pattern: {$pattern}", [
                     'error' => $e->getMessage(),
                 ]);
@@ -61,7 +63,7 @@ class CacheOperationsService
         // Dispatch cache invalidated event
         Event::dispatch(IconCacheEvent::invalidated(
             reason: 'Manual clear (all)',
-            clearedKeys: $clearedKeys
+            clearedKeys: $clearedKeys,
         ));
 
         $this->logger->info('🧹 Cleared all Ichava caches', [
@@ -80,7 +82,7 @@ class CacheOperationsService
 
         Event::dispatch(IconCacheEvent::invalidated(
             reason: "Manual clear for {$packageName}",
-            clearedKeys: $clearedKeys
+            clearedKeys: $clearedKeys,
         ));
 
         $this->logger->info("Cleared cache for package: {$packageName}", [
@@ -111,13 +113,13 @@ class CacheOperationsService
             iconCount: $stats['total_icons'] ?? 0,
             categoryCount: count($categories),
             packageCount: count($packages),
-            buildTimeMs: $duration
+            buildTimeMs: $duration,
         ));
 
         $result = [
-            'categories' => count($categories),
-            'packages' => count($packages),
-            'total_icons' => $stats['total_icons'] ?? 0,
+            'categories'    => count($categories),
+            'packages'      => count($packages),
+            'total_icons'   => $stats['total_icons'] ?? 0,
             'build_time_ms' => round($duration, 2),
         ];
 
@@ -135,7 +137,7 @@ class CacheOperationsService
         $rebuildStats = $this->rebuild();
 
         return [
-            'cleared_keys' => count($clearedKeys),
+            'cleared_keys'  => count($clearedKeys),
             'rebuild_stats' => $rebuildStats,
         ];
     }
@@ -165,21 +167,21 @@ class CacheOperationsService
         $this->logger->info('💾 Generating icon manifest', ['path' => $manifestPath]);
 
         if (empty($this->registry->all())) {
-            throw new \RuntimeException('No icon packages registered. Cannot generate manifest.');
+            throw new RuntimeException('No icon packages registered. Cannot generate manifest.');
         }
 
         if (! $manifest->write($this->registry)) {
-            throw new \RuntimeException("Failed to write manifest to: {$manifestPath}");
+            throw new RuntimeException("Failed to write manifest to: {$manifestPath}");
         }
 
         $stats = $manifest->getStats() ?? [];
         $duration = (microtime(true) - $startTime) * 1000;
 
         $result = [
-            'path' => $manifestPath,
-            'packages' => $stats['total_sets'] ?? 0,
-            'total_icons' => $stats['total_icons'] ?? 0,
-            'file_size' => $manifest->getSize(),
+            'path'          => $manifestPath,
+            'packages'      => $stats['total_sets'] ?? 0,
+            'total_icons'   => $stats['total_icons'] ?? 0,
+            'file_size'     => $manifest->getSize(),
             'build_time_ms' => round($duration, 2),
         ];
 
@@ -218,10 +220,10 @@ class CacheOperationsService
     public function getStatistics(): array
     {
         return [
-            'driver' => config('cache.default'),
-            'stats' => $this->cacheService->getStats(),
+            'driver'          => config('cache.default'),
+            'stats'           => $this->cacheService->getStats(),
             'manifest_exists' => $this->manifestExists(),
-            'manifest_stale' => $this->manifestIsStale(),
+            'manifest_stale'  => $this->manifestIsStale(),
         ];
     }
 

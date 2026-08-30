@@ -8,16 +8,16 @@ The engine for the [Ichava Laravel icon ecosystem](https://github.com/ichava/doc
 
 ## What's in core
 
-| | |
-|---|---|
-| Security | DOM-based SVG sanitiser with a strict allow-list. XXE-safe (`LIBXML_NONET`, `resolveExternals=false`). Blocks `javascript:`, `vbscript:`, `file:`, all `on*` handlers. |
-| Performance | Icon-level cache, SVG optimisation, indexed DB lookup, pre-built manifest for production. |
-| Blade | The base `<x-ichava::icon>` component every icon pack extends. |
-| Fluent API | `ichava('vendor/pkg::category/name')->color('...')->class('...')`. |
-| Seeder | Queue-backed pipeline with multi-level dedup, change detection, Horizon-aware. |
-| Scaffolder | `php artisan make:icon-package <Name>` bootstraps a new icon pack from a stub tree. |
-| Logging | Three dedicated channels: `ichava`, `ichava-icons`, `ichava-queue`. |
-| Search | PostgreSQL full-text search (recommended) or MySQL 8+. |
+|             |                                                                                                                                                                        |
+|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Security    | DOM-based SVG sanitiser with a strict allow-list. XXE-safe (`LIBXML_NONET`, `resolveExternals=false`). Blocks `javascript:`, `vbscript:`, `file:`, all `on*` handlers. |
+| Performance | Icon-level cache, SVG optimisation, indexed DB lookup, pre-built manifest for production.                                                                              |
+| Blade       | The base `<x-ichava::icon>` component every icon pack extends.                                                                                                         |
+| Fluent API  | `ichava('vendor/pkg::category/name')->color('...')->class('...')`.                                                                                                     |
+| Seeder      | Queue-backed pipeline with multi-level dedup, change detection, Horizon-aware.                                                                                         |
+| Scaffolder  | `php artisan make:icon-package <Name>` bootstraps a new icon pack from a stub tree.                                                                                    |
+| Logging     | Three dedicated channels: `ichava`, `ichava-icons`, `ichava-queue`.                                                                                                    |
+| Search      | PostgreSQL full-text search (recommended) or MySQL 8+.                                                                                                                 |
 
 Zero HTTP surface. No REST endpoints, no middleware, no routes. The HTTP layer (REST API + Vue/Vite SPA) lives in the optional [`ichava/browser`](https://github.com/ichava/browser) package.
 

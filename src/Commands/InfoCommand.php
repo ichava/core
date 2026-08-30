@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Simtabi\Laranail\Ichava\Services\IchavaLogger;
-use Simtabi\Laranail\Ichava\Services\InformationService;
-
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\intro;
 use function Laravel\Prompts\note;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\text;
+use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
+use function Laravel\Prompts\table;
 use function Laravel\Prompts\search;
 use function Laravel\Prompts\select;
-use function Laravel\Prompts\spin;
-use function Laravel\Prompts\table;
-use function Laravel\Prompts\text;
 use function Laravel\Prompts\warning;
+
+use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Services\InformationService;
 
 /**
  * Unified Icon Information Command
@@ -52,7 +52,7 @@ final class InfoCommand extends BaseCommand
 
     public function __construct(
         protected InformationService $infoService,
-        protected IchavaLogger $logger
+        protected IchavaLogger $logger,
     ) {
         parent::__construct();
     }
@@ -66,26 +66,26 @@ final class InfoCommand extends BaseCommand
             $type = select(
                 label: 'What information would you like to view?',
                 options: [
-                    'stats' => 'Stats - Overview statistics',
-                    'packages' => 'Packages - List registered icon packages',
-                    'icons' => 'Icons - Browse icons',
-                    'status' => 'Status - Lifecycle and health status',
+                    'stats'     => 'Stats - Overview statistics',
+                    'packages'  => 'Packages - List registered icon packages',
+                    'icons'     => 'Icons - Browse icons',
+                    'status'    => 'Status - Lifecycle and health status',
                     'languages' => 'Languages - PostgreSQL FTS languages',
-                    'discover' => 'Discover - Find unregistered packages',
+                    'discover'  => 'Discover - Find unregistered packages',
                 ],
                 default: 'stats',
-                hint: 'Select what to display'
+                hint: 'Select what to display',
             );
         }
 
         return match ($type) {
-            'packages' => $this->handlePackages(),
-            'icons' => $this->handleIcons(),
-            'status' => $this->handleStatus(),
+            'packages'  => $this->handlePackages(),
+            'icons'     => $this->handleIcons(),
+            'status'    => $this->handleStatus(),
             'languages' => $this->handleLanguages(),
-            'discover' => $this->handleDiscover(),
-            'stats' => $this->handleStats(),
-            default => $this->handleInvalidType($type, $this->validTypes),
+            'discover'  => $this->handleDiscover(),
+            'stats'     => $this->handleStats(),
+            default     => $this->handleInvalidType($type, $this->validTypes),
         };
     }
 
@@ -98,7 +98,7 @@ final class InfoCommand extends BaseCommand
 
         $packages = spin(
             callback: fn () => $this->infoService->getPackages(),
-            message: 'Loading packages...'
+            message: 'Loading packages...',
         );
 
         if (empty($packages)) {
@@ -114,7 +114,7 @@ final class InfoCommand extends BaseCommand
             $searchTerm = text(
                 label: 'Search packages (leave empty to show all)',
                 placeholder: 'e.g., fontawesome',
-                hint: 'Filter packages by name'
+                hint: 'Filter packages by name',
             );
         }
 
@@ -147,19 +147,19 @@ final class InfoCommand extends BaseCommand
             $searchTerm = text(
                 label: 'Search icons',
                 placeholder: 'e.g., arrow, user, check',
-                hint: 'Filter icons by name'
+                hint: 'Filter icons by name',
             );
         }
 
         $filters = [
             'package' => $this->option('package'),
-            'search' => $searchTerm,
-            'limit' => (int) $this->option('limit'),
+            'search'  => $searchTerm,
+            'limit'   => (int) $this->option('limit'),
         ];
 
         $icons = spin(
             callback: fn () => $this->infoService->getIcons($filters),
-            message: 'Loading icons...'
+            message: 'Loading icons...',
         );
 
         if (empty($icons)) {
@@ -172,7 +172,7 @@ final class InfoCommand extends BaseCommand
             $this->line(json_encode($icons, JSON_PRETTY_PRINT));
         } else {
             $this->displayIconsTable($icons);
-            note('Showing '.count($icons).' icons. Use --limit to show more.');
+            note('Showing ' . count($icons) . ' icons. Use --limit to show more.');
         }
 
         // Export if requested
@@ -192,14 +192,14 @@ final class InfoCommand extends BaseCommand
         if ($this->option('reset')) {
             spin(
                 callback: fn () => $this->infoService->resetLifecycle(),
-                message: 'Resetting lifecycle state...'
+                message: 'Resetting lifecycle state...',
             );
             $this->success('Lifecycle state reset');
         }
 
         $status = spin(
             callback: fn () => $this->infoService->getLifecycleStatus(),
-            message: 'Checking status...'
+            message: 'Checking status...',
         );
 
         // Status checks table
@@ -209,19 +209,19 @@ final class InfoCommand extends BaseCommand
                 ['Migrations', $status['checks']['migrations'] ? '✅ OK' : '❌ NOT READY'],
                 ['Seeds', $status['checks']['seeds'] ? '✅ OK' : '❌ NOT READY'],
                 ['Cache', $status['checks']['cache'] ? '✅ OK' : '❌ NOT READY'],
-            ]
+            ],
         );
 
         // Current stage
         $stageColor = match ($status['stage']) {
-            'READY' => 'green',
-            'SEEDED' => 'yellow',
+            'READY'    => 'green',
+            'SEEDED'   => 'yellow',
             'MIGRATED' => 'yellow',
-            default => 'red',
+            default    => 'red',
         };
 
         $this->line("  <fg=white>Current Stage:</fg=white> <fg={$stageColor}>{$status['stage']}</fg={$stageColor}>");
-        $this->line('  <fg=white>System Ready:</fg=white>  '.($status['is_ready'] ? '<fg=green>YES</fg=green>' : '<fg=red>NO</fg=red>'));
+        $this->line('  <fg=white>System Ready:</fg=white>  ' . ($status['is_ready'] ? '<fg=green>YES</fg=green>' : '<fg=red>NO</fg=red>'));
 
         // Icon count
         if ($status['icon_count'] !== null) {
@@ -254,7 +254,7 @@ final class InfoCommand extends BaseCommand
 
         $languages = spin(
             callback: fn () => $this->infoService->getFtsLanguages(),
-            message: 'Loading languages...'
+            message: 'Loading languages...',
         );
 
         if (empty($languages)) {
@@ -269,7 +269,7 @@ final class InfoCommand extends BaseCommand
                 $lang['language'],
                 $lang['owner'],
                 $lang['description'] ?? '',
-            ], $languages)
+            ], $languages),
         );
 
         $currentLang = $this->infoService->getCurrentFtsLanguage();
@@ -288,7 +288,7 @@ final class InfoCommand extends BaseCommand
 
         $discovered = spin(
             callback: fn () => $this->infoService->discoverPackages(),
-            message: 'Scanning filesystem...'
+            message: 'Scanning filesystem...',
         );
 
         if (empty($discovered)) {
@@ -308,7 +308,7 @@ final class InfoCommand extends BaseCommand
 
         table(
             headers: ['Package', 'Path', 'Registered'],
-            rows: $rows
+            rows: $rows,
         );
 
         return self::SUCCESS;
@@ -323,7 +323,7 @@ final class InfoCommand extends BaseCommand
 
         $stats = spin(
             callback: fn () => $this->infoService->getStatistics(),
-            message: 'Gathering statistics...'
+            message: 'Gathering statistics...',
         );
 
         table(
@@ -335,13 +335,13 @@ final class InfoCommand extends BaseCommand
                 ['Variants', $this->formatNumber($stats['variants'])],
                 ['Database Size', $stats['database_size'] ?? 'N/A'],
                 ['Cache Driver', $stats['cache_driver'] ?? 'N/A'],
-            ]
+            ],
         );
 
         // Top packages by icon count
         $topPackages = spin(
             callback: fn () => $this->infoService->getTopPackages(5),
-            message: 'Loading top packages...'
+            message: 'Loading top packages...',
         );
 
         if (! empty($topPackages)) {
@@ -353,7 +353,7 @@ final class InfoCommand extends BaseCommand
                 rows: array_map(fn ($pkg) => [
                     $pkg['package'],
                     $this->formatNumber($pkg['count']),
-                ], $topPackages)
+                ], $topPackages),
             );
         }
 
@@ -377,7 +377,7 @@ final class InfoCommand extends BaseCommand
 
         table(
             headers: ['Package', 'Path', 'Icons', 'Status'],
-            rows: $rows
+            rows: $rows,
         );
     }
 
@@ -394,7 +394,7 @@ final class InfoCommand extends BaseCommand
 
         table(
             headers: ['Name', 'Package', 'Path'],
-            rows: $rows
+            rows: $rows,
         );
     }
 

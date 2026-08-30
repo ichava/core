@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Providers;
 
-use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
 use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
-use Simtabi\Laranail\Ichava\Listeners\AutoSeedIconsOnRegistration;
-use Simtabi\Laranail\Ichava\Listeners\AutoUnseedOnUnregistration;
 use Simtabi\Laranail\Ichava\Listeners\InvalidateIconCache;
+use Simtabi\Laranail\Ichava\Listeners\AutoUnseedOnUnregistration;
+use Simtabi\Laranail\Ichava\Listeners\AutoSeedIconsOnRegistration;
+use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 /**
  * EventServiceProvider - Ichava Event & Listener Registration

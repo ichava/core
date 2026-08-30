@@ -4,22 +4,23 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Models;
 
+use Throwable;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Simtabi\Laranail\Ichava\Support\AuditLogger;
-use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
-use Illuminate\Support\Str;
-use Simtabi\Laranail\Ichava\Services\IconCacheService;
-use Simtabi\Laranail\Ichava\Services\IconRegistry;
-use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Support\AuditLogger;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Simtabi\Laranail\Ichava\Services\IconCacheService;
+use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
 /**
  * Eloquent model for icon metadata. SVG content is not stored, only metadata
@@ -73,254 +74,78 @@ final class Icon extends Model
     ];
 
     /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'tags' => 'array',
-            'keywords' => 'array',
-            'search_text' => 'array',
-            'attributes' => 'array',
-            'metadata' => 'array',
-            'file_modified_at' => 'datetime',
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
-        ];
-    }
-
-    /**
      * Default values for JSON columns. Keeps them as valid JSON when a row
      * is inserted without those keys explicitly populated.
      *
      * @var array<string, mixed>
      */
     protected $attributes = [
-        'tags' => '[]',
-        'keywords' => '[]',
+        'tags'       => '[]',
+        'keywords'   => '[]',
         'attributes' => '{}',
-        'metadata' => '{}',
+        'metadata'   => '{}',
     ];
 
-    /**
-     * Get SVG viewBox attribute from JSON
-     */
-    protected function viewbox(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): ?string => ($this->attributes ?? [])['viewbox'] ?? null,
-            set: fn (?string $value): array => [
-                'attributes' => array_merge(
-                    $this->attributes ?? [],
-                    ['viewbox' => $value]
-                ),
-            ]
-        );
-    }
+    /***********************************************************************
+     * Static Query Methods
+     **********************************************************************/
 
     /**
-     * Get SVG width attribute from JSON
+     * Find icon by package and name
      */
-    protected function width(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): ?string => ($this->attributes ?? [])['width'] ?? null,
-            set: fn (?string $value): array => [
-                'attributes' => array_merge(
-                    $this->attributes ?? [],
-                    ['width' => $value]
-                ),
-            ]
-        );
-    }
-
     /**
-     * Get SVG height attribute from JSON
-     */
-    protected function height(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): ?string => ($this->attributes ?? [])['height'] ?? null,
-            set: fn (?string $value): array => [
-                'attributes' => array_merge(
-                    $this->attributes ?? [],
-                    ['height' => $value]
-                ),
-            ]
-        );
-    }
-
-    /**
-     * Get absolute path (builds from relative path + package base_path)
+     * Prepare attribute value for bulk database operations (upsert, insert)
      *
-     * Handles two distinct icon package structures:
+     * This helper ensures JSON attributes are properly cast for bulk operations
+     * where Eloquent's automatic casting doesn't apply.
      *
-     * 1. CORE ICHAVA (Multi-set packages):
-     *    - Structure: vendor/ichava/resources/assets/svg/{set-name}/files/{category}/icon.svg
-     *    - base_path: /path/to/vendor/ichava/resources/assets/svg
-     *    - Stored path: {set-name}/files/{category}/icon.svg
-     *    - Example: test-icons/files/test-icons/check.svg
+     * @param string $key Attribute name
+     * @param mixed $value Value to cast
      *
-     * 2. STANDARD PACKAGES (Single-set packages):
-     *    - Structure: vendor/package-name/resources/assets/svg/files/{category}/icon.svg
-     *    - base_path: /path/to/vendor/package-name/resources/assets/svg
-     *    - Stored path: files/{category}/icon.svg
-     *    - Example: files/iconpark/stretching-o.svg
+     * @return mixed Properly formatted value for database storage
      */
-    protected function absolutePath(): Attribute
+    public static function prepareAttributeForDatabase(string $key, mixed $value): mixed
     {
-        return Attribute::make(
-            get: function (): string {
-                // Backward compatibility: If path is already absolute, return as-is
-                if ($this->isAbsolutePath($this->path)) {
-                    return $this->path;
-                }
+        // Defensive: Ensure arrays
+        if (in_array($key, ['tags', 'keywords', 'search_text']) && ! is_array($value)) {
+            $value = is_string($value) ? [$value] : [];
+        }
 
-                // Build absolute path: base_path + relative_path
-                // Works for both core (with set-name/) and standard (with files/) packages
-                $packageBasePath = $this->getPackageBasePath();
-                $absolutePath = $packageBasePath.DIRECTORY_SEPARATOR.ltrim($this->path, '/\\');
+        // Use a temporary instance to use the model's casting logic
+        $instance = new self;
+        $instance->setAttribute($key, $value);
 
-                // Normalize directory separators for cross-platform compatibility
-                return str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $absolutePath);
-            }
-        );
+        // Get the value as it would be stored (with casts applied)
+        return $instance->getAttributes()[$key];
     }
 
     /**
-     * Get file size (computed from filesystem)
+     * Find an icon by package name and icon name
      */
-    protected function fileSize(): Attribute
+    public static function findByName(string $package, string $name, ?string $variant = null): ?self
     {
-        return Attribute::make(
-            get: fn (): ?int => File::exists($this->absolute_path)
-                ? File::size($this->absolute_path)
-                : null,
-        );
+        $query = self::where('package', $package)->where('name', $name);
+
+        if ($variant) {
+            $query->variant($variant);
+        }
+
+        return $query->first();
     }
 
     /**
-     * Get SVG content (cached)
+     * Get package counts (cached)
      */
-    protected function svgContent(): Attribute
+    public static function getPackageCounts(): array
     {
-        return Attribute::make(
-            get: function (): ?string {
-                if (! File::exists($this->absolute_path)) {
-                    return null;
-                }
-
-                $cacheKey = 'svg:'.$this->id.':'.($this->file_hash ?? md5($this->path));
-
-                /*
-                 * Sanitise here, at the single point every consumer reads through.
-                 *
-                 * This used to be a bare `File::get()`. The SVG endpoint's own comment
-                 * claimed the content "has been sanitised by SvgProcessingService" and
-                 * added nosniff plus a restrictive CSP as defence in depth -- but nothing
-                 * had sanitised it, so those headers were the only defence, and they only
-                 * apply to that one route.
-                 *
-                 * The path that mattered more is JSON: `IconBrowserService` puts
-                 * `svg_content` straight into an API payload, where no response header
-                 * helps, and the client injects it into the DOM. A pack shipping a hostile
-                 * file reached the browser verbatim -- and packs do contain
-                 * `foreignObject`, `script` and `image` elements today.
-                 *
-                 * The result is cached post-sanitisation, so this costs one pass per icon
-                 * per cache lifetime rather than one per request.
-                 */
-                return app(IconCacheService::class)->remember(
-                    $cacheKey,
-                    function (): string {
-                        $raw = File::get($this->absolute_path);
-
-                        try {
-                            return app(SvgProcessingService::class)->process($raw, [], false);
-                        } catch (\Throwable $e) {
-                            /*
-                             * A file the sanitiser rejects is not served raw as a
-                             * fallback. Failing closed is the point: the rejection means
-                             * it could not be made safe.
-                             */
-                            app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
-                                'path' => $this->path,
-                                'package' => $this->package,
-                                'reason' => $e->getMessage(),
-                            ]);
-
-                            return '';
-                        }
-                    }
-                );
-            }
-        );
-    }
-
-    /**
-     * Get icon path for ichava() helper
-     * Format: package::category/name:variant
-     */
-    protected function iconPath(): Attribute
-    {
-        return Attribute::make(
-            get: function (): string {
-                $path = $this->package.'::';
-
-                if ($category = $this->primary_category) {
-                    $path .= $category->slug.'/';
-                }
-
-                $path .= $this->name;
-
-                if ($variant = $this->primary_variant) {
-                    $path .= ':'.$variant->slug;
-                }
-
-                return $path;
-            }
-        );
-    }
-
-    /**
-     * Get primary category
-     */
-    protected function primaryCategory(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): ?IconTerm => $this->categories()
-                ->whereNull('parent_id')
-                ->first() ?? $this->categories()->first()
-        );
-    }
-
-    /**
-     * Get primary variant
-     */
-    protected function primaryVariant(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): ?IconTerm => $this->variants()->first()
-        );
-    }
-
-    /**
-     * Get all category slugs
-     */
-    protected function categorySlugs(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): array => $this->categories()->pluck('slug')->toArray()
-        );
-    }
-
-    /**
-     * Get all variant slugs
-     */
-    protected function variantSlugs(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): array => $this->variants()->pluck('slug')->toArray()
+        return app(IconCacheService::class)->remember(
+            'icons.counts.packages',
+            fn () => self::query()
+                ->selectRaw('package, COUNT(*) as count')
+                ->groupBy('package')
+                ->pluck('count', 'package')
+                ->toArray(),
+            60 * 24, // 24 hours
         );
     }
 
@@ -335,7 +160,7 @@ final class Icon extends Model
             'termable',
             'ichava_icon_termables',
             'termable_id',
-            'term_id'
+            'term_id',
         )->withTimestamps();
     }
 
@@ -382,7 +207,7 @@ final class Icon extends Model
      */
     public function scopeFuzzySearch(Builder $query, string $search): Builder
     {
-        $like = '%'.$search.'%';
+        $like = '%' . $search . '%';
 
         /*
          * This is the path every non-PostgreSQL driver takes -- `scopeSearch` delegates
@@ -457,8 +282,10 @@ final class Icon extends Model
      */
     public function scopeVariant(Builder $query, string $variant): Builder
     {
-        return $query->whereHas('terms', fn (Builder $termQuery) => $termQuery->where('type', IconTerm::TYPE_VARIANT)
-            ->where('slug', $variant)
+        return $query->whereHas(
+            'terms',
+            fn (Builder $termQuery) => $termQuery->where('type', IconTerm::TYPE_VARIANT)
+                ->where('slug', $variant),
         );
     }
 
@@ -638,68 +465,6 @@ final class Icon extends Model
     }
 
     /***********************************************************************
-     * Static Query Methods
-     **********************************************************************/
-
-    /**
-     * Find icon by package and name
-     */
-    /**
-     * Prepare attribute value for bulk database operations (upsert, insert)
-     *
-     * This helper ensures JSON attributes are properly cast for bulk operations
-     * where Eloquent's automatic casting doesn't apply.
-     *
-     * @param  string  $key  Attribute name
-     * @param  mixed  $value  Value to cast
-     * @return mixed Properly formatted value for database storage
-     */
-    public static function prepareAttributeForDatabase(string $key, mixed $value): mixed
-    {
-        // Defensive: Ensure arrays
-        if (in_array($key, ['tags', 'keywords', 'search_text']) && ! is_array($value)) {
-            $value = is_string($value) ? [$value] : [];
-        }
-
-        // Use a temporary instance to use the model's casting logic
-        $instance = new self;
-        $instance->setAttribute($key, $value);
-
-        // Get the value as it would be stored (with casts applied)
-        return $instance->getAttributes()[$key];
-    }
-
-    /**
-     * Find an icon by package name and icon name
-     */
-    public static function findByName(string $package, string $name, ?string $variant = null): ?self
-    {
-        $query = self::where('package', $package)->where('name', $name);
-
-        if ($variant) {
-            $query->variant($variant);
-        }
-
-        return $query->first();
-    }
-
-    /**
-     * Get package counts (cached)
-     */
-    public static function getPackageCounts(): array
-    {
-        return app(IconCacheService::class)->remember(
-            'icons.counts.packages',
-            fn () => self::query()
-                ->selectRaw('package, COUNT(*) as count')
-                ->groupBy('package')
-                ->pluck('count', 'package')
-                ->toArray(),
-            60 * 24 // 24 hours
-        );
-    }
-
-    /***********************************************************************
      * Helper Methods
      **********************************************************************/
 
@@ -779,6 +544,266 @@ final class Icon extends Model
         }
     }
 
+    /***********************************************************************
+     * Model Events
+     **********************************************************************/
+
+    protected static function booted(): void
+    {
+        self::created(function (self $icon): void {
+            // Auto-attach categories from path on creation
+            if (config('ichava.database.auto_sync', true)) {
+                $icon->syncCategoriesFromPath();
+            }
+        });
+
+        self::updated(function (self $icon): void {
+            // Refresh search text if name or path changed
+            if ($icon->isDirty(['name', 'path'])) {
+                $icon->refreshSearchText();
+            }
+        });
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'tags'             => 'array',
+            'keywords'         => 'array',
+            'search_text'      => 'array',
+            'attributes'       => 'array',
+            'metadata'         => 'array',
+            'file_modified_at' => 'datetime',
+            'created_at'       => 'datetime',
+            'updated_at'       => 'datetime',
+        ];
+    }
+
+    /**
+     * Get SVG viewBox attribute from JSON
+     */
+    protected function viewbox(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => ($this->attributes ?? [])['viewbox'] ?? null,
+            set: fn (?string $value): array => [
+                'attributes' => array_merge(
+                    $this->attributes ?? [],
+                    ['viewbox' => $value],
+                ),
+            ],
+        );
+    }
+
+    /**
+     * Get SVG width attribute from JSON
+     */
+    protected function width(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => ($this->attributes ?? [])['width'] ?? null,
+            set: fn (?string $value): array => [
+                'attributes' => array_merge(
+                    $this->attributes ?? [],
+                    ['width' => $value],
+                ),
+            ],
+        );
+    }
+
+    /**
+     * Get SVG height attribute from JSON
+     */
+    protected function height(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => ($this->attributes ?? [])['height'] ?? null,
+            set: fn (?string $value): array => [
+                'attributes' => array_merge(
+                    $this->attributes ?? [],
+                    ['height' => $value],
+                ),
+            ],
+        );
+    }
+
+    /**
+     * Get absolute path (builds from relative path + package base_path)
+     *
+     * Handles two distinct icon package structures:
+     *
+     * 1. CORE ICHAVA (Multi-set packages):
+     *    - Structure: vendor/ichava/resources/assets/svg/{set-name}/files/{category}/icon.svg
+     *    - base_path: /path/to/vendor/ichava/resources/assets/svg
+     *    - Stored path: {set-name}/files/{category}/icon.svg
+     *    - Example: test-icons/files/test-icons/check.svg
+     *
+     * 2. STANDARD PACKAGES (Single-set packages):
+     *    - Structure: vendor/package-name/resources/assets/svg/files/{category}/icon.svg
+     *    - base_path: /path/to/vendor/package-name/resources/assets/svg
+     *    - Stored path: files/{category}/icon.svg
+     *    - Example: files/iconpark/stretching-o.svg
+     */
+    protected function absolutePath(): Attribute
+    {
+        return Attribute::make(
+            get: function (): string {
+                // Backward compatibility: If path is already absolute, return as-is
+                if ($this->isAbsolutePath($this->path)) {
+                    return $this->path;
+                }
+
+                // Build absolute path: base_path + relative_path
+                // Works for both core (with set-name/) and standard (with files/) packages
+                $packageBasePath = $this->getPackageBasePath();
+                $absolutePath = $packageBasePath . DIRECTORY_SEPARATOR . ltrim($this->path, '/\\');
+
+                // Normalize directory separators for cross-platform compatibility
+                return str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $absolutePath);
+            },
+        );
+    }
+
+    /**
+     * Get file size (computed from filesystem)
+     */
+    protected function fileSize(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?int => File::exists($this->absolute_path)
+                ? File::size($this->absolute_path)
+                : null,
+        );
+    }
+
+    /**
+     * Get SVG content (cached)
+     */
+    protected function svgContent(): Attribute
+    {
+        return Attribute::make(
+            get: function (): ?string {
+                if (! File::exists($this->absolute_path)) {
+                    return null;
+                }
+
+                $cacheKey = 'svg:' . $this->id . ':' . ($this->file_hash ?? md5($this->path));
+
+                /*
+                 * Sanitise here, at the single point every consumer reads through.
+                 *
+                 * This used to be a bare `File::get()`. The SVG endpoint's own comment
+                 * claimed the content "has been sanitised by SvgProcessingService" and
+                 * added nosniff plus a restrictive CSP as defence in depth -- but nothing
+                 * had sanitised it, so those headers were the only defence, and they only
+                 * apply to that one route.
+                 *
+                 * The path that mattered more is JSON: `IconBrowserService` puts
+                 * `svg_content` straight into an API payload, where no response header
+                 * helps, and the client injects it into the DOM. A pack shipping a hostile
+                 * file reached the browser verbatim -- and packs do contain
+                 * `foreignObject`, `script` and `image` elements today.
+                 *
+                 * The result is cached post-sanitisation, so this costs one pass per icon
+                 * per cache lifetime rather than one per request.
+                 */
+                return app(IconCacheService::class)->remember(
+                    $cacheKey,
+                    function (): string {
+                        $raw = File::get($this->absolute_path);
+
+                        try {
+                            return app(SvgProcessingService::class)->process($raw, [], false);
+                        } catch (Throwable $e) {
+                            /*
+                             * A file the sanitiser rejects is not served raw as a
+                             * fallback. Failing closed is the point: the rejection means
+                             * it could not be made safe.
+                             */
+                            app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
+                                'path'    => $this->path,
+                                'package' => $this->package,
+                                'reason'  => $e->getMessage(),
+                            ]);
+
+                            return '';
+                        }
+                    },
+                );
+            },
+        );
+    }
+
+    /**
+     * Get icon path for ichava() helper
+     * Format: package::category/name:variant
+     */
+    protected function iconPath(): Attribute
+    {
+        return Attribute::make(
+            get: function (): string {
+                $path = $this->package . '::';
+
+                if ($category = $this->primary_category) {
+                    $path .= $category->slug . '/';
+                }
+
+                $path .= $this->name;
+
+                if ($variant = $this->primary_variant) {
+                    $path .= ':' . $variant->slug;
+                }
+
+                return $path;
+            },
+        );
+    }
+
+    /**
+     * Get primary category
+     */
+    protected function primaryCategory(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?IconTerm => $this->categories()
+                ->whereNull('parent_id')
+                ->first() ?? $this->categories()->first(),
+        );
+    }
+
+    /**
+     * Get primary variant
+     */
+    protected function primaryVariant(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?IconTerm => $this->variants()->first(),
+        );
+    }
+
+    /**
+     * Get all category slugs
+     */
+    protected function categorySlugs(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): array => $this->categories()->pluck('slug')->toArray(),
+        );
+    }
+
+    /**
+     * Get all variant slugs
+     */
+    protected function variantSlugs(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): array => $this->variants()->pluck('slug')->toArray(),
+        );
+    }
+
     /**
      * Get base path for package
      */
@@ -816,26 +841,5 @@ final class Icon extends Model
         }
 
         return false;
-    }
-
-    /***********************************************************************
-     * Model Events
-     **********************************************************************/
-
-    protected static function booted(): void
-    {
-        self::created(function (self $icon): void {
-            // Auto-attach categories from path on creation
-            if (config('ichava.database.auto_sync', true)) {
-                $icon->syncCategoriesFromPath();
-            }
-        });
-
-        self::updated(function (self $icon): void {
-            // Refresh search text if name or path changed
-            if ($icon->isDirty(['name', 'path'])) {
-                $icon->refreshSearchText();
-            }
-        });
     }
 }

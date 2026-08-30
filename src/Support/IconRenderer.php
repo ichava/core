@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use Exception;
 use Illuminate\Contracts\Support\Htmlable;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
 /**
@@ -22,36 +23,59 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  */
 final class IconRenderer implements Htmlable
 {
-    protected string $name;
+    private string $name;
 
-    protected ?string $variant = null;
+    private ?string $variant = null;
 
-    protected ?string $category = null;
+    private ?string $category = null;
 
-    protected array $classes = [];
+    private array $classes = [];
 
-    protected array $attributes = [];
+    private array $attributes = [];
 
-    protected ?string $title = null;
+    private ?string $title = null;
 
-    protected ?string $ariaLabel = null;
+    private ?string $ariaLabel = null;
 
-    protected ?string $role = 'img';
+    private ?string $role = 'img';
 
-    protected ?string $size = null;
+    private ?string $size = null;
 
-    protected ?string $width = null;
+    private ?string $width = null;
 
-    protected ?string $height = null;
+    private ?string $height = null;
 
-    protected bool $defer = false;
+    private bool $defer = false;
 
     public function __construct(
-        protected IconRegistry $registry,
+        private IconRegistry $registry,
         private readonly DeferredIconsRegistry $deferredRegistry,
         private readonly PathResolver $pathResolver,
         private readonly SvgProcessingService $svgProcessor,
     ) {}
+
+    /**
+     * Auto-convert to string
+     */
+    public function __toString(): string
+    {
+        try {
+            return $this->render();
+        } catch (Exception $e) {
+            return '';
+        }
+    }
+
+    /**
+     * Create a new instance (for static usage)
+     */
+    public static function make(string $name, ?string $variant = null, ?string $category = null): static
+    {
+        $instance = app(self::class);
+        $instance->icon($name, $variant, $category);
+
+        return $instance;
+    }
 
     /**
      * Set the icon to render.
@@ -75,9 +99,9 @@ final class IconRenderer implements Htmlable
      * - `::` separates package from icon path
      * - `/` or `.` separates segments within the icon path
      *
-     * @param  string  $name  Icon identifier in `vendor/package::category/icon-name` format
-     * @param  string|null  $variant  Optional variant (if not already in $name)
-     * @param  string|null  $category  Optional category (if not already in $name)
+     * @param string $name Icon identifier in `vendor/package::category/icon-name` format
+     * @param string|null $variant Optional variant (if not already in $name)
+     * @param string|null $category Optional category (if not already in $name)
      */
     public function icon(string $name, ?string $variant = null, ?string $category = null): static
     {
@@ -94,9 +118,9 @@ final class IconRenderer implements Htmlable
      * Flexible overload: if the second argument is an array it is treated as
      * HTML attributes rather than a variant string.
      *
-     * @param  string  $name  Icon identifier
-     * @param  string|array|null  $variantOrAttributes  Variant string, or attributes array
-     * @param  string|null  $category  Optional category
+     * @param string $name Icon identifier
+     * @param string|array|null $variantOrAttributes Variant string, or attributes array
+     * @param string|null $category Optional category
      */
     public function name(string $name, string|array|null $variantOrAttributes = null, ?string $category = null): static
     {
@@ -115,7 +139,7 @@ final class IconRenderer implements Htmlable
     /**
      * Add CSS class(es) to the icon
      *
-     * @param  string|array  $classes  Single class string or array of classes
+     * @param string|array $classes Single class string or array of classes
      */
     public function class(string|array $classes): static
     {
@@ -131,7 +155,7 @@ final class IconRenderer implements Htmlable
     /**
      * Set HTML attributes for the icon
      *
-     * @param  array<string, mixed>  $attributes  Associative array of HTML attributes
+     * @param array<string, mixed> $attributes Associative array of HTML attributes
      */
     public function attributes(array $attributes): static
     {
@@ -143,8 +167,8 @@ final class IconRenderer implements Htmlable
     /**
      * Set a single HTML attribute
      *
-     * @param  string  $key  Attribute name
-     * @param  mixed  $value  Attribute value
+     * @param string $key Attribute name
+     * @param mixed $value Attribute value
      */
     public function attribute(string $key, mixed $value): static
     {
@@ -158,7 +182,7 @@ final class IconRenderer implements Htmlable
      *
      * The title is injected as a <title> element inside the SVG for screen readers
      *
-     * @param  string  $title  Descriptive title for the icon
+     * @param string $title Descriptive title for the icon
      */
     public function title(string $title): static
     {
@@ -172,7 +196,7 @@ final class IconRenderer implements Htmlable
      *
      * Provides accessible name for screen readers
      *
-     * @param  string  $label  Accessible label for the icon
+     * @param string $label Accessible label for the icon
      */
     public function aria(string $label): static
     {
@@ -186,7 +210,7 @@ final class IconRenderer implements Htmlable
      *
      * Default is 'img'. Common values: 'img', 'presentation', 'none'
      *
-     * @param  string  $role  ARIA role value
+     * @param string $role ARIA role value
      */
     public function role(string $role): static
     {
@@ -201,7 +225,7 @@ final class IconRenderer implements Htmlable
      * Presets: 'xs', 'sm', 'md', 'lg', 'xl', '2xl', etc.
      * Custom: '24', '48px', '2rem', etc.
      *
-     * @param  string  $size  Size preset or custom dimension
+     * @param string $size Size preset or custom dimension
      */
     public function size(string $size): static
     {
@@ -213,7 +237,7 @@ final class IconRenderer implements Htmlable
     /**
      * Set icon width explicitly
      *
-     * @param  string  $width  Width value (e.g., '24', '48px', '2rem')
+     * @param string $width Width value (e.g., '24', '48px', '2rem')
      */
     public function width(string $width): static
     {
@@ -225,7 +249,7 @@ final class IconRenderer implements Htmlable
     /**
      * Set icon height explicitly
      *
-     * @param  string  $height  Height value (e.g., '24', '48px', '2rem')
+     * @param string $height Height value (e.g., '24', '48px', '2rem')
      */
     public function height(string $height): static
     {
@@ -241,7 +265,7 @@ final class IconRenderer implements Htmlable
      * resulting in ~70% smaller HTML output. Use @ichava_defs directive to output
      * the symbol definitions.
      *
-     * @param  bool  $defer  Whether to enable defer loading
+     * @param bool $defer Whether to enable defer loading
      */
     public function defer(bool $defer = true): static
     {
@@ -261,8 +285,8 @@ final class IconRenderer implements Htmlable
     /**
      * Add a data-* attribute
      *
-     * @param  string  $key  Data attribute key (without 'data-' prefix)
-     * @param  mixed  $value  Attribute value
+     * @param string $key Data attribute key (without 'data-' prefix)
+     * @param mixed $value Attribute value
      */
     public function data(string $key, mixed $value): static
     {
@@ -274,7 +298,7 @@ final class IconRenderer implements Htmlable
      *
      * Useful for colors, opacity, transformations, etc.
      *
-     * @param  string  $style  Inline CSS (e.g., 'color: red; opacity: 0.8')
+     * @param string $style Inline CSS (e.g., 'color: red; opacity: 0.8')
      *
      * @example
      * // Change icon color
@@ -296,7 +320,7 @@ final class IconRenderer implements Htmlable
      *
      * Convenience method for setting color
      *
-     * @param  string  $color  Color value (hex, rgb, named color, etc.)
+     * @param string $color Color value (hex, rgb, named color, etc.)
      *
      * @example
      * ichava('tabler:home')->color('#3B82F6')
@@ -333,9 +357,9 @@ final class IconRenderer implements Htmlable
                 $this->name,
                 $this->variant,
                 $this->category,
-                $attributes
+                $attributes,
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Return empty string or fallback icon on error
             if (config('app.debug', false)) {
                 return "<!-- Icon render error: {$e->getMessage()} -->";
@@ -346,9 +370,37 @@ final class IconRenderer implements Htmlable
     }
 
     /**
+     * Convert to HTML string
+     */
+    public function toHtml(): string
+    {
+        return $this->render();
+    }
+
+    /**
+     * Return the current renderer state as an array, useful for debugging and testing.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'name'       => $this->name ?? null,
+            'variant'    => $this->variant,
+            'category'   => $this->category,
+            'classes'    => $this->classes,
+            'attributes' => $this->attributes,
+            'title'      => $this->title,
+            'ariaLabel'  => $this->ariaLabel,
+            'role'       => $this->role,
+            'size'       => $this->size,
+        ];
+    }
+
+    /**
      * Render icon in defer mode (using <use> reference)
      */
-    protected function renderDeferred(array $attributes): string
+    private function renderDeferred(array $attributes): string
     {
         // Generate unique ID for this icon
         $iconPath = $this->pathResolver->parseIconPath($this->name);
@@ -363,11 +415,11 @@ final class IconRenderer implements Htmlable
                     $this->name,
                     $this->variant,
                     $this->category,
-                    [] // No attributes for the symbol definition
+                    [], // No attributes for the symbol definition
                 );
 
                 $this->deferredRegistry->register($iconId, $svg);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // If registration fails, fall back to normal rendering
                 return $this->registry->render($this->name, $this->variant, $this->category, $attributes);
             }
@@ -380,7 +432,7 @@ final class IconRenderer implements Htmlable
     /**
      * Build attributes array for rendering
      */
-    protected function buildAttributes(): array
+    private function buildAttributes(): array
     {
         $attributes = $this->attributes;
 
@@ -423,56 +475,5 @@ final class IconRenderer implements Htmlable
         }
 
         return $attributes;
-    }
-
-    /**
-     * Convert to HTML string
-     */
-    public function toHtml(): string
-    {
-        return $this->render();
-    }
-
-    /**
-     * Auto-convert to string
-     */
-    public function __toString(): string
-    {
-        try {
-            return $this->render();
-        } catch (\Exception $e) {
-            return '';
-        }
-    }
-
-    /**
-     * Return the current renderer state as an array, useful for debugging and testing.
-     *
-     * @return array<string, mixed>
-     */
-    public function toArray(): array
-    {
-        return [
-            'name' => $this->name ?? null,
-            'variant' => $this->variant,
-            'category' => $this->category,
-            'classes' => $this->classes,
-            'attributes' => $this->attributes,
-            'title' => $this->title,
-            'ariaLabel' => $this->ariaLabel,
-            'role' => $this->role,
-            'size' => $this->size,
-        ];
-    }
-
-    /**
-     * Create a new instance (for static usage)
-     */
-    public static function make(string $name, ?string $variant = null, ?string $category = null): static
-    {
-        $instance = app(static::class);
-        $instance->icon($name, $variant, $category);
-
-        return $instance;
     }
 }

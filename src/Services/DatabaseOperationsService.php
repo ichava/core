@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Illuminate\Support\Facades\Artisan;
+use Exception;
+use Throwable;
+use Illuminate\Support\Str;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Artisan;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Support\Helpers;
@@ -42,7 +46,7 @@ class DatabaseOperationsService
 
     public function __construct(
         protected IchavaLogger $logger,
-        protected IconRegistry $registry
+        protected IconRegistry $registry,
     ) {}
 
     /**
@@ -131,31 +135,6 @@ class DatabaseOperationsService
     }
 
     /**
-     * Drop PostgreSQL FTS objects (triggers, functions, indexes)
-     */
-    protected function dropPostgresqlFtsObjects(): void
-    {
-        // Drop triggers
-        DB::unprepared('DROP TRIGGER IF EXISTS trg_ichava_icon_terms_search_text ON ichava_icon_terms');
-        DB::unprepared('DROP TRIGGER IF EXISTS trg_ichava_icon_termables_search_text ON ichava_icon_termables');
-        DB::unprepared('DROP TRIGGER IF EXISTS trg_ichava_icons_search_text ON ichava_icons');
-
-        // Drop functions
-        DB::unprepared('DROP FUNCTION IF EXISTS trg_refresh_ichava_icons_search_text_from_term() CASCADE');
-        DB::unprepared('DROP FUNCTION IF EXISTS refresh_ichava_icons_search_text_for_term(bigint) CASCADE');
-        DB::unprepared('DROP FUNCTION IF EXISTS trg_refresh_ichava_icon_search_text_from_termable() CASCADE');
-        DB::unprepared('DROP FUNCTION IF EXISTS trg_refresh_ichava_icon_search_text() CASCADE');
-        DB::unprepared('DROP FUNCTION IF EXISTS refresh_ichava_icon_search_text(bigint) CASCADE');
-
-        // Drop indexes
-        DB::statement('DROP INDEX IF EXISTS idx_icons_search');
-        DB::statement('DROP INDEX IF EXISTS idx_icons_created_brin');
-        DB::statement('DROP INDEX IF EXISTS idx_icons_updated_brin');
-        DB::statement('DROP INDEX IF EXISTS idx_icons_package_hash');
-        DB::statement('DROP INDEX IF EXISTS idx_icons_list_covering');
-    }
-
-    /**
      * Run Ichava migrations
      */
     public function runMigrations(): int
@@ -163,7 +142,7 @@ class DatabaseOperationsService
         $this->logger->info('🗄️ Running Ichava migrations');
 
         return Artisan::call('migrate', [
-            '--path' => 'platform/ichava/ichava/database/migrations',
+            '--path'  => 'platform/ichava/ichava/database/migrations',
             '--force' => true,
         ]);
     }
@@ -180,9 +159,9 @@ class DatabaseOperationsService
         $exitCode = $this->runMigrations();
 
         return [
-            'dropped_tables' => $dropped,
+            'dropped_tables'      => $dropped,
             'migration_exit_code' => $exitCode,
-            'success' => $exitCode === 0,
+            'success'             => $exitCode === 0,
         ];
     }
 
@@ -228,8 +207,8 @@ class DatabaseOperationsService
         $this->logger->info("Unseeding package: {$packageName}");
 
         $stats = [
-            'package' => $packageName,
-            'icons_deleted' => 0,
+            'package'                => $packageName,
+            'icons_deleted'          => 0,
             'term_relations_deleted' => 0,
             'orphaned_terms_deleted' => 0,
         ];
@@ -259,7 +238,7 @@ class DatabaseOperationsService
             $this->logger->info("Unseeded package: {$packageName}", $stats);
 
             return $stats;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             DB::rollBack();
             $this->logger->error("Failed to unseed package: {$packageName}", $e);
             throw $e;
@@ -274,9 +253,9 @@ class DatabaseOperationsService
         $this->logger->info('Unseeding all packages');
 
         $stats = [
-            'icons_deleted' => 0,
+            'icons_deleted'          => 0,
             'term_relations_deleted' => 0,
-            'terms_deleted' => 0,
+            'terms_deleted'          => 0,
         ];
 
         DB::beginTransaction();
@@ -296,7 +275,7 @@ class DatabaseOperationsService
             $this->logger->info('🧹 Unseeded all packages', $stats);
 
             return $stats;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             DB::rollBack();
             $this->logger->error('❌ Failed to unseed all packages', $e);
             throw $e;
@@ -356,8 +335,8 @@ class DatabaseOperationsService
         $count = 0;
 
         try {
-            $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($path, \RecursiveDirectoryIterator::SKIP_DOTS)
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS),
             );
 
             foreach ($iterator as $file) {
@@ -365,7 +344,7 @@ class DatabaseOperationsService
                     $count++;
                 }
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger->warning("Failed to count icons in: {$path}", ['error' => $e->getMessage()]);
         }
 
@@ -378,12 +357,12 @@ class DatabaseOperationsService
     public function getStatistics(): array
     {
         $stats = [
-            'icons' => 0,
-            'packages' => 0,
-            'categories' => 0,
-            'variants' => 0,
+            'icons'              => 0,
+            'packages'           => 0,
+            'categories'         => 0,
+            'variants'           => 0,
             'term_relationships' => 0,
-            'database_size' => null,
+            'database_size'      => null,
         ];
 
         try {
@@ -397,31 +376,11 @@ class DatabaseOperationsService
             if (Helpers::dbDriverIsPgSql()) {
                 $stats['database_size'] = $this->getPostgresqlDatabaseSize();
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger->warning('⚠️ Failed to get database statistics', ['error' => $e->getMessage()]);
         }
 
         return $stats;
-    }
-
-    /**
-     * Get PostgreSQL database size for Ichava tables
-     */
-    protected function getPostgresqlDatabaseSize(): ?string
-    {
-        try {
-            $result = DB::select("
-                SELECT pg_size_pretty(
-                    pg_total_relation_size('ichava_icons') +
-                    pg_total_relation_size('ichava_icon_terms') +
-                    pg_total_relation_size('ichava_icon_termables')
-                ) as size
-            ");
-
-            return $result[0]->size ?? null;
-        } catch (\Exception $e) {
-            return null;
-        }
     }
 
     /**
@@ -448,8 +407,53 @@ class DatabaseOperationsService
 
         try {
             return Icon::count() > 0;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
+        }
+    }
+
+    /**
+     * Drop PostgreSQL FTS objects (triggers, functions, indexes)
+     */
+    protected function dropPostgresqlFtsObjects(): void
+    {
+        // Drop triggers
+        DB::unprepared('DROP TRIGGER IF EXISTS trg_ichava_icon_terms_search_text ON ichava_icon_terms');
+        DB::unprepared('DROP TRIGGER IF EXISTS trg_ichava_icon_termables_search_text ON ichava_icon_termables');
+        DB::unprepared('DROP TRIGGER IF EXISTS trg_ichava_icons_search_text ON ichava_icons');
+
+        // Drop functions
+        DB::unprepared('DROP FUNCTION IF EXISTS trg_refresh_ichava_icons_search_text_from_term() CASCADE');
+        DB::unprepared('DROP FUNCTION IF EXISTS refresh_ichava_icons_search_text_for_term(bigint) CASCADE');
+        DB::unprepared('DROP FUNCTION IF EXISTS trg_refresh_ichava_icon_search_text_from_termable() CASCADE');
+        DB::unprepared('DROP FUNCTION IF EXISTS trg_refresh_ichava_icon_search_text() CASCADE');
+        DB::unprepared('DROP FUNCTION IF EXISTS refresh_ichava_icon_search_text(bigint) CASCADE');
+
+        // Drop indexes
+        DB::statement('DROP INDEX IF EXISTS idx_icons_search');
+        DB::statement('DROP INDEX IF EXISTS idx_icons_created_brin');
+        DB::statement('DROP INDEX IF EXISTS idx_icons_updated_brin');
+        DB::statement('DROP INDEX IF EXISTS idx_icons_package_hash');
+        DB::statement('DROP INDEX IF EXISTS idx_icons_list_covering');
+    }
+
+    /**
+     * Get PostgreSQL database size for Ichava tables
+     */
+    protected function getPostgresqlDatabaseSize(): ?string
+    {
+        try {
+            $result = DB::select("
+                SELECT pg_size_pretty(
+                    pg_total_relation_size('ichava_icons') +
+                    pg_total_relation_size('ichava_icon_terms') +
+                    pg_total_relation_size('ichava_icon_termables')
+                ) as size
+            ");
+
+            return $result[0]->size ?? null;
+        } catch (Exception $e) {
+            return null;
         }
     }
 }

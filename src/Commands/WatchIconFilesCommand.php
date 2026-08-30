@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Simtabi\Laranail\Ichava\Services\IconWatcherService;
-
 use function Laravel\Prompts\info;
+use function Laravel\Prompts\spin;
 use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\warning;
+
+use Simtabi\Laranail\Ichava\Services\IconWatcherService;
 
 /**
  * Watch Icon Files Command
@@ -35,7 +35,7 @@ class WatchIconFilesCommand extends BaseCommand
             callback: fn () => $this->option('force')
                 ? $watcher->forceScan()
                 : $watcher->watch(),
-            message: 'Scanning for changes...'
+            message: 'Scanning for changes...',
         );
 
         if (($stats['status'] ?? null) === 'skipped') {
@@ -54,7 +54,7 @@ class WatchIconFilesCommand extends BaseCommand
                 ['Deleted Icons', (string) $stats['deleted_icons']],
                 ['Total Changes', (string) $stats['total_changes']],
                 ['Duration', "{$stats['duration_ms']}ms"],
-            ]
+            ],
         );
 
         if ($stats['total_changes'] > 0) {

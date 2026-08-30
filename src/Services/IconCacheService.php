@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services;
 
 use Closure;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Cache;
+use Exception;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Artisan;
 use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 
 /**
@@ -17,30 +18,18 @@ use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
  */
 final class IconCacheService
 {
-    protected int $ttl;
+    private int $ttl;
 
-    protected string $prefix;
+    private string $prefix;
 
-    protected ?IconWatcherService $watcher = null;
+    private ?IconWatcherService $watcher = null;
 
     public function __construct(
-        protected IchavaLogger $logger
+        private IchavaLogger $logger,
     ) {
         // Use config() directly instead of injecting ConfigurationService
         $this->ttl = config('ichava.cache.ttl', IchavaConstants::DEFAULT_CACHE_TTL);
         $this->prefix = config('ichava.cache.prefix', 'ichava');
-    }
-
-    /**
-     * Get IconWatcherService instance (lazy loading to avoid circular dependency)
-     */
-    protected function watcher(): IconWatcherService
-    {
-        if ($this->watcher === null) {
-            $this->watcher = app(IconWatcherService::class);
-        }
-
-        return $this->watcher;
     }
 
     /**
@@ -51,8 +40,8 @@ final class IconCacheService
         $cleared = [
             'discovery' => 0,
             'manifests' => 0,
-            'watcher' => 0,
-            'manager' => false,
+            'watcher'   => 0,
+            'manager'   => false,
         ];
 
         try {
@@ -87,7 +76,7 @@ final class IconCacheService
             $this->flush();
             $cleared['manager'] = true;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger->error('❌ Failed to clear some icon caches', $e);
         }
 
@@ -124,7 +113,7 @@ final class IconCacheService
      */
     public function clearDiscovery(): bool
     {
-        return $this->safeForget(IconDiscoveryService::CACHE_PREFIX.'.packages');
+        return $this->safeForget(IconDiscoveryService::CACHE_PREFIX . '.packages');
     }
 
     /**
@@ -132,7 +121,7 @@ final class IconCacheService
      */
     public function clearManifest(string $basePath): bool
     {
-        return $this->safeForget(IconDiscoveryService::CACHE_PREFIX.'.manifest.'.md5($basePath));
+        return $this->safeForget(IconDiscoveryService::CACHE_PREFIX . '.manifest.' . md5($basePath));
     }
 
     /**
@@ -144,7 +133,7 @@ final class IconCacheService
             $this->watcher()->clearAll();
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -184,9 +173,9 @@ final class IconCacheService
                 ->remember(
                     key: $key,
                     ttl: now()->addHours(24),
-                    callback: $callback
+                    callback: $callback,
                 );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $callback();
         }
     }
@@ -197,50 +186,6 @@ final class IconCacheService
     public function forgetConfig(string $key): bool
     {
         return $this->safeForget($key);
-    }
-
-    /**
-     * Forget a single key from the file cache store, swallowing driver errors
-     * so callers can chain teardown without try/catch boilerplate at every site.
-     */
-    protected function safeForget(string $key): bool
-    {
-        try {
-            return (bool) cache()->store('file')->forget($key);
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Parse rebuild command output for statistics
-     */
-    protected function parseRebuildOutput(string $output): array
-    {
-        $stats = [
-            'rebuilt' => 0,
-            'skipped' => 0,
-            'errors' => 0,
-            'total' => 0,
-        ];
-
-        if (preg_match('/Rebuilt.*?(\d+)/i', $output, $matches)) {
-            $stats['rebuilt'] = (int) $matches[1];
-        }
-
-        if (preg_match('/Skipped.*?(\d+)/i', $output, $matches)) {
-            $stats['skipped'] = (int) $matches[1];
-        }
-
-        if (preg_match('/Errors.*?(\d+)/i', $output, $matches)) {
-            $stats['errors'] = (int) $matches[1];
-        }
-
-        if (preg_match('/Total Packages.*?(\d+)/i', $output, $matches)) {
-            $stats['total'] = (int) $matches[1];
-        }
-
-        return $stats;
     }
 
     /**
@@ -262,13 +207,13 @@ final class IconCacheService
             return cache()->remember(
                 key: $fullKey,
                 ttl: now()->addSeconds($this->ttl),
-                callback: $callback
+                callback: $callback,
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger->warning('Ichava cache failed, executing directly', [
                 'driver' => config('cache.default'),
-                'error' => $e->getMessage(),
-                'key' => $fullKey,
+                'error'  => $e->getMessage(),
+                'key'    => $fullKey,
             ]);
 
             return $callback();
@@ -282,7 +227,7 @@ final class IconCacheService
     {
         try {
             return cache()->forget($this->buildKey($key));
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -300,7 +245,7 @@ final class IconCacheService
             }
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -317,7 +262,7 @@ final class IconCacheService
             // For file driver, delete by pattern
             if ($driver === 'file') {
                 $path = config('cache.stores.file.path', storage_path('framework/cache/data'));
-                $pattern = $path.'/'.md5($this->prefix).'*';
+                $pattern = $path . '/' . md5($this->prefix) . '*';
 
                 foreach (File::glob($pattern) as $file) {
                     File::delete($file);
@@ -327,7 +272,7 @@ final class IconCacheService
             }
 
             return $this->flush();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -417,7 +362,7 @@ final class IconCacheService
             $i++;
         }
 
-        return round($bytes, $precision).' '.$units[$i];
+        return round($bytes, $precision) . ' ' . $units[$i];
     }
 
     /**
@@ -433,7 +378,7 @@ final class IconCacheService
             }
 
             return $this->write($path, $content);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -495,18 +440,6 @@ final class IconCacheService
     }
 
     /**
-     * Build cache key with collision prevention
-     *
-     * Uses MD5 hash for collision prevention and length normalization
-     */
-    protected function buildKey(string $key): string
-    {
-        $hashedKey = md5($key);
-
-        return $this->prefix.':'.config('ichava.cache.version', 'v1').':'.$hashedKey;
-    }
-
-    /**
      * Set cache TTL
      */
     public function setTtl(int $ttl): self
@@ -548,10 +481,10 @@ final class IconCacheService
     public function getStats(): array
     {
         return [
-            'watcher' => $this->watcher()->getStats(),
-            'driver' => config('cache.default'),
-            'ttl' => $this->ttl,
-            'prefix' => $this->prefix,
+            'watcher'   => $this->watcher()->getStats(),
+            'driver'    => config('cache.default'),
+            'ttl'       => $this->ttl,
+            'prefix'    => $this->prefix,
             'available' => $this->isAvailable(),
             'timestamp' => now()->toIso8601String(),
         ];
@@ -563,7 +496,7 @@ final class IconCacheService
     public function isHealthy(): bool
     {
         try {
-            $testKey = 'ichava.health_check.'.time();
+            $testKey = 'ichava.health_check.' . time();
             $store = cache()->store('file');
 
             $store->put(key: $testKey, value: 'ok', ttl: now()->addSeconds(10));
@@ -571,15 +504,83 @@ final class IconCacheService
             $store->forget($testKey);
 
             return $result;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
 
     /**
+     * Get IconWatcherService instance (lazy loading to avoid circular dependency)
+     */
+    private function watcher(): IconWatcherService
+    {
+        if ($this->watcher === null) {
+            $this->watcher = app(IconWatcherService::class);
+        }
+
+        return $this->watcher;
+    }
+
+    /**
+     * Forget a single key from the file cache store, swallowing driver errors
+     * so callers can chain teardown without try/catch boilerplate at every site.
+     */
+    private function safeForget(string $key): bool
+    {
+        try {
+            return (bool) cache()->store('file')->forget($key);
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Parse rebuild command output for statistics
+     */
+    private function parseRebuildOutput(string $output): array
+    {
+        $stats = [
+            'rebuilt' => 0,
+            'skipped' => 0,
+            'errors'  => 0,
+            'total'   => 0,
+        ];
+
+        if (preg_match('/Rebuilt.*?(\d+)/i', $output, $matches)) {
+            $stats['rebuilt'] = (int) $matches[1];
+        }
+
+        if (preg_match('/Skipped.*?(\d+)/i', $output, $matches)) {
+            $stats['skipped'] = (int) $matches[1];
+        }
+
+        if (preg_match('/Errors.*?(\d+)/i', $output, $matches)) {
+            $stats['errors'] = (int) $matches[1];
+        }
+
+        if (preg_match('/Total Packages.*?(\d+)/i', $output, $matches)) {
+            $stats['total'] = (int) $matches[1];
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Build cache key with collision prevention
+     *
+     * Uses MD5 hash for collision prevention and length normalization
+     */
+    private function buildKey(string $key): string
+    {
+        $hashedKey = md5($key);
+
+        return $this->prefix . ':' . config('ichava.cache.version', 'v1') . ':' . $hashedKey;
+    }
+
+    /**
      * Check if cache is available
      */
-    protected function isAvailable(): bool
+    private function isAvailable(): bool
     {
         try {
             $store = cache()->store(config('cache.driver', 'file'));
@@ -590,7 +591,7 @@ final class IconCacheService
             $store->forget($testKey);
 
             return $result;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }

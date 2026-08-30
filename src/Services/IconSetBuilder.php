@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
+use Illuminate\Filesystem\Filesystem;
 use Simtabi\Laranail\Ichava\Data\IconData;
 use Simtabi\Laranail\Ichava\Data\IconSetConfig;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
+use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
 /**
  * IconSetBuilder - Universal Icon Set Builder & Base Class
@@ -71,7 +71,7 @@ class IconSetBuilder implements IconSetInterface
     public function __construct(
         string|Filesystem $nameOrFiles = '',
         ?IconCacheService $cache = null,
-        ?Filesystem $files = null
+        ?Filesystem $files = null,
     ) {
         // Support two constructor modes:
         // 1. Fluent builder: new IconSetBuilder('name')
@@ -103,47 +103,16 @@ class IconSetBuilder implements IconSetInterface
     }
 
     /**
-     * Build the icon set configuration
-     * Can be overridden by extending classes
-     */
-    protected function buildConfig(): IconSetConfig
-    {
-        // If this is a merged set, use first set's config as base
-        if ($this->isMerged && ! empty($this->mergedSets)) {
-            return $this->buildMergedConfig();
-        }
-
-        // Get base path (first path if multiple)
-        $basePath = is_array($this->paths) ? $this->paths[0] : $this->paths;
-
-        if ($basePath === null) {
-            throw IchavaException::invalidConfiguration("Icon set '{$this->name}' requires a path");
-        }
-
-        return new IconSetConfig(
-            name: $this->name,
-            prefix: $this->prefix ?? '',
-            basePath: $basePath,
-            defaultVariant: $this->defaultVariant,
-            variants: $this->variants,
-            supportsCategories: $this->supportsCategories,
-            defaultClass: $this->defaultClass,
-            defaultAttributes: $this->defaultAttributes,
-            fallback: $this->fallback,
-        );
-    }
-
-    /**
      * Fluent builder factory method
      *
-     * @param  string  $name  Icon set name
+     * @param string $name Icon set name
      */
     public static function make(string $name): static
     {
         return new static(
             $name,
             app(IconCacheService::class),
-            app(Filesystem::class)
+            app(Filesystem::class),
         );
     }
 
@@ -153,10 +122,10 @@ class IconSetBuilder implements IconSetInterface
      * Automatically resolves the path from the calling class location.
      * Perfect for use in service providers.
      *
-     * @param  string  $name  Icon set name
-     * @param  string  $class  Caller class (usually self::class from service provider)
-     * @param  int  $levelsUp  Levels to go up from class (default: 3)
-     * @param  string  $append  Path to append (e.g., 'resources/assets/svg/icons')
+     * @param string $name Icon set name
+     * @param string $class Caller class (usually self::class from service provider)
+     * @param int $levelsUp Levels to go up from class (default: 3)
+     * @param string $append Path to append (e.g., 'resources/assets/svg/icons')
      *
      * @example In Service Provider
      * ```php
@@ -169,7 +138,7 @@ class IconSetBuilder implements IconSetInterface
         string $name,
         string $class,
         int $levelsUp = 3,
-        string $append = ''
+        string $append = '',
     ): static {
         $instance = new static($name);
 
@@ -187,7 +156,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set icon path
      *
-     * @param  string  $path  Path to icons
+     * @param string $path Path to icons
+     *
      * @return $this
      */
     public function path(string $path): static
@@ -221,7 +191,8 @@ class IconSetBuilder implements IconSetInterface
      *   ->setBasePath('/path/to/icons' . '/files')
      *   ->setBasePath('/path/to/icons/files/')
      *
-     * @param  string  $basePath  Path to icons (with or without trailing slash)
+     * @param string $basePath Path to icons (with or without trailing slash)
+     *
      * @return $this
      */
     public function setBasePath(string $basePath): static
@@ -232,7 +203,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set multiple icon paths
      *
-     * @param  array  $paths  Array of paths
+     * @param array $paths Array of paths
+     *
      * @return $this
      */
     public function paths(array $paths): static
@@ -245,7 +217,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set icon prefix
      *
-     * @param  string  $prefix  Icon prefix
+     * @param string $prefix Icon prefix
+     *
      * @return $this
      */
     public function prefix(string $prefix): static
@@ -258,7 +231,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set default variant
      *
-     * @param  string  $variant  Default variant name
+     * @param string $variant Default variant name
+     *
      * @return $this
      */
     public function defaultVariant(string $variant): static
@@ -271,7 +245,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set available variants
      *
-     * @param  array  $variants  Variant names
+     * @param array $variants Variant names
+     *
      * @return $this
      */
     public function withVariants(array $variants): static
@@ -284,7 +259,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set whether categories are supported
      *
-     * @param  bool  $supports  Support categories
+     * @param bool $supports Support categories
+     *
      * @return $this
      */
     public function withCategories(bool $supports = true): static
@@ -297,7 +273,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set default CSS class
      *
-     * @param  string  $class  Default class
+     * @param string $class Default class
+     *
      * @return $this
      */
     public function defaultClass(string $class): static
@@ -310,7 +287,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set default attributes
      *
-     * @param  array  $attributes  Default attributes
+     * @param array $attributes Default attributes
+     *
      * @return $this
      */
     public function defaultAttributes(array $attributes): static
@@ -323,7 +301,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set fallback icon
      *
-     * @param  string|null  $icon  Fallback icon name
+     * @param string|null $icon Fallback icon name
+     *
      * @return $this
      */
     public function fallback(?string $icon): static
@@ -336,7 +315,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Enable/disable caching
      *
-     * @param  bool  $enabled  Cache enabled
+     * @param bool $enabled Cache enabled
+     *
      * @return $this
      */
     public function cache(bool $enabled = true): static
@@ -459,6 +439,63 @@ class IconSetBuilder implements IconSetInterface
     }
 
     /**
+     * Get the merged sets (if applicable)
+     *
+     * @return IconSetInterface[]
+     */
+    public function getMergedSets(): array
+    {
+        return $this->mergedSets;
+    }
+
+    /**
+     * Check if this is a merged set
+     */
+    public function isMerged(): bool
+    {
+        return $this->isMerged;
+    }
+
+    /**
+     * Get icon variants
+     */
+    public function variants(): array
+    {
+        return $this->config->variants;
+    }
+
+    /**
+     * Build the icon set configuration
+     * Can be overridden by extending classes
+     */
+    protected function buildConfig(): IconSetConfig
+    {
+        // If this is a merged set, use first set's config as base
+        if ($this->isMerged && ! empty($this->mergedSets)) {
+            return $this->buildMergedConfig();
+        }
+
+        // Get base path (first path if multiple)
+        $basePath = is_array($this->paths) ? $this->paths[0] : $this->paths;
+
+        if ($basePath === null) {
+            throw IchavaException::invalidConfiguration("Icon set '{$this->name}' requires a path");
+        }
+
+        return new IconSetConfig(
+            name: $this->name,
+            prefix: $this->prefix ?? '',
+            basePath: $basePath,
+            defaultVariant: $this->defaultVariant,
+            variants: $this->variants,
+            supportsCategories: $this->supportsCategories,
+            defaultClass: $this->defaultClass,
+            defaultAttributes: $this->defaultAttributes,
+            fallback: $this->fallback,
+        );
+    }
+
+    /**
      * Build merged configuration from multiple sets
      */
     protected function buildMergedConfig(): IconSetConfig
@@ -510,24 +547,6 @@ class IconSetBuilder implements IconSetInterface
     }
 
     /**
-     * Get the merged sets (if applicable)
-     *
-     * @return IconSetInterface[]
-     */
-    public function getMergedSets(): array
-    {
-        return $this->mergedSets;
-    }
-
-    /**
-     * Check if this is a merged set
-     */
-    public function isMerged(): bool
-    {
-        return $this->isMerged;
-    }
-
-    /**
      * Discover a single SVG icon
      */
     protected function discoverIcon(string $name, ?string $variant, ?string $category): ?IconData
@@ -565,7 +584,7 @@ class IconSetBuilder implements IconSetInterface
     protected function discoverAllIcons(?string $variant, ?string $category): array
     {
         $searchPath = $this->buildSearchPath($variant, $category);
-        $files = $this->files->glob($searchPath.'/*.svg');
+        $files = $this->files->glob($searchPath . '/*.svg');
 
         $icons = [];
         foreach ($files as $file) {
@@ -601,7 +620,7 @@ class IconSetBuilder implements IconSetInterface
             $parts[] = $category;
         }
 
-        $parts[] = $name.'.svg';
+        $parts[] = $name . '.svg';
 
         return implode(DIRECTORY_SEPARATOR, $parts);
     }
@@ -637,7 +656,7 @@ class IconSetBuilder implements IconSetInterface
 
         return Arr::map(
             $this->files->directories($searchPath),
-            fn ($dir) => basename($dir)
+            fn ($dir) => basename($dir),
         );
     }
 
@@ -668,13 +687,5 @@ class IconSetBuilder implements IconSetInterface
             $category,
             $name,
         ], fn ($value) => $value !== null));
-    }
-
-    /**
-     * Get icon variants
-     */
-    public function variants(): array
-    {
-        return $this->config->variants;
     }
 }

@@ -1,80 +1,107 @@
 {
-    "name": "ichava/core",
-    "description": "Core engine for the Ichava Laravel icon ecosystem. Services, registry, seeder, scaffolder. Headless-friendly with no JS toolchain required.",
-    "type": "library",
-    "license": "MIT",
-    "keywords": [
-        "laravel",
-        "icons",
-        "svg",
-        "ichava",
-        "blade-components"
-    ],
-    "homepage": "https://opensource.simtabi.com/products/ichava/core",
-    "authors": [
-        {
-            "name": "Imani Manyara",
-            "email": "imani@simtabi.com",
-            "homepage": "https://simtabi.com",
-            "role": "Developer"
-        }
-    ],
-    "require": {
-        "php": "^8.4.1 || ^8.5",
-        "ext-zip": "*",
-        "ajaxray/ansikit": "^0.3.1",
-        "illuminate/filesystem": "^13.0",
-        "illuminate/support": "^13.0",
-        "illuminate/view": "^13.0",
-        "laranail/console": "^1.1",
-        "laranail/enumerator": "^0.4",
-        "laranail/package-tools": "^3.0"
-    },
-    "require-dev": {
-        "orchestra/testbench": "^11.0",
-        "pestphp/pest": "^3.0 || ^4.0",
-        "laravel/pint": "^1.18"
-    },
-    "autoload": {
-        "psr-4": {
-            "Simtabi\\Laranail\\Ichava\\": "src/",
-            "Simtabi\\Laranail\\Ichava\\Factories\\": "database/factories/",
-            "Simtabi\\Laranail\\Ichava\\Seeders\\": "database/seeders/"
-        },
-        "files": [
-            "helpers/helpers.php"
-        ]
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Simtabi\\Laranail\\Ichava\\Tests\\": "tests/"
-        }
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Simtabi\\Laranail\\Ichava\\Providers\\IchavaServiceProvider"
-            ],
-            "aliases": {
-                "Ichava": "Simtabi\\Laranail\\Ichava\\Facades\\IchavaFacade"
-            }
-        },
-        "branch-alias": {
-            "dev-main": "2.0.x-dev"
-        }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true
-        }
-    },
-    "support": {
-        "source": "https://github.com/ichava/core",
-        "issues": "https://github.com/ichava/core/issues",
-        "security": "https://github.com/ichava/core/security/policy",
-        "docs": "https://opensource.simtabi.com/documentation/ichava/core/"
+  "name": "ichava/core",
+  "description": "Core engine for the Ichava Laravel icon ecosystem. Services, registry, seeder, scaffolder. Headless-friendly with no JS toolchain required.",
+  "type": "library",
+  "license": "MIT",
+  "keywords": [
+    "laravel",
+    "icons",
+    "svg",
+    "ichava",
+    "blade-components"
+  ],
+  "homepage": "https://opensource.simtabi.com/products/ichava/core",
+  "authors": [
+    {
+      "name": "Imani Manyara",
+      "email": "imani@simtabi.com",
+      "homepage": "https://simtabi.com",
+      "role": "Developer"
     }
+  ],
+  "require": {
+    "php": "^8.4.1 || ^8.5",
+    "ext-zip": "*",
+    "ajaxray/ansikit": "^0.3.1",
+    "illuminate/filesystem": "^13.0",
+    "illuminate/support": "^13.0",
+    "illuminate/view": "^13.0",
+    "laranail/console": "^0.1.0",
+    "laranail/enumerator": "^0.1.0",
+    "laranail/package-tools": "^0.1.0"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^11.0",
+    "pestphp/pest": "^3.0 || ^4.0",
+    "laravel/pint": "^1.18"
+  },
+  "autoload": {
+    "psr-4": {
+      "Simtabi\\Laranail\\Ichava\\": "src/",
+      "Simtabi\\Laranail\\Ichava\\Seeders\\": "database/seeders/"
+    },
+    "files": [
+      "helpers/helpers.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Simtabi\\Laranail\\Ichava\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Simtabi\\Laranail\\Ichava\\Providers\\IchavaServiceProvider"
+      ],
+      "aliases": {
+        "Ichava": "Simtabi\\Laranail\\Ichava\\Facades\\IchavaFacade"
+      }
+    },
+    "branch-alias": {
+      "dev-main": "2.0.x-dev"
+    }
+  },
+  "scripts": {
+    "pint": "@php vendor/bin/laranail-pint --test",
+    "pint-fix": "@php vendor/bin/laranail-pint --parallel",
+    "test":  "vendor/bin/pest --parallel"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  },
+  "support": {
+    "source": "https://github.com/ichava/core",
+    "issues": "https://github.com/ichava/core/issues",
+    "security": "https://github.com/ichava/core/security/policy",
+    "docs": "https://opensource.simtabi.com/documentation/ichava/core/"
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/laranail/package-tools.git"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/laranail/console.git"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/laranail/enumerator.git"
+    }
+  ],
+  "archive": {
+    "exclude": [
+      "/tests",
+      "/.github",
+      "/.gitignore",
+      "phpunit.xml.dist",
+      "pint.json"
+    ]
+  }
 }

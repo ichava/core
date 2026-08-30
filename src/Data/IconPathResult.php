@@ -48,6 +48,14 @@ final readonly class IconPathResult
     ) {}
 
     /**
+     * Magic method for string casting
+     */
+    public function __toString(): string
+    {
+        return $this->toString();
+    }
+
+    /**
      * Convert to string representation
      *
      * Reconstructs the original icon path format.
@@ -62,15 +70,7 @@ final readonly class IconPathResult
             $this->variant,
             $this->category,
             $this->vendor,
-            $this->package
+            $this->package,
         );
-    }
-
-    /**
-     * Magic method for string casting
-     */
-    public function __toString(): string
-    {
-        return $this->toString();
     }
 }

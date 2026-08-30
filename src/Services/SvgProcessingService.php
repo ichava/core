@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use DOMDocument;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Simtabi\Laranail\Ichava\Enums\OptimizationLevel;
-use Simtabi\Laranail\Ichava\Services\Traits\ManagesAttributes;
 use Simtabi\Laranail\Ichava\Services\Traits\ManagesSizes;
 use Simtabi\Laranail\Ichava\Services\Traits\OptimizesSvg;
 use Simtabi\Laranail\Ichava\Services\Traits\SanitizesSvg;
+use Simtabi\Laranail\Ichava\Services\Traits\ManagesAttributes;
 
 /**
  * SvgProcessingService - Unified SVG Processing Pipeline
@@ -35,7 +36,7 @@ final class SvgProcessingService
     use SanitizesSvg;
 
     public function __construct(
-        protected OptimizationLevel $optimizationLevel = OptimizationLevel::BASIC
+        protected OptimizationLevel $optimizationLevel = OptimizationLevel::BASIC,
     ) {
         $this->initializeSanitizer();
         $this->initializeOptimizer();
@@ -44,9 +45,10 @@ final class SvgProcessingService
     /**
      * Process SVG: sanitize, optimize, and apply attributes
      *
-     * @param  string  $content  Raw SVG content
-     * @param  array<string, mixed>  $attributes  HTML attributes to apply
-     * @param  bool  $optimize  Whether to optimize the SVG
+     * @param string $content Raw SVG content
+     * @param array<string, mixed> $attributes HTML attributes to apply
+     * @param bool $optimize Whether to optimize the SVG
+     *
      * @return string Processed SVG content
      */
     public function process(string $content, array $attributes = [], bool $optimize = true): string
@@ -68,10 +70,29 @@ final class SvgProcessingService
     }
 
     /**
+     * Set optimization level
+     */
+    public function setOptimizationLevel(OptimizationLevel $level): self
+    {
+        $this->optimizationLevel = $level;
+
+        return $this;
+    }
+
+    /**
+     * Get optimization level
+     */
+    public function getOptimizationLevel(): OptimizationLevel
+    {
+        return $this->optimizationLevel;
+    }
+
+    /**
      * Apply HTML attributes to SVG root element
      *
-     * @param  string  $svg  SVG content
-     * @param  array<string, mixed>  $attributes  Attributes to apply
+     * @param string $svg SVG content
+     * @param array<string, mixed> $attributes Attributes to apply
+     *
      * @return string SVG with attributes
      */
     protected function applyAttributes(string $svg, array $attributes): string
@@ -81,7 +102,7 @@ final class SvgProcessingService
         }
 
         // Load SVG into DOM
-        $dom = new \DOMDocument('1.0', 'UTF-8');
+        $dom = new DOMDocument('1.0', 'UTF-8');
         @$dom->loadXML($svg, LIBXML_NONET);
 
         if ($dom->documentElement === null) {
@@ -103,23 +124,5 @@ final class SvgProcessingService
         $result = $dom->saveXML($dom->documentElement);
 
         return $result !== false ? $result : $svg;
-    }
-
-    /**
-     * Set optimization level
-     */
-    public function setOptimizationLevel(OptimizationLevel $level): self
-    {
-        $this->optimizationLevel = $level;
-
-        return $this;
-    }
-
-    /**
-     * Get optimization level
-     */
-    public function getOptimizationLevel(): OptimizationLevel
-    {
-        return $this->optimizationLevel;
     }
 }

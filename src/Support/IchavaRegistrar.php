@@ -52,7 +52,7 @@ class IchavaRegistrar
     /**
      * Start building a registrar for the given bundle name.
      *
-     * @param  string  $name  A unique identifier for this icon bundle (e.g. 'icons-bundle').
+     * @param string $name A unique identifier for this icon bundle (e.g. 'icons-bundle').
      */
     public static function register(string $name): static
     {
@@ -200,7 +200,7 @@ class IchavaRegistrar
         }
 
         foreach ($this->iconSets as $dirName => $meta) {
-            $path = rtrim($this->basePath, '/\\').DIRECTORY_SEPARATOR.$dirName;
+            $path = rtrim($this->basePath, '/\\') . DIRECTORY_SEPARATOR . $dirName;
 
             if (! File::isDirectory($path)) {
                 $this->skipped++;

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Illuminate\Support\Facades\Cache;
+use Throwable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -24,7 +25,7 @@ class IchavaLifecycleManager
      * Constructor with IchavaLogger dependency injection
      */
     public function __construct(
-        protected IchavaLogger $logger
+        protected IchavaLogger $logger,
     ) {}
 
     /**
@@ -43,7 +44,7 @@ class IchavaLifecycleManager
                 // Cache is stale, reset it
                 $this->reset();
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // Cache not available
             return false;
         }
@@ -80,7 +81,7 @@ class IchavaLifecycleManager
             }
 
             return true;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->debug('⚠️ Migration check failed', ['error' => $e->getMessage()]);
 
             return false;
@@ -101,7 +102,7 @@ class IchavaLifecycleManager
             $count = DB::table('ichava_icons')->count();
 
             return $count > 0;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->debug('⚠️ Seed check failed', ['error' => $e->getMessage()]);
 
             return false;
@@ -118,7 +119,7 @@ class IchavaLifecycleManager
             Cache::get('ichava:test');
 
             return true;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->debug('⚠️ Cache check failed', ['error' => $e->getMessage()]);
 
             return false;
@@ -133,7 +134,7 @@ class IchavaLifecycleManager
         try {
             Cache::put(self::CACHE_KEY, true, self::CACHE_TTL);
             $this->logger->info('✅ Marked as READY, all lifecycle stages complete');
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->warning('⚠️ Failed to cache Ichava ready state', ['error' => $e->getMessage()]);
         }
     }
@@ -146,7 +147,7 @@ class IchavaLifecycleManager
         try {
             Cache::forget(self::CACHE_KEY);
             $this->logger->info('🔄 Lifecycle state reset');
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->warning('⚠️ Failed to reset Ichava lifecycle state', ['error' => $e->getMessage()]);
         }
     }
@@ -174,8 +175,9 @@ class IchavaLifecycleManager
     /**
      * Wait for Ichava to be ready (for tests/commands)
      *
-     * @param  int  $maxAttempts  Maximum attempts to check
-     * @param  int  $delayMs  Delay between checks in milliseconds
+     * @param int $maxAttempts Maximum attempts to check
+     * @param int $delayMs Delay between checks in milliseconds
+     *
      * @return bool True if ready, false if timeout
      */
     public function waitUntilReady(int $maxAttempts = 30, int $delayMs = 1000): bool

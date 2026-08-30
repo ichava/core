@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use ReflectionClass;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
+use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\Ichava\Data\IconPathResult;
+use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
 /**
@@ -18,6 +19,12 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
  */
 class PathResolver
 {
+    /**
+     * Default SVG assets path constant
+     * Used for child packages following Ichava conventions
+     */
+    private const SVG_PATH = IchavaConstants::SVG_ASSETS_PATH;
+
     protected string $pathSeparator;
 
     protected string $variantSeparator;
@@ -26,6 +33,142 @@ class PathResolver
     {
         $this->pathSeparator = config('ichava.separators.path', '::');
         $this->variantSeparator = config('ichava.separators.variant', '/');
+    }
+
+    /**
+     * Resolve config value or build default path from class file
+     *
+     * @param mixed $configValue Config value (if set)
+     * @param string $classFile __FILE__ from calling class
+     * @param string $defaultRelativePath Default path relative to package root
+     * @param int $levelsUp How many levels to go up from class file to package root
+     *
+     * @return string Resolved absolute path
+     */
+    public static function resolveConfigOrDefault(
+        mixed $configValue,
+        string $classFile,
+        string $defaultRelativePath,
+        int $levelsUp = 3,
+    ): string {
+        // If config value is set, use it
+        if ($configValue) {
+            return app(self::class)->normalize($configValue);
+        }
+
+        // Build default path from class file location
+        $packageRoot = dirname($classFile, $levelsUp);
+
+        return app(self::class)->join($packageRoot, ltrim($defaultRelativePath, '/'));
+    }
+
+    /**
+     * Resolve package path using reflection
+     *
+     * @param string|object $caller The calling class name or instance
+     * @param int $levelsUp Number of directory levels to go up (default: 3 for src/Subdirectory/File.php to package root)
+     * @param string $append Optional path to append
+     */
+    public static function resolvePackagePath(string|object $caller, int $levelsUp = 3, string $append = ''): string
+    {
+        $reflection = new ReflectionClass($caller);
+        $callerFile = $reflection->getFileName();
+
+        $basePath = dirname($callerFile, $levelsUp);
+
+        if ($append !== '') {
+            $basePath .= '/' . ltrim($append, '/');
+        }
+
+        return $basePath;
+    }
+
+    /**
+     * Get the package root path from a service provider
+     *
+     * @param string|object $provider The service provider class or instance
+     * @param int $levelsUp Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
+     */
+    public static function packageRootFromProvider(string|object $provider, int $levelsUp = 3): string
+    {
+        return self::resolvePackagePath($provider, $levelsUp);
+    }
+
+    /**
+     * Get the SVG assets path from a service provider
+     *
+     * @param string|object $provider The service provider class or instance
+     * @param int $levelsUp Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
+     */
+    public static function svgPathFromProvider(string|object $provider, int $levelsUp = 3): string
+    {
+        return self::resolvePackagePath($provider, $levelsUp, self::SVG_PATH);
+    }
+
+    /**
+     * Get the SVG assets path from an IconSet or absolute path
+     *
+     * Accepts:
+     * - IconSet class/instance (uses reflection to find package SVG path)
+     * - Absolute path (validates exists and is readable)
+     * - Relative path from base_path() (e.g., 'platform/icons-bundle')
+     *
+     * @param string|object $iconSetOrPath IconSet class/instance OR path to icons
+     * @param int $levelsUp Number of directory levels to go up from IconSet file (default: 3)
+     *
+     * @return string Absolute path to icons directory
+     *
+     * @throws IchavaException If path doesn't exist, isn't readable, or isn't a directory
+     */
+    public static function svgPathFromIconSet(string|object $iconSetOrPath, int $levelsUp = 3): string
+    {
+        $resolvedPath = null;
+
+        // If it's a string, check if it's an absolute or relative path
+        if (is_string($iconSetOrPath)) {
+            // Absolute path (starts with / on Unix or C:\ on Windows)
+            if (Str::startsWith($iconSetOrPath, '/') || preg_match('/^[A-Z]:\\\\/i', $iconSetOrPath)) {
+                $resolvedPath = $iconSetOrPath;
+            }
+            // Check if it's a class name (contains backslashes)
+            elseif (Str::contains($iconSetOrPath, '\\')) {
+                // It's a class name, use reflection
+                $resolvedPath = self::resolvePackagePath($iconSetOrPath, $levelsUp, self::SVG_PATH);
+            }
+            // Otherwise treat as relative path from base_path()
+            else {
+                $resolvedPath = base_path($iconSetOrPath);
+            }
+        } else {
+            // It's an object, use reflection
+            $resolvedPath = self::resolvePackagePath($iconSetOrPath, $levelsUp, self::SVG_PATH);
+        }
+
+        // Validate path exists
+        if (! File::exists($resolvedPath)) {
+            throw IchavaException::pathNotFound(
+                "Icon path does not exist: {$resolvedPath}",
+            );
+        }
+
+        // Validate path is readable
+        if (! File::isReadable($resolvedPath)) {
+            throw IchavaException::pathNotReadable(
+                $resolvedPath,
+                'Icon directory must be readable',
+            );
+        }
+
+        // Validate path is a directory
+        if (! File::isDirectory($resolvedPath)) {
+            throw IchavaException::invalidPathType(
+                $resolvedPath,
+                'directory',
+                'file',
+            );
+        }
+
+        return $resolvedPath;
     }
 
     /**
@@ -127,25 +270,25 @@ class PathResolver
         ?string $variant = null,
         ?string $category = null,
         ?string $vendor = null,
-        ?string $package = null
+        ?string $package = null,
     ): string {
         $parts = [];
 
         // Add vendor/package or set
         if ($vendor && $package) {
-            $parts[] = $vendor.'/'.$package.$this->pathSeparator;
+            $parts[] = $vendor . '/' . $package . $this->pathSeparator;
         } elseif ($set) {
-            $parts[] = $set.$this->pathSeparator;
+            $parts[] = $set . $this->pathSeparator;
         }
 
         // Add variant
         if ($variant) {
-            $parts[] = $variant.$this->variantSeparator;
+            $parts[] = $variant . $this->variantSeparator;
         }
 
         // Add category
         if ($category) {
-            $parts[] = $category.$this->variantSeparator;
+            $parts[] = $category . $this->variantSeparator;
         }
 
         // Add icon name
@@ -157,7 +300,8 @@ class PathResolver
     /**
      * Resolve manifest path from configuration
      *
-     * @param  string|null  $configuredPath  Path from config if set
+     * @param string|null $configuredPath Path from config if set
+     *
      * @return string Full path to manifest file
      */
     public function resolveManifestPath(?string $configuredPath = null): string
@@ -183,7 +327,7 @@ class PathResolver
     public function getManifestPathFromConfig(): string
     {
         return $this->resolveManifestPath(
-            config('ichava.manifest.path')
+            config('ichava.manifest.path'),
         );
     }
 
@@ -231,7 +375,7 @@ class PathResolver
 
         // Restore leading slash for absolute paths (Unix)
         if ($isAbsolute && ! Str::startsWith($joined, '/')) {
-            $joined = '/'.$joined;
+            $joined = '/' . $joined;
         }
 
         return $joined;
@@ -263,7 +407,7 @@ class PathResolver
      */
     public function getPackageBasePath(string $providerClass): string
     {
-        $reflection = new \ReflectionClass($providerClass);
+        $reflection = new ReflectionClass($providerClass);
         $providerPath = $reflection->getFileName();
 
         if (! $providerPath) {
@@ -273,32 +417,6 @@ class PathResolver
         // Navigate up from Provider class to package root
         // Typically: src/Providers/ServiceProvider.php -> ../../
         return dirname($providerPath, 3);
-    }
-
-    /**
-     * Resolve config value or build default path from class file
-     *
-     * @param  mixed  $configValue  Config value (if set)
-     * @param  string  $classFile  __FILE__ from calling class
-     * @param  string  $defaultRelativePath  Default path relative to package root
-     * @param  int  $levelsUp  How many levels to go up from class file to package root
-     * @return string Resolved absolute path
-     */
-    public static function resolveConfigOrDefault(
-        mixed $configValue,
-        string $classFile,
-        string $defaultRelativePath,
-        int $levelsUp = 3
-    ): string {
-        // If config value is set, use it
-        if ($configValue) {
-            return app(self::class)->normalize($configValue);
-        }
-
-        // Build default path from class file location
-        $packageRoot = dirname($classFile, $levelsUp);
-
-        return app(self::class)->join($packageRoot, ltrim($defaultRelativePath, '/'));
     }
 
     /**
@@ -375,7 +493,7 @@ class PathResolver
 
         $relativeParts = array_merge(
             array_fill(0, $upLevels, '..'),
-            $downPath
+            $downPath,
         );
 
         return implode('/', $relativeParts);
@@ -391,120 +509,6 @@ class PathResolver
         }
 
         return $path;
-    }
-
-    /**
-     * Default SVG assets path constant
-     * Used for child packages following Ichava conventions
-     */
-    private const SVG_PATH = IchavaConstants::SVG_ASSETS_PATH;
-
-    /**
-     * Resolve package path using reflection
-     *
-     * @param  string|object  $caller  The calling class name or instance
-     * @param  int  $levelsUp  Number of directory levels to go up (default: 3 for src/Subdirectory/File.php to package root)
-     * @param  string  $append  Optional path to append
-     */
-    public static function resolvePackagePath(string|object $caller, int $levelsUp = 3, string $append = ''): string
-    {
-        $reflection = new \ReflectionClass($caller);
-        $callerFile = $reflection->getFileName();
-
-        $basePath = dirname($callerFile, $levelsUp);
-
-        if ($append !== '') {
-            $basePath .= '/'.ltrim($append, '/');
-        }
-
-        return $basePath;
-    }
-
-    /**
-     * Get the package root path from a service provider
-     *
-     * @param  string|object  $provider  The service provider class or instance
-     * @param  int  $levelsUp  Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
-     */
-    public static function packageRootFromProvider(string|object $provider, int $levelsUp = 3): string
-    {
-        return self::resolvePackagePath($provider, $levelsUp);
-    }
-
-    /**
-     * Get the SVG assets path from a service provider
-     *
-     * @param  string|object  $provider  The service provider class or instance
-     * @param  int  $levelsUp  Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
-     */
-    public static function svgPathFromProvider(string|object $provider, int $levelsUp = 3): string
-    {
-        return self::resolvePackagePath($provider, $levelsUp, self::SVG_PATH);
-    }
-
-    /**
-     * Get the SVG assets path from an IconSet or absolute path
-     *
-     * Accepts:
-     * - IconSet class/instance (uses reflection to find package SVG path)
-     * - Absolute path (validates exists and is readable)
-     * - Relative path from base_path() (e.g., 'platform/icons-bundle')
-     *
-     * @param  string|object  $iconSetOrPath  IconSet class/instance OR path to icons
-     * @param  int  $levelsUp  Number of directory levels to go up from IconSet file (default: 3)
-     * @return string Absolute path to icons directory
-     *
-     * @throws IchavaException If path doesn't exist, isn't readable, or isn't a directory
-     */
-    public static function svgPathFromIconSet(string|object $iconSetOrPath, int $levelsUp = 3): string
-    {
-        $resolvedPath = null;
-
-        // If it's a string, check if it's an absolute or relative path
-        if (is_string($iconSetOrPath)) {
-            // Absolute path (starts with / on Unix or C:\ on Windows)
-            if (Str::startsWith($iconSetOrPath, '/') || preg_match('/^[A-Z]:\\\\/i', $iconSetOrPath)) {
-                $resolvedPath = $iconSetOrPath;
-            }
-            // Check if it's a class name (contains backslashes)
-            elseif (Str::contains($iconSetOrPath, '\\')) {
-                // It's a class name, use reflection
-                $resolvedPath = self::resolvePackagePath($iconSetOrPath, $levelsUp, self::SVG_PATH);
-            }
-            // Otherwise treat as relative path from base_path()
-            else {
-                $resolvedPath = base_path($iconSetOrPath);
-            }
-        } else {
-            // It's an object, use reflection
-            $resolvedPath = self::resolvePackagePath($iconSetOrPath, $levelsUp, self::SVG_PATH);
-        }
-
-        // Validate path exists
-        if (! File::exists($resolvedPath)) {
-            throw IchavaException::pathNotFound(
-                "Icon path does not exist: {$resolvedPath}"
-            );
-        }
-
-        // Validate path is readable
-        if (! File::isReadable($resolvedPath)) {
-            throw IchavaException::pathNotReadable(
-                $resolvedPath,
-                'Icon directory must be readable'
-            );
-        }
-
-        // Validate path is a directory
-        if (! File::isDirectory($resolvedPath)) {
-            throw IchavaException::invalidPathType(
-                $resolvedPath,
-                'directory',
-                'file'
-            );
-        }
-
-        return $resolvedPath;
     }
 
     /**
@@ -570,7 +574,8 @@ class PathResolver
      *
      * Also validates file extension if present (must be .svg)
      *
-     * @param  string  $name  Icon name to validate
+     * @param string $name Icon name to validate
+     *
      * @return bool True if valid
      */
     private function isValidIconName(string $name): bool
@@ -607,7 +612,8 @@ class PathResolver
      * Allows: alphanumeric, dash, underscore
      * Disallows: special characters, whitespace
      *
-     * @param  string  $segment  Path segment to validate
+     * @param string $segment Path segment to validate
+     *
      * @return bool True if valid
      */
     private function isValidPathSegment(string $segment): bool

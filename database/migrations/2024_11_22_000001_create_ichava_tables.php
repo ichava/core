@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Simtabi\Laranail\Ichava\Models\Icon;
-use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
+use Illuminate\Database\Schema\Blueprint;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Illuminate\Database\Migrations\Migration;
+use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
 
 /**
  * Create Ichava Icon Tables with Performance Optimizations
@@ -43,6 +43,19 @@ return new class extends Migration
         $this->addPerformanceIndexes();
         $this->setupIconSearchText();
         $this->analyzeTablesForQueryPlanner();
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        $this->dropIconSearchText();
+        $this->dropPerformanceIndexes();
+
+        Schema::dropIfExists('ichava_icon_termables');
+        Schema::dropIfExists('ichava_icon_terms');
+        Schema::dropIfExists('ichava_icons');
     }
 
     /**
@@ -135,12 +148,12 @@ return new class extends Migration
 
             $table->unique(
                 ['term_id', 'termable_id', 'termable_type'],
-                'uniq_icon_termables_term'
+                'uniq_icon_termables_term',
             );
 
             $table->index(
                 ['termable_type', 'termable_id'],
-                'idx_icon_termables_model'
+                'idx_icon_termables_model',
             );
         });
     }
@@ -536,18 +549,5 @@ return new class extends Migration
             $table->dropIndex('idx_terms_type_slug');
             $table->dropIndex('idx_terms_parent_type');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        $this->dropIconSearchText();
-        $this->dropPerformanceIndexes();
-
-        Schema::dropIfExists('ichava_icon_termables');
-        Schema::dropIfExists('ichava_icon_terms');
-        Schema::dropIfExists('ichava_icons');
     }
 };
