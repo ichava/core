@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
+use Exception;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\File;
 
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\intro;
 use function Laravel\Prompts\note;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\progress;
-use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\table;
+
+use Illuminate\Support\Facades\File;
+
 use function Laravel\Prompts\warning;
+use function Laravel\Prompts\progress;
 
 /**
  * Removes Ichava log files older than the configured retention period.
@@ -51,9 +54,9 @@ class CleanupIchavaLogsCommand extends BaseCommand
 
         // Find all Ichava log files (ichava-*.log, ichava-icons-*.log, ichava-queue-*.log)
         $logFiles = array_merge(
-            File::glob($logPath.'/ichava-*.log'),
-            File::glob($logPath.'/ichava-icons-*.log'),
-            File::glob($logPath.'/ichava-queue-*.log')
+            File::glob($logPath . '/ichava-*.log'),
+            File::glob($logPath . '/ichava-icons-*.log'),
+            File::glob($logPath . '/ichava-queue-*.log'),
         );
 
         // Remove duplicates
@@ -94,7 +97,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
                 validate: fn (string $value) => ! is_numeric($value) || (int) $value < 1
                     ? 'Please enter a valid number of days (minimum 1)'
                     : null,
-                hint: 'Logs older than this will be deleted'
+                hint: 'Logs older than this will be deleted',
             );
 
             return (int) $days;
@@ -109,11 +112,11 @@ class CleanupIchavaLogsCommand extends BaseCommand
     protected function processLogFiles(array $logFiles, Carbon $cutoffDate, bool $dryRun): array
     {
         $stats = [
-            'total' => count($logFiles),
+            'total'   => count($logFiles),
             'deleted' => 0,
-            'failed' => 0,
-            'kept' => 0,
-            'files' => [],
+            'failed'  => 0,
+            'kept'    => 0,
+            'files'   => [],
         ];
 
         // Use progress bar for better UX
@@ -127,8 +130,8 @@ class CleanupIchavaLogsCommand extends BaseCommand
                 $age = $fileDate->diffInDays(now());
 
                 $result = [
-                    'file' => $fileName,
-                    'age' => $age,
+                    'file'   => $fileName,
+                    'age'    => $age,
                     'action' => 'kept',
                 ];
 
@@ -145,7 +148,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
                                 $result['action'] = 'failed';
                                 $stats['failed']++;
                             }
-                        } catch (\Exception $e) {
+                        } catch (Exception $e) {
                             $result['action'] = 'failed';
                             $result['error'] = $e->getMessage();
                             $stats['failed']++;
@@ -159,7 +162,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
 
                 return $result;
             },
-            hint: 'This may take a moment for large log directories'
+            hint: 'This may take a moment for large log directories',
         );
 
         return $stats;
@@ -178,7 +181,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
                 [$dryRun ? 'Would delete' : 'Deleted', (string) $stats['deleted']],
                 ['Kept', (string) $stats['kept']],
                 ['Failed', (string) $stats['failed']],
-            ]
+            ],
         );
 
         // Show verbose details if requested
@@ -187,16 +190,16 @@ class CleanupIchavaLogsCommand extends BaseCommand
                 $file['file'],
                 "{$file['age']} days",
                 match ($file['action']) {
-                    'deleted' => '✅ Deleted',
+                    'deleted'      => '✅ Deleted',
                     'would_delete' => '🔍 Would delete',
-                    'failed' => '❌ Failed',
-                    default => '⏭️ Kept',
+                    'failed'       => '❌ Failed',
+                    default        => '⏭️ Kept',
                 },
             ], $stats['files']);
 
             table(
                 headers: ['File', 'Age', 'Action'],
-                rows: $rows
+                rows: $rows,
             );
         }
 

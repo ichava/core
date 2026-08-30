@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Models;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use RuntimeException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 /**
  * IconTerm Model - Icon Categories and Variants Taxonomy
@@ -40,11 +41,11 @@ use Simtabi\Laranail\Ichava\Services\IchavaLogger;
  */
 class IconTerm extends Model
 {
-    protected $table = 'ichava_icon_terms';
-
     public const TYPE_CATEGORY = 'category';
 
     public const TYPE_VARIANT = 'variant';
+
+    protected $table = 'ichava_icon_terms';
 
     /** @var array<int, string> Explicit allow-list (no mass-assignment of id / timestamps) */
     protected $fillable = [
@@ -57,15 +58,26 @@ class IconTerm extends Model
     ];
 
     /**
-     * @return array<string, string>
+     * Recursive descendant loader, supports unlimited depth.
      */
-    protected function casts(): array
+    public static function descendantsOf(int $termId): Collection
     {
-        return [
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
-            'parent_id' => 'integer',
-        ];
+        $rows = DB::select('
+            WITH RECURSIVE term_tree AS (
+                SELECT *
+                FROM ichava_icon_terms
+                WHERE id = ?
+
+                UNION ALL
+
+                SELECT t.*
+                FROM ichava_icon_terms t
+                INNER JOIN term_tree tt ON t.parent_id = tt.id
+            )
+            SELECT * FROM term_tree;
+        ', [$termId]);
+
+        return static::hydrate($rows);
     }
 
     /**
@@ -100,14 +112,15 @@ class IconTerm extends Model
             'termable',
             'ichava_icon_termables',
             'term_id',
-            'termable_id'
+            'termable_id',
         )->withTimestamps();
     }
 
     /**
      * Filter terms by category type
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeCategories(Builder $query): Builder
@@ -118,7 +131,8 @@ class IconTerm extends Model
     /**
      * Filter terms by variant type
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeVariants(Builder $query): Builder
@@ -129,8 +143,9 @@ class IconTerm extends Model
     /**
      * Filter terms by package name
      *
-     * @param  Builder<IconTerm>  $query
-     * @param  string  $package  Package identifier
+     * @param Builder<IconTerm> $query
+     * @param string $package Package identifier
+     *
      * @return Builder<IconTerm>
      */
     public function scopeInPackage(Builder $query, string $package): Builder
@@ -146,7 +161,8 @@ class IconTerm extends Model
     /**
      * Order by name alphabetically
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeOrdered(Builder $query): Builder
@@ -157,7 +173,8 @@ class IconTerm extends Model
     /**
      * Filter terms with icon counts
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeWithIconCount(Builder $query): Builder
@@ -168,7 +185,8 @@ class IconTerm extends Model
     /**
      * Filter terms that have icons
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeHasIcons(Builder $query): Builder
@@ -179,12 +197,13 @@ class IconTerm extends Model
     /**
      * Search terms by name or slug
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeSearch(Builder $query, string $search): Builder
     {
-        $like = '%'.$search.'%';
+        $like = '%' . $search . '%';
 
         return $query->where(function (Builder $q) use ($like): void {
             $q->where('name', 'LIKE', $like)
@@ -208,29 +227,6 @@ class IconTerm extends Model
     public function descendants(): Collection
     {
         return static::descendantsOf($this->id);
-    }
-
-    /**
-     * Recursive descendant loader, supports unlimited depth.
-     */
-    public static function descendantsOf(int $termId): Collection
-    {
-        $rows = DB::select('
-            WITH RECURSIVE term_tree AS (
-                SELECT *
-                FROM ichava_icon_terms
-                WHERE id = ?
-
-                UNION ALL
-
-                SELECT t.*
-                FROM ichava_icon_terms t
-                INNER JOIN term_tree tt ON t.parent_id = tt.id
-            )
-            SELECT * FROM term_tree;
-        ', [$termId]);
-
-        return static::hydrate($rows);
     }
 
     /**
@@ -327,20 +323,20 @@ class IconTerm extends Model
             // Skip check if both are null (new term with no parent)
             if ($term->parent_id !== null && $term->id !== null && $term->parent_id === $term->id) {
                 app(IchavaLogger::class)->error('Circular reference detected', null, [
-                    'term_id' => $term->id,
+                    'term_id'   => $term->id,
                     'parent_id' => $term->parent_id,
-                    'slug' => $term->slug,
-                    'name' => $term->name,
-                    'package' => $term->package,
+                    'slug'      => $term->slug,
+                    'name'      => $term->name,
+                    'package'   => $term->package,
                 ]);
-                throw new \RuntimeException("A term cannot be its own parent (ID: {$term->id}, Slug: {$term->slug})");
+                throw new RuntimeException("A term cannot be its own parent (ID: {$term->id}, Slug: {$term->slug})");
             }
 
             // Prevent creating circular references
             if ($term->parent_id && $term->exists) {
                 $parent = self::find($term->parent_id);
                 if ($parent && $parent->isDescendantOf($term)) {
-                    throw new \RuntimeException('Cannot create circular parent-child relationship');
+                    throw new RuntimeException('Cannot create circular parent-child relationship');
                 }
             }
         });
@@ -351,9 +347,21 @@ class IconTerm extends Model
                 // Trigger FTS refresh for all icons with this term
                 DB::statement(
                     'SELECT refresh_ichava_icons_search_text_for_term(?)',
-                    [$term->id]
+                    [$term->id],
                 );
             }
         });
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+            'parent_id'  => 'integer',
+        ];
     }
 }

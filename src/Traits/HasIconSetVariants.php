@@ -17,6 +17,47 @@ use Simtabi\Laranail\Ichava\Contracts\IconSetVariantInterface;
 trait HasIconSetVariants
 {
     /**
+     * Get all variant values as an array
+     *
+     * Useful for config, validation, etc.
+     *
+     * @return array<string>
+     */
+    public static function values(): array
+    {
+        return array_map(
+            fn (self $case) => $case->getValue(),
+            self::cases(),
+        );
+    }
+
+    /**
+     * Get the default variant case
+     *
+     * @return static|null
+     */
+    public static function default(): ?self
+    {
+        foreach (self::cases() as $case) {
+            if ($case->isDefault()) {
+                return $case;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Try to create variant from string value
+     *
+     * @return static|null
+     */
+    public static function tryFromValue(string $value): ?self
+    {
+        return self::tryFrom($value);
+    }
+
+    /**
      * Get the variant value (uses backing value from backed enum)
      *
      * For backed enums (enum MyEnum: string), this returns the backing value.
@@ -55,47 +96,6 @@ trait HasIconSetVariants
         }
 
         return "{$prefix}-{$this->value}";
-    }
-
-    /**
-     * Get all variant values as an array
-     *
-     * Useful for config, validation, etc.
-     *
-     * @return array<string>
-     */
-    public static function values(): array
-    {
-        return array_map(
-            fn (self $case) => $case->getValue(),
-            self::cases()
-        );
-    }
-
-    /**
-     * Get the default variant case
-     *
-     * @return static|null
-     */
-    public static function default(): ?self
-    {
-        foreach (self::cases() as $case) {
-            if ($case->isDefault()) {
-                return $case;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Try to create variant from string value
-     *
-     * @return static|null
-     */
-    public static function tryFromValue(string $value): ?self
-    {
-        return self::tryFrom($value);
     }
 
     /**

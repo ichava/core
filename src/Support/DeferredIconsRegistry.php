@@ -28,10 +28,10 @@ final class DeferredIconsRegistry
      *
      * @var array<string, string>
      */
-    protected array $icons = [];
+    private array $icons = [];
 
     public function __construct(
-        private readonly SvgProcessingService $svgProcessor
+        private readonly SvgProcessingService $svgProcessor,
     ) {}
 
     /**
@@ -70,7 +70,7 @@ final class DeferredIconsRegistry
         return sprintf(
             '<svg%s><use xlink:href="#%s" /></svg>',
             $attributesHtml ? " {$attributesHtml}" : '',
-            $id
+            $id,
         );
     }
 
@@ -119,9 +119,26 @@ HTML;
     }
 
     /**
+     * Generate unique icon ID
+     */
+    public function generateId(string $set, string $name, ?string $variant = null): string
+    {
+        $id = "ichava-{$set}-{$name}";
+
+        if ($variant) {
+            $id .= "-{$variant}";
+        }
+
+        // Sanitize ID (remove invalid characters)
+        $sanitized = preg_replace('/[^a-zA-Z0-9_-]/', '-', $id);
+
+        return $sanitized ?? $id;
+    }
+
+    /**
      * Convert SVG to <symbol> element
      */
-    protected function convertToSymbol(string $svg, string $id): string
+    private function convertToSymbol(string $svg, string $id): string
     {
         // Extract viewBox
         $viewBox = '0 0 24 24'; // default
@@ -140,24 +157,7 @@ HTML;
             '<symbol id="%s" viewBox="%s">%s</symbol>',
             $id,
             $viewBox,
-            trim($content ?? '')
+            trim($content ?? ''),
         );
-    }
-
-    /**
-     * Generate unique icon ID
-     */
-    public function generateId(string $set, string $name, ?string $variant = null): string
-    {
-        $id = "ichava-{$set}-{$name}";
-
-        if ($variant) {
-            $id .= "-{$variant}";
-        }
-
-        // Sanitize ID (remove invalid characters)
-        $sanitized = preg_replace('/[^a-zA-Z0-9_-]/', '-', $id);
-
-        return $sanitized ?? $id;
     }
 }

@@ -5,18 +5,19 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Commands;
 
 use Carbon\Carbon;
+
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\warning;
+
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\JobProgressTracker;
-
-use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\info;
-use function Laravel\Prompts\intro;
-use function Laravel\Prompts\note;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\spin;
-use function Laravel\Prompts\table;
-use function Laravel\Prompts\warning;
 
 /**
  * Display icon seeding job status
@@ -116,9 +117,9 @@ class JobStatusCommand extends BaseCommand
 
             match ($status) {
                 'processing' => $activeJobs++,
-                'completed' => $completedJobs++,
-                'failed' => $failedJobs++,
-                default => null,
+                'completed'  => $completedJobs++,
+                'failed'     => $failedJobs++,
+                default      => null,
             };
 
             $progressBar = $this->createProgressBar($progressPercent);
@@ -141,7 +142,7 @@ class JobStatusCommand extends BaseCommand
 
         table(
             headers: ['Package', 'Status', 'Progress', 'Icons', 'Updated'],
-            rows: $rows
+            rows: $rows,
         );
 
         // Summary
@@ -150,7 +151,7 @@ class JobStatusCommand extends BaseCommand
 
         $totalIcons = spin(
             callback: fn () => Icon::count(),
-            message: 'Counting icons...'
+            message: 'Counting icons...',
         );
 
         table(
@@ -160,7 +161,7 @@ class JobStatusCommand extends BaseCommand
                 ['Completed', (string) $completedJobs],
                 ['Failed', (string) $failedJobs],
                 ['Total icons in DB', $this->formatNumber($totalIcons)],
-            ]
+            ],
         );
 
         return self::SUCCESS;
@@ -179,7 +180,7 @@ class JobStatusCommand extends BaseCommand
                 ['Package', $packageName],
                 ['Status', $this->formatStatus($status)],
                 ['Job ID', $progress['job_id'] ?? '-'],
-            ]
+            ],
         );
 
         $processed = $progress['processed'] ?? 0;
@@ -228,7 +229,7 @@ class JobStatusCommand extends BaseCommand
             default: false,
             yes: 'Yes, clear it',
             no: 'No, cancel',
-            hint: 'This will remove the cached progress tracking data'
+            hint: 'This will remove the cached progress tracking data',
         );
 
         if (! $confirmed && ! $this->option('force')) {
@@ -239,7 +240,7 @@ class JobStatusCommand extends BaseCommand
 
         spin(
             callback: fn () => JobProgressTracker::clear($packageName),
-            message: 'Clearing progress...'
+            message: 'Clearing progress...',
         );
 
         outro("✅ Progress cleared for: {$packageName}");

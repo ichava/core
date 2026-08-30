@@ -9,7 +9,7 @@ describe('Package Exceptions', function () {
         it('creates exception for missing metadata', function () {
             $exception = IchavaException::missingPackageMetadata(
                 'test/package',
-                ['Icon set name', 'Prefix']
+                ['Icon set name', 'Prefix'],
             );
 
             expect($exception)->toBeInstanceOf(IchavaException::class);
@@ -22,7 +22,7 @@ describe('Package Exceptions', function () {
         it('creates exception for class not found', function () {
             $exception = IchavaException::packageClassNotFound(
                 'test/package',
-                'NonExistentClass'
+                'NonExistentClass',
             );
 
             expect($exception)->toBeInstanceOf(IchavaException::class);
@@ -33,7 +33,7 @@ describe('Package Exceptions', function () {
         it('creates exception for path not found', function () {
             $exception = IchavaException::packagePathNotFound(
                 'test/package',
-                '/non/existent/path'
+                '/non/existent/path',
             );
 
             expect($exception)->toBeInstanceOf(IchavaException::class);
@@ -46,7 +46,7 @@ describe('Package Exceptions', function () {
                 'test-icons',
                 'package1',
                 'package2',
-                'TestProvider'
+                'TestProvider',
             );
 
             expect($exception)->toBeInstanceOf(IchavaException::class);
@@ -61,7 +61,7 @@ describe('Package Exceptions', function () {
         it('creates exception for invalid configuration', function () {
             $exception = IchavaException::configurationValidationFailed(
                 'TestProvider',
-                ['Missing base path', 'Invalid prefix']
+                ['Missing base path', 'Invalid prefix'],
             );
 
             expect($exception)->toBeInstanceOf(IchavaException::class);
@@ -73,7 +73,7 @@ describe('Package Exceptions', function () {
         it('creates exception for build failed', function () {
             $exception = IchavaException::configurationBuildFailed(
                 'TestIconSet',
-                'Invalid path structure'
+                'Invalid path structure',
             );
 
             expect($exception)->toBeInstanceOf(IchavaException::class);
@@ -85,7 +85,7 @@ describe('Package Exceptions', function () {
         it('creates exception for missing method', function () {
             $exception = IchavaException::configurationMissingMethod(
                 'TestProvider',
-                'getIconSetName'
+                'getIconSetName',
             );
 
             expect($exception)->toBeInstanceOf(IchavaException::class);
@@ -98,7 +98,7 @@ describe('Package Exceptions', function () {
         it('creates exception for prefix conflict', function () {
             $exception = IchavaException::packagePrefixConflict(
                 'test',
-                ['package1', 'package2']
+                ['package1', 'package2'],
             );
 
             expect($exception)->toBeInstanceOf(IchavaException::class);
@@ -111,7 +111,7 @@ describe('Package Exceptions', function () {
         it('creates exception for blade component conflict', function () {
             $exception = IchavaException::packageBladeComponentConflict(
                 'test-icon',
-                ['package1', 'package2']
+                ['package1', 'package2'],
             );
 
             expect($exception)->toBeInstanceOf(IchavaException::class);

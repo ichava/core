@@ -63,12 +63,9 @@
     }
   },
   "scripts": {
-    "format": [
-      "vendor/bin/pint --parallel"
-    ],
-    "test": [
-      "vendor/bin/pest --parallel"
-    ]
+    "pint": "@php vendor/bin/laranail-pint --test",
+    "pint-fix": "@php vendor/bin/laranail-pint --parallel",
+    "test":  "vendor/bin/pest --parallel"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,

@@ -4,19 +4,24 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Illuminate\Filesystem\Filesystem;
+use Exception;
+use RuntimeException;
 use Illuminate\Support\Str;
+
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\text;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\select;
+
 use Symfony\Component\Finder\Finder;
 
 use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\info;
-use function Laravel\Prompts\intro;
-use function Laravel\Prompts\note;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\select;
-use function Laravel\Prompts\spin;
-use function Laravel\Prompts\text;
 use function Laravel\Prompts\warning;
+
+use Illuminate\Filesystem\Filesystem;
 
 /**
  * Artisan command to scaffold a new Ichava icon package
@@ -119,7 +124,7 @@ class MakeIconPackageCommand extends BaseCommand
                 default: false,
                 yes: 'Yes, overwrite',
                 no: 'No, cancel',
-                hint: '⚠️ Existing files will be replaced!'
+                hint: '⚠️ Existing files will be replaced!',
             );
 
             if (! $overwrite) {
@@ -157,7 +162,7 @@ class MakeIconPackageCommand extends BaseCommand
                 validate: fn (string $value) => strlen($value) < 2
                     ? 'Package name must be at least 2 characters'
                     : null,
-                hint: 'The name will be converted to StudlyCase automatically'
+                hint: 'The name will be converted to StudlyCase automatically',
             );
         }
 
@@ -177,7 +182,7 @@ class MakeIconPackageCommand extends BaseCommand
                 placeholder: 'e.g., YourCompany, MyOrg',
                 default: 'YourVendor',
                 required: 'Vendor name is required',
-                hint: 'Used in namespace and composer package name'
+                hint: 'Used in namespace and composer package name',
             );
         }
 
@@ -199,7 +204,7 @@ class MakeIconPackageCommand extends BaseCommand
                 validate: fn (string $value) => ! filter_var($value, FILTER_VALIDATE_EMAIL)
                     ? 'Please enter a valid email address'
                     : null,
-                hint: 'Used in composer.json author field'
+                hint: 'Used in composer.json author field',
             );
         }
 
@@ -220,7 +225,7 @@ class MakeIconPackageCommand extends BaseCommand
                 label: 'Blade component prefix',
                 placeholder: $defaultPrefix,
                 default: $defaultPrefix,
-                hint: 'Used for Blade components: <x-{prefix}-icon name="..." />'
+                hint: 'Used for Blade components: <x-{prefix}-icon name="..." />',
             );
         }
 
@@ -239,10 +244,10 @@ class MakeIconPackageCommand extends BaseCommand
                 label: 'Icon set type',
                 options: [
                     'single' => 'Single-set - All icons in one folder (e.g., files/*.svg)',
-                    'multi' => 'Multi-set - Icons organized by variant (e.g., files/regular/*.svg, files/solid/*.svg)',
+                    'multi'  => 'Multi-set - Icons organized by variant (e.g., files/regular/*.svg, files/solid/*.svg)',
                 ],
                 default: 'single',
-                hint: 'Choose how your icons will be organized'
+                hint: 'Choose how your icons will be organized',
             );
         }
 
@@ -267,10 +272,10 @@ class MakeIconPackageCommand extends BaseCommand
 
         // Common variant presets
         $presets = [
-            'custom' => 'Custom - Enter your own variant names',
-            'regular,solid' => 'Regular + Solid (2 variants)',
-            'outline,solid' => 'Outline + Solid (2 variants)',
-            'regular,solid,outline' => 'Regular + Solid + Outline (3 variants)',
+            'custom'                       => 'Custom - Enter your own variant names',
+            'regular,solid'                => 'Regular + Solid (2 variants)',
+            'outline,solid'                => 'Outline + Solid (2 variants)',
+            'regular,solid,outline'        => 'Regular + Solid + Outline (3 variants)',
             'thin,light,regular,bold,fill' => 'Thin + Light + Regular + Bold + Fill (5 variants)',
         ];
 
@@ -278,7 +283,7 @@ class MakeIconPackageCommand extends BaseCommand
             label: 'Select variant preset or choose custom',
             options: $presets,
             default: 'regular,solid',
-            hint: 'Variants define different styles of the same icon'
+            hint: 'Variants define different styles of the same icon',
         );
 
         if ($selected === 'custom') {
@@ -294,7 +299,7 @@ class MakeIconPackageCommand extends BaseCommand
                     }
 
                     return null;
-                }
+                },
             );
 
             return array_filter(array_map('trim', explode(',', $customVariants)));
@@ -324,7 +329,7 @@ class MakeIconPackageCommand extends BaseCommand
                     }
 
                     return null;
-                }
+                },
             );
         }
 
@@ -351,7 +356,7 @@ class MakeIconPackageCommand extends BaseCommand
                 label: "Parent directory '{$parentDir}' does not exist. Create it?",
                 default: true,
                 yes: 'Yes, create it',
-                no: 'No, cancel'
+                no: 'No, cancel',
             );
 
             if (! $createParent) {
@@ -362,7 +367,7 @@ class MakeIconPackageCommand extends BaseCommand
 
             try {
                 $this->files->ensureDirectoryExists($parentDir);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->failure("Failed to create parent directory: {$e->getMessage()}");
 
                 return null;
@@ -422,7 +427,7 @@ class MakeIconPackageCommand extends BaseCommand
                     $this->generateFromStub($relativeStub, "{$path}/{$relativeDest}");
                 }
             },
-            message: "Generating {$count} files from stubs..."
+            message: "Generating {$count} files from stubs...",
         );
 
         info("✅ Generated {$count} files from stubs");
@@ -487,7 +492,7 @@ class MakeIconPackageCommand extends BaseCommand
         return str_replace(
             array_keys($this->replacements),
             array_values($this->replacements),
-            $dest
+            $dest,
         );
     }
 
@@ -560,39 +565,39 @@ class MakeIconPackageCommand extends BaseCommand
         $vendorKebab = Str::kebab($vendor);
         $vendorSnake = Str::snake($vendor);
 
-        $namespace = $vendorStudly.'\\'.$studlyName.'Icons';
+        $namespace = $vendorStudly . '\\' . $studlyName . 'Icons';
         $namespaceEscaped = str_replace('\\', '\\\\', $namespace);
-        $packageName = $vendorKebab.'/'.$kebabName.'-icons';
+        $packageName = $vendorKebab . '/' . $kebabName . '-icons';
         $humanName = ucwords(str_replace('-', ' ', $kebabName));
 
         $this->replacements = [
             // Vendor variants
-            '{{vendor}}' => $vendor,
+            '{{vendor}}'       => $vendor,
             '{{vendorStudly}}' => $vendorStudly,
-            '{{vendorLower}}' => Str::lower($vendor),
-            '{{vendorKebab}}' => $vendorKebab,
-            '{{vendorSnake}}' => $vendorSnake,
+            '{{vendorLower}}'  => Str::lower($vendor),
+            '{{vendorKebab}}'  => $vendorKebab,
+            '{{vendorSnake}}'  => $vendorSnake,
 
             // Package-name variants
-            '{{studlyName}}' => $studlyName,
-            '{{camelName}}' => Str::camel($studlyName),
-            '{{kebabName}}' => $kebabName,
-            '{{snakeName}}' => Str::snake($studlyName),
+            '{{studlyName}}'     => $studlyName,
+            '{{camelName}}'      => Str::camel($studlyName),
+            '{{kebabName}}'      => $kebabName,
+            '{{snakeName}}'      => Str::snake($studlyName),
             '{{snakeNameUpper}}' => Str::upper(Str::snake($studlyName)),
-            '{{humanName}}' => $humanName,
+            '{{humanName}}'      => $humanName,
 
             // Composed identifiers
-            '{{namespace}}' => $namespace,
+            '{{namespace}}'        => $namespace,
             '{{namespaceEscaped}}' => $namespaceEscaped,
-            '{{packageName}}' => $packageName,
-            '{{bladeNamespace}}' => $kebabName.'-icons',
+            '{{packageName}}'      => $packageName,
+            '{{bladeNamespace}}'   => $kebabName . '-icons',
 
             // Author / metadata
-            '{{prefix}}' => $prefix,
-            '{{email}}' => $email,
-            '{{year}}' => date('Y'),
-            '{{date}}' => date('Y-m-d'),
-            '{{iconSetType}}' => $type,
+            '{{prefix}}'       => $prefix,
+            '{{email}}'        => $email,
+            '{{year}}'         => date('Y'),
+            '{{date}}'         => date('Y-m-d'),
+            '{{iconSetType}}'  => $type,
             '{{variantsJson}}' => $variantsJson,
         ];
     }
@@ -628,15 +633,15 @@ class MakeIconPackageCommand extends BaseCommand
             $slug = Str::slug($variant);
             $isDefault = $order === 1;
             $variantsData[$slug] = [
-                'name' => Str::title($variant),
-                'slug' => $slug,
-                'description' => Str::title($variant).' icon style',
-                'default' => $isDefault,
-                'icon_suffix' => $isDefault ? '' : '-'.$slug,
+                'name'          => Str::title($variant),
+                'slug'          => $slug,
+                'description'   => Str::title($variant) . ' icon style',
+                'default'       => $isDefault,
+                'icon_suffix'   => $isDefault ? '' : '-' . $slug,
                 'display_order' => $order,
-                'attributes' => (object) [],
-                'preview_icon' => 'home',
-                'color_scheme' => 'adaptive',
+                'attributes'    => (object) [],
+                'preview_icon'  => 'home',
+                'color_scheme'  => 'adaptive',
             ];
             $order++;
         }
@@ -649,7 +654,7 @@ class MakeIconPackageCommand extends BaseCommand
      */
     protected function getStubsPath(): string
     {
-        return dirname(__DIR__, 2).'/stubs/icon-package';
+        return dirname(__DIR__, 2) . '/stubs/icon-package';
     }
 
     /**
@@ -657,10 +662,10 @@ class MakeIconPackageCommand extends BaseCommand
      */
     protected function generateFromStub(string $stubName, string $destinationPath): void
     {
-        $stubPath = $this->getStubsPath().'/'.$stubName;
+        $stubPath = $this->getStubsPath() . '/' . $stubName;
 
         if (! $this->files->exists($stubPath)) {
-            throw new \RuntimeException("Stub file not found: {$stubPath}");
+            throw new RuntimeException("Stub file not found: {$stubPath}");
         }
 
         $content = $this->files->get($stubPath);
@@ -680,7 +685,7 @@ class MakeIconPackageCommand extends BaseCommand
         return str_replace(
             array_keys($this->replacements),
             array_values($this->replacements),
-            $content
+            $content,
         );
     }
 
@@ -702,7 +707,7 @@ class MakeIconPackageCommand extends BaseCommand
                 $this->files->put("{$variantPath}/.gitkeep", "# Place your {$variant} SVG icons here\n");
             }
 
-            info('✅ Created multi-set structure with variants: '.implode(', ', $this->variants));
+            info('✅ Created multi-set structure with variants: ' . implode(', ', $this->variants));
         } else {
             // Single-set: Just create the files directory
             $this->files->ensureDirectoryExists($filesPath);

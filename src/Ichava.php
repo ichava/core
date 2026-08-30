@@ -4,19 +4,20 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava;
 
+use Throwable;
 use Illuminate\Support\Collection;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Facades\IchavaFacade;
+use Simtabi\Laranail\Ichava\Support\IconRenderer;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
-use Simtabi\Laranail\Ichava\Services\IconBrowserService;
-use Simtabi\Laranail\Ichava\Services\IconCacheService;
-use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
-use Simtabi\Laranail\Ichava\Services\IconPreferenceService;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Services\IconsManifest;
+use Simtabi\Laranail\Ichava\Services\IconCacheService;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Services\IconBrowserService;
 use Simtabi\Laranail\Ichava\Services\RegistrationConfig;
+use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
 use Simtabi\Laranail\Ichava\Support\DeferredIconsRegistry;
-use Simtabi\Laranail\Ichava\Support\IconRenderer;
+use Simtabi\Laranail\Ichava\Services\IconPreferenceService;
 
 /**
  * Backing class for the `Ichava` facade and `ichava()` helper.
@@ -31,15 +32,15 @@ use Simtabi\Laranail\Ichava\Support\IconRenderer;
 final class Ichava
 {
     public function __construct(
-        protected IconRegistry $registry,
-        protected IconBrowserService $browser,
-        protected IconCacheService $cache,
-        protected IconPreferenceService $preferences,
-        protected IconDiscoveryService $discovery,
-        protected IconsManifest $manifest,
-        protected IchavaLogger $logger,
-        protected DeferredIconsRegistry $deferredRegistry,
-        protected IconRenderer $iconRenderer
+        private IconRegistry $registry,
+        private IconBrowserService $browser,
+        private IconCacheService $cache,
+        private IconPreferenceService $preferences,
+        private IconDiscoveryService $discovery,
+        private IconsManifest $manifest,
+        private IchavaLogger $logger,
+        private DeferredIconsRegistry $deferredRegistry,
+        private IconRenderer $iconRenderer,
     ) {}
 
     /**
@@ -48,7 +49,8 @@ final class Ichava
      * Returns an IconRenderer pre-loaded with the given path so you can chain
      * class(), size(), aria(), etc. before calling render().
      *
-     * @param  string  $name  Icon path in `vendor/package::category/name` format
+     * @param string $name Icon path in `vendor/package::category/name` format
+     *
      * @return IconRenderer Fluent renderer instance
      */
     public function render(string $name): IconRenderer
@@ -62,7 +64,7 @@ final class Ichava
      * Returns a RegistrationConfig so you can chain fromDirectory(), prefix(),
      * bladeComponent(), etc. before calling register().
      *
-     * @param  string  $name  Unique package name (e.g. 'ichava/tabler-icons')
+     * @param string $name Unique package name (e.g. 'ichava/tabler-icons')
      */
     public function register(string $name): RegistrationConfig
     {
@@ -101,7 +103,7 @@ final class Ichava
      * Delegates to IconDiscoveryService. Returns an empty collection if the
      * package is not found rather than throwing.
      *
-     * @param  string  $package  Package name (e.g. 'ichava/tabler-icons')
+     * @param string $package Package name (e.g. 'ichava/tabler-icons')
      */
     public function icons(string $package): Collection
     {
@@ -116,8 +118,8 @@ final class Ichava
      * Delegates to IconDiscoveryService. Results are sorted by relevance;
      * use $limit to cap the response size for autocomplete / typeahead UIs.
      *
-     * @param  string  $query  Search term (partial icon name match)
-     * @param  int  $limit  Maximum number of results to return (default: 50)
+     * @param string $query Search term (partial icon name match)
+     * @param int $limit Maximum number of results to return (default: 50)
      */
     public function search(string $query, int $limit = 50): Collection
     {
@@ -131,8 +133,8 @@ final class Ichava
      *
      * Equivalent to `config("ichava.{$key}", $default)`.
      *
-     * @param  string  $key  Config key relative to the ichava namespace
-     * @param  mixed  $default  Value to return when the key is not set
+     * @param string $key Config key relative to the ichava namespace
+     * @param mixed $default Value to return when the key is not set
      */
     public function config(string $key, mixed $default = null): mixed
     {
@@ -176,7 +178,7 @@ final class Ichava
             $this->cache->flush();
 
             return true;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return false;
         }
     }
@@ -240,7 +242,7 @@ final class Ichava
     /**
      * Get a registered IconSetInterface object by name.
      *
-     * @param  string  $name  Icon set name (e.g. 'ichava/tabler-icons')
+     * @param string $name Icon set name (e.g. 'ichava/tabler-icons')
      *
      * @throws IchavaException if the set is not registered
      */
@@ -265,9 +267,9 @@ final class Ichava
      * Accepts the same path format as render(): `vendor/package::category/name`.
      * Returns false rather than throwing if the set or icon is not found.
      *
-     * @param  string  $name  Icon path (e.g. 'ichava/tabler-icons::outline/home')
-     * @param  string|null  $variant  Optional variant override
-     * @param  string|null  $category  Optional category override
+     * @param string $name Icon path (e.g. 'ichava/tabler-icons::outline/home')
+     * @param string|null $variant Optional variant override
+     * @param string|null $category Optional category override
      */
     public function has(string $name, ?string $variant = null, ?string $category = null): bool
     {
@@ -288,7 +290,7 @@ final class Ichava
      * Delegates to IconRegistry::registerFromConfig(). Each entry may be a plain
      * path string or an associative array with a 'path' key.
      *
-     * @param  array<int|string, string|array<string, mixed>>  $sets  Config entries
+     * @param array<int|string, string|array<string, mixed>> $sets Config entries
      */
     public function registerFromConfig(array $sets): void
     {
@@ -298,7 +300,7 @@ final class Ichava
     /**
      * Set the default icon set used when no package is specified in the icon path.
      *
-     * @param  string  $name  Registered icon set name
+     * @param string $name Registered icon set name
      *
      * @throws IchavaException if the set is not registered
      */

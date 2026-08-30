@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use Exception;
 use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 
@@ -43,8 +44,9 @@ final class IchavaSessionManager
     /**
      * Store a preference value
      *
-     * @param  string  $key  Preference key (e.g., 'theme', 'display.view_mode')
-     * @param  mixed  $value  Value to store
+     * @param string $key Preference key (e.g., 'theme', 'display.view_mode')
+     * @param mixed $value Value to store
+     *
      * @return bool Success status
      */
     public function put(string $key, mixed $value): bool
@@ -63,9 +65,9 @@ final class IchavaSessionManager
             }
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             app(IchavaLogger::class)->warning('Failed to store in session', [
-                'key' => $key,
+                'key'   => $key,
                 'error' => $e->getMessage(),
             ]);
 
@@ -76,8 +78,8 @@ final class IchavaSessionManager
     /**
      * Retrieve a preference value
      *
-     * @param  string  $key  Preference key
-     * @param  mixed  $default  Default value if not found
+     * @param string $key Preference key
+     * @param mixed $default Default value if not found
      */
     public function get(string $key, mixed $default = null): mixed
     {
@@ -94,9 +96,9 @@ final class IchavaSessionManager
             }
 
             return $value;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             app(IchavaLogger::class)->warning('Failed to retrieve from session', [
-                'key' => $key,
+                'key'   => $key,
                 'error' => $e->getMessage(),
             ]);
 
@@ -117,9 +119,9 @@ final class IchavaSessionManager
             $sessionKey = $this->makeKey($key);
 
             return session()->has($sessionKey);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             app(IchavaLogger::class)->warning('Failed to check session', [
-                'key' => $key,
+                'key'   => $key,
                 'error' => $e->getMessage(),
             ]);
 
@@ -141,9 +143,9 @@ final class IchavaSessionManager
             session()->forget($sessionKey);
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             app(IchavaLogger::class)->warning('Failed to forget session key', [
-                'key' => $key,
+                'key'   => $key,
                 'error' => $e->getMessage(),
             ]);
 
@@ -165,7 +167,7 @@ final class IchavaSessionManager
             $ichavaPrefs = [];
 
             // Filter only Ichava keys
-            $prefix = self::SESSION_PREFIX.'.';
+            $prefix = self::SESSION_PREFIX . '.';
             foreach ($allSession as $key => $value) {
                 if (Str::startsWith($key, $prefix)) {
                     // Remove prefix for clean keys
@@ -175,7 +177,7 @@ final class IchavaSessionManager
             }
 
             return $ichavaPrefs;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             app(IchavaLogger::class)->warning('Failed to retrieve all session data', [
                 'error' => $e->getMessage(),
             ]);
@@ -195,7 +197,7 @@ final class IchavaSessionManager
 
         try {
             $allSession = session()->all();
-            $prefix = self::SESSION_PREFIX.'.';
+            $prefix = self::SESSION_PREFIX . '.';
 
             // Remove all Ichava keys
             foreach (array_keys($allSession) as $key) {
@@ -205,7 +207,7 @@ final class IchavaSessionManager
             }
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             app(IchavaLogger::class)->warning('Failed to clear session', [
                 'error' => $e->getMessage(),
             ]);
@@ -270,14 +272,6 @@ final class IchavaSessionManager
     }
 
     /**
-     * Make a namespaced session key
-     */
-    private function makeKey(string $key): string
-    {
-        return self::SESSION_PREFIX.'.'.$key;
-    }
-
-    /**
      * Get browser ID from request headers
      * Used for cross-domain session identification
      */
@@ -285,8 +279,16 @@ final class IchavaSessionManager
     {
         try {
             return request()->header('X-Browser-Id');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return null;
         }
+    }
+
+    /**
+     * Make a namespaced session key
+     */
+    private function makeKey(string $key): string
+    {
+        return self::SESSION_PREFIX . '.' . $key;
     }
 }

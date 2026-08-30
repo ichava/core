@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Drivers;
 
-use Illuminate\Filesystem\Filesystem;
+use Exception;
 use Illuminate\Support\Str;
-use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
+use Illuminate\Filesystem\Filesystem;
 use Simtabi\Laranail\Ichava\Data\IconData;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
-use Simtabi\Laranail\Ichava\Exceptions\IconRenderException;
+use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
+use Simtabi\Laranail\Ichava\Exceptions\IconRenderException;
 
 /**
  * SvgDriver - SVG Loading and Rendering Driver
@@ -43,7 +44,7 @@ class SvgDriver
     public function __construct(
         protected Filesystem $files,
         protected SvgProcessingService $processor,
-        protected IconCacheService $cache
+        protected IconCacheService $cache,
     ) {
         if (! $this->cache) {
             throw IchavaException::dependencyNotInjected('IconCacheService', static::class);
@@ -56,8 +57,9 @@ class SvgDriver
      * Delegates to load() then injectAttributes(). On any exception the raw
      * message is re-thrown as an IconRenderException with the icon name included.
      *
-     * @param  IconData  $icon  Resolved icon data object (path, name, set)
-     * @param  array<string, mixed>  $attributes  HTML attributes to inject onto the SVG element
+     * @param IconData $icon Resolved icon data object (path, name, set)
+     * @param array<string, mixed> $attributes HTML attributes to inject onto the SVG element
+     *
      * @return string Rendered HTML-safe SVG string
      *
      * @throws IconRenderException wrapping any underlying load or processing failure
@@ -69,10 +71,10 @@ class SvgDriver
             $content = $this->processor->process($content, $attributes);
 
             return $content;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new IconRenderException(
                 "Failed to render icon '{$icon->name}': {$e->getMessage()}",
-                previous: $e
+                previous: $e,
             );
         }
     }
@@ -83,8 +85,9 @@ class SvgDriver
      * Currently delegates directly to loadFromLocal(). The $options parameter
      * is reserved for future loaders (remote URL, CDN, encrypted storage).
      *
-     * @param  string  $path  Absolute filesystem path to the .svg file
-     * @param  array<string, mixed>  $options  Reserved for future use
+     * @param string $path Absolute filesystem path to the .svg file
+     * @param array<string, mixed> $options Reserved for future use
+     *
      * @return string Raw SVG content (unsanitized)
      *
      * @throws IchavaException if the file does not exist, is unreadable, or fails security checks
@@ -92,6 +95,39 @@ class SvgDriver
     public function load(string $path, array $options = []): string
     {
         return $this->loadFromLocal($path);
+    }
+
+    /**
+     * Extract the viewBox attribute from an SVG string.
+     */
+    public function getViewBox(string $svg): ?string
+    {
+        if (preg_match('/viewBox=["\']([^"\']+)["\']/', $svg, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract width and height dimensions from an SVG string.
+     *
+     * @return array{width: string|null, height: string|null}
+     */
+    public function getDimensions(string $svg): array
+    {
+        $width = null;
+        $height = null;
+
+        if (preg_match('/width=["\']([^"\']+)["\']/', $svg, $matches)) {
+            $width = $matches[1];
+        }
+
+        if (preg_match('/height=["\']([^"\']+)["\']/', $svg, $matches)) {
+            $height = $matches[1];
+        }
+
+        return compact('width', 'height');
     }
 
     /**
@@ -104,7 +140,8 @@ class SvgDriver
      * 4. File size bounds, rejects files smaller than MIN_SVG_FILE_SIZE or larger
      *    than `ichava.max_file_size` (falls back to MAX_SVG_FILE_SIZE)
      *
-     * @param  string  $path  Absolute path to the SVG file
+     * @param string $path Absolute path to the SVG file
+     *
      * @return string Raw SVG content
      *
      * @throws IchavaException on any security violation, size violation, or read failure
@@ -124,7 +161,7 @@ class SvgDriver
         $realPath = realpath($path);
         $realDir = realpath(dirname($path));
 
-        if ($realPath === false || $realDir === false || ! Str::startsWith($realPath, $realDir.DIRECTORY_SEPARATOR)) {
+        if ($realPath === false || $realDir === false || ! Str::startsWith($realPath, $realDir . DIRECTORY_SEPARATOR)) {
             throw IchavaException::securityViolation("Path escapes its directory: '{$path}'");
         }
 
@@ -162,7 +199,7 @@ class SvgDriver
      * Handles accessibility attributes (title, aria-label, role).
      * Merges class attributes to prevent duplicates.
      *
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
      */
     protected function injectAttributes(string $svg, array $attributes): string
     {
@@ -199,7 +236,7 @@ class SvgDriver
         return Str::replace(
             '<svg',
             rtrim("<svg {$attributesHtml}"),
-            $svg
+            $svg,
         );
     }
 
@@ -215,8 +252,9 @@ class SvgDriver
      * 5. Add `fill="currentColor"` to the root `<svg>` if no fill is set, enabling
      *    dynamic colour via Tailwind `text-*` classes
      *
-     * @param  string  $svg  Raw SVG markup
-     * @param  array<string, mixed>  $attributes  Attributes being injected (used to check for explicit sizing)
+     * @param string $svg Raw SVG markup
+     * @param array<string, mixed> $attributes Attributes being injected (used to check for explicit sizing)
+     *
      * @return string Normalised SVG markup
      */
     protected function ensureResponsiveSvg(string $svg, array $attributes): string
@@ -246,7 +284,7 @@ class SvgDriver
                 '/<svg/',
                 "<svg viewBox=\"0 0 {$originalWidth} {$originalHeight}\"",
                 $svg,
-                1
+                1,
             ) ?? $svg;
         }
 
@@ -256,7 +294,7 @@ class SvgDriver
                 '/<svg/',
                 '<svg preserveAspectRatio="xMidYMid meet"',
                 $svg,
-                1
+                1,
             ) ?? $svg;
         }
 
@@ -268,7 +306,7 @@ class SvgDriver
                 '/<svg/',
                 '<svg fill="currentColor"',
                 $svg,
-                1
+                1,
             ) ?? $svg;
         } else {
             // Has fill - check if it's a fixed color and replace with currentColor
@@ -278,7 +316,7 @@ class SvgDriver
                 '/<svg([^>]+)fill=["\'](?!none|transparent|currentColor)[^"\']+["\']/',
                 '<svg$1fill="currentColor"',
                 $svg,
-                1
+                1,
             ) ?? $svg;
         }
 
@@ -291,7 +329,7 @@ class SvgDriver
             $svg = preg_replace(
                 '/<(path|circle|rect|polygon|ellipse)([^>]+)fill=["\'](?!none|transparent|currentColor|inherit)[^"\']+["\']/',
                 '<$1$2fill="currentColor"',
-                $svg
+                $svg,
             ) ?? $svg;
         }
 
@@ -307,7 +345,7 @@ class SvgDriver
         $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
 
         // Generate unique ID for aria-labelledby
-        $titleId = 'icon-title-'.md5($title.microtime());
+        $titleId = 'icon-title-' . md5($title . microtime());
 
         // Create title element
         $titleElement = "<title id=\"{$titleId}\">{$safeTitle}</title>";
@@ -317,42 +355,9 @@ class SvgDriver
             '/<svg([^>]*)>/',
             "<svg$1 aria-labelledby=\"{$titleId}\">{$titleElement}",
             $svg,
-            1
+            1,
         );
 
         return $svg ?? $svg;
-    }
-
-    /**
-     * Extract the viewBox attribute from an SVG string.
-     */
-    public function getViewBox(string $svg): ?string
-    {
-        if (preg_match('/viewBox=["\']([^"\']+)["\']/', $svg, $matches)) {
-            return $matches[1];
-        }
-
-        return null;
-    }
-
-    /**
-     * Extract width and height dimensions from an SVG string.
-     *
-     * @return array{width: string|null, height: string|null}
-     */
-    public function getDimensions(string $svg): array
-    {
-        $width = null;
-        $height = null;
-
-        if (preg_match('/width=["\']([^"\']+)["\']/', $svg, $matches)) {
-            $width = $matches[1];
-        }
-
-        if (preg_match('/height=["\']([^"\']+)["\']/', $svg, $matches)) {
-            $height = $matches[1];
-        }
-
-        return compact('width', 'height');
     }
 }

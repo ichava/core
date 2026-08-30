@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
 describe('Helpers::sanitizePath', function () {
     it('strips leading and trailing slashes', function () {
@@ -36,33 +36,33 @@ describe('Helpers vendor / package extractors', function () {
 
 describe('Helpers::loadConfigJson', function () {
     it('parses a valid config.json', function () {
-        $dir = sys_get_temp_dir().'/ichava-helpers-'.bin2hex(random_bytes(4));
+        $dir = sys_get_temp_dir() . '/ichava-helpers-' . bin2hex(random_bytes(4));
         mkdir($dir);
-        file_put_contents($dir.'/config.json', json_encode(['name' => 'x', 'foo' => 1]));
+        file_put_contents($dir . '/config.json', json_encode(['name' => 'x', 'foo' => 1]));
 
         $result = Helpers::loadConfigJson($dir);
         expect($result)->toBe(['name' => 'x', 'foo' => 1]);
 
-        @unlink($dir.'/config.json');
+        @unlink($dir . '/config.json');
         @rmdir($dir);
     });
 
     it('throws IchavaException on missing file when throwOnMissing is true', function () {
-        Helpers::loadConfigJson('/tmp/definitely-does-not-exist-'.bin2hex(random_bytes(4)));
+        Helpers::loadConfigJson('/tmp/definitely-does-not-exist-' . bin2hex(random_bytes(4)));
     })->throws(IchavaException::class);
 
     it('returns empty array on missing file when throwOnMissing is false', function () {
         $result = Helpers::loadConfigJson(
-            '/tmp/definitely-does-not-exist-'.bin2hex(random_bytes(4)),
-            false
+            '/tmp/definitely-does-not-exist-' . bin2hex(random_bytes(4)),
+            false,
         );
         expect($result)->toBe([]);
     });
 
     it('throws on invalid JSON', function () {
-        $dir = sys_get_temp_dir().'/ichava-helpers-'.bin2hex(random_bytes(4));
+        $dir = sys_get_temp_dir() . '/ichava-helpers-' . bin2hex(random_bytes(4));
         mkdir($dir);
-        file_put_contents($dir.'/config.json', '{not json}');
+        file_put_contents($dir . '/config.json', '{not json}');
 
         try {
             Helpers::loadConfigJson($dir);
@@ -70,16 +70,16 @@ describe('Helpers::loadConfigJson', function () {
         } catch (IchavaException) {
             $threw = true;
         } finally {
-            @unlink($dir.'/config.json');
+            @unlink($dir . '/config.json');
             @rmdir($dir);
         }
         expect($threw)->toBeTrue();
     });
 
     it('throws when JSON is valid but not an object', function () {
-        $dir = sys_get_temp_dir().'/ichava-helpers-'.bin2hex(random_bytes(4));
+        $dir = sys_get_temp_dir() . '/ichava-helpers-' . bin2hex(random_bytes(4));
         mkdir($dir);
-        file_put_contents($dir.'/config.json', '"a string, not an object"');
+        file_put_contents($dir . '/config.json', '"a string, not an object"');
 
         try {
             Helpers::loadConfigJson($dir);
@@ -87,7 +87,7 @@ describe('Helpers::loadConfigJson', function () {
         } catch (IchavaException) {
             $threw = true;
         } finally {
-            @unlink($dir.'/config.json');
+            @unlink($dir . '/config.json');
             @rmdir($dir);
         }
         expect($threw)->toBeTrue();
@@ -103,18 +103,18 @@ describe('Helpers::logPath', function () {
     it('appends a filename to the directory', function () {
         $dir = Helpers::logPath();
         $path = Helpers::logPath('my-channel.log');
-        expect($path)->toBe($dir.DIRECTORY_SEPARATOR.'my-channel.log');
+        expect($path)->toBe($dir . DIRECTORY_SEPARATOR . 'my-channel.log');
     });
 
     it('strips a leading slash from the filename', function () {
         $dir = Helpers::logPath();
-        expect(Helpers::logPath('/foo.log'))->toBe($dir.DIRECTORY_SEPARATOR.'foo.log');
+        expect(Helpers::logPath('/foo.log'))->toBe($dir . DIRECTORY_SEPARATOR . 'foo.log');
     });
 });
 
 describe('Helpers::assetVersion', function () {
     it("returns 'dev' for an asset that doesn't exist", function () {
-        expect(Helpers::assetVersion('definitely-missing-'.bin2hex(random_bytes(4)).'.css'))
+        expect(Helpers::assetVersion('definitely-missing-' . bin2hex(random_bytes(4)) . '.css'))
             ->toBe('dev');
     });
 });

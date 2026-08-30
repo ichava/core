@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use Throwable;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -23,20 +24,20 @@ class JobProgressTracker
     public static function start(string $packageName, int $totalIcons, ?string $jobId = null): void
     {
         $data = [
-            'job_id' => $jobId ?? uniqid('job_', true),
-            'package' => $packageName,
-            'status' => 'processing',
-            'total' => $totalIcons,
-            'processed' => 0,
+            'job_id'           => $jobId ?? uniqid('job_', true),
+            'package'          => $packageName,
+            'status'           => 'processing',
+            'total'            => $totalIcons,
+            'processed'        => 0,
             'progress_percent' => 0,
-            'started_at' => now()->toIso8601String(),
-            'updated_at' => now()->toIso8601String(),
+            'started_at'       => now()->toIso8601String(),
+            'updated_at'       => now()->toIso8601String(),
         ];
 
         Cache::put(
             self::cacheKey($packageName),
             $data,
-            now()->addSeconds(self::CACHE_TTL)
+            now()->addSeconds(self::CACHE_TTL),
         );
 
         app('ichava.logger')->seedingInfo("Job started: {$packageName}", $data);
@@ -77,9 +78,9 @@ class JobProgressTracker
             $progress = $total > 0 ? round(($processed / $total) * 100, 2) : 0;
 
             $data = array_merge($data, [
-                'processed' => $processed,
+                'processed'        => $processed,
                 'progress_percent' => $progress,
-                'updated_at' => now()->toIso8601String(),
+                'updated_at'       => now()->toIso8601String(),
             ], $metrics);
 
             Cache::put($key, $data, now()->addSeconds(self::CACHE_TTL));
@@ -108,16 +109,16 @@ class JobProgressTracker
         $duration = now()->diffInSeconds($startTime);
 
         $data = array_merge($data, [
-            'status' => 'completed',
+            'status'           => 'completed',
             'progress_percent' => 100,
-            'completed_at' => now()->toIso8601String(),
+            'completed_at'     => now()->toIso8601String(),
             'duration_seconds' => $duration,
         ], $stats);
 
         Cache::put(
             self::cacheKey($packageName),
             $data,
-            now()->addDays(7) // Keep completed jobs for 7 days
+            now()->addDays(7), // Keep completed jobs for 7 days
         );
 
         app('ichava.logger')->seedingCompleted($packageName, $data);
@@ -126,28 +127,28 @@ class JobProgressTracker
     /**
      * Mark job as failed
      */
-    public static function fail(string $packageName, \Throwable $exception): void
+    public static function fail(string $packageName, Throwable $exception): void
     {
         $data = Cache::get(self::cacheKey($packageName));
 
         if (! $data) {
             $data = [
-                'package' => $packageName,
+                'package'    => $packageName,
                 'started_at' => now()->toIso8601String(),
             ];
         }
 
         $data = array_merge($data, [
-            'status' => 'failed',
+            'status'    => 'failed',
             'failed_at' => now()->toIso8601String(),
-            'error' => $exception->getMessage(),
+            'error'     => $exception->getMessage(),
             'exception' => get_class($exception),
         ]);
 
         Cache::put(
             self::cacheKey($packageName),
             $data,
-            now()->addDays(7)
+            now()->addDays(7),
         );
 
         app('ichava.logger')->seedingError("Job failed: {$packageName}", $data);
@@ -184,6 +185,6 @@ class JobProgressTracker
      */
     protected static function cacheKey(string $packageName): string
     {
-        return self::CACHE_PREFIX.str_replace('/', ':', $packageName);
+        return self::CACHE_PREFIX . str_replace('/', ':', $packageName);
     }
 }

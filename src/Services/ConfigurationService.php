@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
 /**
  * ConfigurationService - Package Configuration Loader
@@ -28,7 +28,7 @@ final class ConfigurationService
      * Constructor with dependency injection
      */
     public function __construct(
-        protected IconCacheService $cache
+        private IconCacheService $cache,
     ) {}
 
     /**
@@ -76,33 +76,6 @@ final class ConfigurationService
     }
 
     /**
-     * Validate required package config fields
-     */
-    protected function validatePackageConfig(array $config, string $configPath): void
-    {
-        if (empty($config['package']['name'])) {
-            throw IchavaException::invalidConfig(
-                'Missing required field: package.name',
-                $configPath
-            );
-        }
-
-        if (! preg_match('/^[a-z0-9_-]+\/[a-z0-9_-]+$/i', $config['package']['name'])) {
-            throw IchavaException::invalidConfig(
-                'Invalid package.name format. Expected: vendor/package',
-                $configPath
-            );
-        }
-
-        if (empty($config['config']['icon_prefix'])) {
-            throw IchavaException::invalidConfig(
-                'Missing required field: config.icon_prefix',
-                $configPath
-            );
-        }
-    }
-
-    /**
      * Check if config has variants
      */
     public function hasVariants(array $config): bool
@@ -136,29 +109,56 @@ final class ConfigurationService
         return Helpers::getVendorFromPackage($packageName);
     }
 
-    protected function resolveConfigPath(string $directoryPath): string
+    /**
+     * Validate required package config fields
+     */
+    private function validatePackageConfig(array $config, string $configPath): void
     {
-        return Str::finish($directoryPath, DIRECTORY_SEPARATOR).self::CONFIG_FILENAME;
+        if (empty($config['package']['name'])) {
+            throw IchavaException::invalidConfig(
+                'Missing required field: package.name',
+                $configPath,
+            );
+        }
+
+        if (! preg_match('/^[a-z0-9_-]+\/[a-z0-9_-]+$/i', $config['package']['name'])) {
+            throw IchavaException::invalidConfig(
+                'Invalid package.name format. Expected: vendor/package',
+                $configPath,
+            );
+        }
+
+        if (empty($config['config']['icon_prefix'])) {
+            throw IchavaException::invalidConfig(
+                'Missing required field: config.icon_prefix',
+                $configPath,
+            );
+        }
+    }
+
+    private function resolveConfigPath(string $directoryPath): string
+    {
+        return Str::finish($directoryPath, DIRECTORY_SEPARATOR) . self::CONFIG_FILENAME;
     }
 
     /**
      * Parse JSON with error handling
      */
-    protected function parseJson(string $json, string $configPath): array
+    private function parseJson(string $json, string $configPath): array
     {
         $config = json_decode($json, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw IchavaException::invalidConfig(
-                'JSON parse error: '.json_last_error_msg(),
-                $configPath
+                'JSON parse error: ' . json_last_error_msg(),
+                $configPath,
             );
         }
 
         if (! is_array($config)) {
             throw IchavaException::invalidConfig(
                 'Config must be a JSON object',
-                $configPath
+                $configPath,
             );
         }
 
@@ -168,8 +168,8 @@ final class ConfigurationService
     /**
      * Generate cache key
      */
-    protected function getCacheKey(string $directoryPath): string
+    private function getCacheKey(string $directoryPath): string
     {
-        return 'config:'.md5($directoryPath);
+        return 'config:' . md5($directoryPath);
     }
 }

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
  * Icon Browser Service
@@ -22,10 +22,10 @@ use Simtabi\Laranail\Ichava\Support\Helpers;
 final class IconBrowserService
 {
     public function __construct(
-        protected IconRegistry $registry,
-        protected IconDiscoveryService $discoveryService,
-        protected IconCacheService $cacheManager,
-        protected IchavaLogger $logger
+        private IconRegistry $registry,
+        private IconDiscoveryService $discoveryService,
+        private IconCacheService $cacheManager,
+        private IchavaLogger $logger,
     ) {}
 
     /**
@@ -36,7 +36,7 @@ final class IconBrowserService
         int $page = 1,
         int $perPage = 60,
         string $sortBy = 'name',
-        string $sortDirection = 'asc'
+        string $sortDirection = 'asc',
     ): LengthAwarePaginator {
         // Return empty result if database is empty
         if (! $this->hasIcons()) {
@@ -98,7 +98,7 @@ final class IconBrowserService
         try {
             return $query->paginate($perPage, ['*'], 'page', $page);
         } catch (IchavaException $e) {
-            $this->logger->error('Icon pagination failed: '.$e->getMessage());
+            $this->logger->error('Icon pagination failed: ' . $e->getMessage());
 
             return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage, $page);
         }
@@ -110,20 +110,20 @@ final class IconBrowserService
     public function transformIcon(Icon $icon): array
     {
         $iconData = [
-            'id' => $icon->id,
-            'package' => $icon->package,
-            'name' => $icon->name,
-            'category' => $icon->primary_category?->slug,
-            'variant' => $icon->primary_variant?->slug,
-            'path' => $icon->icon_path,
+            'id'          => $icon->id,
+            'package'     => $icon->package,
+            'name'        => $icon->name,
+            'category'    => $icon->primary_category?->slug,
+            'variant'     => $icon->primary_variant?->slug,
+            'path'        => $icon->icon_path,
             'svg_content' => $icon->svg_content,
-            'svg_url' => route('ichava.api.icons.svg', ['id' => $icon->id], false),
-            'viewbox' => $icon->viewbox,
-            'width' => $icon->width,
-            'height' => $icon->height,
-            'icon_path' => $icon->icon_path,
-            'file_path' => $icon->path ?? '',
-            'set' => $icon->package,
+            'svg_url'     => route('ichava.api.icons.svg', ['id' => $icon->id], false),
+            'viewbox'     => $icon->viewbox,
+            'width'       => $icon->width,
+            'height'      => $icon->height,
+            'icon_path'   => $icon->icon_path,
+            'file_path'   => $icon->path ?? '',
+            'set'         => $icon->package,
         ];
 
         // Generate Blade component syntax server-side
@@ -175,7 +175,7 @@ final class IconBrowserService
     /**
      * Group icons by a specified field
      *
-     * @param  string  $groupBy  (package|category|name)
+     * @param string $groupBy (package|category|name)
      */
     public function groupIcons(Collection $icons, string $groupBy = 'package'): array
     {
@@ -183,9 +183,9 @@ final class IconBrowserService
 
         foreach ($icons as $icon) {
             $key = match ($groupBy) {
-                'package' => $icon['package'] ?? 'Unknown',
+                'package'  => $icon['package'] ?? 'Unknown',
                 'category' => $icon['category'] ?? 'Uncategorized',
-                default => $icon['package'] ?? 'Unknown', // Default to package grouping
+                default    => $icon['package'] ?? 'Unknown', // Default to package grouping
             };
 
             if (! isset($grouped[$key])) {
@@ -207,10 +207,10 @@ final class IconBrowserService
             // Check if database has any icons
             if (! $this->hasIcons()) {
                 return [
-                    'packages' => [],
+                    'packages'   => [],
                     'categories' => [],
-                    'variants' => [],
-                    'empty' => true,
+                    'variants'   => [],
+                    'empty'      => true,
                 ];
             }
 
@@ -218,11 +218,11 @@ final class IconBrowserService
 
             $transformedPackages = collect($packages)->map(function ($pkg, $key) {
                 return [
-                    'name' => $key,
-                    'label' => $pkg['browser_metadata']['name'] ?? $key,
-                    'count' => $pkg['total'] ?? 0,
+                    'name'        => $key,
+                    'label'       => $pkg['browser_metadata']['name'] ?? $key,
+                    'count'       => $pkg['total'] ?? 0,
                     'description' => $pkg['browser_metadata']['description'] ?? '',
-                    'vendor' => $pkg['browser_metadata']['vendor'] ?? '',
+                    'vendor'      => $pkg['browser_metadata']['vendor'] ?? '',
                 ];
             })->values();
 
@@ -240,7 +240,7 @@ final class IconBrowserService
                 ->get()
                 ->map(function ($category) {
                     return [
-                        'name' => $category->slug,
+                        'name'  => $category->slug,
                         'label' => $category->name,
                         'count' => $category->count,
                     ];
@@ -257,17 +257,17 @@ final class IconBrowserService
                 ->get()
                 ->map(function ($variant) {
                     return [
-                        'name' => $variant->slug,
+                        'name'  => $variant->slug,
                         'label' => $variant->name,
                         'count' => $variant->count,
                     ];
                 })->values();
 
             return [
-                'packages' => $transformedPackages,
+                'packages'   => $transformedPackages,
                 'categories' => $categories,
-                'variants' => $variants,
-                'empty' => false,
+                'variants'   => $variants,
+                'empty'      => false,
             ];
         });
     }
@@ -282,10 +282,10 @@ final class IconBrowserService
             if (! $this->hasIcons()) {
                 return [
                     'total' => [
-                        'icons' => 0,
-                        'packages' => $this->registry->count(),
+                        'icons'      => 0,
+                        'packages'   => $this->registry->count(),
                         'categories' => 0,
-                        'variants' => 0,
+                        'variants'   => 0,
                     ],
                     'empty' => true,
                 ];
@@ -307,10 +307,10 @@ final class IconBrowserService
 
             return [
                 'total' => [
-                    'icons' => $totalIcons,
-                    'packages' => $totalPackages,
+                    'icons'      => $totalIcons,
+                    'packages'   => $totalPackages,
                     'categories' => $totalCategories,
-                    'variants' => $totalVariants,
+                    'variants'   => $totalVariants,
                 ],
                 'empty' => false,
             ];
@@ -326,7 +326,7 @@ final class IconBrowserService
             // Check if database has any icons
             if (! $this->hasIcons()) {
                 return [
-                    'tree' => [],
+                    'tree'  => [],
                     'empty' => true,
                 ];
             }
@@ -373,14 +373,14 @@ final class IconBrowserService
                 }
 
                 $tree[] = [
-                    'id' => $packageKey,
-                    'type' => 'package',
-                    'name' => $config['name'],
-                    'title' => $config['title'],
+                    'id'          => $packageKey,
+                    'type'        => 'package',
+                    'name'        => $config['name'],
+                    'title'       => $config['title'],
                     'description' => $config['description'],
-                    'icon_count' => $packageData['total'] ?? 0,
-                    'expanded' => false,
-                    'children' => $children,
+                    'icon_count'  => $packageData['total'] ?? 0,
+                    'expanded'    => false,
+                    'children'    => $children,
                 ];
             }
 
@@ -388,6 +388,16 @@ final class IconBrowserService
             // The empty check is implicit (empty array)
             return $tree;
         });
+    }
+
+    /**
+     * Clear all browser-related caches
+     */
+    public function clearCache(): void
+    {
+        $this->cacheManager->forget('browser.filters');
+        $this->cacheManager->forget('browser.statistics');
+        $this->cacheManager->forget('browser.tree');
     }
 
     /**
@@ -399,7 +409,7 @@ final class IconBrowserService
      * DB. The underlying query is a single indexed `EXISTS` so the perf
      * saving from memoization is negligible.
      */
-    protected function hasIcons(): bool
+    private function hasIcons(): bool
     {
         return Icon::query()->exists();
     }
@@ -407,7 +417,7 @@ final class IconBrowserService
     /**
      * Get package configuration
      */
-    protected function getPackageConfig(string $packageKey, array $packageData): array
+    private function getPackageConfig(string $packageKey, array $packageData): array
     {
         $configPath = $packageData['config_path'] ?? null;
         $basePath = $packageData['base_path'] ?? null;
@@ -418,22 +428,22 @@ final class IconBrowserService
                 $config = Helpers::loadConfigJson($basePath, false);
 
                 return [
-                    'name' => $config['package']['name'] ?? $packageKey,
-                    'title' => $config['package']['title'] ?? $packageKey,
+                    'name'        => $config['package']['name'] ?? $packageKey,
+                    'title'       => $config['package']['title'] ?? $packageKey,
                     'description' => $config['package']['description'] ?? '',
                 ];
             } catch (IchavaException $e) {
                 // Fall through to defaults
                 $this->logger->debug('Failed to load package config', [
                     'package' => $packageKey,
-                    'error' => $e->getMessage(),
+                    'error'   => $e->getMessage(),
                 ]);
             }
         }
 
         return [
-            'name' => $packageKey,
-            'title' => $packageData['browser_metadata']['name'] ?? $packageKey,
+            'name'        => $packageKey,
+            'title'       => $packageData['browser_metadata']['name'] ?? $packageKey,
             'description' => $packageData['browser_metadata']['description'] ?? '',
         ];
     }
@@ -441,12 +451,12 @@ final class IconBrowserService
     /**
      * Recursively scan folder tree and build hierarchy
      */
-    protected function scanFolderTree(
+    private function scanFolderTree(
         string $basePath,
         string $package,
         array $categoryCounts,
         int $maxDepth = 3,
-        int $currentDepth = 0
+        int $currentDepth = 0,
     ): array {
         if ($currentDepth >= $maxDepth) {
             return [];
@@ -485,17 +495,17 @@ final class IconBrowserService
             }
 
             $tree[] = [
-                'id' => "{$package}::{$folderName}",
-                'type' => 'folder',
-                'name' => $folderName,
-                'label' => ucwords(str_replace(['-', '_'], ' ', $folderName)),
-                'path' => $dir,
+                'id'         => "{$package}::{$folderName}",
+                'type'       => 'folder',
+                'name'       => $folderName,
+                'label'      => ucwords(str_replace(['-', '_'], ' ', $folderName)),
+                'path'       => $dir,
                 'icon_count' => $totalIconCount,
-                'package' => $package,
-                'depth' => $currentDepth,
-                'expanded' => false,
-                'checked' => false,
-                'children' => $children,
+                'package'    => $package,
+                'depth'      => $currentDepth,
+                'expanded'   => false,
+                'checked'    => false,
+                'children'   => $children,
             ];
         }
 
@@ -505,13 +515,13 @@ final class IconBrowserService
     /**
      * Count SVG files in a directory (non-recursive, direct files only)
      */
-    protected function countSvgFilesInDirectory(string $directory): int
+    private function countSvgFilesInDirectory(string $directory): int
     {
         if (! File::isDirectory($directory)) {
             return 0;
         }
 
-        $svgFiles = File::glob($directory.'/*.svg');
+        $svgFiles = File::glob($directory . '/*.svg');
 
         return count($svgFiles);
     }
@@ -519,7 +529,7 @@ final class IconBrowserService
     /**
      * Count SVG files recursively in a directory and all subdirectories
      */
-    protected function countSvgFilesRecursive(string $directory): int
+    private function countSvgFilesRecursive(string $directory): int
     {
         if (! File::isDirectory($directory)) {
             return 0;
@@ -528,7 +538,7 @@ final class IconBrowserService
         $count = 0;
 
         // Count SVGs in this directory
-        $svgFiles = File::glob($directory.'/*.svg');
+        $svgFiles = File::glob($directory . '/*.svg');
         $count += count($svgFiles);
 
         // Recursively count in subdirectories
@@ -543,7 +553,7 @@ final class IconBrowserService
     /**
      * Count icons in a specific folder (using terms)
      */
-    protected function countIconsInFolder(string $package, string $folder): int
+    private function countIconsInFolder(string $package, string $folder): int
     {
         // Use morph alias (registered as 'icon' in morphMap)
         $iconMorphAlias = (new Icon)->getMorphClass();
@@ -558,15 +568,5 @@ final class IconBrowserService
             ->where('ichava_icon_terms.slug', $folder)
             ->where('ichava_icon_terms.type', 'category')
             ->count();
-    }
-
-    /**
-     * Clear all browser-related caches
-     */
-    public function clearCache(): void
-    {
-        $this->cacheManager->forget('browser.filters');
-        $this->cacheManager->forget('browser.statistics');
-        $this->cacheManager->forget('browser.tree');
     }
 }

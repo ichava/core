@@ -1103,12 +1103,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/laranail/console.git",
-                "reference": "cedcab3a4bb836c3a579d8c3efd013309be93116"
+                "reference": "540124618674ddc97fb8b2a4b6c307378cbe6abc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laranail/console/zipball/cedcab3a4bb836c3a579d8c3efd013309be93116",
-                "reference": "cedcab3a4bb836c3a579d8c3efd013309be93116",
+                "url": "https://api.github.com/repos/laranail/console/zipball/540124618674ddc97fb8b2a4b6c307378cbe6abc",
+                "reference": "540124618674ddc97fb8b2a4b6c307378cbe6abc",
                 "shasum": ""
             },
             "require": {
@@ -1126,6 +1126,7 @@
             },
             "require-dev": {
                 "infection/infection": "^0.35",
+                "laranail/package-tools": "^0.1",
                 "larastan/larastan": "^3.0",
                 "laravel/pint": "^1.18",
                 "mockery/mockery": "^1.6",
@@ -1208,10 +1209,10 @@
                     "@rector"
                 ],
                 "pint": [
-                    "vendor/bin/pint --test"
+                    "@php vendor/bin/laranail-pint --test"
                 ],
                 "pint-fix": [
-                    "vendor/bin/pint"
+                    "@php vendor/bin/laranail-pint --parallel"
                 ],
                 "phpstan": [
                     "vendor/bin/phpstan analyse --no-progress"
@@ -1222,11 +1223,11 @@
                 "rector-fix": [
                     "vendor/bin/rector process"
                 ],
-                "audit": [
-                    "@composer-audit"
-                ],
                 "composer-audit": [
                     "@composer audit"
+                ],
+                "format": [
+                    "@pint-fix"
                 ]
             },
             "license": [
@@ -1265,7 +1266,7 @@
                 "source": "https://github.com/laranail/console",
                 "docs": "https://opensource.simtabi.com/documentation/laranail/console/"
             },
-            "time": "2026-08-27T12:50:26+00:00"
+            "time": "2026-08-30T02:01:10+00:00"
         },
         {
             "name": "laranail/enumerator",
@@ -1273,12 +1274,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/laranail/enumerator.git",
-                "reference": "538698037bd7ef06697ca7e340befdc57c4d6d93"
+                "reference": "5e567c62d76747f885d66b8e7f290de0bf73e098"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laranail/enumerator/zipball/538698037bd7ef06697ca7e340befdc57c4d6d93",
-                "reference": "538698037bd7ef06697ca7e340befdc57c4d6d93",
+                "url": "https://api.github.com/repos/laranail/enumerator/zipball/5e567c62d76747f885d66b8e7f290de0bf73e098",
+                "reference": "5e567c62d76747f885d66b8e7f290de0bf73e098",
                 "shasum": ""
             },
             "require": {
@@ -1299,7 +1300,7 @@
                 "pestphp/pest": "^3.0 || ^4.0",
                 "phpstan/extension-installer": "^1.4",
                 "phpstan/phpstan": "^2.0",
-                "rector/rector": "^2.0"
+                "rector/rector": "^2.5.8"
             },
             "suggest": {
                 "filament/filament": "Use the Filament integration (columns, form fields, filters).",
@@ -1348,10 +1349,20 @@
                     "phpstan analyse"
                 ],
                 "format": [
-                    "pint"
+                    "@pint-fix"
                 ],
                 "format:check": [
                     "pint --test"
+                ],
+                "pint": [
+                    "vendor/bin/pint --test"
+                ],
+                "pint-fix": [
+                    "vendor/bin/pint"
+                ],
+                "lint": [
+                    "@pint",
+                    "@analyse"
                 ]
             },
             "license": [
@@ -1405,7 +1416,7 @@
                     "url": "https://simtabi.com/sponsor"
                 }
             ],
-            "time": "2026-08-27T13:13:51+00:00"
+            "time": "2026-08-28T21:22:42+00:00"
         },
         {
             "name": "laranail/package-tools",
@@ -1413,12 +1424,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/laranail/package-tools.git",
-                "reference": "2f1bf35f1141b5117147d5fa7da1c3412d04a412"
+                "reference": "20218b209de7ae88b8ad64fe9660db2c5edb907d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laranail/package-tools/zipball/2f1bf35f1141b5117147d5fa7da1c3412d04a412",
-                "reference": "2f1bf35f1141b5117147d5fa7da1c3412d04a412",
+                "url": "https://api.github.com/repos/laranail/package-tools/zipball/20218b209de7ae88b8ad64fe9660db2c5edb907d",
+                "reference": "20218b209de7ae88b8ad64fe9660db2c5edb907d",
                 "shasum": ""
             },
             "require": {
@@ -1444,7 +1455,7 @@
                 "pestphp/pest": "^3.0",
                 "phpstan/phpstan": "^2.0",
                 "phpunit/phpunit": "^11.0",
-                "rector/rector": "^2.0",
+                "rector/rector": "^2.5.8",
                 "roave/security-advisories": "dev-latest",
                 "spatie/pest-plugin-test-time": "^2.2"
             },
@@ -1453,7 +1464,8 @@
                 "laranail/console": "Styled, capability-aware seeder output. Without it the same output is written in plain text."
             },
             "bin": [
-                "bin/laranail-dist-integrity"
+                "bin/laranail-dist-integrity",
+                "bin/laranail-pint"
             ],
             "type": "library",
             "extra": {
@@ -1487,7 +1499,7 @@
                     "bash .scripts/init.sh"
                 ],
                 "test": [
-                    "vendor/bin/pest --colors=always"
+                    "vendor/bin/pest --parallel --colors=always"
                 ],
                 "test-coverage": [
                     "@test --coverage"
@@ -1498,17 +1510,13 @@
                 "lint": [
                     "@pint",
                     "@phpstan",
-                    "@rector",
-                    "@sync-check"
-                ],
-                "sync-check": [
-                    "@php tools/generate-timezone-enum.php --check"
+                    "@rector"
                 ],
                 "pint": [
-                    "vendor/bin/pint --test"
+                    "@php bin/laranail-pint --test"
                 ],
                 "pint-fix": [
-                    "vendor/bin/pint"
+                    "@php bin/laranail-pint --parallel"
                 ],
                 "phpstan": [
                     "vendor/bin/phpstan analyse --no-progress"
@@ -1519,11 +1527,14 @@
                 "rector-fix": [
                     "vendor/bin/rector process"
                 ],
-                "audit": [
-                    "@composer-audit"
-                ],
                 "composer-audit": [
                     "@composer audit"
+                ],
+                "format": [
+                    "@pint-fix"
+                ],
+                "analyse": [
+                    "@phpstan"
                 ]
             },
             "license": [
@@ -1557,7 +1568,7 @@
                 "source": "https://github.com/laranail/package-tools",
                 "docs": "https://opensource.simtabi.com/documentation/laranail/package-tools/"
             },
-            "time": "2026-08-27T14:02:29+00:00"
+            "time": "2026-08-30T02:01:31+00:00"
         },
         {
             "name": "laravel/framework",

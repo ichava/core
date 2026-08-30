@@ -27,6 +27,11 @@ final class SecurityNonce
 
     private ?string $value = null;
 
+    public static function bind(Application $app): void
+    {
+        $app->scoped(self::class);
+    }
+
     public function value(): string
     {
         return $this->value ??= $this->generate();
@@ -34,7 +39,7 @@ final class SecurityNonce
 
     public function attribute(): string
     {
-        return ' nonce="'.htmlspecialchars($this->value(), ENT_QUOTES | ENT_HTML5, 'UTF-8').'"';
+        return ' nonce="' . htmlspecialchars($this->value(), ENT_QUOTES | ENT_HTML5, 'UTF-8') . '"';
     }
 
     public function reset(): void
@@ -45,10 +50,5 @@ final class SecurityNonce
     private function generate(): string
     {
         return rtrim(strtr(base64_encode(random_bytes(self::ENTROPY_BYTES)), '+/', '-_'), '=');
-    }
-
-    public static function bind(Application $app): void
-    {
-        $app->scoped(self::class);
     }
 }

@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\File;
+use Exception;
+use Throwable;
 use Illuminate\Support\Str;
-use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
-use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
-use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Support\Helpers;
-use Simtabi\Laranail\Ichava\Support\IchavaRegistrar;
+use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
+use Illuminate\Contracts\Foundation\Application;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
+use Simtabi\Laranail\Ichava\Support\IchavaRegistrar;
+use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
 
 /**
  * IconRegistry - Icon Package Registration & Management
@@ -43,44 +47,44 @@ final class IconRegistry
      *
      * @var array<string, IconSetInterface>
      */
-    protected array $sets = [];
+    private array $sets = [];
 
     /**
      * Package metadata (for browser, stats, etc.)
      *
      * @var array<string, array<string, mixed>>
      */
-    protected array $packages = [];
+    private array $packages = [];
 
     /**
      * Package conflicts (for validation)
      *
      * @var array<string, array<string, string>>
      */
-    protected array $conflicts = [];
+    private array $conflicts = [];
 
     /**
      * Default icon set name
      */
-    protected ?string $defaultSet = null;
+    private ?string $defaultSet = null;
 
     /**
      * Pending registrations (lazy loading)
      *
      * @var array<string, RegistrationConfig>
      */
-    protected array $pending = [];
+    private array $pending = [];
 
     /**
      * Bootstrap state
      */
-    protected bool $bootstrapped = false;
+    private bool $bootstrapped = false;
 
     public function __construct(
-        protected Application $app,
-        protected SvgDriver $driver,
-        protected IchavaLogger $logger,
-        protected PathResolver $pathResolver
+        private Application $app,
+        private SvgDriver $driver,
+        private IchavaLogger $logger,
+        private PathResolver $pathResolver,
     ) {
         $this->initializeBootstrap();
     }
@@ -113,8 +117,8 @@ final class IconRegistry
      * Invalid or empty paths are silently skipped. Useful for registering custom icon
      * sets declared in ichava.custom-icons.sets config.
      *
-     * @param  array<int|string, string|array<string, mixed>>  $sets
-     *                                                                Example: ['/path/to/set', ['path' => '/other/set', 'label' => 'Custom']]
+     * @param array<int|string, string|array<string, mixed>> $sets
+     *                                                             Example: ['/path/to/set', ['path' => '/other/set', 'label' => 'Custom']]
      */
     public function registerFromConfig(array $sets): void
     {
@@ -135,8 +139,8 @@ final class IconRegistry
      * to populate the icon total. Immediately registers the set and returns a
      * RegistrationConfig for optional further chaining.
      *
-     * @param  string  $path  Absolute path to the icon set directory (must contain config.json)
-     * @param  string|null  $providerClass  The service provider that registered this set (for attribution)
+     * @param string $path Absolute path to the icon set directory (must contain config.json)
+     * @param string|null $providerClass The service provider that registered this set (for attribution)
      *
      * @throws IchavaException if config.json is missing or malformed
      */
@@ -148,7 +152,7 @@ final class IconRegistry
 
         // Create icon set
         $iconSet = IconSetBuilder::make($packageName)
-            ->setBasePath($path.'/files')
+            ->setBasePath($path . '/files')
             ->prefix($configData['config']['icon_prefix']);
 
         // Add variants if present
@@ -165,24 +169,24 @@ final class IconRegistry
         }
 
         // Count icons
-        $totalIcons = $this->countIconsInDirectory($path.'/files');
+        $totalIcons = $this->countIconsInDirectory($path . '/files');
 
         // Build metadata
         $metadata = [
-            'package_name' => $packageName,
-            'name' => $configData['package']['title'],
-            'description' => $configData['package']['description'] ?? '',
-            'vendor' => $this->getVendor($configData),
-            'version' => $configData['package']['version'],
-            'license' => $configData['package']['license'] ?? 'Unknown',
-            'homepage' => $configData['metadata']['homepage'] ?? null,
-            'repository' => $configData['metadata']['repository'] ?? null,
-            'keywords' => $configData['package']['keywords'] ?? [],
-            'total' => $totalIcons,
-            'base_path' => $path,
-            'icon_set_name' => $packageName,
+            'package_name'   => $packageName,
+            'name'           => $configData['package']['title'],
+            'description'    => $configData['package']['description'] ?? '',
+            'vendor'         => $this->getVendor($configData),
+            'version'        => $configData['package']['version'],
+            'license'        => $configData['package']['license'] ?? 'Unknown',
+            'homepage'       => $configData['metadata']['homepage'] ?? null,
+            'repository'     => $configData['metadata']['repository'] ?? null,
+            'keywords'       => $configData['package']['keywords'] ?? [],
+            'total'          => $totalIcons,
+            'base_path'      => $path,
+            'icon_set_name'  => $packageName,
             'provider_class' => $providerClass,
-            'prefix' => $configData['config']['icon_prefix'],
+            'prefix'         => $configData['config']['icon_prefix'],
         ];
 
         // Register immediately
@@ -196,15 +200,16 @@ final class IconRegistry
      * It handles in-memory deduplication (skips if already registered), metadata
      * validation, conflict detection, log deduplication, and event dispatch.
      *
-     * @param  string  $name  Unique icon set name (e.g. 'ichava/tabler-icons')
-     * @param  IconSetInterface  $set  The icon set object
-     * @param  array<string, mixed>  $metadata  Package metadata (package_name, base_path, etc.)
+     * @param string $name Unique icon set name (e.g. 'ichava/tabler-icons')
+     * @param IconSetInterface $set The icon set object
+     * @param array<string, mixed> $metadata Package metadata (package_name, base_path, etc.)
+     *
      * @return RegistrationConfig Chainable config (already marked as registered)
      */
     public function registerIconSet(
         string $name,
         IconSetInterface $set,
-        array $metadata = []
+        array $metadata = [],
     ): RegistrationConfig {
         // Skip if already registered in this request (in-memory check)
         if ($this->hasSet($name)) {
@@ -223,7 +228,7 @@ final class IconRegistry
         // Store metadata
         $this->packages[$name] = array_merge([
             'registered_at' => now()->toIso8601String(),
-            'package_name' => $name,
+            'package_name'  => $name,
         ], $metadata);
 
         // Set as default if first
@@ -242,95 +247,6 @@ final class IconRegistry
         $config->markRegistered();
 
         return $config;
-    }
-
-    /**
-     * Log package registration at most once per cache TTL to prevent log spam.
-     *
-     * Uses a cache key `ichava:registered:{name}` to suppress repeated log entries
-     * across requests during the TTL window (default: 300s). A TTL of 0 disables
-     * deduplication. Falls back to always logging if the cache is unavailable.
-     *
-     * @param  string  $name  Icon set name
-     * @param  array<string, mixed>  $metadata  Package metadata
-     */
-    protected function logRegistrationOnce(string $name, array $metadata): void
-    {
-        $ttl = (int) config('ichava.logging.deduplication_ttl', 300);
-
-        // TTL of 0 disables deduplication
-        if ($ttl === 0) {
-            $this->logger->info('📦 Icon package registered', [
-                'package' => $name,
-                'icon_count' => $metadata['total'] ?? 0,
-            ]);
-
-            return;
-        }
-
-        // Try cache-based deduplication, fallback to always logging if cache unavailable
-        try {
-            $cacheKey = "ichava:registered:{$name}";
-
-            if (cache()->has($cacheKey)) {
-                return;
-            }
-
-            cache()->put($cacheKey, true, $ttl);
-        } catch (\Throwable) {
-            // Cache unavailable, log anyway (first-time setup, Redis down, etc.)
-        }
-
-        $this->logger->info('📦 Icon package registered', [
-            'package' => $name,
-            'icon_count' => $metadata['total'] ?? 0,
-        ]);
-    }
-
-    /**
-     * Dispatch an IconRegistrationEvent at most once per cache TTL.
-     *
-     * Uses a cache key `ichava:event:{name}` to suppress duplicate events within
-     * the TTL window. Falls back to always dispatching if the cache is unavailable.
-     *
-     * @param  string  $name  Icon set name
-     * @param  array<string, mixed>  $metadata  Package metadata
-     */
-    protected function dispatchRegistrationEventOnce(string $name, array $metadata): void
-    {
-        $ttl = (int) config('ichava.logging.deduplication_ttl', 300);
-
-        // TTL of 0 disables deduplication
-        if ($ttl === 0) {
-            Event::dispatch(IconRegistrationEvent::registered(
-                Str::uuid()->toString(),
-                $name,
-                $metadata,
-                0
-            ));
-
-            return;
-        }
-
-        // Try cache-based deduplication, fallback to always dispatching if cache unavailable
-        try {
-            $cacheKey = "ichava:event:{$name}";
-
-            if (cache()->has($cacheKey)) {
-                return;
-            }
-
-            cache()->put($cacheKey, true, $ttl);
-        } catch (\Throwable) {
-            // Cache unavailable, dispatch anyway
-        }
-
-        Event::dispatch(IconRegistrationEvent::registered(
-            Str::uuid()->toString(),
-            $name,
-            $metadata,
-            0
-        ));
     }
 
     /**
@@ -397,9 +313,9 @@ final class IconRegistry
             return $set->has(
                 $iconPath->name,
                 $variant ?? $iconPath->variant,
-                $category ?? $iconPath->category
+                $category ?? $iconPath->category,
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -412,10 +328,11 @@ final class IconRegistry
      * to SvgDriver. If the icon is not found, attempts the set's configured
      * fallback icon before throwing.
      *
-     * @param  string  $name  Icon path (e.g. 'ichava/tabler-icons::outline/home')
-     * @param  string|null  $variant  Variant override (e.g. 'outline', 'solid')
-     * @param  string|null  $category  Category override
-     * @param  array<string, mixed>  $attributes  HTML attributes to inject onto the SVG element
+     * @param string $name Icon path (e.g. 'ichava/tabler-icons::outline/home')
+     * @param string|null $variant Variant override (e.g. 'outline', 'solid')
+     * @param string|null $category Category override
+     * @param array<string, mixed> $attributes HTML attributes to inject onto the SVG element
+     *
      * @return string Rendered SVG HTML
      *
      * @throws IchavaException if the set or icon is not found and no fallback exists
@@ -424,7 +341,7 @@ final class IconRegistry
         string $name,
         ?string $variant = null,
         ?string $category = null,
-        array $attributes = []
+        array $attributes = [],
     ): string {
         $iconPath = $this->pathResolver->parseIconPath($name);
         $setName = $iconPath->set ?? $this->defaultSet;
@@ -437,7 +354,7 @@ final class IconRegistry
         $icon = $set->get(
             $iconPath->name,
             $variant ?? $iconPath->variant,
-            $category ?? $iconPath->category
+            $category ?? $iconPath->category,
         );
 
         // Try fallback icon if not found
@@ -576,17 +493,153 @@ final class IconRegistry
     }
 
     /**
+     * Count the total number of SVG files in a directory (recursive).
+     *
+     * Returns 0 if the path does not exist or is not a directory.
+     * Used to populate the `total` field in package metadata.
+     *
+     * @param string $path Directory to scan
+     *
+     * @return int Total SVG file count
+     */
+    public function countIconsInDirectory(string $path): int
+    {
+        if (! File::isDirectory($path)) {
+            return 0;
+        }
+
+        $count = 0;
+        try {
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS),
+            );
+
+            foreach ($iterator as $file) {
+                if ($file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
+                    $count++;
+                }
+            }
+        } catch (Exception $e) {
+            // Non-fatal: return 0 so callers (statistics / diagnostics) keep working.
+            // Log at debug level so issues with unreadable paths are discoverable.
+            $this->logger->debug('⚠️ countSvgFiles failed', [
+                'path'  => $path,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $count;
+    }
+
+    /**
+     * Direct access to the SvgDriver instance (load, process, render SVG files).
+     */
+    public function driver(): SvgDriver
+    {
+        return $this->driver;
+    }
+
+    /**
+     * Log package registration at most once per cache TTL to prevent log spam.
+     *
+     * Uses a cache key `ichava:registered:{name}` to suppress repeated log entries
+     * across requests during the TTL window (default: 300s). A TTL of 0 disables
+     * deduplication. Falls back to always logging if the cache is unavailable.
+     *
+     * @param string $name Icon set name
+     * @param array<string, mixed> $metadata Package metadata
+     */
+    private function logRegistrationOnce(string $name, array $metadata): void
+    {
+        $ttl = (int) config('ichava.logging.deduplication_ttl', 300);
+
+        // TTL of 0 disables deduplication
+        if ($ttl === 0) {
+            $this->logger->info('📦 Icon package registered', [
+                'package'    => $name,
+                'icon_count' => $metadata['total'] ?? 0,
+            ]);
+
+            return;
+        }
+
+        // Try cache-based deduplication, fallback to always logging if cache unavailable
+        try {
+            $cacheKey = "ichava:registered:{$name}";
+
+            if (cache()->has($cacheKey)) {
+                return;
+            }
+
+            cache()->put($cacheKey, true, $ttl);
+        } catch (Throwable) {
+            // Cache unavailable, log anyway (first-time setup, Redis down, etc.)
+        }
+
+        $this->logger->info('📦 Icon package registered', [
+            'package'    => $name,
+            'icon_count' => $metadata['total'] ?? 0,
+        ]);
+    }
+
+    /**
+     * Dispatch an IconRegistrationEvent at most once per cache TTL.
+     *
+     * Uses a cache key `ichava:event:{name}` to suppress duplicate events within
+     * the TTL window. Falls back to always dispatching if the cache is unavailable.
+     *
+     * @param string $name Icon set name
+     * @param array<string, mixed> $metadata Package metadata
+     */
+    private function dispatchRegistrationEventOnce(string $name, array $metadata): void
+    {
+        $ttl = (int) config('ichava.logging.deduplication_ttl', 300);
+
+        // TTL of 0 disables deduplication
+        if ($ttl === 0) {
+            Event::dispatch(IconRegistrationEvent::registered(
+                Str::uuid()->toString(),
+                $name,
+                $metadata,
+                0,
+            ));
+
+            return;
+        }
+
+        // Try cache-based deduplication, fallback to always dispatching if cache unavailable
+        try {
+            $cacheKey = "ichava:event:{$name}";
+
+            if (cache()->has($cacheKey)) {
+                return;
+            }
+
+            cache()->put($cacheKey, true, $ttl);
+        } catch (Throwable) {
+            // Cache unavailable, dispatch anyway
+        }
+
+        Event::dispatch(IconRegistrationEvent::registered(
+            Str::uuid()->toString(),
+            $name,
+            $metadata,
+            0,
+        ));
+    }
+
+    /**
      * Validate that the package metadata contains the required fields.
      *
      * Required fields: package_name, icon_set_name, base_path.
      * Also verifies that base_path is an existing directory.
      *
-     * @param  string  $packageName  Package being registered (for error messages)
-     * @param  array<string, mixed>  $metadata
+     * @param string $packageName Package being registered (for error messages)
+     * @param array<string, mixed> $metadata
      *
      * @throws IchavaException if required fields are missing or base_path does not exist
      */
-    protected function validateMetadata(string $packageName, array $metadata): void
+    private function validateMetadata(string $packageName, array $metadata): void
     {
         $required = ['package_name', 'icon_set_name', 'base_path'];
 
@@ -605,7 +658,7 @@ final class IconRegistry
         if (! File::isDirectory($metadata['base_path'])) {
             throw IchavaException::packagePathNotFound(
                 $packageName,
-                $metadata['base_path']
+                $metadata['base_path'],
             );
         }
     }
@@ -620,10 +673,10 @@ final class IconRegistry
      * - prefix       , two packages use the same icon prefix (ambiguous lookups)
      * - blade_component, two packages register the same Blade component alias
      *
-     * @param  string  $packageName  Package being registered
-     * @param  array<string, mixed>  $metadata
+     * @param string $packageName Package being registered
+     * @param array<string, mixed> $metadata
      */
-    protected function checkConflicts(string $packageName, array $metadata): void
+    private function checkConflicts(string $packageName, array $metadata): void
     {
         $iconSetName = $metadata['icon_set_name'] ?? null;
         $prefix = $metadata['prefix'] ?? null;
@@ -637,7 +690,7 @@ final class IconRegistry
 
                     $this->conflicts['icon_set_name'][$iconSetName] = [
                         'existing' => $existingPackage,
-                        'new' => $packageName,
+                        'new'      => $packageName,
                     ];
 
                     $this->logger->warning('⚠️ Icon set name conflict', [
@@ -662,7 +715,7 @@ final class IconRegistry
                 $this->conflicts['prefix'][$prefix] = $prefixConflicts;
 
                 $this->logger->warning('⚠️ Prefix conflict', [
-                    'prefix' => $prefix,
+                    'prefix'   => $prefix,
                     'packages' => $prefixConflicts,
                 ]);
             }
@@ -683,56 +736,10 @@ final class IconRegistry
 
                 $this->logger->warning('⚠️ Blade component conflict', [
                     'component' => $bladeComponent,
-                    'packages' => $componentConflicts,
+                    'packages'  => $componentConflicts,
                 ]);
             }
         }
-    }
-
-    /**
-     * Count the total number of SVG files in a directory (recursive).
-     *
-     * Returns 0 if the path does not exist or is not a directory.
-     * Used to populate the `total` field in package metadata.
-     *
-     * @param  string  $path  Directory to scan
-     * @return int Total SVG file count
-     */
-    public function countIconsInDirectory(string $path): int
-    {
-        if (! File::isDirectory($path)) {
-            return 0;
-        }
-
-        $count = 0;
-        try {
-            $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($path, \RecursiveDirectoryIterator::SKIP_DOTS)
-            );
-
-            foreach ($iterator as $file) {
-                if ($file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
-                    $count++;
-                }
-            }
-        } catch (\Exception $e) {
-            // Non-fatal: return 0 so callers (statistics / diagnostics) keep working.
-            // Log at debug level so issues with unreadable paths are discoverable.
-            $this->logger->debug('⚠️ countSvgFiles failed', [
-                'path' => $path,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return $count;
-    }
-
-    /**
-     * Direct access to the SvgDriver instance (load, process, render SVG files).
-     */
-    public function driver(): SvgDriver
-    {
-        return $this->driver;
     }
 
     /**
@@ -741,12 +748,13 @@ final class IconRegistry
      * Delegates to Helpers::loadConfigJson(). Throws if the file is missing
      * or cannot be parsed as valid JSON.
      *
-     * @param  string  $directoryPath  Absolute path to the icon set directory
+     * @param string $directoryPath Absolute path to the icon set directory
+     *
      * @return array<string, mixed> Parsed config data
      *
      * @throws IchavaException via Helpers::loadConfigJson() on missing/invalid config
      */
-    protected function loadPackageConfig(string $directoryPath): array
+    private function loadPackageConfig(string $directoryPath): array
     {
         return Helpers::loadConfigJson($directoryPath);
     }
@@ -754,9 +762,9 @@ final class IconRegistry
     /**
      * Whether the parsed config.json declares any icon variants.
      *
-     * @param  array<string, mixed>  $config  Parsed config.json data
+     * @param array<string, mixed> $config Parsed config.json data
      */
-    protected function hasVariants(array $config): bool
+    private function hasVariants(array $config): bool
     {
         return isset($config['variants']) && is_array($config['variants']) && ! empty($config['variants']);
     }
@@ -764,10 +772,11 @@ final class IconRegistry
     /**
      * Extract the variants map from parsed config.json data.
      *
-     * @param  array<string, mixed>  $config  Parsed config.json data
+     * @param array<string, mixed> $config Parsed config.json data
+     *
      * @return array<string, mixed> Variants keyed by variant name
      */
-    protected function getVariants(array $config): array
+    private function getVariants(array $config): array
     {
         return $config['variants'] ?? [];
     }
@@ -775,9 +784,9 @@ final class IconRegistry
     /**
      * Whether the parsed config.json declares any icon categories.
      *
-     * @param  array<string, mixed>  $config  Parsed config.json data
+     * @param array<string, mixed> $config Parsed config.json data
      */
-    protected function hasCategories(array $config): bool
+    private function hasCategories(array $config): bool
     {
         return isset($config['categories']) && is_array($config['categories']) && ! empty($config['categories']);
     }
@@ -787,10 +796,11 @@ final class IconRegistry
      *
      * Delegates to Helpers::getVendorFromPackage() which splits on `/`.
      *
-     * @param  array<string, mixed>  $config  Parsed config.json data
+     * @param array<string, mixed> $config Parsed config.json data
+     *
      * @return string Vendor name (e.g. 'ichava' from 'ichava/tabler-icons')
      */
-    protected function getVendor(array $config): string
+    private function getVendor(array $config): string
     {
         $packageName = $config['package']['name'] ?? '';
 
@@ -804,7 +814,7 @@ final class IconRegistry
      * Pending registrations (queued via package()) are executed after all service
      * providers have booted to prevent boot-order dependency issues.
      */
-    protected function initializeBootstrap(): void
+    private function initializeBootstrap(): void
     {
         if ($this->bootstrapped) {
             return;
@@ -823,7 +833,7 @@ final class IconRegistry
      * Called by the app booted callback set up in initializeBootstrap().
      * Clears the pending queue after execution.
      */
-    protected function executePendingRegistrations(): void
+    private function executePendingRegistrations(): void
     {
         foreach ($this->pending as $name => $config) {
             if (! $config->isRegistered()) {

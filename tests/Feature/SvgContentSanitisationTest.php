@@ -26,22 +26,22 @@ use Simtabi\Laranail\Ichava\Services\IconBrowserService;
 beforeEach(function () {
     Icon::query()->delete();
 
-    $this->dir = sys_get_temp_dir().'/ichava-svg-sanitise-'.bin2hex(random_bytes(4));
+    $this->dir = sys_get_temp_dir() . '/ichava-svg-sanitise-' . bin2hex(random_bytes(4));
     File::ensureDirectoryExists($this->dir);
 
     $this->plant = function (string $filename, string $svg): Icon {
-        $abs = $this->dir.'/'.$filename;
+        $abs = $this->dir . '/' . $filename;
         File::put($abs, $svg);
 
         $icon = Icon::create([
-            'package' => 'ichava/test-pack',
-            'name' => pathinfo($filename, PATHINFO_FILENAME),
-            'path' => $abs,
-            'file_hash' => md5($svg),
-            'keywords' => [],
-            'tags' => [],
+            'package'    => 'ichava/test-pack',
+            'name'       => pathinfo($filename, PATHINFO_FILENAME),
+            'path'       => $abs,
+            'file_hash'  => md5($svg),
+            'keywords'   => [],
+            'tags'       => [],
             'attributes' => [],
-            'metadata' => [],
+            'metadata'   => [],
         ]);
 
         // The accessor resolves `absolute_path`; point it at the file just written.
@@ -70,7 +70,7 @@ SVG);
     expect($content)->not->toContain('<script');
     expect($content)->not->toContain('alert(');
     expect($content)->toContain('<path');
-})->skip(fn () => ! class_exists(\DOMDocument::class), 'ext-dom required');
+})->skip(fn () => ! class_exists(DOMDocument::class), 'ext-dom required');
 
 it('strips an event handler attribute', function () {
     $icon = ($this->plant)('onload.svg', <<<'SVG'
@@ -84,7 +84,7 @@ SVG);
     expect(strtolower($content))->not->toContain('onload');
     expect(strtolower($content))->not->toContain('onclick');
     expect($content)->toContain('<circle');
-})->skip(fn () => ! class_exists(\DOMDocument::class), 'ext-dom required');
+})->skip(fn () => ! class_exists(DOMDocument::class), 'ext-dom required');
 
 it('sanitises the JSON payload path, not just the direct SVG route', function () {
     ($this->plant)('payload.svg', <<<'SVG'
@@ -101,7 +101,7 @@ SVG);
 
     expect($first)->not->toBeNull();
     expect($first['svg_content'] ?? '')->not->toContain('<script');
-})->skip(fn () => ! class_exists(\DOMDocument::class), 'ext-dom required');
+})->skip(fn () => ! class_exists(DOMDocument::class), 'ext-dom required');
 
 it('serves nothing rather than raw markup when the sanitiser rejects a file', function () {
     // Not an SVG at all. Failing closed matters: falling back to the raw bytes would
@@ -109,4 +109,4 @@ it('serves nothing rather than raw markup when the sanitiser rejects a file', fu
     $icon = ($this->plant)('notsvg.svg', '<html><body><script>alert(1)</script></body></html>');
 
     expect($icon->svg_content)->not->toContain('<script');
-})->skip(fn () => ! class_exists(\DOMDocument::class), 'ext-dom required');
+})->skip(fn () => ! class_exists(DOMDocument::class), 'ext-dom required');

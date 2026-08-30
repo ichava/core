@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Listeners;
 
-use Illuminate\Support\Facades\Cache;
+use Exception;
+use Throwable;
 use Illuminate\Support\Str;
-use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
+use Illuminate\Support\Facades\Cache;
 use Simtabi\Laranail\Ichava\Models\Icon;
-use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
+use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
+use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
 
 /**
  * Seeds icons when a new package is registered.
@@ -26,7 +28,7 @@ class AutoSeedIconsOnRegistration
         protected IchavaLifecycleManager $lifecycle,
         protected IchavaLogger $logger,
         protected IchavaSeeder $seeder,
-        protected IconRegistry $registry
+        protected IconRegistry $registry,
     ) {}
 
     /**
@@ -85,7 +87,7 @@ class AutoSeedIconsOnRegistration
         $chunkSize = (int) config('ichava.database.batch_size', IchavaSeeder::DEFAULT_CHUNK_SIZE);
 
         $this->logger->info("Auto-seeding package: {$packageName}", [
-            'method' => $useQueue ? 'queue' : 'sync',
+            'method'     => $useQueue ? 'queue' : 'sync',
             'chunk_size' => $chunkSize,
         ]);
 
@@ -125,13 +127,21 @@ class AutoSeedIconsOnRegistration
                     $this->clearSeedingInProgress($packageName);
                 }
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // Log error but don't throw - seeding failure shouldn't break registration
             $this->logger->error("Failed to auto-seed package: {$packageName}", $e, [
                 'package' => $packageName,
             ]);
             $this->clearSeedingInProgress($packageName);
         }
+    }
+
+    /**
+     * Determine whether the listener should be queued
+     */
+    public function shouldQueue(): bool
+    {
+        return false;
     }
 
     /**
@@ -143,7 +153,7 @@ class AutoSeedIconsOnRegistration
             $iconSet = $this->registry->set($packageName);
 
             return $iconSet->basePath();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Try fallback from registry data
             $packages = $this->registry->all();
 
@@ -158,7 +168,7 @@ class AutoSeedIconsOnRegistration
     {
         try {
             return Icon::where('package', $packageName)->exists();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // If we can't check, assume not seeded
             return false;
         }
@@ -173,7 +183,7 @@ class AutoSeedIconsOnRegistration
 
         try {
             return Cache::has($cacheKey);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -196,11 +206,11 @@ class AutoSeedIconsOnRegistration
             register_shutdown_function(static function () use ($cacheKey): void {
                 try {
                     Cache::forget($cacheKey);
-                } catch (\Throwable) {
+                } catch (Throwable) {
                     // Ignore - cache may be unavailable at shutdown
                 }
             });
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Continue anyway
         }
     }
@@ -214,7 +224,7 @@ class AutoSeedIconsOnRegistration
 
         try {
             Cache::forget($cacheKey);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Ignore
         }
     }
@@ -235,7 +245,7 @@ class AutoSeedIconsOnRegistration
                 } else {
                     Cache::put($cacheKey, true, $ttl);
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // Cache unavailable, log anyway
             }
         }
@@ -243,8 +253,8 @@ class AutoSeedIconsOnRegistration
         if ($shouldLog) {
             $this->logger->info('⏭️ Skipping auto-seed - migrations not run yet', [
                 'package' => $packageName,
-                'stage' => $this->lifecycle->getStage(),
-                'tip' => 'Run: php artisan migrate',
+                'stage'   => $this->lifecycle->getStage(),
+                'tip'     => 'Run: php artisan migrate',
             ]);
         }
     }
@@ -267,13 +277,5 @@ class AutoSeedIconsOnRegistration
             || Str::contains($command, 'db:wipe')
             || Str::contains($command, 'ichava:database')
             || Str::contains($command, 'schema:dump');
-    }
-
-    /**
-     * Determine whether the listener should be queued
-     */
-    public function shouldQueue(): bool
-    {
-        return false;
     }
 }
