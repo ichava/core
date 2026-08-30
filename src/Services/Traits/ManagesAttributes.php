@@ -35,20 +35,6 @@ trait ManagesAttributes
     }
 
     /**
-     * Format attributes (escape quotes)
-     */
-    protected function formatAttributes(array $attributes): array
-    {
-        foreach ($attributes as $key => $value) {
-            if (is_string($value)) {
-                $attributes[$key] = str_replace('"', '&quot;', $value);
-            }
-        }
-
-        return $attributes;
-    }
-
-    /**
      * Merge class attributes
      */
     public function mergeClasses(string ...$classes): string
@@ -103,5 +89,19 @@ trait ManagesAttributes
     public function renderAttributes(): string
     {
         return $this->buildHtml($this->attributes);
+    }
+
+    /**
+     * Format attributes (escape quotes)
+     */
+    protected function formatAttributes(array $attributes): array
+    {
+        foreach ($attributes as $key => $value) {
+            if (is_string($value)) {
+                $attributes[$key] = str_replace('"', '&quot;', $value);
+            }
+        }
+
+        return $attributes;
     }
 }

@@ -41,7 +41,7 @@ beforeEach(function () {
 
                 return array_values(array_filter(
                     $this->rows,
-                    static fn (array $r): bool => $r['package'] === $packageFilter
+                    static fn (array $r): bool => $r['package'] === $packageFilter,
                 ));
             }
         };
@@ -52,13 +52,13 @@ beforeEach(function () {
 it('returns SUCCESS when every pack is up to date', function () {
     ($this->stubRows)([
         [
-            'package' => 'ichava/flag-icons',
-            'source' => 'primary',
-            'status' => 'up-to-date',
-            'current' => '7.5.0',
-            'latest' => '7.5.0',
+            'package'     => 'ichava/flag-icons',
+            'source'      => 'primary',
+            'status'      => 'up-to-date',
+            'current'     => '7.5.0',
+            'latest'      => '7.5.0',
             'release_url' => 'https://www.npmjs.com/package/flag-icons/v/7.5.0',
-            'reason' => null,
+            'reason'      => null,
         ],
     ]);
 
@@ -68,13 +68,13 @@ it('returns SUCCESS when every pack is up to date', function () {
 it('emits valid JSON under --format=json', function () {
     ($this->stubRows)([
         [
-            'package' => 'ichava/tabler-icons',
-            'source' => 'primary',
-            'status' => 'update-available',
-            'current' => '3.0.0',
-            'latest' => '3.44.0',
+            'package'     => 'ichava/tabler-icons',
+            'source'      => 'primary',
+            'status'      => 'update-available',
+            'current'     => '3.0.0',
+            'latest'      => '3.44.0',
             'release_url' => 'https://www.npmjs.com/package/@tabler/icons/v/3.44.0',
-            'reason' => null,
+            'reason'      => null,
         ],
     ]);
 
@@ -99,13 +99,13 @@ it('emits valid JSON under --format=json', function () {
 it('exits non-zero with --fail-on-stale when any pack is behind', function () {
     ($this->stubRows)([
         [
-            'package' => 'ichava/tabler-icons',
-            'source' => 'primary',
-            'status' => 'update-available',
-            'current' => '3.0.0',
-            'latest' => '3.44.0',
+            'package'     => 'ichava/tabler-icons',
+            'source'      => 'primary',
+            'status'      => 'update-available',
+            'current'     => '3.0.0',
+            'latest'      => '3.44.0',
             'release_url' => null,
-            'reason' => null,
+            'reason'      => null,
         ],
     ]);
 
@@ -115,13 +115,13 @@ it('exits non-zero with --fail-on-stale when any pack is behind', function () {
 it('exits non-zero with --fail-on-stale when a pack is unreachable', function () {
     ($this->stubRows)([
         [
-            'package' => 'ichava/flag-icons',
-            'source' => 'primary',
-            'status' => 'unreachable',
-            'current' => '7.0.0',
-            'latest' => null,
+            'package'     => 'ichava/flag-icons',
+            'source'      => 'primary',
+            'status'      => 'unreachable',
+            'current'     => '7.0.0',
+            'latest'      => null,
             'release_url' => null,
-            'reason' => 'connection refused',
+            'reason'      => 'connection refused',
         ],
     ]);
 
@@ -131,28 +131,28 @@ it('exits non-zero with --fail-on-stale when a pack is unreachable', function ()
 it('forwards --package= to the checker', function () {
     ($this->stubRows)([
         [
-            'package' => 'ichava/tabler-icons',
-            'source' => 'primary',
-            'status' => 'up-to-date',
-            'current' => '3.44.0',
-            'latest' => '3.44.0',
+            'package'     => 'ichava/tabler-icons',
+            'source'      => 'primary',
+            'status'      => 'up-to-date',
+            'current'     => '3.44.0',
+            'latest'      => '3.44.0',
             'release_url' => null,
-            'reason' => null,
+            'reason'      => null,
         ],
         [
-            'package' => 'ichava/flag-icons',
-            'source' => 'primary',
-            'status' => 'up-to-date',
-            'current' => '7.5.0',
-            'latest' => '7.5.0',
+            'package'     => 'ichava/flag-icons',
+            'source'      => 'primary',
+            'status'      => 'up-to-date',
+            'current'     => '7.5.0',
+            'latest'      => '7.5.0',
             'release_url' => null,
-            'reason' => null,
+            'reason'      => null,
         ],
     ]);
 
     Artisan::call('ichava:icons:check-updates', [
         '--package' => 'ichava/tabler-icons',
-        '--format' => 'json',
+        '--format'  => 'json',
     ]);
     $output = Artisan::output();
 

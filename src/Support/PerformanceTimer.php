@@ -24,14 +24,14 @@ final class PerformanceTimer
     /**
      * Timer start time in microseconds
      */
-    protected float $startTime;
+    private float $startTime;
 
     /**
      * Create a new performance timer
      *
-     * @param  IchavaLogger  $logger  Logger instance for recording metrics
+     * @param IchavaLogger $logger Logger instance for recording metrics
      */
-    public function __construct(protected IchavaLogger $logger)
+    public function __construct(private IchavaLogger $logger)
     {
         $this->startTime = microtime(true);
     }
@@ -41,8 +41,9 @@ final class PerformanceTimer
      *
      * Calculates elapsed time and logs to the performance channel.
      *
-     * @param  string  $operation  Operation name being timed
-     * @param  array<string, mixed>  $context  Additional context data
+     * @param string $operation Operation name being timed
+     * @param array<string, mixed> $context Additional context data
+     *
      * @return float Duration in milliseconds
      */
     public function stop(string $operation, array $context = []): float

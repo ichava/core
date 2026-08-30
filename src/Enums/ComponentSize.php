@@ -22,37 +22,6 @@ enum ComponentSize: string
     case XXL = 'xxl';
 
     /**
-     * Get the CSS class name for this size.
-     */
-    public function getClass(): string
-    {
-        return "icon-{$this->value}";
-    }
-
-    /**
-     * Get the pixel value for this named size.
-     */
-    public function getPixels(): int
-    {
-        return match ($this) {
-            self::XS => 12,
-            self::SM => 16,
-            self::MD => 20,
-            self::LG => 24,
-            self::XL => 32,
-            self::XXL => 48,
-        };
-    }
-
-    /**
-     * Get the rem value for this named size.
-     */
-    public function getRem(): float
-    {
-        return $this->getPixels() / 16;
-    }
-
-    /**
      * Determine if the given string is a named size.
      */
     public static function isNamed(string $size): bool
@@ -76,7 +45,7 @@ enum ComponentSize: string
 
             return [
                 'value' => (string) $enum->getPixels(),
-                'unit' => 'px',
+                'unit'  => 'px',
             ];
         }
 
@@ -86,7 +55,7 @@ enum ComponentSize: string
 
             return [
                 'value' => $value,
-                'unit' => $unit,
+                'unit'  => $unit,
             ];
         }
 
@@ -104,7 +73,7 @@ enum ComponentSize: string
             return null;
         }
 
-        return $parsed['value'].$parsed['unit'];
+        return $parsed['value'] . $parsed['unit'];
     }
 
     /**
@@ -115,12 +84,43 @@ enum ComponentSize: string
     public static function all(): array
     {
         return [
-            self::XS->value => self::XS->getPixels(),
-            self::SM->value => self::SM->getPixels(),
-            self::MD->value => self::MD->getPixels(),
-            self::LG->value => self::LG->getPixels(),
-            self::XL->value => self::XL->getPixels(),
+            self::XS->value  => self::XS->getPixels(),
+            self::SM->value  => self::SM->getPixels(),
+            self::MD->value  => self::MD->getPixels(),
+            self::LG->value  => self::LG->getPixels(),
+            self::XL->value  => self::XL->getPixels(),
             self::XXL->value => self::XXL->getPixels(),
         ];
+    }
+
+    /**
+     * Get the CSS class name for this size.
+     */
+    public function getClass(): string
+    {
+        return "icon-{$this->value}";
+    }
+
+    /**
+     * Get the pixel value for this named size.
+     */
+    public function getPixels(): int
+    {
+        return match ($this) {
+            self::XS  => 12,
+            self::SM  => 16,
+            self::MD  => 20,
+            self::LG  => 24,
+            self::XL  => 32,
+            self::XXL => 48,
+        };
+    }
+
+    /**
+     * Get the rem value for this named size.
+     */
+    public function getRem(): float
+    {
+        return $this->getPixels() / 16;
     }
 }

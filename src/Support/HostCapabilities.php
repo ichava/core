@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
-use Illuminate\Support\Facades\Schema;
+use Exception;
 use Laravel\Sanctum\Sanctum;
+use Illuminate\Support\Facades\Schema;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 
 /**
@@ -53,11 +54,11 @@ final class HostCapabilities
         }
 
         $this->capabilities = [
-            'session' => $this->detectSession(),
-            'auth' => $this->detectAuth(),
-            'sanctum' => $this->detectSanctum(),
+            'session'  => $this->detectSession(),
+            'auth'     => $this->detectAuth(),
+            'sanctum'  => $this->detectSanctum(),
             'database' => $this->detectDatabase(),
-            'cache' => $this->detectCache(),
+            'cache'    => $this->detectCache(),
         ];
 
         $this->detected = true;
@@ -129,6 +130,38 @@ final class HostCapabilities
     }
 
     /**
+     * Get capability tier for user
+     *
+     * @return string 'basic'|'enhanced'|'premium'
+     */
+    public function getTier(): string
+    {
+        $this->detect();
+
+        // Premium: Has auth + session + sanctum
+        if ($this->capabilities['auth'] && $this->capabilities['session'] && $this->capabilities['sanctum']) {
+            return 'premium';
+        }
+
+        // Enhanced: Has session (can store preferences server-side)
+        if ($this->capabilities['session']) {
+            return 'enhanced';
+        }
+
+        // Basic: Browser storage only
+        return 'basic';
+    }
+
+    /**
+     * Clear cached capabilities (for testing)
+     */
+    public function reset(): void
+    {
+        $this->capabilities = [];
+        $this->detected = false;
+    }
+
+    /**
      * Detect if session is available and functional
      */
     private function detectSession(): bool
@@ -160,7 +193,7 @@ final class HostCapabilities
             session()->forget($testKey);
 
             return $works;
-        } catch (\Exception) {
+        } catch (Exception) {
             // Silently fail - session detection may fail during init before migrations
             return false;
         }
@@ -178,7 +211,7 @@ final class HostCapabilities
             }
 
             // Check if User provider exists
-            $provider = config('auth.guards.'.config('auth.defaults.guard').'.provider');
+            $provider = config('auth.guards.' . config('auth.defaults.guard') . '.provider');
             if (! $provider) {
                 return false;
             }
@@ -190,7 +223,7 @@ final class HostCapabilities
             }
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             app(IchavaLogger::class)->debug('Auth detection failed', ['error' => $e->getMessage()]);
 
             return false;
@@ -214,7 +247,7 @@ final class HostCapabilities
             }
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             app(IchavaLogger::class)->debug('Sanctum detection failed', ['error' => $e->getMessage()]);
 
             return false;
@@ -231,7 +264,7 @@ final class HostCapabilities
             Schema::hasTable('users'); // Most Laravel apps have this
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             app(IchavaLogger::class)->debug('Database detection failed', ['error' => $e->getMessage()]);
 
             return false;
@@ -256,42 +289,10 @@ final class HostCapabilities
             cache()->forget($testKey);
 
             return $works;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             app(IchavaLogger::class)->debug('Cache detection failed', ['error' => $e->getMessage()]);
 
             return false;
         }
-    }
-
-    /**
-     * Get capability tier for user
-     *
-     * @return string 'basic'|'enhanced'|'premium'
-     */
-    public function getTier(): string
-    {
-        $this->detect();
-
-        // Premium: Has auth + session + sanctum
-        if ($this->capabilities['auth'] && $this->capabilities['session'] && $this->capabilities['sanctum']) {
-            return 'premium';
-        }
-
-        // Enhanced: Has session (can store preferences server-side)
-        if ($this->capabilities['session']) {
-            return 'enhanced';
-        }
-
-        // Basic: Browser storage only
-        return 'basic';
-    }
-
-    /**
-     * Clear cached capabilities (for testing)
-     */
-    public function reset(): void
-    {
-        $this->capabilities = [];
-        $this->detected = false;
     }
 }

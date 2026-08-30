@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Listeners;
 
-use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
-use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
-use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
+use Throwable;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
+use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
+use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
 
 /**
  * Removes a package's icon rows + orphaned terms when the package unregisters.
@@ -17,7 +18,7 @@ class AutoUnseedOnUnregistration
     public function __construct(
         protected DatabaseOperationsService $databaseService,
         protected IchavaLifecycleManager $lifecycle,
-        protected IchavaLogger $logger
+        protected IchavaLogger $logger,
     ) {}
 
     /**
@@ -48,7 +49,7 @@ class AutoUnseedOnUnregistration
         if (! $this->lifecycle->hasMigrations()) {
             $this->logger->info('⏭️ Skipping auto-unseed - migrations not run yet', [
                 'package' => $event->name,
-                'stage' => $this->lifecycle->getStage(),
+                'stage'   => $this->lifecycle->getStage(),
             ]);
 
             return;
@@ -62,7 +63,7 @@ class AutoUnseedOnUnregistration
             $stats = $this->databaseService->unseedPackage($packageName);
 
             $this->logger->info("Successfully auto-unseeded package: {$packageName}", $stats);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // Log error but don't throw - unseed failure shouldn't break unregistration
             $this->logger->error("Failed to auto-unseed package: {$packageName}", $e, [
                 'package' => $packageName,

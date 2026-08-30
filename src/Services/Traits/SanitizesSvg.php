@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
-use DOMDocument;
-use DOMElement;
 use DOMNode;
+use DOMElement;
+use DOMDocument;
 use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
@@ -31,21 +31,6 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  */
 trait SanitizesSvg
 {
-    /**
-     * Allowed SVG elements (whitelist)
-     */
-    private array $allowedTags;
-
-    /**
-     * Allowed SVG attributes (whitelist)
-     */
-    private array $allowedAttributes;
-
-    /**
-     * Forbidden SVG elements (blacklist)
-     */
-    private array $forbiddenTags;
-
     /**
      * Dangerous attributes
      */
@@ -72,6 +57,93 @@ trait SanitizesSvg
         'file:',
         'about:',
     ];
+
+    /**
+     * Allowed SVG elements (whitelist)
+     */
+    private array $allowedTags;
+
+    /**
+     * Allowed SVG attributes (whitelist)
+     */
+    private array $allowedAttributes;
+
+    /**
+     * Forbidden SVG elements (blacklist)
+     */
+    private array $forbiddenTags;
+
+    /**
+     * Sanitize SVG content
+     *
+     * @throws IchavaException
+     */
+    public function sanitize(string $content): string
+    {
+        if (empty(trim($content))) {
+            throw IchavaException::invalidSvgContent('SVG content is empty');
+        }
+
+        // Remove XML declaration
+        $content = preg_replace('/^<\?xml.*?\?>\s*/i', '', $content) ?? $content;
+
+        // Load into DOM with security settings
+        $dom = $this->loadSecureDom($content);
+
+        // Sanitize the tree
+        $this->sanitizeNode($dom->documentElement);
+
+        // Export
+        $sanitized = $dom->saveXML($dom->documentElement);
+
+        if ($sanitized === false) {
+            throw IchavaException::invalidSvgContent('Failed to serialize sanitized SVG');
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * Setters for custom configuration
+     */
+    public function setAllowedTags(array $tags): self
+    {
+        $this->allowedTags = $tags;
+
+        return $this;
+    }
+
+    public function setAllowedAttributes(array $attributes): self
+    {
+        $this->allowedAttributes = $attributes;
+
+        return $this;
+    }
+
+    public function setForbiddenTags(array $tags): self
+    {
+        $this->forbiddenTags = $tags;
+
+        return $this;
+    }
+
+    /**
+     * Getters
+     */
+    public function getAllowedTags(): array
+    {
+        return $this->allowedTags;
+    }
+
+    public function getAllowedAttributes(): array
+    {
+        return $this->allowedAttributes;
+    }
+
+    public function getForbiddenTags(): array
+    {
+        return $this->forbiddenTags;
+    }
 
     /**
      * Initialise the sanitizer lists from config, falling back to built-in defaults.
@@ -109,36 +181,6 @@ trait SanitizesSvg
             'x1', 'x2', 'y1', 'y2', 'offset', 'stop-color',
             'fill-rule', 'clip-rule', 'points', 'style',
         ];
-    }
-
-    /**
-     * Sanitize SVG content
-     *
-     * @throws IchavaException
-     */
-    public function sanitize(string $content): string
-    {
-        if (empty(trim($content))) {
-            throw IchavaException::invalidSvgContent('SVG content is empty');
-        }
-
-        // Remove XML declaration
-        $content = preg_replace('/^<\?xml.*?\?>\s*/i', '', $content) ?? $content;
-
-        // Load into DOM with security settings
-        $dom = $this->loadSecureDom($content);
-
-        // Sanitize the tree
-        $this->sanitizeNode($dom->documentElement);
-
-        // Export
-        $sanitized = $dom->saveXML($dom->documentElement);
-
-        if ($sanitized === false) {
-            throw IchavaException::invalidSvgContent('Failed to serialize sanitized SVG');
-        }
-
-        return $sanitized;
     }
 
     /**
@@ -284,47 +326,5 @@ trait SanitizesSvg
         }
 
         return in_array($name, $this->allowedAttributes, true);
-    }
-
-    /**
-     * Setters for custom configuration
-     */
-    public function setAllowedTags(array $tags): self
-    {
-        $this->allowedTags = $tags;
-
-        return $this;
-    }
-
-    public function setAllowedAttributes(array $attributes): self
-    {
-        $this->allowedAttributes = $attributes;
-
-        return $this;
-    }
-
-    public function setForbiddenTags(array $tags): self
-    {
-        $this->forbiddenTags = $tags;
-
-        return $this;
-    }
-
-    /**
-     * Getters
-     */
-    public function getAllowedTags(): array
-    {
-        return $this->allowedTags;
-    }
-
-    public function getAllowedAttributes(): array
-    {
-        return $this->allowedAttributes;
-    }
-
-    public function getForbiddenTags(): array
-    {
-        return $this->forbiddenTags;
     }
 }

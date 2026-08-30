@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\View\Components;
 
+use Throwable;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
-use Simtabi\Laranail\Ichava\Services\IconRegistry;
-use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 use Simtabi\Laranail\Ichava\Traits\HasIconSizing;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
 /**
  * IconComponent - Unified Icon Component
@@ -69,24 +70,24 @@ class IconComponent extends Component
     /**
      * Create a new component instance.
      *
-     * @param  string  $name  Full icon path (e.g. 'ichava/tabler-icons::outline/home')
-     *                        or a short name when getVendorPackage() is overridden.
-     * @param  string|null  $set  Override the icon set / vendor-package path.
-     * @param  string|null  $variant  Optional variant segment prepended to the icon name (e.g. 'outline', 'solid').
-     * @param  string|null  $category  Optional category segment prepended to the icon name (e.g. 'brand-logos').
-     *                                 Takes precedence over $variant when both are provided.
-     * @param  string|null  $size  Named size preset handled by HasIconSizing (xs, sm, md, lg, xl, 2xl, …).
-     * @param  string|null  $width  Explicit pixel width (overrides $size width).
-     * @param  string|null  $height  Explicit pixel height (overrides $size height).
-     * @param  bool  $lockAspectRatio  Whether to enforce a 1:1 aspect ratio when only one dimension is set.
-     * @param  string|null  $title  Accessibility title injected as `<title>` inside the SVG (WCAG 2.1).
-     * @param  string|null  $aria  Value for the `aria-label` attribute (screen-reader accessible name).
-     * @param  string|null  $role  ARIA role attribute (default: 'img'; use 'presentation' for decorative icons).
-     * @param  string|null  $fallback  Fallback icon path rendered if the primary icon fails.
-     *                                 Falls back further to config('ichava.fallback_icon') if this is also absent.
-     * @param  string|null  $dark  Reserved for dark-mode variant support (not yet implemented).
-     * @param  IconRegistry|null  $iconRegistry  Injected by Laravel's service container.
-     * @param  SvgProcessingService|null  $svgProcessor  Injected by Laravel's service container.
+     * @param string $name Full icon path (e.g. 'ichava/tabler-icons::outline/home')
+     *                     or a short name when getVendorPackage() is overridden.
+     * @param string|null $set Override the icon set / vendor-package path.
+     * @param string|null $variant Optional variant segment prepended to the icon name (e.g. 'outline', 'solid').
+     * @param string|null $category Optional category segment prepended to the icon name (e.g. 'brand-logos').
+     *                              Takes precedence over $variant when both are provided.
+     * @param string|null $size Named size preset handled by HasIconSizing (xs, sm, md, lg, xl, 2xl, …).
+     * @param string|null $width Explicit pixel width (overrides $size width).
+     * @param string|null $height Explicit pixel height (overrides $size height).
+     * @param bool $lockAspectRatio Whether to enforce a 1:1 aspect ratio when only one dimension is set.
+     * @param string|null $title Accessibility title injected as `<title>` inside the SVG (WCAG 2.1).
+     * @param string|null $aria Value for the `aria-label` attribute (screen-reader accessible name).
+     * @param string|null $role ARIA role attribute (default: 'img'; use 'presentation' for decorative icons).
+     * @param string|null $fallback Fallback icon path rendered if the primary icon fails.
+     *                              Falls back further to config('ichava.fallback_icon') if this is also absent.
+     * @param string|null $dark Reserved for dark-mode variant support (not yet implemented).
+     * @param IconRegistry|null $iconRegistry Injected by Laravel's service container.
+     * @param SvgProcessingService|null $svgProcessor Injected by Laravel's service container.
      */
     public function __construct(
         public string $name,
@@ -105,44 +106,6 @@ class IconComponent extends Component
         private readonly ?IconRegistry $iconRegistry = null,
         private readonly ?SvgProcessingService $svgProcessor = null,
     ) {}
-
-    /**
-     * Get the icon set name (for package-specific components)
-     *
-     * Override this in child components to provide default icon set.
-     * Used when no set is specified in the name or $set parameter.
-     *
-     * @return string|null Icon set identifier (e.g., 'metronic', 'tabler')
-     */
-    protected function getIconSet(): ?string
-    {
-        return null;
-    }
-
-    /**
-     * Get the full vendor/package path (for package-specific components)
-     *
-     * Override this in child components to provide full vendor/package path.
-     * This enables cleaner syntax: <x-metronic name="icon" /> instead of full path.
-     *
-     * @return string|null Full vendor/package path (e.g., 'ichava/metronic-icons')
-     */
-    protected function getVendorPackage(): ?string
-    {
-        return null;
-    }
-
-    /**
-     * Get default attributes for the icon
-     *
-     * Override this to provide package-specific default attributes.
-     *
-     * @return array<string, mixed>
-     */
-    protected function getDefaultAttributes(): array
-    {
-        return [];
-    }
 
     /**
      * Render the icon to an HTML SVG string.
@@ -198,13 +161,13 @@ class IconComponent extends Component
             $this->getDefaultAttributes(),
             $additionalAttrs,
             $a11yAttrs,
-            $sizeAttrs
+            $sizeAttrs,
         );
 
         // Render, fall back to $fallback icon on exception, otherwise re-throw
         try {
             return $this->iconRegistry->render($iconPath, null, null, $attributes);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $fallback = $this->fallback ?? config('ichava.fallback_icon');
 
             if ($fallback && $fallback !== $iconPath) {
@@ -213,6 +176,44 @@ class IconComponent extends Component
 
             throw $e;
         }
+    }
+
+    /**
+     * Get the icon set name (for package-specific components)
+     *
+     * Override this in child components to provide default icon set.
+     * Used when no set is specified in the name or $set parameter.
+     *
+     * @return string|null Icon set identifier (e.g., 'metronic', 'tabler')
+     */
+    protected function getIconSet(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Get the full vendor/package path (for package-specific components)
+     *
+     * Override this in child components to provide full vendor/package path.
+     * This enables cleaner syntax: <x-metronic name="icon" /> instead of full path.
+     *
+     * @return string|null Full vendor/package path (e.g., 'ichava/metronic-icons')
+     */
+    protected function getVendorPackage(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Get default attributes for the icon
+     *
+     * Override this to provide package-specific default attributes.
+     *
+     * @return array<string, mixed>
+     */
+    protected function getDefaultAttributes(): array
+    {
+        return [];
     }
 
     /**

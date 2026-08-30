@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\warning;
+
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconTermsSeeder;
-
-use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\info;
-use function Laravel\Prompts\intro;
-use function Laravel\Prompts\note;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\select;
-use function Laravel\Prompts\spin;
-use function Laravel\Prompts\table;
-use function Laravel\Prompts\warning;
+use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
 
 /**
  * Unified Icon Database Command
@@ -58,7 +58,7 @@ final class DatabaseCommand extends BaseCommand
         protected DatabaseOperationsService $databaseService,
         protected IchavaLogger $logger,
         protected IchavaSeeder $ichavaSeeder,
-        protected IconTermsSeeder $termSeeder
+        protected IconTermsSeeder $termSeeder,
     ) {
         parent::__construct();
     }
@@ -72,17 +72,17 @@ final class DatabaseCommand extends BaseCommand
             $action = select(
                 label: 'What database operation would you like to perform?',
                 options: [
-                    'seed' => 'Seed - Populate database with icons and terms',
+                    'seed'       => 'Seed - Populate database with icons and terms',
                     'seed:icons' => 'Seed Icons - Seed icons only',
                     'seed:terms' => 'Seed Terms - Seed terms only',
-                    'migrate' => 'Migrate - Run Ichava migrations',
-                    'unseed' => 'Unseed - Remove icon data from database',
-                    'refresh' => 'Refresh - Truncate and re-seed',
-                    'truncate' => 'Truncate - Clear all tables',
-                    'stats' => 'Stats - Show database statistics',
+                    'migrate'    => 'Migrate - Run Ichava migrations',
+                    'unseed'     => 'Unseed - Remove icon data from database',
+                    'refresh'    => 'Refresh - Truncate and re-seed',
+                    'truncate'   => 'Truncate - Clear all tables',
+                    'stats'      => 'Stats - Show database statistics',
                 ],
                 default: 'stats',
-                hint: 'Select an action to perform'
+                hint: 'Select an action to perform',
             );
         }
 
@@ -97,14 +97,14 @@ final class DatabaseCommand extends BaseCommand
         }
 
         return match ($action) {
-            'seed' => $this->handleSeed(),
+            'seed'       => $this->handleSeed(),
             'seed:icons' => $this->handleSeedIcons(),
             'seed:terms' => $this->handleSeedTerms(),
-            'unseed' => $this->handleUnseed(),
-            'refresh' => $this->handleRefresh(),
-            'truncate' => $this->handleTruncate(),
-            'stats' => $this->handleStats(),
-            default => $this->handleInvalidAction($action, $this->validActions),
+            'unseed'     => $this->handleUnseed(),
+            'refresh'    => $this->handleRefresh(),
+            'truncate'   => $this->handleTruncate(),
+            'stats'      => $this->handleStats(),
+            default      => $this->handleInvalidAction($action, $this->validActions),
         };
     }
 
@@ -121,7 +121,7 @@ final class DatabaseCommand extends BaseCommand
                 default: false,
                 yes: 'Yes, drop and recreate',
                 no: 'No, cancel',
-                hint: '⚠️ All existing Ichava data will be permanently deleted!'
+                hint: '⚠️ All existing Ichava data will be permanently deleted!',
             );
 
             if (! $confirmed && ! $this->option('force')) {
@@ -135,13 +135,13 @@ final class DatabaseCommand extends BaseCommand
             return $this->tryExecute(function () {
                 $result = spin(
                     callback: fn () => $this->databaseService->freshMigration(),
-                    message: 'Dropping and recreating tables...'
+                    message: 'Dropping and recreating tables...',
                 );
 
                 if (! empty($result['dropped_tables'])) {
                     table(
                         headers: ['Dropped Tables'],
-                        rows: array_map(fn ($t) => [$t], $result['dropped_tables'])
+                        rows: array_map(fn ($t) => [$t], $result['dropped_tables']),
                     );
                 }
 
@@ -162,7 +162,7 @@ final class DatabaseCommand extends BaseCommand
 
         $exitCode = spin(
             callback: fn () => $this->databaseService->runMigrations(),
-            message: 'Running migrations...'
+            message: 'Running migrations...',
         );
 
         if ($exitCode === 0) {
@@ -192,7 +192,7 @@ final class DatabaseCommand extends BaseCommand
                 default: false,
                 yes: 'Yes, clear and seed',
                 no: 'No, cancel',
-                hint: '⚠️ Existing icons and terms will be deleted!'
+                hint: '⚠️ Existing icons and terms will be deleted!',
             );
 
             if (! $confirmed && ! $this->option('force')) {
@@ -246,7 +246,7 @@ final class DatabaseCommand extends BaseCommand
     {
         $forceUpdate = (bool) $this->option('update');
 
-        info('📦 Seeding icons...'.($forceUpdate ? ' (force update mode)' : ''));
+        info('📦 Seeding icons...' . ($forceUpdate ? ' (force update mode)' : ''));
 
         return $this->tryExecute(function () use ($forceUpdate) {
             if ($this->option('sync')) {
@@ -263,12 +263,12 @@ final class DatabaseCommand extends BaseCommand
                     $this->ichavaSeeder->setContainer(app());
                     $this->ichavaSeeder->run();
                 },
-                message: 'Seeding icons...'
+                message: 'Seeding icons...',
             );
 
             $this->logOperation('Icons seeded', [
-                'package' => $this->option('package'),
-                'sync' => $this->option('sync'),
+                'package'      => $this->option('package'),
+                'sync'         => $this->option('sync'),
                 'force_update' => $forceUpdate,
             ]);
 
@@ -290,7 +290,7 @@ final class DatabaseCommand extends BaseCommand
                     $this->termSeeder->setContainer(app());
                     $this->termSeeder->run();
                 },
-                message: 'Seeding terms...'
+                message: 'Seeding terms...',
             );
 
             $this->logOperation('Terms seeded');
@@ -315,12 +315,12 @@ final class DatabaseCommand extends BaseCommand
             $choice = select(
                 label: 'What would you like to unseed?',
                 options: [
-                    'all' => 'All packages - Remove all Ichava data',
+                    'all'     => 'All packages - Remove all Ichava data',
                     'package' => 'Specific package - Choose a package to unseed',
-                    'cancel' => 'Cancel - Do nothing',
+                    'cancel'  => 'Cancel - Do nothing',
                 ],
                 default: 'cancel',
-                hint: 'Select what to unseed'
+                hint: 'Select what to unseed',
             );
 
             if ($choice === 'cancel') {
@@ -336,7 +336,7 @@ final class DatabaseCommand extends BaseCommand
                     label: 'Enter the package name to unseed',
                     placeholder: 'e.g., ichava/icons-bundle',
                     required: true,
-                    hint: 'Enter the full package name (vendor/package)'
+                    hint: 'Enter the full package name (vendor/package)',
                 );
 
                 return $this->unseedPackage($packageName);
@@ -356,7 +356,7 @@ final class DatabaseCommand extends BaseCommand
             default: false,
             yes: 'Yes, unseed package',
             no: 'No, cancel',
-            hint: '⚠️ Icons and term relationships for this package will be deleted!'
+            hint: '⚠️ Icons and term relationships for this package will be deleted!',
         );
 
         if (! $confirmed && ! $this->option('force')) {
@@ -370,7 +370,7 @@ final class DatabaseCommand extends BaseCommand
         return $this->tryExecute(function () use ($packageName) {
             $stats = spin(
                 callback: fn () => $this->databaseService->unseedPackage($packageName),
-                message: 'Removing package data...'
+                message: 'Removing package data...',
             );
 
             table(
@@ -379,7 +379,7 @@ final class DatabaseCommand extends BaseCommand
                     ['Icons deleted', $this->formatNumber($stats['icons_deleted'])],
                     ['Term relations deleted', $this->formatNumber($stats['term_relations_deleted'])],
                     ['Orphaned terms deleted', $this->formatNumber($stats['orphaned_terms_deleted'])],
-                ]
+                ],
             );
 
             outro('✅ Package unseeded successfully');
@@ -398,7 +398,7 @@ final class DatabaseCommand extends BaseCommand
             default: false,
             yes: 'Yes, remove all data',
             no: 'No, cancel',
-            hint: '⚠️ ALL icons, terms, and relationships will be permanently deleted!'
+            hint: '⚠️ ALL icons, terms, and relationships will be permanently deleted!',
         );
 
         if (! $confirmed && ! $this->option('force')) {
@@ -412,7 +412,7 @@ final class DatabaseCommand extends BaseCommand
         return $this->tryExecute(function () {
             $stats = spin(
                 callback: fn () => $this->databaseService->unseedAll(),
-                message: 'Removing all data...'
+                message: 'Removing all data...',
             );
 
             table(
@@ -421,7 +421,7 @@ final class DatabaseCommand extends BaseCommand
                     ['Icons deleted', $this->formatNumber($stats['icons_deleted'])],
                     ['Term relations deleted', $this->formatNumber($stats['term_relations_deleted'])],
                     ['Terms deleted', $this->formatNumber($stats['terms_deleted'])],
-                ]
+                ],
             );
 
             outro('✅ All packages unseeded successfully');
@@ -440,7 +440,7 @@ final class DatabaseCommand extends BaseCommand
             default: false,
             yes: 'Yes, refresh database',
             no: 'No, cancel',
-            hint: '⚠️ All existing icons and terms will be replaced!'
+            hint: '⚠️ All existing icons and terms will be replaced!',
         );
 
         if (! $confirmed && ! $this->option('force')) {
@@ -472,7 +472,7 @@ final class DatabaseCommand extends BaseCommand
                 default: false,
                 yes: 'Yes, truncate tables',
                 no: 'No, cancel',
-                hint: '⚠️ All data will be permanently deleted!'
+                hint: '⚠️ All data will be permanently deleted!',
             );
 
             if (! $confirmed) {
@@ -487,10 +487,10 @@ final class DatabaseCommand extends BaseCommand
         return $this->tryExecute(function () {
             $truncated = spin(
                 callback: fn () => $this->databaseService->truncateTables(),
-                message: 'Truncating tables...'
+                message: 'Truncating tables...',
             );
 
-            info('Tables truncated: '.implode(', ', $truncated));
+            info('Tables truncated: ' . implode(', ', $truncated));
             $this->logOperation('Tables truncated');
 
             return self::SUCCESS;
@@ -516,7 +516,7 @@ final class DatabaseCommand extends BaseCommand
     {
         $stats = spin(
             callback: fn () => $this->databaseService->getStatistics(),
-            message: 'Gathering statistics...'
+            message: 'Gathering statistics...',
         );
 
         table(
@@ -528,7 +528,7 @@ final class DatabaseCommand extends BaseCommand
                 ['Variants', $this->formatNumber($stats['variants'])],
                 ['Term Relationships', $this->formatNumber($stats['term_relationships'])],
                 ['Database Size', $stats['database_size'] ?? 'N/A'],
-            ]
+            ],
         );
     }
 

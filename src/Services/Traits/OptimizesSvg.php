@@ -14,14 +14,6 @@ use Simtabi\Laranail\Ichava\Enums\OptimizationLevel;
 trait OptimizesSvg
 {
     /**
-     * Initialize optimizer
-     */
-    protected function initializeOptimizer(): void
-    {
-        // No initialization needed
-    }
-
-    /**
      * Optimize SVG content
      */
     public function optimize(string $content): string
@@ -50,5 +42,13 @@ trait OptimizesSvg
         }
 
         return trim($content);
+    }
+
+    /**
+     * Initialize optimizer
+     */
+    protected function initializeOptimizer(): void
+    {
+        // No initialization needed
     }
 }

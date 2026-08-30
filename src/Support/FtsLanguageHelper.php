@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 
@@ -20,10 +21,6 @@ use Simtabi\Laranail\Ichava\Services\IchavaLogger;
  */
 final class FtsLanguageHelper
 {
-    public function __construct(
-        protected IchavaLogger $logger
-    ) {}
-
     /**
      * Available PostgreSQL text search configurations
      */
@@ -52,6 +49,10 @@ final class FtsLanguageHelper
         'tamil',
         'turkish',
     ];
+
+    public function __construct(
+        private IchavaLogger $logger,
+    ) {}
 
     /**
      * Get the search strategy
@@ -116,7 +117,7 @@ final class FtsLanguageHelper
 
         return array_map(
             fn ($lang) => self::validateLanguage($lang),
-            $languages
+            $languages,
         );
     }
 
@@ -126,12 +127,12 @@ final class FtsLanguageHelper
     public static function getSearchScope(): array
     {
         return config('ichava.database.search.scope', [
-            'icon_name' => true,
-            'keywords' => true,
-            'tags' => true,
-            'categories' => true,
-            'variants' => true,
-            'metadata' => true,
+            'icon_name'    => true,
+            'keywords'     => true,
+            'tags'         => true,
+            'categories'   => true,
+            'variants'     => true,
+            'metadata'     => true,
             'package_name' => false,
         ]);
     }
@@ -142,39 +143,6 @@ final class FtsLanguageHelper
     public static function isScopeEnabled(string $scope): bool
     {
         return self::getSearchScope()[$scope] ?? false;
-    }
-
-    /**
-     * Validate and sanitize FTS language
-     */
-    public function validateLanguage(string $language): string
-    {
-        // Check if language is in our known list
-        if (! in_array($language, self::AVAILABLE_LANGUAGES)) {
-            $this->logger->warning("⚠️ Unknown FTS language: {$language}, falling back to simple");
-
-            return 'simple';
-        }
-
-        // For PostgreSQL, verify the language configuration exists
-        try {
-            $exists = DB::selectOne(
-                'SELECT 1 FROM pg_ts_config WHERE cfgname = ?',
-                [$language]
-            );
-
-            if (! $exists) {
-                $this->logger->warning("⚠️ Language configuration '{$language}' not found in PostgreSQL, falling back to simple");
-
-                return 'simple';
-            }
-
-            return $language;
-        } catch (\Exception $e) {
-            $this->logger->error("❌ Failed to validate FTS language: {$e->getMessage()}");
-
-            return 'simple';
-        }
     }
 
     /**
@@ -259,10 +227,10 @@ final class FtsLanguageHelper
         // Multiple languages: OR across all
         $conditions = array_map(
             fn ($lang) => "to_tsvector('{$lang}', {$combinedText}) @@ plainto_tsquery('{$lang}', ?)",
-            $languages
+            $languages,
         );
 
-        return '('.implode(' OR ', $conditions).')';
+        return '(' . implode(' OR ', $conditions) . ')';
     }
 
     /**
@@ -281,10 +249,10 @@ final class FtsLanguageHelper
         // Build OR conditions for each language
         $conditions = array_map(
             fn ($lang) => self::buildSingleLanguageQuery($searchTerm, $lang),
-            $languages
+            $languages,
         );
 
-        return '('.implode(' OR ', $conditions).')';
+        return '(' . implode(' OR ', $conditions) . ')';
     }
 
     /**
@@ -295,26 +263,8 @@ final class FtsLanguageHelper
         return sprintf(
             "to_tsvector('%s', COALESCE(array_to_string(ARRAY(SELECT jsonb_array_elements_text(search_text)), ' '), '')) @@ plainto_tsquery('%s', ?)",
             $language,
-            $language
+            $language,
         );
-    }
-
-    /**
-     * Get list of available FTS languages from database
-     */
-    public function getAvailableLanguages(): array
-    {
-        try {
-            $configs = DB::select(
-                'SELECT cfgname FROM pg_ts_config ORDER BY cfgname'
-            );
-
-            return array_map(fn ($config) => $config->cfgname, $configs);
-        } catch (\Exception $e) {
-            $this->logger->error("❌ Failed to fetch available FTS languages: {$e->getMessage()}");
-
-            return self::AVAILABLE_LANGUAGES;
-        }
     }
 
     /**
@@ -325,19 +275,70 @@ final class FtsLanguageHelper
         try {
             $result = DB::selectOne(
                 "SELECT to_tsvector(?, 'running quickly') as tokens",
-                [$language]
+                [$language],
             );
 
             return [
                 'language' => $language,
-                'input' => 'running quickly',
-                'tokens' => $result->tokens ?? null,
+                'input'    => 'running quickly',
+                'tokens'   => $result->tokens ?? null,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'language' => $language,
-                'error' => $e->getMessage(),
+                'error'    => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Validate and sanitize FTS language
+     */
+    public function validateLanguage(string $language): string
+    {
+        // Check if language is in our known list
+        if (! in_array($language, self::AVAILABLE_LANGUAGES)) {
+            $this->logger->warning("⚠️ Unknown FTS language: {$language}, falling back to simple");
+
+            return 'simple';
+        }
+
+        // For PostgreSQL, verify the language configuration exists
+        try {
+            $exists = DB::selectOne(
+                'SELECT 1 FROM pg_ts_config WHERE cfgname = ?',
+                [$language],
+            );
+
+            if (! $exists) {
+                $this->logger->warning("⚠️ Language configuration '{$language}' not found in PostgreSQL, falling back to simple");
+
+                return 'simple';
+            }
+
+            return $language;
+        } catch (Exception $e) {
+            $this->logger->error("❌ Failed to validate FTS language: {$e->getMessage()}");
+
+            return 'simple';
+        }
+    }
+
+    /**
+     * Get list of available FTS languages from database
+     */
+    public function getAvailableLanguages(): array
+    {
+        try {
+            $configs = DB::select(
+                'SELECT cfgname FROM pg_ts_config ORDER BY cfgname',
+            );
+
+            return array_map(fn ($config) => $config->cfgname, $configs);
+        } catch (Exception $e) {
+            $this->logger->error("❌ Failed to fetch available FTS languages: {$e->getMessage()}");
+
+            return self::AVAILABLE_LANGUAGES;
         }
     }
 }

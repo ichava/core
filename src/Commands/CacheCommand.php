@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
-use Simtabi\Laranail\Ichava\Services\IchavaLogger;
-
-use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\intro;
 use function Laravel\Prompts\note;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\outro;
 use function Laravel\Prompts\table;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
+
+use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
 
 /**
  * Unified Icon Cache Command
@@ -47,7 +47,7 @@ final class CacheCommand extends BaseCommand
 
     public function __construct(
         protected CacheOperationsService $cacheService,
-        protected IchavaLogger $logger
+        protected IchavaLogger $logger,
     ) {
         parent::__construct();
     }
@@ -61,26 +61,26 @@ final class CacheCommand extends BaseCommand
             $action = select(
                 label: 'What cache operation would you like to perform?',
                 options: [
-                    'clear' => 'Clear - Remove all cached data',
-                    'rebuild' => 'Rebuild - Regenerate all caches',
-                    'refresh' => 'Refresh - Clear and rebuild caches',
+                    'clear'    => 'Clear - Remove all cached data',
+                    'rebuild'  => 'Rebuild - Regenerate all caches',
+                    'refresh'  => 'Refresh - Clear and rebuild caches',
                     'generate' => 'Generate - Create production-optimized cache',
                     'manifest' => 'Manifest - Generate icon manifest file',
-                    'stats' => 'Stats - Show cache statistics',
+                    'stats'    => 'Stats - Show cache statistics',
                 ],
                 default: 'stats',
-                hint: 'Select an action to perform'
+                hint: 'Select an action to perform',
             );
         }
 
         return match ($action) {
-            'clear' => $this->handleClear(),
-            'rebuild' => $this->handleRebuild(),
-            'refresh' => $this->handleRefresh(),
+            'clear'    => $this->handleClear(),
+            'rebuild'  => $this->handleRebuild(),
+            'refresh'  => $this->handleRefresh(),
             'generate' => $this->handleGenerate(),
             'manifest' => $this->handleManifest(),
-            'stats' => $this->handleStats(),
-            default => $this->handleInvalidAction($action, $this->validActions),
+            'stats'    => $this->handleStats(),
+            default    => $this->handleInvalidAction($action, $this->validActions),
         };
     }
 
@@ -102,19 +102,19 @@ final class CacheCommand extends BaseCommand
                     : $this->cacheService->clearAll(),
                 message: $package
                     ? "Clearing cache for package: {$package}..."
-                    : 'Clearing all caches...'
+                    : 'Clearing all caches...',
             );
 
-            info('Cleared '.count($clearedKeys).' cache key(s)');
+            info('Cleared ' . count($clearedKeys) . ' cache key(s)');
 
             if ($this->isVerbose() && ! empty($clearedKeys)) {
                 table(
                     headers: ['Cleared Cache Keys'],
-                    rows: array_map(fn ($key) => [$key], $clearedKeys)
+                    rows: array_map(fn ($key) => [$key], $clearedKeys),
                 );
             }
 
-            outro('⏱️  Completed in '.$this->formatMs($this->getElapsedMs()));
+            outro('⏱️  Completed in ' . $this->formatMs($this->getElapsedMs()));
 
             return self::SUCCESS;
         }, 'Failed to clear cache');
@@ -130,7 +130,7 @@ final class CacheCommand extends BaseCommand
         return $this->tryExecute(function () {
             $result = spin(
                 callback: fn () => $this->cacheService->rebuild(),
-                message: 'Rebuilding caches...'
+                message: 'Rebuilding caches...',
             );
 
             table(
@@ -139,8 +139,8 @@ final class CacheCommand extends BaseCommand
                     ['Categories', (string) $result['categories']],
                     ['Packages', (string) $result['packages']],
                     ['Total Icons', $this->formatNumber($result['total_icons'])],
-                    ['Build Time', $result['build_time_ms'].'ms'],
-                ]
+                    ['Build Time', $result['build_time_ms'] . 'ms'],
+                ],
             );
 
             outro('✅ Cache rebuilt successfully');
@@ -159,7 +159,7 @@ final class CacheCommand extends BaseCommand
         return $this->tryExecute(function () {
             $result = spin(
                 callback: fn () => $this->cacheService->refresh(),
-                message: 'Clearing and rebuilding caches...'
+                message: 'Clearing and rebuilding caches...',
             );
 
             table(
@@ -169,7 +169,7 @@ final class CacheCommand extends BaseCommand
                     ['Categories', (string) $result['rebuild_stats']['categories']],
                     ['Packages', (string) $result['rebuild_stats']['packages']],
                     ['Total Icons', $this->formatNumber($result['rebuild_stats']['total_icons'])],
-                ]
+                ],
             );
 
             outro('✅ Cache refreshed successfully');
@@ -188,7 +188,7 @@ final class CacheCommand extends BaseCommand
         return $this->tryExecute(function () {
             spin(
                 callback: fn () => $this->cacheService->generateProductionCache(),
-                message: 'Generating optimized production cache...'
+                message: 'Generating optimized production cache...',
             );
 
             $this->displayCacheStats();
@@ -225,7 +225,7 @@ final class CacheCommand extends BaseCommand
                 default: true,
                 yes: 'Yes, rebuild',
                 no: 'No, cancel',
-                hint: 'The existing manifest will be replaced'
+                hint: 'The existing manifest will be replaced',
             );
 
             if (! $overwrite) {
@@ -238,7 +238,7 @@ final class CacheCommand extends BaseCommand
         return $this->tryExecute(function () use ($path) {
             $result = spin(
                 callback: fn () => $this->cacheService->generateManifest($path),
-                message: 'Generating manifest file...'
+                message: 'Generating manifest file...',
             );
 
             table(
@@ -247,8 +247,8 @@ final class CacheCommand extends BaseCommand
                     ['Packages', (string) $result['packages']],
                     ['Total Icons', $this->formatNumber($result['total_icons'])],
                     ['File Size', $this->formatBytes($result['file_size'])],
-                    ['Build Time', $result['build_time_ms'].'ms'],
-                ]
+                    ['Build Time', $result['build_time_ms'] . 'ms'],
+                ],
             );
 
             note("📁 Manifest saved to: {$result['path']}");
@@ -279,7 +279,7 @@ final class CacheCommand extends BaseCommand
     {
         $stats = spin(
             callback: fn () => $this->cacheService->getStatistics(),
-            message: 'Gathering cache statistics...'
+            message: 'Gathering cache statistics...',
         );
 
         table(
@@ -291,7 +291,7 @@ final class CacheCommand extends BaseCommand
                 ['Total Cache Keys', (string) ($stats['stats']['total_keys'] ?? 0)],
                 ['Manifest Exists', $stats['manifest_exists'] ? '✅ Yes' : '❌ No'],
                 ['Manifest Stale', $stats['manifest_stale'] ? '⚠️  Yes' : '✅ No'],
-            ]
+            ],
         );
     }
 }
