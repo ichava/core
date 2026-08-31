@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
-use DOMDocument;
-use DOMElement;
 use DOMXPath;
 use Throwable;
+use DOMElement;
+use DOMDocument;
 
 /**
  * Per-file id namespacing. Fixes CR1.
@@ -45,7 +45,7 @@ trait NamespacesSvgIds
     /**
      * Namespace every id in the document, and every reference to one.
      *
-     * @param  string  $seed  stable per-file key; the icon's relative path.
+     * @param string $seed stable per-file key; the icon's relative path.
      */
     public function namespaceIds(string $content, string $seed): string
     {
@@ -123,7 +123,7 @@ trait NamespacesSvgIds
     /**
      * Rewrite one attribute value against the id map.
      *
-     * @param  array<string, string>  $map
+     * @param array<string, string> $map
      */
     private function rewriteIdReferences(string $name, string $value, array $map): string
     {
@@ -159,7 +159,7 @@ trait NamespacesSvgIds
      * Rewrite `url(#id)` anywhere in a value: fill, stroke, clip-path, mask,
      * filter, and the same forms inside a `style` value.
      *
-     * @param  array<string, string>  $map
+     * @param array<string, string> $map
      */
     private function rewriteUrlReferences(string $value, array $map): string
     {

@@ -8,9 +8,9 @@ use DOMDocument;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Simtabi\Laranail\Ichava\Enums\OptimizationLevel;
 use Simtabi\Laranail\Ichava\Services\Traits\ManagesSizes;
-use Simtabi\Laranail\Ichava\Services\Traits\NamespacesSvgIds;
 use Simtabi\Laranail\Ichava\Services\Traits\OptimizesSvg;
 use Simtabi\Laranail\Ichava\Services\Traits\SanitizesSvg;
+use Simtabi\Laranail\Ichava\Services\Traits\NamespacesSvgIds;
 use Simtabi\Laranail\Ichava\Services\Traits\ManagesAttributes;
 
 /**
