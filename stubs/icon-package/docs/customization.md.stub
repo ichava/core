@@ -45,7 +45,7 @@ The bundled SVGs are <!-- e.g. 24×24 with viewBox="0 0 24 24" -->. Use any widt
 
 ## Default class globally
 
-In `config/ichava.php`:
+In `config/ichava/core.php`:
 
 ```php
 'components' => [

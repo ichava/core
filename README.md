@@ -36,7 +36,7 @@ composer require ichava/core
 Publish the config and run migrations:
 
 ```bash
-php artisan vendor:publish --tag=ichava-config
+php artisan vendor:publish --tag=ichava::core-config
 php artisan migrate
 ```
 
