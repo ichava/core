@@ -35,7 +35,7 @@ them.
 ### Security
 
 - **SVG served through the model is sanitised.** The `svg_content` accessor was a bare
-  `File::get()`, so whatever a pack shipped reached consumers verbatim — including the
+  `File::get()`, so whatever a pack shipped reached consumers verbatim: including the
   `foreignObject`, `script` and `image` elements present in the shipped packs. The JSON path
   mattered most: `IconBrowserService` places the string into an API payload where no response
   header helps and the client injects it into the DOM. Sanitisation now happens at the accessor,
@@ -54,7 +54,7 @@ them.
 - **The package config now loads at the key the source reads.** The file was `config/ichava.php`
   while the package short name is `core`, so it merged at `ichava.core.ichava.*` while every read
   site used `config('ichava.*')`. All 68 returned `null` and fell through to hardcoded defaults,
-  which left the entire shipped configuration inert — cache TTLs, `database.batch_size`, queue,
+  which left the entire shipped configuration inert: cache TTLs, `database.batch_size`, queue,
   logging, optimization, `custom-icons.sets`, `prefix`, the whole `security` block and every
   `ICHAVA_*` environment variable. The file is now `config/core.php` and the key is `ichava.core`.
 - **Allow-lists are matched case-insensitively.** They are authored in SVG's own casing, and node
