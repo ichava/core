@@ -1,0 +1,31 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "{{packageName}}",
+        "title": "{{studlyName}} Icons",
+        "description": "Beautiful {{studlyName}} icons for Laravel applications",
+        "keywords": ["icons", "svg", "{{kebabName}}", "laravel"],
+        "version": "1.0.0",
+        "type": "{{iconSetType}}",
+        "license": "MIT"
+    },
+    "metadata": {
+        "authors": [
+            {
+                "name": "{{vendor}}",
+                "email": "{{email}}",
+                "role": "Developer",
+                "url": "https://github.com/{{vendorKebab}}"
+            }
+        ],
+        "homepage": "https://github.com/{{packageName}}",
+        "repository": "https://github.com/{{packageName}}",
+        "data": {
+            "variants": {{variantsJson}},
+            "categories": {}
+        }
+    },
+    "config": {
+        "icon_prefix": "{{prefix}}"
+    }
+}

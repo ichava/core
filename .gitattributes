@@ -1,0 +1,25 @@
+# Force LF line endings for shell scripts so Windows clones don't break
+# the shebang and CR-aware shell builtins.
+*.sh    text eol=lf
+*.bash  text eol=lf
+
+# Treat the JSON config files as text (no normalisation surprises).
+*.json  text
+*.yml   text
+*.yaml  text
+
+# SVG icons are binary-stable, no eol normalisation.
+*.svg   -text
+
+# Files excluded from `composer require` distribution archives — these
+# are useful for development but pure noise in a consumer's vendor/.
+/.editorconfig          export-ignore
+/.gitattributes         export-ignore
+/.gitignore             export-ignore
+/.github                export-ignore
+/CONTRIBUTING.md        export-ignore
+/phpunit.xml            export-ignore
+/phpunit.xml.dist       export-ignore
+/tests                  export-ignore
+/docs                   export-ignore
+/.dev                   export-ignore

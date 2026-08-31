@@ -1,0 +1,70 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        php: [8.4, 8.5]
+        laravel: [13.*]
+        stability: [prefer-stable]
+        include:
+          - laravel: 13.*
+            testbench: ^11.0
+
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: xdebug
+
+      - name: Setup problem matchers
+        run: |
+          echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+          echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: List Installed Dependencies
+        run: composer show -D
+
+      - name: Execute tests
+        # Coverage floor reflects current reality (~20%) with a buffer
+        # so test additions/removals don't flap the gate. Ratchet target
+        # is 80%; bump --min by +5 percentage points whenever the suite
+        # stably reports above that bound for two consecutive runs.
+        # NEVER lower the floor without a release note. See CONTRIBUTING.md
+        # "Coverage ratchet" section.
+        # `--coverage-clover` produces the xml file codecov-action consumes.
+        run: vendor/bin/pest --coverage --min=15 --coverage-clover=coverage.xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v7
+        if: matrix.php == '8.4' && matrix.laravel == '13.*'
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          # Don't fail the whole pipeline on a codecov upload glitch --
+          # the gate is the `--min=` flag above, not the upload step.
+          fail_ci_if_error: false
+

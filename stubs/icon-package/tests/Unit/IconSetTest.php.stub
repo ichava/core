@@ -1,0 +1,73 @@
+<?php
+
+declare(strict_types=1);
+
+use {{namespace}}\Constants\IconsConstants;
+use {{namespace}}\View\Components\IconComponent;
+
+describe('{{studlyName}} Icons Constants', function () {
+    it('returns correct vendor package name', function () {
+        expect(IconsConstants::getVendorPackage())
+            ->toBe('{{packageName}}');
+    });
+
+    it('returns correct vendor name', function () {
+        expect(IconsConstants::getVendorName())
+            ->toBe('{{vendorKebab}}');
+    });
+
+    it('returns correct package name', function () {
+        expect(IconsConstants::getPackageName())
+            ->toBe('{{kebabName}}-icons');
+    });
+
+    it('returns correct prefix', function () {
+        expect(IconsConstants::getPrefix())
+            ->toBe('{{prefix}}');
+    });
+
+    it('returns default class with prefix', function () {
+        expect(IconsConstants::getDefaultClass())
+            ->toBe('{{prefix}}-icon');
+    });
+
+    it('returns config path that exists', function () {
+        $reflection = new ReflectionClass(IconsConstants::class);
+        $method = $reflection->getMethod('getConfigPath');
+        $method->setAccessible(true);
+
+        $configPath = $method->invoke(null);
+
+        expect(is_dir($configPath))->toBeTrue();
+        expect(file_exists($configPath . '/config.json'))->toBeTrue();
+    });
+});
+
+describe('{{studlyName}} Icon Component', function () {
+    it('can be instantiated', function () {
+        $component = new IconComponent(name: 'home');
+        expect($component)->toBeInstanceOf(IconComponent::class);
+    });
+
+    it('returns correct icon set name', function () {
+        $component = new IconComponent(name: 'home');
+
+        $reflection = new ReflectionClass($component);
+        $method = $reflection->getMethod('getIconSet');
+        $method->setAccessible(true);
+
+        expect($method->invoke($component))
+            ->toBe(IconsConstants::getPackageName());
+    });
+
+    it('returns correct vendor package', function () {
+        $component = new IconComponent(name: 'home');
+
+        $reflection = new ReflectionClass($component);
+        $method = $reflection->getMethod('getVendorPackage');
+        $method->setAccessible(true);
+
+        expect($method->invoke($component))
+            ->toBe(IconsConstants::getVendorPackage());
+    });
+});

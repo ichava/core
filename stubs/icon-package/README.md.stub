@@ -1,0 +1,253 @@
+# {{studlyName}} Icons for Laravel
+
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/{{packageName}}.svg?style=flat-square)](https://packagist.org/packages/{{packageName}})
+[![Total Downloads](https://img.shields.io/packagist/dt/{{packageName}}.svg?style=flat-square)](https://packagist.org/packages/{{packageName}})
+[![License](https://img.shields.io/packagist/l/{{packageName}}.svg?style=flat-square)](LICENSE.md)
+
+Beautiful {{studlyName}} icons for Laravel applications via the [Ichava](https://github.com/ichava/ichava) icon ecosystem.
+
+## Requirements
+
+- PHP 8.3 or higher
+- Laravel 10, 12, or 13+
+- [ichava/ichava](https://github.com/ichava/ichava) ^1.0
+
+## Installation
+
+Install the package via Composer:
+
+```bash
+composer require {{packageName}}
+```
+
+The package will auto-register its service provider.
+
+### Publish Configuration (Optional)
+
+```bash
+php artisan vendor:publish --tag={{kebabName}}-icons-config
+```
+
+### Seed Icons to Database (Optional)
+
+If you want to use the icon browser or search functionality:
+
+```bash
+php artisan ichava:database seed --package={{packageName}}
+```
+
+## Usage
+
+### Package-Specific Blade Component
+
+The simplest way to use icons in your Blade templates:
+
+```blade
+{{-- Basic usage --}}
+<x-{{kebabName}}-icons-icon name="home" />
+
+{{-- With Tailwind classes --}}
+<x-{{kebabName}}-icons-icon name="user" class="w-6 h-6 text-blue-500" />
+
+{{-- With custom attributes --}}
+<x-{{kebabName}}-icons-icon name="settings" class="w-8 h-8" id="settings-icon" data-tooltip="Settings" />
+
+{{-- Icon in a category/variant folder --}}
+<x-{{kebabName}}-icons-icon name="category/icon-name" />
+```
+
+### Generic Ichava Blade Component
+
+Use the generic Ichava component with the full icon path:
+
+```blade
+{{-- Using slash notation --}}
+<x-simtabi-ichava::icon name="{{packageName}}::home" class="w-6 h-6" />
+
+{{-- Using dot notation --}}
+<x-simtabi-ichava::icon name="{{packageName}}::category.icon-name" class="w-6 h-6" />
+```
+
+### Ichava Helper Function
+
+Use the global `ichava()` helper for more flexibility:
+
+```blade
+{{-- Basic usage --}}
+{!! ichava('{{packageName}}::home') !!}
+
+{{-- With attributes array --}}
+{!! ichava('{{packageName}}::user', ['class' => 'w-6 h-6 text-blue-500']) !!}
+
+{{-- Using dot notation for path --}}
+{!! ichava('{{packageName}}::folder.subfolder.icon-name') !!}
+```
+
+### Fluent API
+
+For programmatic icon rendering with method chaining:
+
+```php
+use function Simtabi\Laranail\Ichava\ichava;
+
+// Basic fluent usage
+ichava('{{packageName}}::home')
+    ->class('w-6 h-6 text-blue-500')
+    ->render();
+
+// With multiple attributes
+ichava('{{packageName}}::user')
+    ->class('w-8 h-8')
+    ->id('user-icon')
+    ->attr('data-tooltip', 'User Profile')
+    ->render();
+
+// Get SVG content without rendering
+$svgContent = ichava('{{packageName}}::home')->toSvg();
+```
+
+### In Controllers/Services
+
+```php
+use Simtabi\Laranail\Ichava\Facades\Ichava;
+
+class MyController extends Controller
+{
+    public function index()
+    {
+        // Get icon as SVG string
+        $icon = Ichava::render('{{packageName}}::home', [
+            'class' => 'w-6 h-6',
+        ]);
+
+        // Check if icon exists
+        $exists = Ichava::exists('{{packageName}}::home');
+
+        return view('welcome', compact('icon'));
+    }
+}
+```
+
+## Icon Path Format
+
+Icons follow the Ichava path convention:
+
+```
+vendor/package::category/icon-name
+vendor/package::category.icon-name
+```
+
+**Examples:**
+
+```blade
+{{-- Root level icon --}}
+{!! ichava('{{packageName}}::home') !!}
+
+{{-- Icon in subfolder (using slash) --}}
+{!! ichava('{{packageName}}::social/facebook') !!}
+
+{{-- Icon in subfolder (using dot notation) --}}
+{!! ichava('{{packageName}}::social.twitter') !!}
+```
+
+## Configuration
+
+The package configuration is located at `config/{{kebabName}}-icons.php`:
+
+```php
+return [
+    // Enable/disable the icon set
+    'enabled' => env('{{snakeNameUpper}}_ICONS_ENABLED', true),
+
+    // Custom path to icons (optional)
+    'path' => env('{{snakeNameUpper}}_ICONS_PATH', ...),
+
+    // Enable icon caching for better performance
+    'cache' => [
+        'enabled' => true,
+        'prefix' => '{{prefix}}',
+    ],
+];
+```
+
+### Environment Variables
+
+```env
+# Enable/disable the icon set
+{{snakeNameUpper}}_ICONS_ENABLED=true
+
+# Custom path to icons (optional)
+{{snakeNameUpper}}_ICONS_PATH=/path/to/icons
+```
+
+## Available Icons
+
+Browse all available icons using the Ichava browser:
+
+```bash
+# Start the icon browser
+php artisan serve
+# Visit: http://localhost:8000/ichava/browser
+```
+
+Or list icons via command line:
+
+```bash
+php artisan ichava:info icons --package={{packageName}}
+```
+
+## Auto-Update Command
+
+Update icons from the latest source:
+
+```bash
+php artisan ichava:update-{{kebabName}}-icons
+
+# With custom source
+php artisan ichava:update-{{kebabName}}-icons --source=/path/to/icons
+
+# Force update without confirmation
+php artisan ichava:update-{{kebabName}}-icons --force
+```
+
+## Adding Your Own Icons
+
+1. Place your SVG files in `resources/assets/svg/files/`
+2. For multi-variant icons, organize by variant: `files/regular/`, `files/solid/`, etc.
+3. Update `resources/assets/svg/config.json` with metadata
+4. Clear cache: `php artisan ichava:cache clear`
+
+### Icon Guidelines
+
+- Use valid SVG format
+- Remove unnecessary attributes (width, height are added dynamically)
+- Use `currentColor` for fill/stroke to enable color customization
+- Keep file names lowercase with hyphens (e.g., `arrow-left.svg`)
+
+## Testing
+
+```bash
+composer test
+```
+
+## Changelog
+
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+
+## Contributing
+
+Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
+
+## Security Vulnerabilities
+
+If you discover a security vulnerability, please send an e-mail to {{email}}.
+
+## Credits
+
+- [{{vendor}}](https://github.com/{{vendorKebab}})
+- [Ichava Icon System](https://github.com/simtabi/ichava)
+- [All Contributors](../../contributors)
+
+## License
+
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.

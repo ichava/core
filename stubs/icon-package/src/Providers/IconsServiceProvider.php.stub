@@ -1,0 +1,57 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}}\Providers;
+
+use Simtabi\Laranail\Ichava\Support\ServiceProvider;
+use Simtabi\Laranail\PackageTools\Exceptions\InvalidPackage;
+use Simtabi\Laranail\PackageTools\Exceptions\InvalidPath;
+use Simtabi\Laranail\PackageTools\Package;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use {{namespace}}\Constants\IconsConstants;
+use {{namespace}}\View\Components\IconComponent;
+use {{namespace}}\Commands\UpdateIconsCommand;
+
+/**
+ * {{studlyName}} Icons Service Provider
+ *
+ * Registers the {{studlyName}} icon set with the Ichava ecosystem.
+ * Icons are automatically discovered and made available via:
+ * - Blade component: <x-{{kebabName}}-icons-icon name="icon-name" />
+ * - Helper function: ichava('{{packageName}}::icon-name')
+ * - Update command: php artisan ichava:update-{{kebabName}}-icons
+ *
+ * @package {{namespace}}
+ */
+final class IconsServiceProvider extends ServiceProvider
+{
+    /**
+     * @throws InvalidPath
+     * @throws InvalidPackage
+     */
+    public function configurePackage(Package $package): void
+    {
+        $package
+            ->setName(IconsConstants::getVendorPackage())
+            ->setPathFrom(source: $this, levelsUp: 2)
+            ->hasConfigFile('{{kebabName}}-icons')
+            ->hasCommand(UpdateIconsCommand::class);
+    }
+
+    /**
+     * Boot the package - register Blade component and icons
+     */
+    public function bootingPackage(): void
+    {
+        // Register package-specific Blade component: <x-{{kebabName}}-icons-icon name="..." />
+        $this->loadBladeComponent(componentClass: IconComponent::class, packageName: '{{kebabName}}-icons');
+
+        // Register icons with the Ichava registry
+        $registry = $this->app->make(IconRegistry::class);
+        $registry->fromDirectory(
+            $this->package->basePath('resources/assets/svg'),
+            self::class
+        );
+    }
+}

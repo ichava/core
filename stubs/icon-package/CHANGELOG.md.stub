@@ -1,0 +1,12 @@
+# Changelog
+
+All notable changes to `{{packageName}}` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
+
+## [1.0.0] — {{date}}
+
+### Added
+
+- Initial release.
+- {{studlyName}} icon set integrated with the Ichava ecosystem.
+- `<x-{{kebabName}}-icons-icon>` Blade component, plus support for the generic `<x-ichava::icon>` form.
+- `ichava:update-{{kebabName}}-icons` Artisan command for refreshing the collection from source.

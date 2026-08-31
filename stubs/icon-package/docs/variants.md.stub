@@ -1,0 +1,49 @@
+[← {{humanName}} docs](README.md)
+
+# Variants
+
+*Reference.*
+
+{{humanName}} ships the following variants. Reference any icon as `{{packageName}}::<variant>/<icon-name>` (or just `<icon-name>` for the default variant).
+
+| Variant | Path prefix | Style |
+|---|---|---|
+| `default` | `<name>` (no prefix needed) | <!-- describe the default variant --> |
+| <!-- add rows for additional variants --> | | |
+
+## Examples
+
+```blade
+{{-- Default variant --}}
+<x-ichava::icon name="{{packageName}}::home" class="w-6 h-6" />
+
+{{-- Explicit variant path --}}
+<x-ichava::icon name="{{packageName}}::default/home" class="w-6 h-6" />
+```
+
+Fluent helper:
+
+```blade
+{{ ichava('{{packageName}}::home')->color('#4338ca')->class('w-6 h-6') }}
+```
+
+## Variant enum (PHP)
+
+```php
+use {{namespace}}\Enums\Variant;
+
+Variant::DEFAULT->value;            // 'default'
+Variant::DEFAULT->isDefault();      // true
+Variant::default();                 // Variant::DEFAULT
+```
+
+The enum implements `IconSetVariantInterface` from core, so it works wherever core's registry expects a variant.
+
+## When to use which
+
+<!-- Brief guidance: which variant fits which use case. -->
+
+## See also
+
+- [Customisation](customization.md)
+- [Icon path format](https://github.com/ichava/documentation/blob/main/core/icon-path-format.md)
