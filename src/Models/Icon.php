@@ -733,6 +733,22 @@ final class Icon extends Model
                              */
                             $raw = $svg->namespaceIds($raw, $this->path);
 
+                            /*
+                             * Hand sizing back to the component. An icon shipping
+                             * both a viewBox and hard width/height ignores the size
+                             * it is asked for; 6,146 tabler, 11,646 bundled and 239
+                             * metronic icons ship that pair. An icon with neither is
+                             * reported rather than dropped -- it still renders, it
+                             * just has no intrinsic size to scale against.
+                             */
+                            $raw = $svg->normaliseSizing($raw, function (string $reason): void {
+                                app(AuditLogger::class)->warning('svg.unusable_sizing', [
+                                    'path'    => $this->path,
+                                    'package' => $this->package,
+                                    'reason'  => $reason,
+                                ]);
+                            });
+
                             return $svg->process($raw, [], false);
                         } catch (Throwable $e) {
                             /*
