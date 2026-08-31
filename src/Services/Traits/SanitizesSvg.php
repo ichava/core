@@ -244,30 +244,20 @@ trait SanitizesSvg
      */
     private function loadSecureDom(string $content): DOMDocument
     {
-        $useErrors = libxml_use_internal_errors(true);
+        $dom = $this->parseSvgDocument($content);
 
-        try {
-            $dom = new DOMDocument('1.0', 'UTF-8');
-            $dom->strictErrorChecking = false;
-            $dom->validateOnParse = false;
-            $dom->resolveExternals = false;
-            $dom->substituteEntities = false;
-
-            $loaded = $dom->loadXML($content, LIBXML_NONET);
-
-            if (! $loaded || $dom->documentElement === null) {
-                throw IchavaException::invalidSvgContent('Invalid SVG XML structure');
-            }
-
-            if ($dom->documentElement->nodeName !== 'svg') {
-                throw IchavaException::invalidSvgContent('Root element must be <svg>');
-            }
-
-            return $dom;
-        } finally {
-            libxml_use_internal_errors($useErrors);
-            libxml_clear_errors();
+        if (! $dom instanceof DOMDocument || $dom->documentElement === null) {
+            throw IchavaException::invalidSvgContent('Invalid SVG XML structure');
         }
+
+        // Compared case-insensitively: an author writing <SVG> means svg, and
+        // the element allow-list has matched case-insensitively since V42.
+        // Rejecting only here would be an inconsistency, not a policy.
+        if (mb_strtolower($dom->documentElement->nodeName) !== 'svg') {
+            throw IchavaException::invalidSvgContent('Root element must be <svg>');
+        }
+
+        return $dom;
     }
 
     /**

@@ -187,8 +187,19 @@ describe('SVG Sanitizer', function () {
             ->toThrow(IchavaException::class, 'Root element must be <svg>');
     });
 
-    it('throws exception for invalid XML', function () {
-        expect(fn () => $this->sanitizer->sanitize('<svg><unclosed'))
+    it('recovers a truncated document rather than losing the icon', function () {
+        // This asserted that '<svg><unclosed' threw. It no longer does: an icon
+        // author is not a compiler, and a truncated or unclosed tag used to
+        // mean a blank icon, because the accessor turns a rejection into an
+        // empty string. Syntax is now recovered; content is still filtered, so
+        // the unknown element does not survive the allow-list.
+        $result = $this->sanitizer->sanitize('<svg><unclosed');
+
+        expect($result)->toContain('<svg')->not->toContain('unclosed');
+    });
+
+    it('still throws when there is no svg to recover', function () {
+        expect(fn () => $this->sanitizer->sanitize('<html><body>nope</body></html>'))
             ->toThrow(IchavaException::class);
     });
 

@@ -7,6 +7,7 @@ namespace Simtabi\Laranail\Ichava\Services;
 use DOMDocument;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Simtabi\Laranail\Ichava\Enums\OptimizationLevel;
+use Simtabi\Laranail\Ichava\Services\Traits\ParsesSvg;
 use Simtabi\Laranail\Ichava\Services\Traits\ManagesSizes;
 use Simtabi\Laranail\Ichava\Services\Traits\OptimizesSvg;
 use Simtabi\Laranail\Ichava\Services\Traits\SanitizesSvg;
@@ -37,6 +38,7 @@ final class SvgProcessingService
     use NamespacesSvgIds;
     use NormalisesSvgSizing;
     use OptimizesSvg;
+    use ParsesSvg;
     use SanitizesSvg;
 
     public function __construct(

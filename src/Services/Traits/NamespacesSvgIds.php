@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
 use DOMXPath;
-use Throwable;
 use DOMElement;
 use DOMDocument;
 
@@ -49,7 +48,7 @@ trait NamespacesSvgIds
      */
     public function namespaceIds(string $content, string $seed): string
     {
-        $dom = $this->loadDomForNamespacing($content);
+        $dom = $this->parseSvgDocument($content);
 
         if (! $dom instanceof DOMDocument || ! $dom->documentElement instanceof DOMElement) {
             return $content;
@@ -178,33 +177,5 @@ trait NamespacesSvgIds
             },
             $value,
         );
-    }
-
-    /**
-     * Parse without touching the network or resolving entities.
-     *
-     * Returns null on unparseable input: this pass is an improvement, not a
-     * gate, and the sanitiser downstream is what refuses bad content.
-     */
-    private function loadDomForNamespacing(string $content): ?DOMDocument
-    {
-        $content = preg_replace('/^<\?xml.*?\?>\s*/i', '', $content) ?? $content;
-
-        $useErrors = libxml_use_internal_errors(true);
-
-        try {
-            $dom = new DOMDocument('1.0', 'UTF-8');
-            $dom->strictErrorChecking = false;
-            $dom->validateOnParse = false;
-            $dom->resolveExternals = false;
-            $dom->substituteEntities = false;
-
-            return $dom->loadXML($content, LIBXML_NONET) ? $dom : null;
-        } catch (Throwable) {
-            return null;
-        } finally {
-            libxml_clear_errors();
-            libxml_use_internal_errors($useErrors);
-        }
     }
 }

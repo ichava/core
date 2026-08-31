@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
 use Closure;
-use Throwable;
 use DOMElement;
 use DOMDocument;
 
@@ -40,7 +39,7 @@ trait NormalisesSvgSizing
      */
     public function normaliseSizing(string $content, ?Closure $onUnusable = null): string
     {
-        $dom = $this->loadDomForSizing($content);
+        $dom = $this->parseSvgDocument($content);
 
         if (! $dom instanceof DOMDocument || ! $dom->documentElement instanceof DOMElement) {
             return $content;
@@ -133,32 +132,6 @@ trait NormalisesSvgSizing
             if (mb_strtolower($attribute->nodeName) === $name) {
                 $root->removeAttribute($attribute->nodeName);
             }
-        }
-    }
-
-    /**
-     * Parse without touching the network or resolving entities. Returns null on
-     * unparseable input: this pass improves an icon, it does not gate one.
-     */
-    private function loadDomForSizing(string $content): ?DOMDocument
-    {
-        $content = preg_replace('/^<\?xml.*?\?>\s*/i', '', $content) ?? $content;
-
-        $useErrors = libxml_use_internal_errors(true);
-
-        try {
-            $dom = new DOMDocument('1.0', 'UTF-8');
-            $dom->strictErrorChecking = false;
-            $dom->validateOnParse = false;
-            $dom->resolveExternals = false;
-            $dom->substituteEntities = false;
-
-            return $dom->loadXML($content, LIBXML_NONET) ? $dom : null;
-        } catch (Throwable) {
-            return null;
-        } finally {
-            libxml_clear_errors();
-            libxml_use_internal_errors($useErrors);
         }
     }
 }
