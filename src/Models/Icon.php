@@ -716,7 +716,24 @@ final class Icon extends Model
                         $raw = File::get($this->absolute_path);
 
                         try {
-                            return app(SvgProcessingService::class)->process($raw, [], false);
+                            $svg = app(SvgProcessingService::class);
+
+                            /*
+                             * Namespace ids before sanitising, and inside the cache,
+                             * so it costs one pass per icon per cache lifetime.
+                             *
+                             * SVG ids are page-scoped in practice. 2,157 files in the
+                             * corpus share `_Transparent_Rectangle_` and 261 share
+                             * `Layer_1`; render two of them together and the second
+                             * icon's `url(#Layer_1)` resolves to the first one's
+                             * definition, silently. The browser renders 60+ at once.
+                             * The prefix is derived from the path, not the content, so
+                             * it survives an upstream refresh and stays deterministic
+                             * for the content-addressed cache (CR1).
+                             */
+                            $raw = $svg->namespaceIds($raw, $this->path);
+
+                            return $svg->process($raw, [], false);
                         } catch (Throwable $e) {
                             /*
                              * A file the sanitiser rejects is not served raw as a
