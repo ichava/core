@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Support;
 
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
 /**
@@ -23,7 +23,7 @@ class Helpers
 {
     public const ICHAVA_PGSQL_LANGUAGES = [
         'english' => 'english',
-        'simple'  => 'simple',
+        'simple' => 'simple',
     ];
 
     public const ICHAVA_PGSQL_DEFAULT_LANGUAGE = self::ICHAVA_PGSQL_LANGUAGES['simple'];
@@ -42,16 +42,15 @@ class Helpers
      * Centralized method for loading package configuration files.
      * Uses Laravel File facade and Arr helper for consistency.
      *
-     * @param string $directoryPath Path to directory containing config.json
-     * @param bool $throwOnMissing Whether to throw exception if file doesn't exist
-     *
+     * @param  string  $directoryPath  Path to directory containing config.json
+     * @param  bool  $throwOnMissing  Whether to throw exception if file doesn't exist
      * @return array<string, mixed> Parsed configuration array
      *
      * @throws IchavaException If file doesn't exist or JSON is invalid
      */
     public static function loadConfigJson(string $directoryPath, bool $throwOnMissing = true): array
     {
-        $configPath = Str::finish($directoryPath, '/') . 'config.json';
+        $configPath = Str::finish($directoryPath, '/').'config.json';
 
         if (! File::exists($configPath)) {
             if ($throwOnMissing) {
@@ -66,7 +65,7 @@ class Helpers
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw IchavaException::invalidConfig(
-                'JSON parse error: ' . json_last_error_msg(),
+                'JSON parse error: '.json_last_error_msg(),
                 $configPath,
             );
         }
@@ -84,8 +83,7 @@ class Helpers
     /**
      * Get vendor name from package name
      *
-     * @param string $packageName Full package name (vendor/package)
-     *
+     * @param  string  $packageName  Full package name (vendor/package)
      * @return string Vendor name
      */
     public static function getVendorFromPackage(string $packageName): string
@@ -96,8 +94,7 @@ class Helpers
     /**
      * Get package name from full package identifier
      *
-     * @param string $packageName Full package name (vendor/package)
-     *
+     * @param  string  $packageName  Full package name (vendor/package)
      * @return string Package name without vendor
      */
     public static function getPackageFromIdentifier(string $packageName): string
@@ -108,8 +105,7 @@ class Helpers
     /**
      * Sanitize path by removing leading/trailing slashes
      *
-     * @param string $path Path to sanitize
-     *
+     * @param  string  $path  Path to sanitize
      * @return string Sanitized path
      */
     public static function sanitizePath(string $path): string
@@ -167,6 +163,6 @@ class Helpers
 
         return $filename === ''
             ? $dir
-            : $dir . DIRECTORY_SEPARATOR . ltrim($filename, '/\\');
+            : $dir.DIRECTORY_SEPARATOR.ltrim($filename, '/\\');
     }
 }

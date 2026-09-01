@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services;
 
 use Exception;
-use RuntimeException;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use RuntimeException;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
 
 /**
@@ -117,9 +117,9 @@ class CacheOperationsService
         ));
 
         $result = [
-            'categories'    => count($categories),
-            'packages'      => count($packages),
-            'total_icons'   => $stats['total_icons'] ?? 0,
+            'categories' => count($categories),
+            'packages' => count($packages),
+            'total_icons' => $stats['total_icons'] ?? 0,
             'build_time_ms' => round($duration, 2),
         ];
 
@@ -137,7 +137,7 @@ class CacheOperationsService
         $rebuildStats = $this->rebuild();
 
         return [
-            'cleared_keys'  => count($clearedKeys),
+            'cleared_keys' => count($clearedKeys),
             'rebuild_stats' => $rebuildStats,
         ];
     }
@@ -178,10 +178,10 @@ class CacheOperationsService
         $duration = (microtime(true) - $startTime) * 1000;
 
         $result = [
-            'path'          => $manifestPath,
-            'packages'      => $stats['total_sets'] ?? 0,
-            'total_icons'   => $stats['total_icons'] ?? 0,
-            'file_size'     => $manifest->getSize(),
+            'path' => $manifestPath,
+            'packages' => $stats['total_sets'] ?? 0,
+            'total_icons' => $stats['total_icons'] ?? 0,
+            'file_size' => $manifest->getSize(),
             'build_time_ms' => round($duration, 2),
         ];
 
@@ -220,10 +220,10 @@ class CacheOperationsService
     public function getStatistics(): array
     {
         return [
-            'driver'          => config('cache.default'),
-            'stats'           => $this->cacheService->getStats(),
+            'driver' => config('cache.default'),
+            'stats' => $this->cacheService->getStats(),
             'manifest_exists' => $this->manifestExists(),
-            'manifest_stale'  => $this->manifestIsStale(),
+            'manifest_stale' => $this->manifestIsStale(),
         ];
     }
 

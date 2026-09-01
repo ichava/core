@@ -46,48 +46,48 @@ describe('IchavaConstants', function () {
 
 describe('JsonConfigConstants accessors', function () {
     beforeEach(function () {
-        $this->tmpDir = sys_get_temp_dir() . '/ichava-jcc-' . bin2hex(random_bytes(4));
+        $this->tmpDir = sys_get_temp_dir().'/ichava-jcc-'.bin2hex(random_bytes(4));
         mkdir($this->tmpDir);
-        file_put_contents($this->tmpDir . '/config.json', json_encode([
+        file_put_contents($this->tmpDir.'/config.json', json_encode([
             'package' => [
-                'name'        => 'myorg/test-icons',
-                'title'       => 'Test Icons',
+                'name' => 'myorg/test-icons',
+                'title' => 'Test Icons',
                 'description' => 'Test fixture',
-                'version'     => '1.2.3',
-                'license'     => 'MIT',
-                'type'        => 'icon-set',
+                'version' => '1.2.3',
+                'license' => 'MIT',
+                'type' => 'icon-set',
             ],
             'config' => [
                 'icon_prefix' => 'tic',
-                'defaults'    => [
-                    'class'        => 'tic-icon',
+                'defaults' => [
+                    'class' => 'tic-icon',
                     'stroke_width' => 1,
-                    'attributes'   => ['fill' => 'none'],
+                    'attributes' => ['fill' => 'none'],
                 ],
             ],
             'metadata' => [
-                'homepage'   => 'https://example.com',
+                'homepage' => 'https://example.com',
                 'repository' => 'https://github.com/myorg/test-icons',
-                'data'       => [
+                'data' => [
                     'variants' => [
                         'outline' => ['name' => 'Outline', 'description' => 'Outline variant', 'default' => true],
-                        'filled'  => ['name' => 'Filled', 'description' => 'Solid'],
+                        'filled' => ['name' => 'Filled', 'description' => 'Solid'],
                     ],
                     'categories' => [
                         'general' => ['name' => 'General', 'default' => true],
-                        'arrows'  => ['name' => 'Arrows'],
+                        'arrows' => ['name' => 'Arrows'],
                     ],
                 ],
             ],
             'upstream' => [
-                'source'            => ['type' => 'npm', 'package' => '@myorg/test-icons'],
-                'current_version'   => '1.2.3',
+                'source' => ['type' => 'npm', 'package' => '@myorg/test-icons'],
+                'current_version' => '1.2.3',
                 'version_check_url' => 'https://registry.npmjs.org/@myorg/test-icons/latest',
-                'cdn'               => [
+                'cdn' => [
                     'jsdelivr' => 'https://cdn.jsdelivr.net/npm/@myorg/test-icons@{version}/{name}.svg',
                 ],
                 'update_command' => [
-                    'type'    => 'npm',
+                    'type' => 'npm',
                     'package' => '@myorg/test-icons',
                 ],
                 'additional_sources' => [
@@ -98,7 +98,7 @@ describe('JsonConfigConstants accessors', function () {
     });
 
     afterEach(function () {
-        @unlink($this->tmpDir . '/config.json');
+        @unlink($this->tmpDir.'/config.json');
         @rmdir($this->tmpDir);
         // Anonymous classes from previous tests stay loaded; clear the
         // base class's per-class cache so each test sees a clean slate.

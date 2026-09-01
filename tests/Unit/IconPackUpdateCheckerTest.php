@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
-use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Illuminate\Support\Facades\Http;
 use Simtabi\Laranail\Ichava\Constants\JsonConfigConstants;
 use Simtabi\Laranail\Ichava\Events\IconPackUpdateAvailable;
 use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
 
 /**
  * The checker is the load-bearing brain of the upstream-tracking
@@ -44,7 +44,7 @@ it('detects a stale github pack and dispatches the event', function () {
         'api.github.com/*' => Http::response([
             'tag_name' => 'v17.1.0',
             'html_url' => 'https://github.com/x/y/releases/tag/v17.1.0',
-            'body'     => 'new emojis',
+            'body' => 'new emojis',
         ], 200),
     ]);
 
@@ -129,7 +129,7 @@ it('synthesises a release URL from source.release_url_template for type=url', fu
 it('walks additional_sources and dispatches one event per stale tracker', function () {
     Http::fake([
         'registry.npmjs.org/*' => Http::response(['version' => '17.1.0'], 200),
-        'api.github.com/*'     => Http::response([
+        'api.github.com/*' => Http::response([
             'tag_name' => 'v15.4.0',
             'html_url' => 'https://github.com/hfg-gmuend/openmoji/releases/tag/v15.4.0',
         ], 200),
@@ -243,42 +243,42 @@ final class MultiSourceConstants extends _FakeUpstreamConstants {}
 
 beforeEach(function () {
     inject_constants_config(GithubUpToDateConstants::class, [
-        'package'  => ['name' => 'vendor/pack-a'],
+        'package' => ['name' => 'vendor/pack-a'],
         'upstream' => [
-            'source'            => ['type' => 'github', 'owner' => 'x', 'repo' => 'y'],
-            'current_version'   => '17.0.0',
+            'source' => ['type' => 'github', 'owner' => 'x', 'repo' => 'y'],
+            'current_version' => '17.0.0',
             'version_check_url' => 'https://api.github.com/repos/x/y/releases/latest',
         ],
     ]);
     inject_constants_config(GithubStaleConstants::class, [
-        'package'  => ['name' => 'vendor/pack-b'],
+        'package' => ['name' => 'vendor/pack-b'],
         'upstream' => [
-            'source'            => ['type' => 'github', 'owner' => 'x', 'repo' => 'y'],
-            'current_version'   => '17.0.0',
+            'source' => ['type' => 'github', 'owner' => 'x', 'repo' => 'y'],
+            'current_version' => '17.0.0',
             'version_check_url' => 'https://api.github.com/repos/x/y/releases/latest',
         ],
     ]);
     inject_constants_config(GithubTagConstants::class, [
-        'package'  => ['name' => 'vendor/pack-tag'],
+        'package' => ['name' => 'vendor/pack-tag'],
         'upstream' => [
-            'source'            => ['type' => 'github-tag', 'owner' => 'lipis', 'repo' => 'flag-icons'],
-            'current_version'   => '7.0.0',
+            'source' => ['type' => 'github-tag', 'owner' => 'lipis', 'repo' => 'flag-icons'],
+            'current_version' => '7.0.0',
             'version_check_url' => 'https://api.github.com/repos/lipis/flag-icons/tags?per_page=1',
         ],
     ]);
     inject_constants_config(NpmConstants::class, [
-        'package'  => ['name' => 'vendor/pack-npm'],
+        'package' => ['name' => 'vendor/pack-npm'],
         'upstream' => [
-            'source'            => ['type' => 'npm', 'package' => '@x/y'],
-            'current_version'   => '5.0.0',
+            'source' => ['type' => 'npm', 'package' => '@x/y'],
+            'current_version' => '5.0.0',
             'version_check_url' => 'https://registry.npmjs.org/@x/y/latest',
         ],
     ]);
     inject_constants_config(PackagistConstants::class, [
-        'package'  => ['name' => 'vendor/pack-cmps'],
+        'package' => ['name' => 'vendor/pack-cmps'],
         'upstream' => [
-            'source'            => ['type' => 'packagist', 'vendor' => 'foo', 'package' => 'bar'],
-            'current_version'   => '2.0.0',
+            'source' => ['type' => 'packagist', 'vendor' => 'foo', 'package' => 'bar'],
+            'current_version' => '2.0.0',
             'version_check_url' => 'https://repo.packagist.org/p2/foo/bar.json',
         ],
     ]);
@@ -287,30 +287,30 @@ beforeEach(function () {
         // No 'upstream' key at all.
     ]);
     inject_constants_config(UrlSourceConstants::class, [
-        'package'  => ['name' => 'vendor/pack-url'],
+        'package' => ['name' => 'vendor/pack-url'],
         'upstream' => [
             'source' => [
-                'type'                 => 'url',
-                'version_field'        => 'version',
+                'type' => 'url',
+                'version_field' => 'version',
                 'release_url_template' => 'https://example.com/releases/{version}',
             ],
-            'current_version'   => '1.0.0',
+            'current_version' => '1.0.0',
             'version_check_url' => 'https://example.com/latest.json',
         ],
     ]);
     inject_constants_config(MultiSourceConstants::class, [
-        'package'  => ['name' => 'vendor/pack-multi'],
+        'package' => ['name' => 'vendor/pack-multi'],
         'upstream' => [
-            'source'             => ['type' => 'npm', 'package' => '@twemoji/svg'],
-            'current_version'    => '17.0.0',
-            'version_check_url'  => 'https://registry.npmjs.org/@twemoji/svg/latest',
+            'source' => ['type' => 'npm', 'package' => '@twemoji/svg'],
+            'current_version' => '17.0.0',
+            'version_check_url' => 'https://registry.npmjs.org/@twemoji/svg/latest',
             'additional_sources' => [
                 [
-                    'name'              => 'openmoji',
-                    'type'              => 'github',
-                    'owner'             => 'hfg-gmuend',
-                    'repo'              => 'openmoji',
-                    'current_version'   => '15.0.0',
+                    'name' => 'openmoji',
+                    'type' => 'github',
+                    'owner' => 'hfg-gmuend',
+                    'repo' => 'openmoji',
+                    'current_version' => '15.0.0',
                     'version_check_url' => 'https://api.github.com/repos/hfg-gmuend/openmoji/releases/latest',
                 ],
             ],

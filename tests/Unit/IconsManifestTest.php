@@ -6,9 +6,9 @@ use Illuminate\Filesystem\Filesystem;
 use Simtabi\Laranail\Ichava\Services\IconsManifest;
 
 beforeEach(function () {
-    $this->dir = sys_get_temp_dir() . '/ichava-manifest-' . bin2hex(random_bytes(4));
+    $this->dir = sys_get_temp_dir().'/ichava-manifest-'.bin2hex(random_bytes(4));
     mkdir($this->dir);
-    $this->path = $this->dir . '/manifest.php';
+    $this->path = $this->dir.'/manifest.php';
     $this->manifest = new IconsManifest(new Filesystem, $this->path);
 });
 
@@ -32,11 +32,11 @@ describe('IconsManifest::exists / load / delete', function () {
     it('returns the file contents when present', function () {
         $payload = [
             '_stats' => ['total_icons' => 0, 'total_sets' => 0, 'built_at' => '2026-05-08T00:00:00+00:00', 'sets' => []],
-            'set-a'  => ['name' => 'set-a', 'icons' => []],
+            'set-a' => ['name' => 'set-a', 'icons' => []],
         ];
         file_put_contents(
             $this->path,
-            "<?php\n\nreturn " . var_export($payload, true) . ";\n",
+            "<?php\n\nreturn ".var_export($payload, true).";\n",
             LOCK_EX,
         );
         expect($this->manifest->exists())->toBeTrue();
@@ -72,21 +72,21 @@ describe('IconsManifest::getStats / getSet / hasSet / getIcon / hasIcon', functi
         $payload = [
             '_stats' => [
                 'total_icons' => 2,
-                'total_sets'  => 1,
-                'built_at'    => '2026-05-08T00:00:00+00:00',
-                'sets'        => ['set-a' => ['count' => 2]],
+                'total_sets' => 1,
+                'built_at' => '2026-05-08T00:00:00+00:00',
+                'sets' => ['set-a' => ['count' => 2]],
             ],
             'set-a' => [
-                'name'  => 'set-a',
+                'name' => 'set-a',
                 'icons' => [
-                    'star'          => ['name' => 'star', 'variant' => null, 'category' => null],
+                    'star' => ['name' => 'star', 'variant' => null, 'category' => null],
                     'arrow:outline' => ['name' => 'arrow', 'variant' => 'outline', 'category' => null],
                 ],
             ],
         ];
         file_put_contents(
             $this->path,
-            "<?php\nreturn " . var_export($payload, true) . ";\n",
+            "<?php\nreturn ".var_export($payload, true).";\n",
             LOCK_EX,
         );
     });

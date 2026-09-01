@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Facades;
 
-use Simtabi\Laranail\Ichava\Ichava;
 use Illuminate\Support\Facades\Facade;
+use Simtabi\Laranail\Ichava\Ichava;
 
 /**
  * IchavaFacade - Static Facade for the Ichava Ecosystem

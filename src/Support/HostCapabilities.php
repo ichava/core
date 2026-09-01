@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Support;
 
 use Exception;
-use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Sanctum\Sanctum;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 
 /**
@@ -54,11 +54,11 @@ final class HostCapabilities
         }
 
         $this->capabilities = [
-            'session'  => $this->detectSession(),
-            'auth'     => $this->detectAuth(),
-            'sanctum'  => $this->detectSanctum(),
+            'session' => $this->detectSession(),
+            'auth' => $this->detectAuth(),
+            'sanctum' => $this->detectSanctum(),
             'database' => $this->detectDatabase(),
-            'cache'    => $this->detectCache(),
+            'cache' => $this->detectCache(),
         ];
 
         $this->detected = true;
@@ -211,7 +211,7 @@ final class HostCapabilities
             }
 
             // Check if User provider exists
-            $provider = config('auth.guards.' . config('auth.defaults.guard') . '.provider');
+            $provider = config('auth.guards.'.config('auth.defaults.guard').'.provider');
             if (! $provider) {
                 return false;
             }

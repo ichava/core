@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
-use Simtabi\Laranail\Ichava\Support\Helpers;
+use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Support\Helpers;
 
 /**
  * ConfigurationService - Package Configuration Loader
@@ -138,7 +138,7 @@ final class ConfigurationService
 
     private function resolveConfigPath(string $directoryPath): string
     {
-        return Str::finish($directoryPath, DIRECTORY_SEPARATOR) . self::CONFIG_FILENAME;
+        return Str::finish($directoryPath, DIRECTORY_SEPARATOR).self::CONFIG_FILENAME;
     }
 
     /**
@@ -150,7 +150,7 @@ final class ConfigurationService
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw IchavaException::invalidConfig(
-                'JSON parse error: ' . json_last_error_msg(),
+                'JSON parse error: '.json_last_error_msg(),
                 $configPath,
             );
         }
@@ -170,6 +170,6 @@ final class ConfigurationService
      */
     private function getCacheKey(string $directoryPath): string
     {
-        return 'config:' . md5($directoryPath);
+        return 'config:'.md5($directoryPath);
     }
 }
