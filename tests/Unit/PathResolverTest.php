@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Simtabi\Laranail\Ichava\Support\PathResolver;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Support\PathResolver;
 
 beforeEach(function () {
     $this->resolver = new PathResolver;
@@ -134,7 +134,7 @@ describe('PathResolver::isAbsolute', function () {
 describe('PathResolver::join', function () {
     it('joins relative segments with the directory separator', function () {
         $result = $this->resolver->join('a', 'b', 'c');
-        expect($result)->toBe('a' . DIRECTORY_SEPARATOR . 'b' . DIRECTORY_SEPARATOR . 'c');
+        expect($result)->toBe('a'.DIRECTORY_SEPARATOR.'b'.DIRECTORY_SEPARATOR.'c');
     });
 
     it('preserves a leading slash on the first segment', function () {
@@ -144,7 +144,7 @@ describe('PathResolver::join', function () {
 
     it('strips trailing slashes from segments', function () {
         $result = $this->resolver->join('a/', '/b/', '/c');
-        expect($result)->toBe('a' . DIRECTORY_SEPARATOR . 'b' . DIRECTORY_SEPARATOR . 'c');
+        expect($result)->toBe('a'.DIRECTORY_SEPARATOR.'b'.DIRECTORY_SEPARATOR.'c');
     });
 
     it('returns empty string for no segments', function () {
@@ -153,7 +153,7 @@ describe('PathResolver::join', function () {
 
     it('skips empty segments', function () {
         $result = $this->resolver->join('a', '', 'b');
-        expect($result)->toBe('a' . DIRECTORY_SEPARATOR . 'b');
+        expect($result)->toBe('a'.DIRECTORY_SEPARATOR.'b');
     });
 });
 
@@ -166,7 +166,7 @@ describe('PathResolver::resolveRelativeTo', function () {
 
     it('joins relative paths to the base', function () {
         $result = $this->resolver->resolveRelativeTo('/base', 'sub/deeper');
-        expect($result)->toBe('/base' . DIRECTORY_SEPARATOR . 'sub' . DIRECTORY_SEPARATOR . 'deeper');
+        expect($result)->toBe('/base'.DIRECTORY_SEPARATOR.'sub'.DIRECTORY_SEPARATOR.'deeper');
     });
 });
 

@@ -36,9 +36,9 @@ describe('FtsLanguageHelper search-scope helpers', function () {
     it('reports configured scopes as enabled / disabled', function () {
         config([
             'ichava.core.database.search.scope' => [
-                'name'     => true,
+                'name' => true,
                 'category' => false,
-                'variant'  => true,
+                'variant' => true,
             ],
         ]);
         expect(FtsLanguageHelper::isScopeEnabled('name'))->toBeTrue();

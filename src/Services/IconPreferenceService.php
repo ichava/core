@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services;
 
 use DB;
-use Schema;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Session;
+use Schema;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Support\IchavaSessionManager;
 
@@ -69,9 +69,9 @@ final class IconPreferenceService
 
         // Log for audit trail
         $this->logger->debug('⚙️ Preference updated', [
-            'key'        => $key,
-            'tier'       => $this->sessionManager->getTier(),
-            'ip'         => request()->ip(),
+            'key' => $key,
+            'tier' => $this->sessionManager->getTier(),
+            'ip' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ]);
     }
@@ -88,7 +88,7 @@ final class IconPreferenceService
         $this->logger->info('⚙️ Preferences bulk updated', [
             'keys' => array_keys($data),
             'tier' => $this->sessionManager->getTier(),
-            'ip'   => request()->ip(),
+            'ip' => request()->ip(),
         ]);
 
         return $preferences;
@@ -105,7 +105,7 @@ final class IconPreferenceService
         // Log for audit trail
         $this->logger->info('🧹 Preferences cleared', [
             'tier' => $this->sessionManager->getTier(),
-            'ip'   => request()->ip(),
+            'ip' => request()->ip(),
         ]);
 
         return $defaults;
@@ -117,10 +117,10 @@ final class IconPreferenceService
     public function getFilters(): array
     {
         return $this->get('filters', [
-            'search'     => '',
-            'packages'   => [],
+            'search' => '',
+            'packages' => [],
             'categories' => [],
-            'variants'   => [],
+            'variants' => [],
         ]);
     }
 
@@ -194,7 +194,7 @@ final class IconPreferenceService
     public function getSorting(): array
     {
         return $this->get('sorting', [
-            'sort_by'        => 'name',
+            'sort_by' => 'name',
             'sort_direction' => 'asc',
         ]);
     }
@@ -205,7 +205,7 @@ final class IconPreferenceService
     public function setSorting(string $sortBy, string $sortDirection): self
     {
         $this->set('sorting', [
-            'sort_by'        => $sortBy,
+            'sort_by' => $sortBy,
             'sort_direction' => $sortDirection,
         ]);
 
@@ -220,7 +220,7 @@ final class IconPreferenceService
         return $this->get('preferences', [
             'view_mode' => 'grid',
             'icon_size' => 48,
-            'per_page'  => 60,
+            'per_page' => 60,
         ]);
     }
 
@@ -241,7 +241,7 @@ final class IconPreferenceService
     {
         return $this->get('tree', [
             'expanded_nodes' => [],
-            'checked_nodes'  => [],
+            'checked_nodes' => [],
         ]);
     }
 
@@ -252,7 +252,7 @@ final class IconPreferenceService
     {
         $this->set('tree', [
             'expanded_nodes' => $expandedNodes,
-            'checked_nodes'  => $checkedNodes,
+            'checked_nodes' => $checkedNodes,
         ]);
 
         return $this;
@@ -331,10 +331,10 @@ final class IconPreferenceService
     {
         $collections = $this->getCollections();
         $collection = [
-            'id'         => 'collection-' . time() . '-' . bin2hex(random_bytes(4)),
-            'name'       => $name,
-            'color'      => $color ?? $this->getRandomCollectionColor(),
-            'icon_ids'   => [],
+            'id' => 'collection-'.time().'-'.bin2hex(random_bytes(4)),
+            'name' => $name,
+            'color' => $color ?? $this->getRandomCollectionColor(),
+            'icon_ids' => [],
             'created_at' => now()->toIso8601String(),
         ];
         $collections[] = $collection;
@@ -402,7 +402,7 @@ final class IconPreferenceService
                     $this->set('collections', $collections);
                     $this->logger->debug('📁 Icon added to collection', [
                         'collection_id' => $collectionId,
-                        'icon_id'       => $iconId,
+                        'icon_id' => $iconId,
                     ]);
                 }
                 break;
@@ -424,7 +424,7 @@ final class IconPreferenceService
                 $this->set('collections', $collections);
                 $this->logger->debug('📁 Icon removed from collection', [
                     'collection_id' => $collectionId,
-                    'icon_id'       => $iconId,
+                    'icon_id' => $iconId,
                 ]);
                 break;
             }
@@ -451,9 +451,9 @@ final class IconPreferenceService
         $iconName = $icon ? $icon->name : "Icon #{$iconId}";
 
         $entry = [
-            'icon_id'   => $iconId,
+            'icon_id' => $iconId,
             'icon_name' => $iconName,
-            'action'    => $action, // 'view', 'copy', 'download'
+            'action' => $action, // 'view', 'copy', 'download'
             'timestamp' => now()->toIso8601String(),
         ];
 
@@ -486,18 +486,18 @@ final class IconPreferenceService
     /**
      * Add entry to command history
      *
-     * @param string $command The command executed
-     * @param string $type Command type: 'action', 'search', 'navigation'
-     * @param array $metadata Additional metadata
+     * @param  string  $command  The command executed
+     * @param  string  $type  Command type: 'action', 'search', 'navigation'
+     * @param  array  $metadata  Additional metadata
      */
     public function addCommandHistory(string $command, string $type, array $metadata = []): void
     {
         $history = $this->getCommandHistory();
 
         $entry = [
-            'command'   => $command,
-            'type'      => $type,
-            'metadata'  => $metadata,
+            'command' => $command,
+            'type' => $type,
+            'metadata' => $metadata,
             'timestamp' => now()->toIso8601String(),
         ];
 
@@ -629,7 +629,7 @@ final class IconPreferenceService
         if (! empty($changes)) {
             $this->logger->info('Icon browser preferences validated', [
                 'changes' => $changes,
-                'tier'    => $this->sessionManager->getTier(),
+                'tier' => $this->sessionManager->getTier(),
             ]);
         }
 
@@ -651,31 +651,31 @@ final class IconPreferenceService
     {
         return [
             'filters' => [
-                'search'     => '',
-                'packages'   => [],
+                'search' => '',
+                'packages' => [],
                 'categories' => [],
-                'variants'   => [],
+                'variants' => [],
             ],
             'sorting' => [
-                'sort_by'        => 'name',
+                'sort_by' => 'name',
                 'sort_direction' => 'asc',
             ],
             'preferences' => [
                 'view_mode' => 'grid',
                 'icon_size' => 48,
-                'per_page'  => 60,
+                'per_page' => 60,
             ],
             'tree' => [
                 'expanded_nodes' => [],
-                'checked_nodes'  => [],
+                'checked_nodes' => [],
             ],
             'pagination' => [
                 'current_page' => 1,
-                'per_page'     => 60,
+                'per_page' => 60,
             ],
-            'favorites'       => [],
-            'collections'     => [],
-            'history'         => [],
+            'favorites' => [],
+            'collections' => [],
+            'history' => [],
             'command_history' => [],
         ];
     }

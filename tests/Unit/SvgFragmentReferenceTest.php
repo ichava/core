@@ -35,19 +35,19 @@ describe('SVG fragment references', function () {
     });
 
     $external = [
-        'absolute'          => 'https://evil.test/x.svg#a',
+        'absolute' => 'https://evil.test/x.svg#a',
         'protocol relative' => '//evil.test/x.svg#a',
-        'relative path'     => 'sprite.svg#a',
-        'data uri'          => 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
-        'javascript'        => 'javascript:alert(1)',
-        'blob'              => 'blob:https://evil.test/1234',
-        'empty fragment'    => '#',
-        'digit-led id'      => '#1nvalid',
+        'relative path' => 'sprite.svg#a',
+        'data uri' => 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
+        'javascript' => 'javascript:alert(1)',
+        'blob' => 'blob:https://evil.test/1234',
+        'empty fragment' => '#',
+        'digit-led id' => '#1nvalid',
     ];
 
     foreach ($external as $label => $value) {
         it("strips a non-fragment href: {$label}", function () use ($value) {
-            $svg = '<svg xmlns="http://www.w3.org/2000/svg"><use href="' . htmlspecialchars($value, ENT_XML1) . '"/></svg>';
+            $svg = '<svg xmlns="http://www.w3.org/2000/svg"><use href="'.htmlspecialchars($value, ENT_XML1).'"/></svg>';
 
             expect($this->sanitizer->sanitize($svg))->not->toContain('href=');
         });

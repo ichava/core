@@ -6,9 +6,9 @@ namespace Simtabi\Laranail\Ichava\Services;
 
 use Closure;
 use Exception;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 
 /**
@@ -40,8 +40,8 @@ final class IconCacheService
         $cleared = [
             'discovery' => 0,
             'manifests' => 0,
-            'watcher'   => 0,
-            'manager'   => false,
+            'watcher' => 0,
+            'manager' => false,
         ];
 
         try {
@@ -113,7 +113,7 @@ final class IconCacheService
      */
     public function clearDiscovery(): bool
     {
-        return $this->safeForget(IconDiscoveryService::CACHE_PREFIX . '.packages');
+        return $this->safeForget(IconDiscoveryService::CACHE_PREFIX.'.packages');
     }
 
     /**
@@ -121,7 +121,7 @@ final class IconCacheService
      */
     public function clearManifest(string $basePath): bool
     {
-        return $this->safeForget(IconDiscoveryService::CACHE_PREFIX . '.manifest.' . md5($basePath));
+        return $this->safeForget(IconDiscoveryService::CACHE_PREFIX.'.manifest.'.md5($basePath));
     }
 
     /**
@@ -212,8 +212,8 @@ final class IconCacheService
         } catch (Exception $e) {
             $this->logger->warning('Ichava cache failed, executing directly', [
                 'driver' => config('cache.default'),
-                'error'  => $e->getMessage(),
-                'key'    => $fullKey,
+                'error' => $e->getMessage(),
+                'key' => $fullKey,
             ]);
 
             return $callback();
@@ -262,7 +262,7 @@ final class IconCacheService
             // For file driver, delete by pattern
             if ($driver === 'file') {
                 $path = config('cache.stores.file.path', storage_path('framework/cache/data'));
-                $pattern = $path . '/' . md5($this->prefix) . '*';
+                $pattern = $path.'/'.md5($this->prefix).'*';
 
                 foreach (File::glob($pattern) as $file) {
                     File::delete($file);
@@ -362,7 +362,7 @@ final class IconCacheService
             $i++;
         }
 
-        return round($bytes, $precision) . ' ' . $units[$i];
+        return round($bytes, $precision).' '.$units[$i];
     }
 
     /**
@@ -481,10 +481,10 @@ final class IconCacheService
     public function getStats(): array
     {
         return [
-            'watcher'   => $this->watcher()->getStats(),
-            'driver'    => config('cache.default'),
-            'ttl'       => $this->ttl,
-            'prefix'    => $this->prefix,
+            'watcher' => $this->watcher()->getStats(),
+            'driver' => config('cache.default'),
+            'ttl' => $this->ttl,
+            'prefix' => $this->prefix,
             'available' => $this->isAvailable(),
             'timestamp' => now()->toIso8601String(),
         ];
@@ -496,7 +496,7 @@ final class IconCacheService
     public function isHealthy(): bool
     {
         try {
-            $testKey = 'ichava.health_check.' . time();
+            $testKey = 'ichava.health_check.'.time();
             $store = cache()->store('file');
 
             $store->put(key: $testKey, value: 'ok', ttl: now()->addSeconds(10));
@@ -542,8 +542,8 @@ final class IconCacheService
         $stats = [
             'rebuilt' => 0,
             'skipped' => 0,
-            'errors'  => 0,
-            'total'   => 0,
+            'errors' => 0,
+            'total' => 0,
         ];
 
         if (preg_match('/Rebuilt.*?(\d+)/i', $output, $matches)) {
@@ -574,7 +574,7 @@ final class IconCacheService
     {
         $hashedKey = md5($key);
 
-        return $this->prefix . ':' . config('ichava.core.cache.version', 'v1') . ':' . $hashedKey;
+        return $this->prefix.':'.config('ichava.core.cache.version', 'v1').':'.$hashedKey;
     }
 
     /**

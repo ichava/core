@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
-use Throwable;
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Log\LogManager;
-use Illuminate\Contracts\Events\Dispatcher;
 use Simtabi\Laranail\Ichava\Events\SecurityAuditEvent;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Throwable;
 
 /**
  * Central security-audit pipeline.
@@ -91,14 +91,14 @@ final class AuditLogger
         $request = $this->resolveRequest();
 
         return [
-            'event'      => $event,
-            'severity'   => $severity,
-            'context'    => $context,
-            'actor'      => $this->resolveActor($request),
-            'source_ip'  => $request?->ip(),
+            'event' => $event,
+            'severity' => $severity,
+            'context' => $context,
+            'actor' => $this->resolveActor($request),
+            'source_ip' => $request?->ip(),
             'user_agent' => $request?->userAgent(),
             'request_id' => $request?->headers->get('X-Request-Id'),
-            'timestamp'  => time(),
+            'timestamp' => time(),
         ];
     }
 
@@ -114,10 +114,10 @@ final class AuditLogger
 
         $level = match (true) {
             $severity <= self::SEVERITY_EMERGENCY => 'emergency',
-            $severity <= self::SEVERITY_CRITICAL  => 'critical',
-            $severity <= self::SEVERITY_ERROR     => 'error',
-            $severity <= self::SEVERITY_WARNING   => 'warning',
-            default                               => 'info',
+            $severity <= self::SEVERITY_CRITICAL => 'critical',
+            $severity <= self::SEVERITY_ERROR => 'error',
+            $severity <= self::SEVERITY_WARNING => 'warning',
+            default => 'info',
         };
 
         $logger->{$level}($event, $payload);

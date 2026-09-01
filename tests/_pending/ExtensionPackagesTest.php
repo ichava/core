@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 
 /**
@@ -147,9 +147,9 @@ describe('Extension Packages -- Metronic Icons Integration', function () {
 
         $category = $categories[0];
         $icons = test()->getJson(route('ichava.api.icons.index', [
-            'packages'   => ['ichava/metronic-icons'],
+            'packages' => ['ichava/metronic-icons'],
             'categories' => [$category],
-            'per_page'   => 10,
+            'per_page' => 10,
         ]))->assertOk()->json('data');
 
         foreach ($icons as $icon) {

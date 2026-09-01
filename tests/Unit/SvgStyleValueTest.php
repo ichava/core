@@ -35,18 +35,18 @@ describe('SVG style attribute values', function () {
     });
 
     $blocked = [
-        'absolute url'      => 'background:url(https://evil.test/p.png)',
+        'absolute url' => 'background:url(https://evil.test/p.png)',
         'protocol relative' => 'background:url(//evil.test/p.png)',
-        'relative url'      => 'background:url(sprite.png)',
-        'quoted url'        => "background:url('https://evil.test/p.png')",
-        'spaced url'        => 'background:url(  https://evil.test/p.png  )',
-        'behavior'          => 'behavior:url(x.htc)',
-        'moz binding'       => '-moz-binding:url(https://evil.test/x.xml#e)',
+        'relative url' => 'background:url(sprite.png)',
+        'quoted url' => "background:url('https://evil.test/p.png')",
+        'spaced url' => 'background:url(  https://evil.test/p.png  )',
+        'behavior' => 'behavior:url(x.htc)',
+        'moz binding' => '-moz-binding:url(https://evil.test/x.xml#e)',
     ];
 
     foreach ($blocked as $label => $value) {
         it("strips a style carrying {$label}", function () use ($value) {
-            $svg = '<svg xmlns="http://www.w3.org/2000/svg"><path style="' . htmlspecialchars($value, ENT_XML1 | ENT_QUOTES) . '" d="M0 0"/></svg>';
+            $svg = '<svg xmlns="http://www.w3.org/2000/svg"><path style="'.htmlspecialchars($value, ENT_XML1 | ENT_QUOTES).'" d="M0 0"/></svg>';
 
             expect($this->sanitizer->sanitize($svg))->not->toContain('style=');
         });

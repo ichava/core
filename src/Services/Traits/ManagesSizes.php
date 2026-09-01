@@ -31,13 +31,13 @@ trait ManagesSizes
         // Named sizes
         if ($this->isNamedSize($size)) {
             $enum = ComponentSize::from($size);
-            $pixels = $enum->getPixels() . 'px';
+            $pixels = $enum->getPixels().'px';
 
             if ($lockAspectRatio) {
                 return [
-                    'width'  => $pixels,
+                    'width' => $pixels,
                     'height' => $pixels,
-                    'class'  => "icon-{$size}",
+                    'class' => "icon-{$size}",
                 ];
             }
 
@@ -56,7 +56,7 @@ trait ManagesSizes
 
         if ($lockAspectRatio) {
             return [
-                'width'  => $parsed,
+                'width' => $parsed,
                 'height' => $parsed,
             ];
         }
@@ -101,7 +101,7 @@ trait ManagesSizes
     public function mergeWithAttributes(array $sizeAttrs, array $existingAttrs): array
     {
         if (isset($sizeAttrs['class']) && isset($existingAttrs['class'])) {
-            $existingAttrs['class'] = trim($existingAttrs['class'] . ' ' . $sizeAttrs['class']);
+            $existingAttrs['class'] = trim($existingAttrs['class'].' '.$sizeAttrs['class']);
             unset($sizeAttrs['class']);
         }
 

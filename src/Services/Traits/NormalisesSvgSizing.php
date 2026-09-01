@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
 use Closure;
-use DOMElement;
 use DOMDocument;
+use DOMElement;
 
 /**
  * Root-element sizing normalisation.
@@ -32,10 +32,10 @@ trait NormalisesSvgSizing
     /**
      * Normalise the root element's sizing.
      *
-     * @param Closure(string):void|null $onUnusable called with a reason when
-     *                                              the icon has neither a viewBox nor dimensions one can be derived
-     *                                              from. Reporting is the caller's business; this pass does not throw
-     *                                              and does not drop the icon.
+     * @param  Closure(string):void|null  $onUnusable  called with a reason when
+     *                                                 the icon has neither a viewBox nor dimensions one can be derived
+     *                                                 from. Reporting is the caller's business; this pass does not throw
+     *                                                 and does not drop the icon.
      */
     public function normaliseSizing(string $content, ?Closure $onUnusable = null): string
     {

@@ -104,12 +104,12 @@ trait ParsesSvg
                 $decoded = html_entity_decode($m[0], ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
                 if ($decoded === $m[0]) {
-                    return '&amp;' . $m[1] . ';';
+                    return '&amp;'.$m[1].';';
                 }
 
                 $codepoint = mb_ord($decoded, 'UTF-8');
 
-                return $codepoint === false ? '&amp;' . $m[1] . ';' : '&#' . $codepoint . ';';
+                return $codepoint === false ? '&amp;'.$m[1].';' : '&#'.$codepoint.';';
             },
             $content,
         );
