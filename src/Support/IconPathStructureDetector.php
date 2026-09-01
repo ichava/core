@@ -29,8 +29,7 @@ final class IconPathStructureDetector
      * 2. Check for direct files/ directory = SINGLE-SET
      * 3. Check for subdirectories with files/ = MULTI-SET
      *
-     * @param string $basePath Base SVG directory path (where config.json is registered)
-     *
+     * @param  string  $basePath  Base SVG directory path (where config.json is registered)
      * @return string Either 'single-set' or 'multi-set'
      */
     public static function detect(string $basePath): string
@@ -52,7 +51,7 @@ final class IconPathStructureDetector
         }
 
         // STRATEGY 2: Check for direct files/ directory = SINGLE-SET
-        if (File::isDirectory($basePath . '/files')) {
+        if (File::isDirectory($basePath.'/files')) {
             // But double-check: are there OTHER dirs with files/ at this level?
             $setDirs = self::findSetDirectories($basePath);
 
@@ -78,8 +77,7 @@ final class IconPathStructureDetector
     /**
      * Find all set directories (directories containing files/ subdirectory)
      *
-     * @param string $basePath Base SVG directory
-     *
+     * @param  string  $basePath  Base SVG directory
      * @return array Array of set directory names (e.g., ['test-icons', 'ui-icons'])
      */
     public static function findSetDirectories(string $basePath): array
@@ -100,7 +98,7 @@ final class IconPathStructureDetector
             }
 
             // Check if this directory has a files/ subdirectory
-            if (File::isDirectory($dir . '/files')) {
+            if (File::isDirectory($dir.'/files')) {
                 $sets[] = $dirName;
             }
         }
@@ -116,8 +114,7 @@ final class IconPathStructureDetector
      * - MULTI-SET (from parent): ['{base}/set-1/files', '{base}/set-2/files', ...]
      * - MULTI-SET (from set itself): ['{base}/files'] (we're already in a specific set)
      *
-     * @param string $basePath Base SVG directory (can be parent or specific set)
-     *
+     * @param  string  $basePath  Base SVG directory (can be parent or specific set)
      * @return array Array of absolute paths to scan
      */
     public static function getScanPaths(string $basePath): array
@@ -129,8 +126,8 @@ final class IconPathStructureDetector
         $structure = self::detect($basePath);
 
         // If SINGLE-SET or we're already in a specific set directory, scan its files/
-        if ($structure === self::SINGLE_SET || File::isDirectory($basePath . '/files')) {
-            return [$basePath . '/files'];
+        if ($structure === self::SINGLE_SET || File::isDirectory($basePath.'/files')) {
+            return [$basePath.'/files'];
         }
 
         // Multi-set from parent level: scan all set-name/files/ directories
@@ -138,7 +135,7 @@ final class IconPathStructureDetector
         $paths = [];
 
         foreach ($sets as $setName) {
-            $setPath = $basePath . '/' . $setName . '/files';
+            $setPath = $basePath.'/'.$setName.'/files';
             if (File::isDirectory($setPath)) {
                 $paths[] = $setPath;
             }
@@ -150,8 +147,7 @@ final class IconPathStructureDetector
     /**
      * Get structure information for a package
      *
-     * @param string $basePath Base SVG directory
-     *
+     * @param  string  $basePath  Base SVG directory
      * @return array Detailed structure information
      */
     public static function getStructureInfo(string $basePath): array
@@ -162,11 +158,11 @@ final class IconPathStructureDetector
             : ['default'];
 
         return [
-            'type'          => $type,
-            'base_path'     => $basePath,
-            'sets'          => $sets,
-            'scan_paths'    => self::getScanPaths($basePath),
-            'is_multi_set'  => $type === self::MULTI_SET,
+            'type' => $type,
+            'base_path' => $basePath,
+            'sets' => $sets,
+            'scan_paths' => self::getScanPaths($basePath),
+            'is_multi_set' => $type === self::MULTI_SET,
             'is_single_set' => $type === self::SINGLE_SET,
         ];
     }
@@ -174,8 +170,7 @@ final class IconPathStructureDetector
     /**
      * Check if a package is multi-set
      *
-     * @param string $basePath Base SVG directory
-     *
+     * @param  string  $basePath  Base SVG directory
      * @return bool True if multi-set, false if single-set
      */
     public static function isMultiSet(string $basePath): bool
@@ -186,8 +181,7 @@ final class IconPathStructureDetector
     /**
      * Check if a package is single-set
      *
-     * @param string $basePath Base SVG directory
-     *
+     * @param  string  $basePath  Base SVG directory
      * @return bool True if single-set, false if multi-set
      */
     public static function isSingleSet(string $basePath): bool

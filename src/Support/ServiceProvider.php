@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Blade;
-use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Providers\IchavaServiceProvider;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
 
 /**
@@ -71,8 +71,8 @@ abstract class ServiceProvider extends PackageServiceProvider
      * $this->loadBladeComponent(TablerIconComponent::class, 'tabler-icons');
      * ```
      *
-     * @param string $componentClass Fully qualified component class name
-     * @param string $packageName Package identifier in kebab-case (e.g. 'tabler-icons')
+     * @param  string  $componentClass  Fully qualified component class name
+     * @param  string  $packageName  Package identifier in kebab-case (e.g. 'tabler-icons')
      *
      * @throws IchavaException if $packageName is empty
      */
@@ -104,7 +104,7 @@ abstract class ServiceProvider extends PackageServiceProvider
      * }
      * ```
      *
-     * @param string $path Absolute path to the icon set directory (must contain config.json)
+     * @param  string  $path  Absolute path to the icon set directory (must contain config.json)
      *
      * @throws IchavaException if config.json is missing or malformed
      */
@@ -130,10 +130,9 @@ abstract class ServiceProvider extends PackageServiceProvider
      * )->trackStatistics()->enableLogging();
      * ```
      *
-     * @param string $basePath Absolute path that contains the icon set sub-directories
-     * @param array<string, array<string, mixed>> $iconSets Map of dirName => metadata
-     * @param string $vendor Human-readable vendor label (used in log output only)
-     *
+     * @param  string  $basePath  Absolute path that contains the icon set sub-directories
+     * @param  array<string, array<string, mixed>>  $iconSets  Map of dirName => metadata
+     * @param  string  $vendor  Human-readable vendor label (used in log output only)
      * @return IchavaRegistrar Fluent registrar (chain trackStatistics()/enableLogging())
      */
     protected function registerBulkIconSets(string $basePath, array $iconSets, string $vendor = ''): IchavaRegistrar
@@ -152,8 +151,7 @@ abstract class ServiceProvider extends PackageServiceProvider
      * conventional location for icon SVG files in the Ichava ecosystem.
      * Override in child providers only if your package uses a non-standard layout.
      *
-     * @param string $subPath Optional sub-directory to append (e.g. 'outline', 'solid')
-     *
+     * @param  string  $subPath  Optional sub-directory to append (e.g. 'outline', 'solid')
      * @return string Absolute filesystem path
      */
     protected function svgAssetsPath(string $subPath = ''): string
@@ -161,7 +159,7 @@ abstract class ServiceProvider extends PackageServiceProvider
         $base = $this->package->basePath('resources/assets/svg');
 
         return $subPath
-            ? rtrim($base, '/\\') . DIRECTORY_SEPARATOR . ltrim($subPath, '/\\')
+            ? rtrim($base, '/\\').DIRECTORY_SEPARATOR.ltrim($subPath, '/\\')
             : $base;
     }
 }

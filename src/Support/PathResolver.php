@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
-use ReflectionClass;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
-use Simtabi\Laranail\Ichava\Data\IconPathResult;
+use Illuminate\Support\Str;
+use ReflectionClass;
 use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
+use Simtabi\Laranail\Ichava\Data\IconPathResult;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
 /**
@@ -38,11 +38,10 @@ class PathResolver
     /**
      * Resolve config value or build default path from class file
      *
-     * @param mixed $configValue Config value (if set)
-     * @param string $classFile __FILE__ from calling class
-     * @param string $defaultRelativePath Default path relative to package root
-     * @param int $levelsUp How many levels to go up from class file to package root
-     *
+     * @param  mixed  $configValue  Config value (if set)
+     * @param  string  $classFile  __FILE__ from calling class
+     * @param  string  $defaultRelativePath  Default path relative to package root
+     * @param  int  $levelsUp  How many levels to go up from class file to package root
      * @return string Resolved absolute path
      */
     public static function resolveConfigOrDefault(
@@ -65,9 +64,9 @@ class PathResolver
     /**
      * Resolve package path using reflection
      *
-     * @param string|object $caller The calling class name or instance
-     * @param int $levelsUp Number of directory levels to go up (default: 3 for src/Subdirectory/File.php to package root)
-     * @param string $append Optional path to append
+     * @param  string|object  $caller  The calling class name or instance
+     * @param  int  $levelsUp  Number of directory levels to go up (default: 3 for src/Subdirectory/File.php to package root)
+     * @param  string  $append  Optional path to append
      */
     public static function resolvePackagePath(string|object $caller, int $levelsUp = 3, string $append = ''): string
     {
@@ -77,7 +76,7 @@ class PathResolver
         $basePath = dirname($callerFile, $levelsUp);
 
         if ($append !== '') {
-            $basePath .= '/' . ltrim($append, '/');
+            $basePath .= '/'.ltrim($append, '/');
         }
 
         return $basePath;
@@ -86,8 +85,8 @@ class PathResolver
     /**
      * Get the package root path from a service provider
      *
-     * @param string|object $provider The service provider class or instance
-     * @param int $levelsUp Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
+     * @param  string|object  $provider  The service provider class or instance
+     * @param  int  $levelsUp  Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
      */
     public static function packageRootFromProvider(string|object $provider, int $levelsUp = 3): string
     {
@@ -97,8 +96,8 @@ class PathResolver
     /**
      * Get the SVG assets path from a service provider
      *
-     * @param string|object $provider The service provider class or instance
-     * @param int $levelsUp Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
+     * @param  string|object  $provider  The service provider class or instance
+     * @param  int  $levelsUp  Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
      */
     public static function svgPathFromProvider(string|object $provider, int $levelsUp = 3): string
     {
@@ -113,9 +112,8 @@ class PathResolver
      * - Absolute path (validates exists and is readable)
      * - Relative path from base_path() (e.g., 'platform/icons-bundle')
      *
-     * @param string|object $iconSetOrPath IconSet class/instance OR path to icons
-     * @param int $levelsUp Number of directory levels to go up from IconSet file (default: 3)
-     *
+     * @param  string|object  $iconSetOrPath  IconSet class/instance OR path to icons
+     * @param  int  $levelsUp  Number of directory levels to go up from IconSet file (default: 3)
      * @return string Absolute path to icons directory
      *
      * @throws IchavaException If path doesn't exist, isn't readable, or isn't a directory
@@ -276,19 +274,19 @@ class PathResolver
 
         // Add vendor/package or set
         if ($vendor && $package) {
-            $parts[] = $vendor . '/' . $package . $this->pathSeparator;
+            $parts[] = $vendor.'/'.$package.$this->pathSeparator;
         } elseif ($set) {
-            $parts[] = $set . $this->pathSeparator;
+            $parts[] = $set.$this->pathSeparator;
         }
 
         // Add variant
         if ($variant) {
-            $parts[] = $variant . $this->variantSeparator;
+            $parts[] = $variant.$this->variantSeparator;
         }
 
         // Add category
         if ($category) {
-            $parts[] = $category . $this->variantSeparator;
+            $parts[] = $category.$this->variantSeparator;
         }
 
         // Add icon name
@@ -300,8 +298,7 @@ class PathResolver
     /**
      * Resolve manifest path from configuration
      *
-     * @param string|null $configuredPath Path from config if set
-     *
+     * @param  string|null  $configuredPath  Path from config if set
      * @return string Full path to manifest file
      */
     public function resolveManifestPath(?string $configuredPath = null): string
@@ -375,7 +372,7 @@ class PathResolver
 
         // Restore leading slash for absolute paths (Unix)
         if ($isAbsolute && ! Str::startsWith($joined, '/')) {
-            $joined = '/' . $joined;
+            $joined = '/'.$joined;
         }
 
         return $joined;
@@ -574,8 +571,7 @@ class PathResolver
      *
      * Also validates file extension if present (must be .svg)
      *
-     * @param string $name Icon name to validate
-     *
+     * @param  string  $name  Icon name to validate
      * @return bool True if valid
      */
     private function isValidIconName(string $name): bool
@@ -612,8 +608,7 @@ class PathResolver
      * Allows: alphanumeric, dash, underscore
      * Disallows: special characters, whitespace
      *
-     * @param string $segment Path segment to validate
-     *
+     * @param  string  $segment  Path segment to validate
      * @return bool True if valid
      */
     private function isValidPathSegment(string $segment): bool

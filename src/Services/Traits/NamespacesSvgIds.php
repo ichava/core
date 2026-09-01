@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
-use DOMXPath;
-use DOMElement;
 use DOMDocument;
+use DOMElement;
+use DOMXPath;
 
 /**
  * Per-file id namespacing. Fixes CR1.
@@ -44,7 +44,7 @@ trait NamespacesSvgIds
     /**
      * Namespace every id in the document, and every reference to one.
      *
-     * @param string $seed stable per-file key; the icon's relative path.
+     * @param  string  $seed  stable per-file key; the icon's relative path.
      */
     public function namespaceIds(string $content, string $seed): string
     {
@@ -101,7 +101,7 @@ trait NamespacesSvgIds
      */
     private function buildIdMap(DOMXPath $xpath, string $seed): array
     {
-        $prefix = 'i' . substr(sha1($seed), 0, 6) . '-';
+        $prefix = 'i'.substr(sha1($seed), 0, 6).'-';
         $map = [];
 
         foreach ($xpath->query('//*[@id]') as $element) {
@@ -112,7 +112,7 @@ trait NamespacesSvgIds
             $id = $element->getAttribute('id');
 
             if ($id !== '') {
-                $map[$id] = $prefix . $id;
+                $map[$id] = $prefix.$id;
             }
         }
 
@@ -122,7 +122,7 @@ trait NamespacesSvgIds
     /**
      * Rewrite one attribute value against the id map.
      *
-     * @param array<string, string> $map
+     * @param  array<string, string>  $map
      */
     private function rewriteIdReferences(string $name, string $value, array $map): string
     {
@@ -139,7 +139,7 @@ trait NamespacesSvgIds
 
             $target = substr($value, 1);
 
-            return isset($map[$target]) ? '#' . $map[$target] : $value;
+            return isset($map[$target]) ? '#'.$map[$target] : $value;
         }
 
         if (in_array($name, self::ID_LIST_ATTRIBUTES, true)) {
@@ -158,7 +158,7 @@ trait NamespacesSvgIds
      * Rewrite `url(#id)` anywhere in a value: fill, stroke, clip-path, mask,
      * filter, and the same forms inside a `style` value.
      *
-     * @param array<string, string> $map
+     * @param  array<string, string>  $map
      */
     private function rewriteUrlReferences(string $value, array $map): string
     {
@@ -172,7 +172,7 @@ trait NamespacesSvgIds
                 $target = $m[2];
 
                 return isset($map[$target])
-                    ? 'url(' . $m[1] . '#' . $map[$target] . $m[1] . ')'
+                    ? 'url('.$m[1].'#'.$map[$target].$m[1].')'
                     : $m[0];
             },
             $value,

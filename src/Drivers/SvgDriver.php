@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Drivers;
 
 use Exception;
-use Illuminate\Support\Str;
 use Illuminate\Filesystem\Filesystem;
-use Simtabi\Laranail\Ichava\Data\IconData;
+use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
-use Simtabi\Laranail\Ichava\Services\IconCacheService;
+use Simtabi\Laranail\Ichava\Data\IconData;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
-use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 use Simtabi\Laranail\Ichava\Exceptions\IconRenderException;
+use Simtabi\Laranail\Ichava\Services\IconCacheService;
+use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
 /**
  * SvgDriver - SVG Loading and Rendering Driver
@@ -57,9 +57,8 @@ class SvgDriver
      * Delegates to load() then injectAttributes(). On any exception the raw
      * message is re-thrown as an IconRenderException with the icon name included.
      *
-     * @param IconData $icon Resolved icon data object (path, name, set)
-     * @param array<string, mixed> $attributes HTML attributes to inject onto the SVG element
-     *
+     * @param  IconData  $icon  Resolved icon data object (path, name, set)
+     * @param  array<string, mixed>  $attributes  HTML attributes to inject onto the SVG element
      * @return string Rendered HTML-safe SVG string
      *
      * @throws IconRenderException wrapping any underlying load or processing failure
@@ -85,9 +84,8 @@ class SvgDriver
      * Currently delegates directly to loadFromLocal(). The $options parameter
      * is reserved for future loaders (remote URL, CDN, encrypted storage).
      *
-     * @param string $path Absolute filesystem path to the .svg file
-     * @param array<string, mixed> $options Reserved for future use
-     *
+     * @param  string  $path  Absolute filesystem path to the .svg file
+     * @param  array<string, mixed>  $options  Reserved for future use
      * @return string Raw SVG content (unsanitized)
      *
      * @throws IchavaException if the file does not exist, is unreadable, or fails security checks
@@ -140,8 +138,7 @@ class SvgDriver
      * 4. File size bounds, rejects files smaller than MIN_SVG_FILE_SIZE or larger
      *    than `ichava.max_file_size` (falls back to MAX_SVG_FILE_SIZE)
      *
-     * @param string $path Absolute path to the SVG file
-     *
+     * @param  string  $path  Absolute path to the SVG file
      * @return string Raw SVG content
      *
      * @throws IchavaException on any security violation, size violation, or read failure
@@ -161,7 +158,7 @@ class SvgDriver
         $realPath = realpath($path);
         $realDir = realpath(dirname($path));
 
-        if ($realPath === false || $realDir === false || ! Str::startsWith($realPath, $realDir . DIRECTORY_SEPARATOR)) {
+        if ($realPath === false || $realDir === false || ! Str::startsWith($realPath, $realDir.DIRECTORY_SEPARATOR)) {
             throw IchavaException::securityViolation("Path escapes its directory: '{$path}'");
         }
 
@@ -199,7 +196,7 @@ class SvgDriver
      * Handles accessibility attributes (title, aria-label, role).
      * Merges class attributes to prevent duplicates.
      *
-     * @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $attributes
      */
     protected function injectAttributes(string $svg, array $attributes): string
     {
@@ -252,9 +249,8 @@ class SvgDriver
      * 5. Add `fill="currentColor"` to the root `<svg>` if no fill is set, enabling
      *    dynamic colour via Tailwind `text-*` classes
      *
-     * @param string $svg Raw SVG markup
-     * @param array<string, mixed> $attributes Attributes being injected (used to check for explicit sizing)
-     *
+     * @param  string  $svg  Raw SVG markup
+     * @param  array<string, mixed>  $attributes  Attributes being injected (used to check for explicit sizing)
      * @return string Normalised SVG markup
      */
     protected function ensureResponsiveSvg(string $svg, array $attributes): string
@@ -345,7 +341,7 @@ class SvgDriver
         $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
 
         // Generate unique ID for aria-labelledby
-        $titleId = 'icon-title-' . md5($title . microtime());
+        $titleId = 'icon-title-'.md5($title.microtime());
 
         // Create title element
         $titleElement = "<title id=\"{$titleId}\">{$safeTitle}</title>";

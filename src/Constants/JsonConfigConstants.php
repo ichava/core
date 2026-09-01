@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Constants;
 
 use Illuminate\Support\Str;
-use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Services\ConfigurationService;
+use Simtabi\Laranail\Ichava\Support\Helpers;
 
 /**
  * Abstract base for icon-package metadata classes that derive their values
@@ -300,14 +300,13 @@ abstract class JsonConfigConstants
      */
     public static function getFilesPath(): string
     {
-        return static::getConfigPath() . DIRECTORY_SEPARATOR . 'files';
+        return static::getConfigPath().DIRECTORY_SEPARATOR.'files';
     }
 
     /**
      * Get path to a specific category/variant folder
      *
-     * @param string|null $subfolder Optional subfolder (category or variant name)
-     *
+     * @param  string|null  $subfolder  Optional subfolder (category or variant name)
      * @return string Full path to the SVG files directory or subfolder
      */
     public static function getSvgPath(?string $subfolder = null): string
@@ -318,7 +317,7 @@ abstract class JsonConfigConstants
             return $basePath;
         }
 
-        return $basePath . DIRECTORY_SEPARATOR . $subfolder;
+        return $basePath.DIRECTORY_SEPARATOR.$subfolder;
     }
 
     /**
@@ -332,7 +331,7 @@ abstract class JsonConfigConstants
         $basePath = static::getFilesPath();
 
         foreach (static::getCategories() as $category) {
-            $paths[$category] = $basePath . DIRECTORY_SEPARATOR . $category;
+            $paths[$category] = $basePath.DIRECTORY_SEPARATOR.$category;
         }
 
         return $paths;
@@ -349,7 +348,7 @@ abstract class JsonConfigConstants
         $basePath = static::getFilesPath();
 
         foreach (static::getVariants() as $variant) {
-            $paths[$variant] = $basePath . DIRECTORY_SEPARATOR . $variant;
+            $paths[$variant] = $basePath.DIRECTORY_SEPARATOR.$variant;
         }
 
         return $paths;

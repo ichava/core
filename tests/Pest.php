@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Simtabi\Laranail\Ichava\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Simtabi\Laranail\Ichava\Tests\TestCase;
 
 /*
 |--------------------------------------------------------------------------

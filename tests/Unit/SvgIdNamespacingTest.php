@@ -53,7 +53,7 @@ describe('SVG id namespacing', function () {
 
         $out = $this->svg->namespaceIds($svg, 'p/f.svg');
         preg_match('/id="([^"]+)"/', $out, $id);
-        expect($out)->toContain('href="#' . $id[1] . '"');
+        expect($out)->toContain('href="#'.$id[1].'"');
     });
 
     it('rewrites xlink:href too, which is what the flag packs ship', function () {
@@ -61,7 +61,7 @@ describe('SVG id namespacing', function () {
 
         $out = $this->svg->namespaceIds($svg, 'p/f.svg');
         preg_match('/id="([^"]+)"/', $out, $id);
-        expect($out)->toContain('#' . $id[1]);
+        expect($out)->toContain('#'.$id[1]);
     });
 
     it('rewrites url() references in paint attributes', function () {
@@ -70,8 +70,8 @@ describe('SVG id namespacing', function () {
         $out = $this->svg->namespaceIds($svg, 'p/f.svg');
         preg_match('/id="([^"]+)"[^>]*\/><clipPath id="([^"]+)"/', $out, $ids);
         expect($out)
-            ->toContain('url(#' . $ids[1] . ')')
-            ->toContain('url(#' . $ids[2] . ')')
+            ->toContain('url(#'.$ids[1].')')
+            ->toContain('url(#'.$ids[2].')')
             ->not->toContain('url(#g)')
             ->not->toContain('url(#c)');
     });
@@ -90,7 +90,7 @@ describe('SVG id namespacing', function () {
         $out = $this->svg->namespaceIds($svg, 'p/f.svg');
         preg_match('/<title id="([^"]+)"/', $out, $t);
         preg_match('/<desc id="([^"]+)"/', $out, $d);
-        expect($out)->toContain('aria-labelledby="' . $t[1] . ' ' . $d[1] . '"');
+        expect($out)->toContain('aria-labelledby="'.$t[1].' '.$d[1].'"');
     });
 
     it('rewrites aria-describedby', function () {
@@ -98,7 +98,7 @@ describe('SVG id namespacing', function () {
 
         $out = $this->svg->namespaceIds($svg, 'p/f.svg');
         preg_match('/<desc id="([^"]+)"/', $out, $d);
-        expect($out)->toContain('aria-describedby="' . $d[1] . '"');
+        expect($out)->toContain('aria-describedby="'.$d[1].'"');
     });
 
     it('leaves a reference to an id the document does not define alone', function () {
@@ -122,7 +122,7 @@ describe('SVG id namespacing', function () {
 
         $out = $this->svg->sanitize($this->svg->namespaceIds($svg, 'p/f.svg'));
         preg_match('/id="([^"]+)"/', $out, $id);
-        expect($out)->toContain('href="#' . $id[1] . '"');
+        expect($out)->toContain('href="#'.$id[1].'"');
     });
 
     it('is a no-op on a document with no ids', function () {

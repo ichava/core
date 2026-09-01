@@ -4,20 +4,18 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Exception;
 use Carbon\Carbon;
-
-use function Laravel\Prompts\info;
-use function Laravel\Prompts\note;
-use function Laravel\Prompts\text;
-use function Laravel\Prompts\intro;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\table;
-
+use Exception;
 use Illuminate\Support\Facades\File;
 
-use function Laravel\Prompts\warning;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\outro;
 use function Laravel\Prompts\progress;
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\text;
+use function Laravel\Prompts\warning;
 
 /**
  * Removes Ichava log files older than the configured retention period.
@@ -54,9 +52,9 @@ class CleanupIchavaLogsCommand extends BaseCommand
 
         // Find all Ichava log files (ichava-*.log, ichava-icons-*.log, ichava-queue-*.log)
         $logFiles = array_merge(
-            File::glob($logPath . '/ichava-*.log'),
-            File::glob($logPath . '/ichava-icons-*.log'),
-            File::glob($logPath . '/ichava-queue-*.log'),
+            File::glob($logPath.'/ichava-*.log'),
+            File::glob($logPath.'/ichava-icons-*.log'),
+            File::glob($logPath.'/ichava-queue-*.log'),
         );
 
         // Remove duplicates
@@ -112,11 +110,11 @@ class CleanupIchavaLogsCommand extends BaseCommand
     protected function processLogFiles(array $logFiles, Carbon $cutoffDate, bool $dryRun): array
     {
         $stats = [
-            'total'   => count($logFiles),
+            'total' => count($logFiles),
             'deleted' => 0,
-            'failed'  => 0,
-            'kept'    => 0,
-            'files'   => [],
+            'failed' => 0,
+            'kept' => 0,
+            'files' => [],
         ];
 
         // Use progress bar for better UX
@@ -130,8 +128,8 @@ class CleanupIchavaLogsCommand extends BaseCommand
                 $age = $fileDate->diffInDays(now());
 
                 $result = [
-                    'file'   => $fileName,
-                    'age'    => $age,
+                    'file' => $fileName,
+                    'age' => $age,
                     'action' => 'kept',
                 ];
 
@@ -190,10 +188,10 @@ class CleanupIchavaLogsCommand extends BaseCommand
                 $file['file'],
                 "{$file['age']} days",
                 match ($file['action']) {
-                    'deleted'      => '✅ Deleted',
+                    'deleted' => '✅ Deleted',
                     'would_delete' => '🔍 Would delete',
-                    'failed'       => '❌ Failed',
-                    default        => '⏭️ Kept',
+                    'failed' => '❌ Failed',
+                    default => '⏭️ Kept',
                 },
             ], $stats['files']);
 

@@ -14,15 +14,15 @@ interface IconDriverInterface
     /**
      * Render an icon as SVG string
      *
-     * @param string $name Icon name
-     * @param array $attributes HTML attributes
+     * @param  string  $name  Icon name
+     * @param  array  $attributes  HTML attributes
      */
     public function render(string $name, array $attributes = []): string;
 
     /**
      * Check if an icon exists
      *
-     * @param string $name Icon name
+     * @param  string  $name  Icon name
      */
     public function has(string $name): bool;
 

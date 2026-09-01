@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use function Laravel\Prompts\note;
-use function Laravel\Prompts\spin;
-use function Laravel\Prompts\intro;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\table;
-
 use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
+
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\table;
 
 /**
  * Reports which registered icon packs are behind their upstream source.
@@ -126,11 +126,11 @@ final class CheckIconUpdatesCommand extends BaseCommand
     protected static function statusBadge(string $status): string
     {
         return match ($status) {
-            'up-to-date'       => '<fg=green>up-to-date</fg=green>',
+            'up-to-date' => '<fg=green>up-to-date</fg=green>',
             'update-available' => '<fg=yellow>update-available</fg=yellow>',
-            'unreachable'      => '<fg=red>unreachable</fg=red>',
-            'no-upstream'      => '<fg=gray>no-upstream</fg=gray>',
-            default            => "<fg=red>{$status}</fg=red>",
+            'unreachable' => '<fg=red>unreachable</fg=red>',
+            'no-upstream' => '<fg=gray>no-upstream</fg=gray>',
+            default => "<fg=red>{$status}</fg=red>",
         };
     }
 }

@@ -6,29 +6,26 @@ namespace Simtabi\Laranail\Ichava\Commands;
 
 use Closure;
 use Exception;
-use RuntimeException;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Prompts\Progress;
-
-use function Laravel\Prompts\info;
-use function Laravel\Prompts\note;
-use function Laravel\Prompts\spin;
-use function Laravel\Prompts\text;
-use function Laravel\Prompts\error;
-use function Laravel\Prompts\intro;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\table;
-use function Laravel\Prompts\select;
-
-use Illuminate\Support\Facades\File;
+use RuntimeException;
+use Simtabi\Laranail\Console\Tools\Commands\Command;
 
 use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\warning;
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\outro;
 use function Laravel\Prompts\progress;
-
-use Illuminate\Support\Facades\Schema;
-use Simtabi\Laranail\Console\Tools\Commands\Command;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\text;
+use function Laravel\Prompts\warning;
 
 /**
  * Base command for all Ichava Artisan commands
@@ -91,7 +88,7 @@ abstract class BaseCommand extends Command
     protected function displayElapsedTime(): void
     {
         $elapsed = $this->getElapsedMs();
-        info('⏱️  Completed in ' . round($elapsed, 2) . 'ms');
+        info('⏱️  Completed in '.round($elapsed, 2).'ms');
     }
 
     /**
@@ -103,7 +100,7 @@ abstract class BaseCommand extends Command
         $power = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
         $power = min($power, count($units) - 1);
 
-        return number_format($bytes / (1024 ** $power), 2) . ' ' . $units[$power];
+        return number_format($bytes / (1024 ** $power), 2).' '.$units[$power];
     }
 
     /**
@@ -134,7 +131,7 @@ abstract class BaseCommand extends Command
     protected function formatMs(float $ms): string
     {
         if ($ms < 1000) {
-            return round($ms, 2) . 'ms';
+            return round($ms, 2).'ms';
         }
 
         return $this->formatDuration((int) ($ms / 1000));
@@ -148,8 +145,8 @@ abstract class BaseCommand extends Command
         $filled = (int) round($percent / (100 / $width));
         $empty = $width - $filled;
 
-        return '<fg=green>' . str_repeat('█', $filled) . '</>' .
-               '<fg=gray>' . str_repeat('░', $empty) . '</>';
+        return '<fg=green>'.str_repeat('█', $filled).'</>'.
+               '<fg=gray>'.str_repeat('░', $empty).'</>';
     }
 
     /**
@@ -249,13 +246,13 @@ abstract class BaseCommand extends Command
     {
         return match (Str::lower($status)) {
             'processing', 'running', 'in_progress' => '<fg=yellow>⏳ Processing</>',
-            'completed', 'done', 'success'         => '<fg=green>✅ Completed</>',
-            'failed', 'error'                      => '<fg=red>❌ Failed</>',
-            'pending', 'queued'                    => '<fg=blue>⏸️  Pending</>',
-            'skipped'                              => '<fg=gray>⏭️  Skipped</>',
-            'active'                               => '<fg=green>● Active</>',
-            'inactive'                             => '<fg=gray>○ Inactive</>',
-            default                                => '<fg=gray>Unknown</>',
+            'completed', 'done', 'success' => '<fg=green>✅ Completed</>',
+            'failed', 'error' => '<fg=red>❌ Failed</>',
+            'pending', 'queued' => '<fg=blue>⏸️  Pending</>',
+            'skipped' => '<fg=gray>⏭️  Skipped</>',
+            'active' => '<fg=green>● Active</>',
+            'inactive' => '<fg=gray>○ Inactive</>',
+            default => '<fg=gray>Unknown</>',
         };
     }
 
@@ -266,7 +263,7 @@ abstract class BaseCommand extends Command
     {
         $icon = $status ? '<fg=green>✓</fg=green>' : '<fg=red>✗</fg=red>';
         $statusText = $status ? '<fg=green>OK</fg=green>' : '<fg=red>NOT READY</fg=red>';
-        $this->line("  {$icon} <fg=white>" . str_pad($label . ':', $labelWidth) . "</fg=white> {$statusText}");
+        $this->line("  {$icon} <fg=white>".str_pad($label.':', $labelWidth)."</fg=white> {$statusText}");
     }
 
     /**
@@ -359,9 +356,8 @@ abstract class BaseCommand extends Command
      * @template TKey
      * @template TValue
      *
-     * @param iterable<TKey, TValue> $items
-     * @param callable(TValue, Progress<TKey, TValue>): mixed $callback
-     *
+     * @param  iterable<TKey, TValue>  $items
+     * @param  callable(TValue, Progress<TKey, TValue>): mixed  $callback
      * @return array<TKey, mixed>
      */
     protected function withProgress(string $label, iterable $items, callable $callback, ?string $hint = null): array
@@ -380,7 +376,7 @@ abstract class BaseCommand extends Command
     protected function handleInvalidAction(string $action, array $validActions): int
     {
         error("Invalid action: {$action}");
-        note('Valid actions: ' . implode(', ', $validActions));
+        note('Valid actions: '.implode(', ', $validActions));
 
         // Offer to select a valid action
         if (! $this->isQuiet()) {
@@ -408,7 +404,7 @@ abstract class BaseCommand extends Command
     protected function handleInvalidType(string $type, array $validTypes): int
     {
         error("Invalid type: {$type}");
-        note('Valid types: ' . implode(', ', $validTypes));
+        note('Valid types: '.implode(', ', $validTypes));
 
         // Offer to select a valid type
         if (! $this->isQuiet()) {
@@ -520,7 +516,7 @@ abstract class BaseCommand extends Command
     {
         if (! $this->ichavaTablesExist()) {
             $missing = $this->getMissingIchavaTables();
-            $this->failure('Required tables do not exist: ' . implode(', ', $missing));
+            $this->failure('Required tables do not exist: '.implode(', ', $missing));
             $this->tip('Run migrations first: php artisan ichava:database migrate');
 
             return false;
@@ -539,7 +535,7 @@ abstract class BaseCommand extends Command
         }
 
         // Try to show the end of the path (more relevant)
-        return '...' . substr($path, -($maxLength - 3));
+        return '...'.substr($path, -($maxLength - 3));
     }
 
     /**
@@ -579,11 +575,11 @@ abstract class BaseCommand extends Command
     {
         if (! $this->isQuiet()) {
             match ($type) {
-                'info'    => info($message),
-                'warn'    => warning($message),
-                'error'   => error($message),
+                'info' => info($message),
+                'warn' => warning($message),
+                'error' => error($message),
                 'comment' => $this->comment($message),
-                default   => $this->line($message),
+                default => $this->line($message),
             };
         }
     }
@@ -595,11 +591,11 @@ abstract class BaseCommand extends Command
     {
         if ($this->isVerbose()) {
             match ($type) {
-                'info'    => info($message),
-                'warn'    => warning($message),
-                'error'   => error($message),
+                'info' => info($message),
+                'warn' => warning($message),
+                'error' => error($message),
                 'comment' => $this->comment($message),
-                default   => $this->line($message),
+                default => $this->line($message),
             };
         }
     }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
-use DOMNode;
-use DOMElement;
 use DOMDocument;
+use DOMElement;
+use DOMNode;
 use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;

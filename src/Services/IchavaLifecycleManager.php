@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Throwable;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 /**
  * Tracks the four-stage initialization lifecycle (uninitialized → migrated →
@@ -175,9 +175,8 @@ class IchavaLifecycleManager
     /**
      * Wait for Ichava to be ready (for tests/commands)
      *
-     * @param int $maxAttempts Maximum attempts to check
-     * @param int $delayMs Delay between checks in milliseconds
-     *
+     * @param  int  $maxAttempts  Maximum attempts to check
+     * @param  int  $delayMs  Delay between checks in milliseconds
      * @return bool True if ready, false if timeout
      */
     public function waitUntilReady(int $maxAttempts = 30, int $delayMs = 1000): bool

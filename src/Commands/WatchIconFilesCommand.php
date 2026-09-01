@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
+use Simtabi\Laranail\Ichava\Services\IconWatcherService;
+
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
+use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\warning;
-
-use Simtabi\Laranail\Ichava\Services\IconWatcherService;
 
 /**
  * Watch Icon Files Command

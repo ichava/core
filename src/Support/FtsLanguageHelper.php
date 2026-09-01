@@ -127,12 +127,12 @@ final class FtsLanguageHelper
     public static function getSearchScope(): array
     {
         return config('ichava.core.database.search.scope', [
-            'icon_name'    => true,
-            'keywords'     => true,
-            'tags'         => true,
-            'categories'   => true,
-            'variants'     => true,
-            'metadata'     => true,
+            'icon_name' => true,
+            'keywords' => true,
+            'tags' => true,
+            'categories' => true,
+            'variants' => true,
+            'metadata' => true,
             'package_name' => false,
         ]);
     }
@@ -230,7 +230,7 @@ final class FtsLanguageHelper
             $languages,
         );
 
-        return '(' . implode(' OR ', $conditions) . ')';
+        return '('.implode(' OR ', $conditions).')';
     }
 
     /**
@@ -252,7 +252,7 @@ final class FtsLanguageHelper
             $languages,
         );
 
-        return '(' . implode(' OR ', $conditions) . ')';
+        return '('.implode(' OR ', $conditions).')';
     }
 
     /**
@@ -280,13 +280,13 @@ final class FtsLanguageHelper
 
             return [
                 'language' => $language,
-                'input'    => 'running quickly',
-                'tokens'   => $result->tokens ?? null,
+                'input' => 'running quickly',
+                'tokens' => $result->tokens ?? null,
             ];
         } catch (Exception $e) {
             return [
                 'language' => $language,
-                'error'    => $e->getMessage(),
+                'error' => $e->getMessage(),
             ];
         }
     }

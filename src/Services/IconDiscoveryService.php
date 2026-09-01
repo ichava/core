@@ -6,12 +6,12 @@ namespace Simtabi\Laranail\Ichava\Services;
 
 use Generator;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
-use RecursiveIteratorIterator;
-use RecursiveDirectoryIterator;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Simtabi\Laranail\Ichava\Models\Icon;
 
 /**
@@ -44,7 +44,7 @@ class IconDiscoveryService
     public function discoverInstalledPackages(): array
     {
         return Cache::remember(
-            self::CACHE_PREFIX . '.installed',
+            self::CACHE_PREFIX.'.installed',
             self::CACHE_DURATION,
             fn () => $this->scanComposerLock(),
         );
@@ -98,7 +98,7 @@ class IconDiscoveryService
     public function getPackages(): array
     {
         $registryPackages = $this->registry->all();
-        $cacheKey = self::CACHE_PREFIX . '.packages.' . md5(serialize($registryPackages));
+        $cacheKey = self::CACHE_PREFIX.'.packages.'.md5(serialize($registryPackages));
 
         return $this->remember($cacheKey, self::CACHE_DURATION, function () use ($registryPackages) {
             $packages = [];
@@ -108,14 +108,14 @@ class IconDiscoveryService
                 $iconCount = $this->getIconCount($metadata['base_path']);
 
                 $packages[$packageName] = array_merge($metadata, [
-                    'alias'       => $metadata['icon_set_name'],
-                    'name'        => $metadata['browser_metadata']['name'] ?? $metadata['icon_set_name'],
-                    'vendor'      => $metadata['browser_metadata']['vendor'] ?? 'ichava',
-                    'package'     => $packageName,
-                    'path'        => $metadata['base_path'],
+                    'alias' => $metadata['icon_set_name'],
+                    'name' => $metadata['browser_metadata']['name'] ?? $metadata['icon_set_name'],
+                    'vendor' => $metadata['browser_metadata']['vendor'] ?? 'ichava',
+                    'package' => $packageName,
+                    'path' => $metadata['base_path'],
                     'description' => $metadata['browser_metadata']['description'] ?? '',
-                    'icons'       => [], // Don't load all icons upfront
-                    'total'       => $iconCount,
+                    'icons' => [], // Don't load all icons upfront
+                    'total' => $iconCount,
                 ]);
             }
 
@@ -179,7 +179,7 @@ class IconDiscoveryService
     public function getAllCategories(): array
     {
         $packages = $this->packages();
-        $cacheKey = self::CACHE_PREFIX . '.categories.' . md5(serialize(array_keys($packages)));
+        $cacheKey = self::CACHE_PREFIX.'.categories.'.md5(serialize(array_keys($packages)));
 
         return $this->remember($cacheKey, self::CACHE_DURATION, function () use ($packages) {
             $categories = [];
@@ -241,14 +241,14 @@ class IconDiscoveryService
     {
         $packageData = $this->getPackage($package);
         $prefix = $packageData['prefix'] ?? $package;
-        $iconName = $prefix . ':' . $name;
+        $iconName = $prefix.':'.$name;
 
         if ($variant) {
-            $iconName .= ':' . $variant;
+            $iconName .= ':'.$variant;
         }
 
         return [
-            'helper'    => "ichava('{$iconName}')",
+            'helper' => "ichava('{$iconName}')",
             'directive' => "@ichava('{$iconName}')",
             'component' => $packageData['blade_component']
                 ? "<x-{$packageData['blade_component']} name=\"{$name}\" />"
@@ -272,7 +272,7 @@ class IconDiscoveryService
             $totalIcons += $packageTotal;
 
             $byPackage[$packageKey] = [
-                'name'  => $package['browser_metadata']['name'] ?? $packageKey,
+                'name' => $package['browser_metadata']['name'] ?? $packageKey,
                 'total' => $packageTotal,
             ];
 
@@ -282,13 +282,13 @@ class IconDiscoveryService
         }
 
         return [
-            'total_packages'    => count($packages),
-            'total_icons'       => $totalIcons,
-            'icons_by_package'  => $byPackage,
+            'total_packages' => count($packages),
+            'total_icons' => $totalIcons,
+            'icons_by_package' => $byPackage,
             'icons_by_category' => $byCategory,
-            'registered'        => array_keys($packages),
-            'installed'         => count($this->discoverInstalledPackages()),
-            'unregistered'      => count($this->getUnregisteredPackages()),
+            'registered' => array_keys($packages),
+            'installed' => count($this->discoverInstalledPackages()),
+            'unregistered' => count($this->getUnregisteredPackages()),
         ];
     }
 
@@ -297,11 +297,11 @@ class IconDiscoveryService
      */
     public function clearCache(): void
     {
-        Cache::forget(self::CACHE_PREFIX . '.installed');
+        Cache::forget(self::CACHE_PREFIX.'.installed');
 
         // Clear package caches
         $packages = $this->registry->all();
-        $cacheKey = self::CACHE_PREFIX . '.packages.' . md5(serialize($packages));
+        $cacheKey = self::CACHE_PREFIX.'.packages.'.md5(serialize($packages));
         Cache::forget($cacheKey);
     }
 
@@ -314,10 +314,10 @@ class IconDiscoveryService
         $unregistered = $this->getUnregisteredPackages();
 
         return [
-            'total_discovered'   => $stats['installed'],
-            'total_registered'   => $stats['total_packages'],
+            'total_discovered' => $stats['installed'],
+            'total_registered' => $stats['total_packages'],
             'total_unregistered' => $stats['unregistered'],
-            'unregistered_list'  => array_column($unregistered, 'name'),
+            'unregistered_list' => array_column($unregistered, 'name'),
         ];
     }
 
@@ -331,7 +331,7 @@ class IconDiscoveryService
     {
         // For testing purposes, we can manually add to cache
         // In production, packages register via IconRegistry automatically
-        $cacheKey = self::CACHE_PREFIX . '.manual.' . $alias;
+        $cacheKey = self::CACHE_PREFIX.'.manual.'.$alias;
         Cache::put($cacheKey, $metadata, self::CACHE_DURATION);
     }
 
@@ -371,12 +371,12 @@ class IconDiscoveryService
             }
 
             $ichavaPackages[] = [
-                'name'        => $name,
-                'version'     => $package['version'] ?? 'unknown',
+                'name' => $name,
+                'version' => $package['version'] ?? 'unknown',
                 'description' => $package['description'] ?? '',
-                'homepage'    => $package['homepage'] ?? null,
-                'type'        => $package['type'] ?? 'library',
-                'time'        => $package['time'] ?? null,
+                'homepage' => $package['homepage'] ?? null,
+                'type' => $package['type'] ?? 'library',
+                'time' => $package['time'] ?? null,
             ];
         }
 
@@ -399,7 +399,7 @@ class IconDiscoveryService
             $this->cache->updateDirectoryFingerprint($basePath);
         }
 
-        $manifestKey = self::CACHE_PREFIX . '.manifest.' . md5($basePath);
+        $manifestKey = self::CACHE_PREFIX.'.manifest.'.md5($basePath);
 
         // rememberForever on the file driver so the manifest survives across requests.
         return (int) cache()
@@ -464,7 +464,7 @@ class IconDiscoveryService
         string $sortDirection,
     ): array {
         // Use Redis cache for super-fast repeated searches
-        $cacheKey = 'icons.search.db.' . md5(serialize(func_get_args()));
+        $cacheKey = 'icons.search.db.'.md5(serialize(func_get_args()));
 
         return $this->cache->remember($cacheKey, function () use ($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection) {
             return $this->executeSearchQuery($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection);
@@ -525,24 +525,24 @@ class IconDiscoveryService
             $packageData = $allPackages[$icon->package] ?? [];
 
             return [
-                'package'      => $icon->package,
+                'package' => $icon->package,
                 'package_name' => $packageData['name'] ?? $icon->package,
-                'set'          => $icon->package,
-                'name'         => $icon->name,
-                'category'     => $icon->category,
-                'variant'      => $icon->variant,
-                'path'         => $icon->path,
-                'icon_path'    => $icon->getIconPath(),
-                'syntax'       => $this->getIconSyntax($icon->package, $icon->name, $icon->variant),
-                'svg_content'  => null, // Deferred rendering
+                'set' => $icon->package,
+                'name' => $icon->name,
+                'category' => $icon->category,
+                'variant' => $icon->variant,
+                'path' => $icon->path,
+                'icon_path' => $icon->getIconPath(),
+                'syntax' => $this->getIconSyntax($icon->package, $icon->name, $icon->variant),
+                'svg_content' => null, // Deferred rendering
             ];
         })->toArray();
 
         return [
-            'items'     => $items,
-            'total'     => $total,
-            'page'      => $page,
-            'per_page'  => $perPage,
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
             'last_page' => (int) ceil($total / $perPage),
         ];
     }
@@ -559,7 +559,7 @@ class IconDiscoveryService
         string $sortBy,
         string $sortDirection,
     ): array {
-        $cacheKey = self::CACHE_PREFIX . '.search.' . md5(serialize(func_get_args()));
+        $cacheKey = self::CACHE_PREFIX.'.search.'.md5(serialize(func_get_args()));
 
         return $this->remember($cacheKey, 300, function () use ($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection) {
             $allPackages = $this->getPackages();
@@ -596,23 +596,23 @@ class IconDiscoveryService
                     // Only collect if page not full yet
                     if ($collected < $perPage) {
                         // Build the icon path for rendering (vendor/package::category/icon-name)
-                        $iconPath = $packageKey . '::';
+                        $iconPath = $packageKey.'::';
                         if (! empty($iconData['category'])) {
-                            $iconPath .= $iconData['category'] . '/';
+                            $iconPath .= $iconData['category'].'/';
                         }
                         $iconPath .= $iconData['name'];
 
                         // Collect icon data (defer SVG rendering to reduce memory/processing)
                         $items[] = [
-                            'package'      => $packageKey,
+                            'package' => $packageKey,
                             'package_name' => $packageData['name'],
-                            'set'          => $packageKey,
-                            'name'         => $iconData['name'],
-                            'category'     => $iconData['category'],
-                            'variant'      => $iconData['variant'],
-                            'path'         => $iconData['path'],
-                            'icon_path'    => $iconPath, // Simple string path for ichava() helper
-                            'syntax'       => $this->getIconSyntax($packageKey, $iconData['name'], $iconData['variant']),
+                            'set' => $packageKey,
+                            'name' => $iconData['name'],
+                            'category' => $iconData['category'],
+                            'variant' => $iconData['variant'],
+                            'path' => $iconData['path'],
+                            'icon_path' => $iconPath, // Simple string path for ichava() helper
+                            'syntax' => $this->getIconSyntax($packageKey, $iconData['name'], $iconData['variant']),
                             // Defer SVG loading - render only when displayed
                             'svg_content' => null,
                         ];
@@ -629,10 +629,10 @@ class IconDiscoveryService
             $items = $this->sortIcons($items, $sortBy, $sortDirection);
 
             return [
-                'items'     => $items,
-                'total'     => $total,
-                'page'      => $page,
-                'per_page'  => $perPage,
+                'items' => $items,
+                'total' => $total,
+                'page' => $page,
+                'per_page' => $perPage,
                 'last_page' => (int) ceil($total / $perPage),
             ];
         });
@@ -641,15 +641,15 @@ class IconDiscoveryService
     /**
      * Sort icons by specified field and direction
      *
-     * @param string $sortBy name, package, category
-     * @param string $sortDirection asc, desc
+     * @param  string  $sortBy  name, package, category
+     * @param  string  $sortDirection  asc, desc
      */
     protected function sortIcons(array $icons, string $sortBy, string $sortDirection): array
     {
         $sortField = match ($sortBy) {
-            'package'  => 'package_name',
+            'package' => 'package_name',
             'category' => 'category',
-            default    => 'name',
+            default => 'name',
         };
 
         usort($icons, function ($a, $b) use ($sortField, $sortDirection) {
@@ -685,7 +685,7 @@ class IconDiscoveryService
                 continue;
             }
 
-            $relativePath = Str::after($file->getPathname(), $basePath . DIRECTORY_SEPARATOR);
+            $relativePath = Str::after($file->getPathname(), $basePath.DIRECTORY_SEPARATOR);
             $parts = explode(DIRECTORY_SEPARATOR, $relativePath);
             $filename = array_pop($parts);
             $name = pathinfo($filename, PATHINFO_FILENAME);
@@ -696,11 +696,11 @@ class IconDiscoveryService
             $category = count($parts) > 0 ? implode('/', $parts) : null;
 
             yield [
-                'name'     => $name,
-                'variant'  => null, // Variants are handled by icon set configuration
+                'name' => $name,
+                'variant' => null, // Variants are handled by icon set configuration
                 'category' => $category,
-                'path'     => $file->getPathname(),
-                'set'      => $packageName,
+                'path' => $file->getPathname(),
+                'set' => $packageName,
             ];
         }
     }
@@ -712,7 +712,7 @@ class IconDiscoveryService
     {
         // Apply search filter
         if (! empty($query)) {
-            $searchIn = Str::lower($iconData['name'] . ' ' . ($iconData['category'] ?? ''));
+            $searchIn = Str::lower($iconData['name'].' '.($iconData['category'] ?? ''));
             if (! Str::contains($searchIn, Str::lower($query))) {
                 return false;
             }
@@ -754,7 +754,7 @@ class IconDiscoveryService
 
                 // Hierarchical match: check if icon is in a subcategory
                 // e.g., filter "brand-logos" matches icon in "brand-logos/social"
-                if (Str::startsWith($iconCategory, $filterCategory . '/')) {
+                if (Str::startsWith($iconCategory, $filterCategory.'/')) {
                     $matched = true;
                     break;
                 }
@@ -782,7 +782,7 @@ class IconDiscoveryService
             return $folders;
         }
 
-        $currentPath = $relativePath ? $basePath . '/' . $relativePath : $basePath;
+        $currentPath = $relativePath ? $basePath.'/'.$relativePath : $basePath;
 
         if (! File::isDirectory($currentPath)) {
             return $folders;
@@ -800,13 +800,13 @@ class IconDiscoveryService
                     continue;
                 }
 
-                $itemPath = $currentPath . '/' . $item;
+                $itemPath = $currentPath.'/'.$item;
 
                 if (! File::isDirectory($itemPath)) {
                     continue;
                 }
 
-                $newRelativePath = $relativePath ? $relativePath . '/' . $item : $item;
+                $newRelativePath = $relativePath ? $relativePath.'/'.$item : $item;
                 $parts = explode('/', $newRelativePath);
                 $displayName = Str::ucfirst(str_replace(['-', '_'], ' ', end($parts)));
 
@@ -816,14 +816,14 @@ class IconDiscoveryService
 
                 if ($iconCount > 0) {
                     $folders[] = [
-                        'name'         => $item,
+                        'name' => $item,
                         'display_name' => $displayName,
-                        'path'         => $newRelativePath,
-                        'package'      => $packageKey,
-                        'depth'        => $depth,
-                        'parent'       => $relativePath ?: null,
-                        'full_path'    => $itemPath,
-                        'icon_count'   => $iconCount,
+                        'path' => $newRelativePath,
+                        'package' => $packageKey,
+                        'depth' => $depth,
+                        'parent' => $relativePath ?: null,
+                        'full_path' => $itemPath,
+                        'icon_count' => $iconCount,
                         'has_children' => $hasSubdirs,
                     ];
                 }
@@ -892,7 +892,7 @@ class IconDiscoveryService
                     continue;
                 }
 
-                if (File::isDirectory($directory . '/' . $item)) {
+                if (File::isDirectory($directory.'/'.$item)) {
                     return true;
                 }
             }
@@ -922,8 +922,8 @@ class IconDiscoveryService
     /**
      * Scan icon directory for SVG files
      *
-     * @param string $basePath Base path to scan
-     * @param int $limit Maximum number of icons to scan (0 = unlimited)
+     * @param  string  $basePath  Base path to scan
+     * @param  int  $limit  Maximum number of icons to scan (0 = unlimited)
      */
     protected function scanIconDirectory(string $basePath, int $limit = 100): array
     {
@@ -944,7 +944,7 @@ class IconDiscoveryService
                 continue;
             }
 
-            $relativePath = str_replace($basePath . '/', '', $file->getPathname());
+            $relativePath = str_replace($basePath.'/', '', $file->getPathname());
             $parts = explode('/', $relativePath);
             $filename = array_pop($parts);
             $name = pathinfo($filename, PATHINFO_FILENAME);
@@ -955,10 +955,10 @@ class IconDiscoveryService
             $category = count($parts) > 0 ? implode('/', $parts) : null;
 
             $icons[] = [
-                'name'     => $name,
-                'variant'  => null, // Variants are handled by icon set configuration
+                'name' => $name,
+                'variant' => null, // Variants are handled by icon set configuration
                 'category' => $category,
-                'path'     => $file->getPathname(),
+                'path' => $file->getPathname(),
             ];
 
             $count++;

@@ -225,8 +225,7 @@ final class IchavaConstants
      *
      * Returns longer TTL for production, shorter for development.
      *
-     * @param string|null $environment Laravel environment name
-     *
+     * @param  string|null  $environment  Laravel environment name
      * @return int Cache TTL in seconds
      */
     public static function getCacheTTL(?string $environment = null): int
@@ -259,8 +258,8 @@ final class IchavaConstants
     public static function getPathLimits(): array
     {
         return [
-            'max_length'  => self::MAX_PATH_LENGTH,
-            'max_depth'   => self::MAX_NESTING_DEPTH,
+            'max_length' => self::MAX_PATH_LENGTH,
+            'max_depth' => self::MAX_NESTING_DEPTH,
             'max_segment' => self::MAX_PATH_SEGMENT_LENGTH,
         ];
     }

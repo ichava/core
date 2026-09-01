@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Listeners;
 
 use Exception;
-use Throwable;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
+use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
-use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
-use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
+use Throwable;
 
 /**
  * Seeds icons when a new package is registered.
@@ -87,7 +87,7 @@ class AutoSeedIconsOnRegistration
         $chunkSize = (int) config('ichava.core.database.batch_size', IchavaSeeder::DEFAULT_CHUNK_SIZE);
 
         $this->logger->info("Auto-seeding package: {$packageName}", [
-            'method'     => $useQueue ? 'queue' : 'sync',
+            'method' => $useQueue ? 'queue' : 'sync',
             'chunk_size' => $chunkSize,
         ]);
 
@@ -253,8 +253,8 @@ class AutoSeedIconsOnRegistration
         if ($shouldLog) {
             $this->logger->info('⏭️ Skipping auto-seed - migrations not run yet', [
                 'package' => $packageName,
-                'stage'   => $this->lifecycle->getStage(),
-                'tip'     => 'Run: php artisan migrate',
+                'stage' => $this->lifecycle->getStage(),
+                'tip' => 'Run: php artisan migrate',
             ]);
         }
     }

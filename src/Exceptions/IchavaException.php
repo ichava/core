@@ -28,7 +28,7 @@ class IchavaException extends RuntimeException
     public static function iconSetAlreadyRegistered(string $name): static
     {
         return new static(
-            "Icon set '{$name}' is already registered. " .
+            "Icon set '{$name}' is already registered. ".
             "Use IconRegistry::package('{$name}') to register a different icon set.",
         );
     }
@@ -55,7 +55,7 @@ class IchavaException extends RuntimeException
     public static function missingConfigFile(string $configPath): static
     {
         return new static(
-            "Icon set configuration file not found: '{$configPath}'. " .
+            "Icon set configuration file not found: '{$configPath}'. ".
             'Each icon set must have a config.json file in its directory.',
         );
     }
@@ -78,8 +78,8 @@ class IchavaException extends RuntimeException
         $errorList = implode("\n  - ", $errors);
 
         return new static(
-            "Ichava package configuration failed for '{$providerClass}'.\n\n" .
-            "Missing or invalid configuration:\n  - {$errorList}\n\n" .
+            "Ichava package configuration failed for '{$providerClass}'.\n\n".
+            "Missing or invalid configuration:\n  - {$errorList}\n\n".
             'Fix these issues in your service provider to register this package.',
         );
     }
@@ -90,8 +90,8 @@ class IchavaException extends RuntimeException
     public static function configurationBuildFailed(string $iconSetClass, string $message): static
     {
         return new static(
-            "Icon set configuration build failed for '{$iconSetClass}'.\n\n" .
-            "Error: {$message}\n\n" .
+            "Icon set configuration build failed for '{$iconSetClass}'.\n\n".
+            "Error: {$message}\n\n".
             "Check your icon set's buildConfig() method implementation.",
         );
     }
@@ -102,8 +102,8 @@ class IchavaException extends RuntimeException
     public static function missingMethodImplementation(string $providerClass, string $methodName): static
     {
         return new static(
-            "Ichava package configuration failed for '{$providerClass}'.\n\n" .
-            "Required abstract method not implemented: {$methodName}()\n\n" .
+            "Ichava package configuration failed for '{$providerClass}'.\n\n".
+            "Required abstract method not implemented: {$methodName}()\n\n".
             'Implement this method in your service provider.',
         );
     }
@@ -111,14 +111,14 @@ class IchavaException extends RuntimeException
     /**
      * Invalid icon set class - doesn't implement required interface
      *
-     * @param string $class The class name that failed validation
-     * @param string $expectedInterface The required interface (default: IconSetInterface)
+     * @param  string  $class  The class name that failed validation
+     * @param  string  $expectedInterface  The required interface (default: IconSetInterface)
      */
     public static function invalidIconSetClass(string $class, string $expectedInterface = 'IconSetInterface'): static
     {
         return new static(
-            "Invalid icon set class '{$class}'.\n\n" .
-            "The class does not implement {$expectedInterface}.\n\n" .
+            "Invalid icon set class '{$class}'.\n\n".
+            "The class does not implement {$expectedInterface}.\n\n".
             "Ensure your icon set class implements {$expectedInterface} and provides all required methods (config(), get(), has(), all()).",
         );
     }
@@ -134,7 +134,7 @@ class IchavaException extends RuntimeException
             $message .= " in package '{$package}'";
         }
 
-        return new static($message . '.');
+        return new static($message.'.');
     }
 
     /**
@@ -151,7 +151,7 @@ class IchavaException extends RuntimeException
     public static function invalidIconPath(string $path, string $expectedFormat = 'vendor/package::variant/category/icon'): static
     {
         return new static(
-            "Invalid icon path format: '{$path}'. " .
+            "Invalid icon path format: '{$path}'. ".
             "Expected format: '{$expectedFormat}'. Example: 'ichava/tabler-icons::home'",
         );
     }
@@ -162,7 +162,7 @@ class IchavaException extends RuntimeException
     public static function missingPackageInPath(string $path): static
     {
         return new static(
-            "Icon path must include vendor/package: '{$path}'. " .
+            "Icon path must include vendor/package: '{$path}'. ".
             "Expected format: vendor/package::icon (e.g., 'ichava/tabler-icons::home')",
         );
     }
@@ -173,7 +173,7 @@ class IchavaException extends RuntimeException
     public static function pathTraversalAttempt(string $path): static
     {
         return new static(
-            "Icon path contains path traversal attempt: '{$path}'. " .
+            "Icon path contains path traversal attempt: '{$path}'. ".
             'Path traversal (../) is not allowed for security reasons.',
         );
     }
@@ -186,7 +186,7 @@ class IchavaException extends RuntimeException
         $length = strlen($path);
 
         return new static(
-            "Icon path exceeds maximum length of {$maxLength} characters: {$length} characters. " .
+            "Icon path exceeds maximum length of {$maxLength} characters: {$length} characters. ".
             'Please use a shorter path.',
         );
     }
@@ -197,7 +197,7 @@ class IchavaException extends RuntimeException
     public static function pathTooDeep(string $path, int $maxDepth = 10): static
     {
         return new static(
-            "Icon path has too many nested levels (max {$maxDepth}): '{$path}'. " .
+            "Icon path has too many nested levels (max {$maxDepth}): '{$path}'. ".
             'Please reduce path nesting depth.',
         );
     }
@@ -208,7 +208,7 @@ class IchavaException extends RuntimeException
     public static function invalidIdentifier(string $path): static
     {
         return new static(
-            "Icon path contains invalid vendor or package identifier: '{$path}'. " .
+            "Icon path contains invalid vendor or package identifier: '{$path}'. ".
             'Only alphanumeric characters, dashes, and underscores are allowed.',
         );
     }
@@ -219,8 +219,8 @@ class IchavaException extends RuntimeException
     public static function invalidIconName(string $name): static
     {
         return new static(
-            "Invalid icon name: '{$name}'. " .
-            'Only alphanumeric characters, dashes, underscores, and dots are allowed. ' .
+            "Invalid icon name: '{$name}'. ".
+            'Only alphanumeric characters, dashes, underscores, and dots are allowed. '.
             'If extension is present, it must be .svg',
         );
     }
@@ -231,7 +231,7 @@ class IchavaException extends RuntimeException
     public static function invalidPathSegment(string $segment): static
     {
         return new static(
-            "Invalid path segment: '{$segment}'. " .
+            "Invalid path segment: '{$segment}'. ".
             'Only alphanumeric characters, dashes, and underscores are allowed.',
         );
     }
@@ -290,7 +290,7 @@ class IchavaException extends RuntimeException
     public static function packageNotRegistered(string $packageKey): static
     {
         return new static(
-            "Package '{$packageKey}' is not registered. " .
+            "Package '{$packageKey}' is not registered. ".
             'Register it first using IconRegistry::register().',
         );
     }
@@ -303,8 +303,8 @@ class IchavaException extends RuntimeException
         $fieldList = implode("\n  - ", $missingFields);
 
         return new static(
-            "Package registration failed for '{$packageName}'.\n\n" .
-            "Missing required metadata:\n  - {$fieldList}\n\n" .
+            "Package registration failed for '{$packageName}'.\n\n".
+            "Missing required metadata:\n  - {$fieldList}\n\n".
             "These fields are mandatory. Fix them in your service provider's registerWithIconRegistry() method.",
         );
     }
@@ -315,8 +315,8 @@ class IchavaException extends RuntimeException
     public static function packageClassNotFound(string $packageName, string $className): static
     {
         return new static(
-            "Package registration failed for '{$packageName}'.\n\n" .
-            "Icon set class does not exist: {$className}\n\n" .
+            "Package registration failed for '{$packageName}'.\n\n".
+            "Icon set class does not exist: {$className}\n\n".
             'Ensure the class is properly autoloaded and the namespace is correct.',
         );
     }
@@ -327,8 +327,8 @@ class IchavaException extends RuntimeException
     public static function packagePathNotFound(string $packageName, string $path): static
     {
         return new static(
-            "Package registration failed for '{$packageName}'.\n\n" .
-            "Icon base path does not exist: {$path}\n\n" .
+            "Package registration failed for '{$packageName}'.\n\n".
+            "Icon base path does not exist: {$path}\n\n".
             'Ensure the path is correct and the directory exists.',
         );
     }
@@ -343,8 +343,8 @@ class IchavaException extends RuntimeException
         string $providerClass,
     ): static {
         return new static(
-            "Icon set name conflict: '{$iconSetName}' is already registered by '{$existingPackage}'.\n\n" .
-            "Package '{$newPackage}' cannot reuse that name.\n\n" .
+            "Icon set name conflict: '{$iconSetName}' is already registered by '{$existingPackage}'.\n\n".
+            "Package '{$newPackage}' cannot reuse that name.\n\n".
             "To resolve: change the icon set name in {$providerClass}::getIconSetName(), or remove one of the conflicting packages.",
         );
     }
@@ -357,7 +357,7 @@ class IchavaException extends RuntimeException
         $packageList = implode(', ', $packages);
 
         return new static(
-            "Icon prefix conflict: '{$prefix}' is used by multiple packages: {$packageList}.\n\n" .
+            "Icon prefix conflict: '{$prefix}' is used by multiple packages: {$packageList}.\n\n".
             'Consider using unique prefixes for each package.',
         );
     }
@@ -370,7 +370,7 @@ class IchavaException extends RuntimeException
         $packageList = implode(', ', $packages);
 
         return new static(
-            "Blade component conflict: '{$componentName}' is used by multiple packages: {$packageList}.\n\n" .
+            "Blade component conflict: '{$componentName}' is used by multiple packages: {$packageList}.\n\n".
             'Only one component will be registered. Consider using unique component names.',
         );
     }
@@ -383,7 +383,7 @@ class IchavaException extends RuntimeException
         $packageList = implode("\n  - ", $packages);
 
         return new static(
-            "Package prefix conflict: '{$prefix}' is already used by: {$packageList}.\n\n" .
+            "Package prefix conflict: '{$prefix}' is already used by: {$packageList}.\n\n".
             'Each package must have a unique prefix.',
         );
     }
@@ -396,7 +396,7 @@ class IchavaException extends RuntimeException
         $packageList = implode("\n  - ", $packages);
 
         return new static(
-            "Blade component conflict: '{$componentName}' is already registered by: {$packageList}.\n\n" .
+            "Blade component conflict: '{$componentName}' is already registered by: {$packageList}.\n\n".
             'Each package must have a unique blade component name.',
         );
     }
@@ -407,8 +407,8 @@ class IchavaException extends RuntimeException
     public static function configurationMissingMethod(string $providerClass, string $methodName): static
     {
         return new static(
-            "Configuration method missing in '{$providerClass}'.\n\n" .
-            "Required method '{$methodName}()' is not defined.\n\n" .
+            "Configuration method missing in '{$providerClass}'.\n\n".
+            "Required method '{$methodName}()' is not defined.\n\n".
             'Ensure your provider implements all required methods.',
         );
     }
@@ -443,8 +443,8 @@ class IchavaException extends RuntimeException
     public static function dependencyNotInjected(string $dependency, string $class): static
     {
         return new static(
-            "Dependency not injected in '{$class}'.\n\n" .
-            "Missing: {$dependency}\n\n" .
+            "Dependency not injected in '{$class}'.\n\n".
+            "Missing: {$dependency}\n\n".
             "Ensure {$dependency} is registered as a singleton and all constructor dependencies are wired through the service container.",
         );
     }
@@ -503,7 +503,7 @@ class IchavaException extends RuntimeException
     public static function classNotFound(string $className): static
     {
         return new static(
-            "Class not found: '{$className}'.\n\n" .
+            "Class not found: '{$className}'.\n\n".
             'Ensure the class exists and is properly autoloaded.',
         );
     }
@@ -536,7 +536,7 @@ class IchavaException extends RuntimeException
     public static function invalidPathType(string $path, string $expectedType, string $actualType): static
     {
         return new static(
-            "Invalid path type for '{$path}': expected {$expectedType}, got {$actualType}.\n\n" .
+            "Invalid path type for '{$path}': expected {$expectedType}, got {$actualType}.\n\n".
             'Ensure the path points to the correct resource type.',
         );
     }

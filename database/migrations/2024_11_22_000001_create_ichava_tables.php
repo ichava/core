@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Simtabi\Laranail\Ichava\Models\Icon;
-use Illuminate\Database\Schema\Blueprint;
-use Simtabi\Laranail\Ichava\Support\Helpers;
-use Illuminate\Database\Migrations\Migration;
 use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
+use Simtabi\Laranail\Ichava\Support\Helpers;
 
 /**
  * Create Ichava Icon Tables with Performance Optimizations

@@ -4,49 +4,49 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Providers;
 
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Str;
 use Laravel\Horizon\Horizon;
-use Simtabi\Laranail\Ichava\Ichava;
-use Illuminate\Support\Facades\Blade;
-use Simtabi\Laranail\Ichava\Models\Icon;
-use Illuminate\Console\Scheduling\Schedule;
-use Simtabi\Laranail\Package\Tools\Package;
-use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
-use Simtabi\Laranail\Ichava\Support\AuditLogger;
-use Simtabi\Laranail\Ichava\Commands\InfoCommand;
-use Simtabi\Laranail\Ichava\Facades\IchavaFacade;
-use Simtabi\Laranail\Ichava\Support\IconRenderer;
-use Simtabi\Laranail\Ichava\Support\PathResolver;
 use Simtabi\Laranail\Ichava\Commands\CacheCommand;
-use Simtabi\Laranail\Ichava\Services\IchavaLogger;
-use Simtabi\Laranail\Ichava\Services\IconRegistry;
-use Simtabi\Laranail\Ichava\Support\SecurityNonce;
-use Simtabi\Laranail\Ichava\Services\IconsManifest;
-use Illuminate\Database\Eloquent\Relations\Relation;
-use Simtabi\Laranail\Ichava\Support\ServiceProvider;
-use Simtabi\Laranail\Ichava\Commands\DatabaseCommand;
-use Simtabi\Laranail\Ichava\Commands\JobStatusCommand;
-use Simtabi\Laranail\Ichava\Services\IconCacheService;
-use Simtabi\Laranail\Ichava\Services\IconBrowserService;
-use Simtabi\Laranail\Ichava\Services\IconWatcherService;
-use Simtabi\Laranail\Ichava\Services\InformationService;
-use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
-use Simtabi\Laranail\Ichava\Services\ConfigurationService;
-use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
-use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
-use Simtabi\Laranail\Ichava\Support\DeferredIconsRegistry;
-use Simtabi\Laranail\Ichava\View\Components\IconComponent;
-use Simtabi\Laranail\Ichava\Commands\WatchIconFilesCommand;
-use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
-use Simtabi\Laranail\Ichava\Services\IconPreferenceService;
-use Simtabi\Laranail\Ichava\Commands\MakeIconPackageCommand;
-use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
-use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
 use Simtabi\Laranail\Ichava\Commands\CheckIconUpdatesCommand;
 use Simtabi\Laranail\Ichava\Commands\CleanupIchavaLogsCommand;
+use Simtabi\Laranail\Ichava\Commands\DatabaseCommand;
+use Simtabi\Laranail\Ichava\Commands\InfoCommand;
+use Simtabi\Laranail\Ichava\Commands\JobStatusCommand;
+use Simtabi\Laranail\Ichava\Commands\MakeIconPackageCommand;
+use Simtabi\Laranail\Ichava\Commands\WatchIconFilesCommand;
+use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
+use Simtabi\Laranail\Ichava\Facades\IchavaFacade;
+use Simtabi\Laranail\Ichava\Ichava;
+use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
+use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
-use Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator;
+use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
+use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Services\IconBrowserService;
+use Simtabi\Laranail\Ichava\Services\IconCacheService;
+use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
+use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
+use Simtabi\Laranail\Ichava\Services\IconPreferenceService;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Services\IconsManifest;
+use Simtabi\Laranail\Ichava\Services\IconWatcherService;
+use Simtabi\Laranail\Ichava\Services\InformationService;
+use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
+use Simtabi\Laranail\Ichava\Support\AuditLogger;
+use Simtabi\Laranail\Ichava\Support\DeferredIconsRegistry;
+use Simtabi\Laranail\Ichava\Support\IconRenderer;
+use Simtabi\Laranail\Ichava\Support\PathResolver;
+use Simtabi\Laranail\Ichava\Support\SecurityNonce;
+use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
+use Simtabi\Laranail\Ichava\Support\ServiceProvider;
+use Simtabi\Laranail\Ichava\View\Components\IconComponent;
+use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
+use Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator;
 
 /**
  * IchavaServiceProvider - Core Ecosystem Service Provider
@@ -76,8 +76,8 @@ class IchavaServiceProvider extends PackageServiceProvider
             ->discoversMigrations()
             ->runsMigrations()
             ->hasBladeDirectives([
-                'ichava_defs'      => fn () => "<?php echo app('" . DeferredIconsRegistry::class . "')->renderDefinitions(); ?>",
-                'ichava_csp_nonce' => fn () => "<?php echo app('" . SecurityNonce::class . "')->attribute(); ?>",
+                'ichava_defs' => fn () => "<?php echo app('".DeferredIconsRegistry::class."')->renderDefinitions(); ?>",
+                'ichava_csp_nonce' => fn () => "<?php echo app('".SecurityNonce::class."')->attribute(); ?>",
             ])
             ->hasCommands([
                 // Unified commands (consolidated from multiple separate commands)
@@ -264,38 +264,38 @@ class IchavaServiceProvider extends PackageServiceProvider
 
         // General ichava logs (info level to capture registration, warnings, errors)
         $this->app['config']->set('logging.channels.ichava', [
-            'driver'     => 'daily',
-            'path'       => storage_path('logs/ichava.log'),
-            'level'      => env('ICHAVA_LOG_LEVEL', 'info'),
-            'days'       => $retentionDays,
+            'driver' => 'daily',
+            'path' => storage_path('logs/ichava.log'),
+            'level' => env('ICHAVA_LOG_LEVEL', 'info'),
+            'days' => $retentionDays,
             'permission' => 0644,
         ]);
 
         // Icon seeding logs
         $this->app['config']->set('logging.channels.ichava-icons', [
-            'driver'     => 'daily',
-            'path'       => storage_path('logs/ichava-icons.log'),
-            'level'      => env('ICHAVA_SEEDING_LOG_LEVEL', 'info'),
-            'days'       => $retentionDays,
+            'driver' => 'daily',
+            'path' => storage_path('logs/ichava-icons.log'),
+            'level' => env('ICHAVA_SEEDING_LOG_LEVEL', 'info'),
+            'days' => $retentionDays,
             'permission' => 0644,
         ]);
 
         // Queue job logs
         $this->app['config']->set('logging.channels.ichava-queue', [
-            'driver'     => 'daily',
-            'path'       => storage_path('logs/ichava-queue.log'),
-            'level'      => env('ICHAVA_QUEUE_LOG_LEVEL', 'info'),
-            'days'       => $retentionDays,
+            'driver' => 'daily',
+            'path' => storage_path('logs/ichava-queue.log'),
+            'level' => env('ICHAVA_QUEUE_LOG_LEVEL', 'info'),
+            'days' => $retentionDays,
             'permission' => 0644,
         ]);
 
         // Security audit logs (separate channel so SIEM forwarders can scope
         // their tail without seeing operational noise from ichava.log).
         $this->app['config']->set('logging.channels.ichava-audit', [
-            'driver'     => 'daily',
-            'path'       => storage_path('logs/ichava-audit.log'),
-            'level'      => env('ICHAVA_AUDIT_LOG_LEVEL', 'info'),
-            'days'       => (int) env('ICHAVA_AUDIT_LOG_RETENTION_DAYS', 90),
+            'driver' => 'daily',
+            'path' => storage_path('logs/ichava-audit.log'),
+            'level' => env('ICHAVA_AUDIT_LOG_LEVEL', 'info'),
+            'days' => (int) env('ICHAVA_AUDIT_LOG_RETENTION_DAYS', 90),
             'permission' => 0640,
         ]);
     }
@@ -412,17 +412,17 @@ class IchavaServiceProvider extends PackageServiceProvider
         // Build supervisor configuration with sensible defaults
         // These can be overridden via environment variables
         $supervisorConfig = [
-            'connection'          => env('ICHAVA_HORIZON_CONNECTION', 'redis'),
-            'queue'               => [env('ICHAVA_QUEUE_NAME', 'ichava-icons')],
-            'balance'             => env('ICHAVA_HORIZON_BALANCE', 'simple'),
+            'connection' => env('ICHAVA_HORIZON_CONNECTION', 'redis'),
+            'queue' => [env('ICHAVA_QUEUE_NAME', 'ichava-icons')],
+            'balance' => env('ICHAVA_HORIZON_BALANCE', 'simple'),
             'autoScalingStrategy' => 'time',
-            'maxProcesses'        => (int) env('ICHAVA_HORIZON_MAX_PROCESSES', 3),
-            'maxTime'             => 0,
-            'maxJobs'             => 0,
-            'memory'              => (int) env('ICHAVA_HORIZON_MEMORY', 256),
-            'tries'               => (int) env('ICHAVA_QUEUE_RETRIES', 3),
-            'timeout'             => (int) env('ICHAVA_QUEUE_TIMEOUT', 600),
-            'nice'                => 0,
+            'maxProcesses' => (int) env('ICHAVA_HORIZON_MAX_PROCESSES', 3),
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => (int) env('ICHAVA_HORIZON_MEMORY', 256),
+            'tries' => (int) env('ICHAVA_QUEUE_RETRIES', 3),
+            'timeout' => (int) env('ICHAVA_QUEUE_TIMEOUT', 600),
+            'nice' => 0,
         ];
 
         // Merge into Horizon's defaults and environment config
