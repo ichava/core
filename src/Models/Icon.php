@@ -43,6 +43,7 @@ use Throwable;
  * @property-read string $absolute_path
  * @property-read int|null $file_size
  * @property-read string|null $svg_content
+ * @property-read string $render_version
  * @property-read string $icon_path
  * @property-read IconTerm|null $primary_category
  * @property-read IconTerm|null $primary_variant
@@ -679,6 +680,34 @@ final class Icon extends Model
     }
 
     /**
+     * A token identifying the exact bytes this icon renders to.
+     *
+     * Two inputs, and both are required. The file's own hash covers an upstream
+     * asset refresh; `SvgProcessingService::renderFingerprint()` covers the
+     * policy and pipeline that turn that file into what is actually served. A
+     * URL carrying this token can be cached `immutable` honestly: change either
+     * half and the token changes, so the old URL is simply never requested
+     * again rather than being served stale.
+     *
+     * Falls back to hashing the path when `file_hash` is null, which keeps the
+     * token stable and non-null for rows seeded before hashing existed. Those
+     * rows do not self-invalidate on a content change -- the fallback is a
+     * placeholder, not a content hash -- so seeding should populate
+     * `file_hash`.
+     */
+    protected function renderVersion(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => mb_substr(hash(
+                'sha256',
+                ($this->file_hash ?? md5((string) $this->path))
+                    .'|'
+                    .app(SvgProcessingService::class)->renderFingerprint()
+            ), 0, 16),
+        );
+    }
+
+    /**
      * Get SVG content (cached)
      */
     protected function svgContent(): Attribute
@@ -689,7 +718,17 @@ final class Icon extends Model
                     return null;
                 }
 
-                $cacheKey = 'svg:'.$this->id.':'.($this->file_hash ?? md5($this->path));
+                /*
+                 * Keyed on the render version, not the file hash alone.
+                 *
+                 * The cached value is the *processed* SVG -- ids namespaced,
+                 * sizing normalised, policy applied -- so a file hash does not
+                 * identify it. Widening the allow-list changes every icon while
+                 * leaving every file hash untouched, and the old key would have
+                 * gone on serving bytes produced by a policy that no longer
+                 * existed, making the widening look like it had not worked.
+                 */
+                $cacheKey = 'svg:'.$this->id.':'.$this->render_version;
 
                 /*
                  * Sanitise here, at the single point every consumer reads through.

@@ -41,11 +41,51 @@ final class SvgProcessingService
     use ParsesSvg;
     use SanitizesSvg;
 
+    /**
+     * Bump when a code change alters the bytes this service emits for unchanged
+     * input: the id-prefix scheme, the sizing rules, the parser's recovery
+     * behaviour, an optimizer pass.
+     *
+     * Policy changes do NOT need a bump -- the allow-lists are hashed directly
+     * below, so editing config invalidates on its own. This constant exists for
+     * the changes config cannot see, and it sits in the class whose output it
+     * describes so that a reader changing that output has it in front of them.
+     */
+    public const RENDER_PIPELINE_VERSION = 1;
+
     public function __construct(
         protected OptimizationLevel $optimizationLevel = OptimizationLevel::BASIC,
     ) {
         $this->initializeSanitizer();
         $this->initializeOptimizer();
+    }
+
+    /**
+     * A short, stable digest of everything that decides the output bytes for a
+     * given input file.
+     *
+     * The rendered SVG is not the file on disk: ids are namespaced, sizing is
+     * normalised and the allow-list policy is applied. So a file hash alone does
+     * not identify the response -- widen the policy and every icon changes while
+     * every file hash stays put. Anything keyed on content (an HTTP cache, the
+     * server-side icon cache) needs both halves or it serves bytes produced by a
+     * policy that no longer exists.
+     *
+     * Deliberately not memoised. This service is bound as a singleton, so a
+     * memo would survive a `setAllowedTags()` / `setOptimizationLevel()` call
+     * and hand out a fingerprint for a policy that is no longer in effect --
+     * the precise failure this method exists to prevent. Hashing five short
+     * strings is microseconds; a stale cache key is a year of wrong bytes.
+     */
+    public function renderFingerprint(): string
+    {
+        return mb_substr(hash('sha256', implode('|', [
+            self::RENDER_PIPELINE_VERSION,
+            $this->optimizationLevel->value,
+            json_encode($this->getAllowedTags()),
+            json_encode($this->getAllowedAttributes()),
+            json_encode($this->getForbiddenTags()),
+        ])), 0, 12);
     }
 
     /**
