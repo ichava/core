@@ -499,7 +499,13 @@ final class IconBrowserService
                 'type'       => 'folder',
                 'name'       => $folderName,
                 'label'      => ucwords(str_replace(['-', '_'], ' ', $folderName)),
-                'path'       => $dir,
+                // No 'path' key: $dir is the folder's ABSOLUTE server filesystem
+                // path, and this array is served verbatim as the GET /icons/tree
+                // response body. It was never read back by any consumer -- the
+                // client only ever needs id/name/label/icon_count/children -- so
+                // shipping it was a pure server-filesystem-layout disclosure with
+                // no functional upside. Found while adding the React client's
+                // getTree() normalizer.
                 'icon_count' => $totalIconCount,
                 'package'    => $package,
                 'depth'      => $currentDepth,
