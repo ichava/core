@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Simtabi\Laranail\Ichava\Services\IchavaLogger;
-use Simtabi\Laranail\Ichava\Services\InformationService;
-
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\intro;
 use function Laravel\Prompts\note;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\text;
+use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
+use function Laravel\Prompts\table;
 use function Laravel\Prompts\search;
 use function Laravel\Prompts\select;
-use function Laravel\Prompts\spin;
-use function Laravel\Prompts\table;
-use function Laravel\Prompts\text;
 use function Laravel\Prompts\warning;
+
+use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Services\InformationService;
 
 /**
  * Unified Icon Information Command
@@ -66,12 +66,12 @@ final class InfoCommand extends BaseCommand
             $type = select(
                 label: 'What information would you like to view?',
                 options: [
-                    'stats' => 'Stats - Overview statistics',
-                    'packages' => 'Packages - List registered icon packages',
-                    'icons' => 'Icons - Browse icons',
-                    'status' => 'Status - Lifecycle and health status',
+                    'stats'     => 'Stats - Overview statistics',
+                    'packages'  => 'Packages - List registered icon packages',
+                    'icons'     => 'Icons - Browse icons',
+                    'status'    => 'Status - Lifecycle and health status',
                     'languages' => 'Languages - PostgreSQL FTS languages',
-                    'discover' => 'Discover - Find unregistered packages',
+                    'discover'  => 'Discover - Find unregistered packages',
                 ],
                 default: 'stats',
                 hint: 'Select what to display',
@@ -79,13 +79,13 @@ final class InfoCommand extends BaseCommand
         }
 
         return match ($type) {
-            'packages' => $this->handlePackages(),
-            'icons' => $this->handleIcons(),
-            'status' => $this->handleStatus(),
+            'packages'  => $this->handlePackages(),
+            'icons'     => $this->handleIcons(),
+            'status'    => $this->handleStatus(),
             'languages' => $this->handleLanguages(),
-            'discover' => $this->handleDiscover(),
-            'stats' => $this->handleStats(),
-            default => $this->handleInvalidType($type, $this->validTypes),
+            'discover'  => $this->handleDiscover(),
+            'stats'     => $this->handleStats(),
+            default     => $this->handleInvalidType($type, $this->validTypes),
         };
     }
 
@@ -153,8 +153,8 @@ final class InfoCommand extends BaseCommand
 
         $filters = [
             'package' => $this->option('package'),
-            'search' => $searchTerm,
-            'limit' => (int) $this->option('limit'),
+            'search'  => $searchTerm,
+            'limit'   => (int) $this->option('limit'),
         ];
 
         $icons = spin(
@@ -172,7 +172,7 @@ final class InfoCommand extends BaseCommand
             $this->line(json_encode($icons, JSON_PRETTY_PRINT));
         } else {
             $this->displayIconsTable($icons);
-            note('Showing '.count($icons).' icons. Use --limit to show more.');
+            note('Showing ' . count($icons) . ' icons. Use --limit to show more.');
         }
 
         // Export if requested
@@ -214,14 +214,14 @@ final class InfoCommand extends BaseCommand
 
         // Current stage
         $stageColor = match ($status['stage']) {
-            'READY' => 'green',
-            'SEEDED' => 'yellow',
+            'READY'    => 'green',
+            'SEEDED'   => 'yellow',
             'MIGRATED' => 'yellow',
-            default => 'red',
+            default    => 'red',
         };
 
         $this->line("  <fg=white>Current Stage:</fg=white> <fg={$stageColor}>{$status['stage']}</fg={$stageColor}>");
-        $this->line('  <fg=white>System Ready:</fg=white>  '.($status['is_ready'] ? '<fg=green>YES</fg=green>' : '<fg=red>NO</fg=red>'));
+        $this->line('  <fg=white>System Ready:</fg=white>  ' . ($status['is_ready'] ? '<fg=green>YES</fg=green>' : '<fg=red>NO</fg=red>'));
 
         // Icon count
         if ($status['icon_count'] !== null) {

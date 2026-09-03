@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Models;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use RuntimeException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 /**
  * IconTerm Model - Icon Categories and Variants Taxonomy
@@ -119,7 +119,8 @@ class IconTerm extends Model
     /**
      * Filter terms by category type
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeCategories(Builder $query): Builder
@@ -130,7 +131,8 @@ class IconTerm extends Model
     /**
      * Filter terms by variant type
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeVariants(Builder $query): Builder
@@ -141,8 +143,9 @@ class IconTerm extends Model
     /**
      * Filter terms by package name
      *
-     * @param  Builder<IconTerm>  $query
-     * @param  string  $package  Package identifier
+     * @param Builder<IconTerm> $query
+     * @param string $package Package identifier
+     *
      * @return Builder<IconTerm>
      */
     public function scopeInPackage(Builder $query, string $package): Builder
@@ -158,7 +161,8 @@ class IconTerm extends Model
     /**
      * Order by name alphabetically
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeOrdered(Builder $query): Builder
@@ -169,7 +173,8 @@ class IconTerm extends Model
     /**
      * Filter terms with icon counts
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeWithIconCount(Builder $query): Builder
@@ -180,7 +185,8 @@ class IconTerm extends Model
     /**
      * Filter terms that have icons
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeHasIcons(Builder $query): Builder
@@ -191,12 +197,13 @@ class IconTerm extends Model
     /**
      * Search terms by name or slug
      *
-     * @param  Builder<IconTerm>  $query
+     * @param Builder<IconTerm> $query
+     *
      * @return Builder<IconTerm>
      */
     public function scopeSearch(Builder $query, string $search): Builder
     {
-        $like = '%'.$search.'%';
+        $like = '%' . $search . '%';
 
         return $query->where(function (Builder $q) use ($like): void {
             $q->where('name', 'LIKE', $like)
@@ -316,11 +323,11 @@ class IconTerm extends Model
             // Skip check if both are null (new term with no parent)
             if ($term->parent_id !== null && $term->id !== null && $term->parent_id === $term->id) {
                 app(IchavaLogger::class)->error('Circular reference detected', null, [
-                    'term_id' => $term->id,
+                    'term_id'   => $term->id,
                     'parent_id' => $term->parent_id,
-                    'slug' => $term->slug,
-                    'name' => $term->name,
-                    'package' => $term->package,
+                    'slug'      => $term->slug,
+                    'name'      => $term->name,
+                    'package'   => $term->package,
                 ]);
                 throw new RuntimeException("A term cannot be its own parent (ID: {$term->id}, Slug: {$term->slug})");
             }
@@ -354,7 +361,7 @@ class IconTerm extends Model
         return [
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
-            'parent_id' => 'integer',
+            'parent_id'  => 'integer',
         ];
     }
 }

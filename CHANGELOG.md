@@ -2,6 +2,56 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-09-02
+
+Patch rather than a minor so that consumers on `^0.1` pick it up without a constraint change.
+The additions are new public surface; nothing existing changed shape.
+
+### Added
+
+- `SvgProcessingService::renderFingerprint()` -- a short digest of everything that decides the
+  output bytes for a given input file: the three allow-lists, the optimization level and a
+  `RENDER_PIPELINE_VERSION` constant for code changes config cannot see.
+- `Icon::render_version` -- `file_hash` combined with that fingerprint, identifying the exact
+  bytes an icon renders to.
+
+- `Support\SvgPolicy`, the reader for `resources/security/svg-policy.json` -- the single
+  definition of what survives SVG sanitisation, shipped with the package and read by every
+  runtime rather than duplicated into each one.
+- 26 elements and 23 attributes the shipped policy stripped: `filter` and every `fe*`
+  primitive, `pattern`, `textPath`, `switch`, `metadata`; `stroke-dasharray`,
+  `stroke-dashoffset`, `stroke-miterlimit`, `transform-origin`, `patternUnits`,
+  `patternTransform`, the `font-*` and text-layout attributes, `vector-effect`,
+  `paint-order`, `shape-rendering`.
+
+- An archetype rendering gate (`SvgArchetypeRegressionTest`) over real corpus icons, one per
+  archetype rather than one per pack, with provenance in
+  `tests/fixtures/archetypes/manifest.json`. Three rendering defects accumulated in this
+  subsystem without detection because nothing rendered an icon in CI.
+
+### Changed
+
+- `SanitizesSvg` reads the reference attributes and the fragment pattern from the policy
+  instead of its own constants. They were constants, so emptying `fragmentOnlyRefs` in the
+  policy changed every client and nothing here. Not a hole, since the value check still ran,
+  but it made a section of the policy decorative on the server.
+- `ichava.core.svg.*` now derives from `resources/security/svg-policy.json` instead of
+  being a second list of literals in `config/core.php`. A host can still publish the config
+  and narrow it; what is no longer possible is the two drifting apart by accident. Note
+  `config:cache` freezes the resolved arrays, so a policy edit needs `config:clear`.
+- The SVG cache key is now `svg:{id}:{render_version}` rather than `svg:{id}:{file_hash}`.
+  The cached value is the *processed* SVG -- ids namespaced, sizing normalised, allow-list
+  applied -- so a file hash never identified it: widening the policy changes every icon while
+  every file hash stays put. Existing cache entries are orphaned and repopulate on first read.
+
+### Why
+
+`ichava/browser` serves the SVG endpoint with `Cache-Control: immutable, max-age=31536000`,
+which is a promise that a URL's bytes never change. It could not keep that promise on a URL
+keyed by icon id. `render_version` is the token that makes the URL content-addressed, and it
+has to cover the render policy as well as the file, or the next allow-list widening would ship
+into a year of cached responses produced by the previous policy.
+
 ## [0.1.0] - 2026-08-31
 
 First open-source release. The engine of the Ichava icon ecosystem: registry, models, seeder,

@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
 /**
- * W1-6 item 1 / SEC-1 — `href` and `xlink:href` were stripped unconditionally,
+ * W1-6 item 1 / SEC-1 -- `href` and `xlink:href` were stripped unconditionally,
  * which left `<use>` and `<symbol>` allowed but inert: 126 flag-icons, 5
  * metronic and 130 bundled icons rendered as nothing. A fragment reference
  * cannot fetch, leak or execute, so the policy is fragment-only rather than
@@ -35,19 +35,19 @@ describe('SVG fragment references', function () {
     });
 
     $external = [
-        'absolute' => 'https://evil.test/x.svg#a',
+        'absolute'          => 'https://evil.test/x.svg#a',
         'protocol relative' => '//evil.test/x.svg#a',
-        'relative path' => 'sprite.svg#a',
-        'data uri' => 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
-        'javascript' => 'javascript:alert(1)',
-        'blob' => 'blob:https://evil.test/1234',
-        'empty fragment' => '#',
-        'digit-led id' => '#1nvalid',
+        'relative path'     => 'sprite.svg#a',
+        'data uri'          => 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
+        'javascript'        => 'javascript:alert(1)',
+        'blob'              => 'blob:https://evil.test/1234',
+        'empty fragment'    => '#',
+        'digit-led id'      => '#1nvalid',
     ];
 
     foreach ($external as $label => $value) {
         it("strips a non-fragment href: {$label}", function () use ($value) {
-            $svg = '<svg xmlns="http://www.w3.org/2000/svg"><use href="'.htmlspecialchars($value, ENT_XML1).'"/></svg>';
+            $svg = '<svg xmlns="http://www.w3.org/2000/svg"><use href="' . htmlspecialchars($value, ENT_XML1) . '"/></svg>';
 
             expect($this->sanitizer->sanitize($svg))->not->toContain('href=');
         });

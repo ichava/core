@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Listeners;
 
-use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
-use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
-use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
-use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Throwable;
+use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
+use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
+use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
 
 /**
  * Removes a package's icon rows + orphaned terms when the package unregisters.
@@ -49,7 +49,7 @@ class AutoUnseedOnUnregistration
         if (! $this->lifecycle->hasMigrations()) {
             $this->logger->info('⏭️ Skipping auto-unseed - migrations not run yet', [
                 'package' => $event->name,
-                'stage' => $this->lifecycle->getStage(),
+                'stage'   => $this->lifecycle->getStage(),
             ]);
 
             return;

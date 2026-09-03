@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Event;
-use Simtabi\Laranail\Ichava\Events\SecurityAuditEvent;
 use Simtabi\Laranail\Ichava\Support\AuditLogger;
+use Simtabi\Laranail\Ichava\Events\SecurityAuditEvent;
 
 it('dispatches a SecurityAuditEvent when an audit record is written', function (): void {
     Event::fake([SecurityAuditEvent::class]);

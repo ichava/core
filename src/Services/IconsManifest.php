@@ -34,9 +34,9 @@ final class IconsManifest
         $compiled = [];
         $stats = [
             'total_icons' => 0,
-            'total_sets' => 0,
-            'built_at' => now()->toIso8601String(),
-            'sets' => [],
+            'total_sets'  => 0,
+            'built_at'    => now()->toIso8601String(),
+            'sets'        => [],
         ];
 
         foreach ($registry->sets() as $setName) {
@@ -45,12 +45,12 @@ final class IconsManifest
                 $config = $set->config();
 
                 $icons = [
-                    'name' => $config->name,
-                    'prefix' => $config->prefix ?? $setName,
-                    'path' => $config->path,
-                    'variants' => $config->variants,
+                    'name'       => $config->name,
+                    'prefix'     => $config->prefix ?? $setName,
+                    'path'       => $config->path,
+                    'variants'   => $config->variants,
                     'categories' => [],
-                    'icons' => [],
+                    'icons'      => [],
                 ];
 
                 // Discover all icons
@@ -59,11 +59,11 @@ final class IconsManifest
                 foreach ($allIcons as $icon) {
                     $iconKey = $this->formatIconKey($icon->name, $icon->variant, $icon->category);
                     $icons['icons'][$iconKey] = [
-                        'name' => $icon->name,
-                        'path' => $icon->path,
-                        'variant' => $icon->variant,
+                        'name'     => $icon->name,
+                        'path'     => $icon->path,
+                        'variant'  => $icon->variant,
                         'category' => $icon->category,
-                        'set' => $icon->set,
+                        'set'      => $icon->set,
                     ];
 
                     // Track categories
@@ -78,8 +78,8 @@ final class IconsManifest
                 $stats['total_icons'] += $iconCount;
                 $stats['total_sets']++;
                 $stats['sets'][$setName] = [
-                    'count' => $iconCount,
-                    'variants' => count($config->variants),
+                    'count'      => $iconCount,
+                    'variants'   => count($config->variants),
                     'categories' => count($icons['categories']),
                 ];
 
@@ -111,9 +111,9 @@ final class IconsManifest
         $content .= "// Generated: {$manifest['_stats']['built_at']}\n";
         $content .= "// Total Icons: {$manifest['_stats']['total_icons']}\n";
         $content .= "// Total Sets: {$manifest['_stats']['total_sets']}\n\n";
-        $content .= 'return '.var_export($manifest, true).";\n";
+        $content .= 'return ' . var_export($manifest, true) . ";\n";
 
-        $tempPath = $this->manifestPath.'.tmp.'.bin2hex(random_bytes(4));
+        $tempPath = $this->manifestPath . '.tmp.' . bin2hex(random_bytes(4));
 
         if (! $this->filesystem->put($tempPath, $content)) {
             return false;
