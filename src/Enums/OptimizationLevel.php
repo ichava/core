@@ -17,7 +17,7 @@ enum OptimizationLevel: string
     public function shouldRemoveComments(): bool
     {
         return match ($this) {
-            self::NONE => false,
+            self::NONE                    => false,
             self::BASIC, self::AGGRESSIVE => true,
         };
     }
@@ -26,7 +26,7 @@ enum OptimizationLevel: string
     {
         return match ($this) {
             self::NONE, self::BASIC => false,
-            self::AGGRESSIVE => true,
+            self::AGGRESSIVE        => true,
         };
     }
 
@@ -34,7 +34,7 @@ enum OptimizationLevel: string
     {
         return match ($this) {
             self::NONE, self::BASIC => false,
-            self::AGGRESSIVE => true,
+            self::AGGRESSIVE        => true,
         };
     }
 }

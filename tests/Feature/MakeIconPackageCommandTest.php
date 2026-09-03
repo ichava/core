@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Illuminate\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
+use Illuminate\Filesystem\Filesystem;
 
 /**
  * Feature coverage for `make:icon-package`.
@@ -17,7 +17,7 @@ use Symfony\Component\Finder\Finder;
  *     `JsonConfigConstants::getDefaultVariant()` understands
  */
 beforeEach(function () {
-    $this->scaffoldRoot = sys_get_temp_dir().'/ichava-make-icon-package-'.uniqid();
+    $this->scaffoldRoot = sys_get_temp_dir() . '/ichava-make-icon-package-' . uniqid();
 });
 
 afterEach(function () {
@@ -40,7 +40,7 @@ function leftoverPlaceholders(string $root): array
         // Blade output expressions (`{{ helper('arg') }}`) always include spaces.
         if (preg_match_all('/\{\{[a-zA-Z][a-zA-Z0-9_]*\}\}/', $content, $matches)) {
             foreach ($matches[0] as $match) {
-                $hits[] = $file->getRelativePathname().': '.$match;
+                $hits[] = $file->getRelativePathname() . ': ' . $match;
             }
         }
     }
@@ -51,46 +51,46 @@ function leftoverPlaceholders(string $root): array
 describe('make:icon-package', function () {
     it('scaffolds a complete single-set package with no leftover placeholders', function () {
         $this->artisan('make:icon-package', [
-            'name' => 'Hero',
+            'name'     => 'Hero',
             '--vendor' => 'Acme',
-            '--email' => 'team@acme.test',
+            '--email'  => 'team@acme.test',
             '--prefix' => 'hi',
-            '--type' => 'single',
-            '--path' => $this->scaffoldRoot,
-            '--force' => true,
+            '--type'   => 'single',
+            '--path'   => $this->scaffoldRoot,
+            '--force'  => true,
         ])->assertSuccessful();
 
         // 16 stubs → 16 generated files. Class short names are constants
         // (`IconsServiceProvider`, `IconsConstants`, `Variant`,
         // `IconComponent`, `IconSetTest`), disambiguated by namespace.
         expect(is_dir($this->scaffoldRoot))->toBeTrue();
-        expect(file_exists($this->scaffoldRoot.'/composer.json'))->toBeTrue();
-        expect(file_exists($this->scaffoldRoot.'/src/Providers/IconsServiceProvider.php'))->toBeTrue();
-        expect(file_exists($this->scaffoldRoot.'/src/Constants/IconsConstants.php'))->toBeTrue();
-        expect(file_exists($this->scaffoldRoot.'/src/Enums/Variant.php'))->toBeTrue();
-        expect(file_exists($this->scaffoldRoot.'/src/View/Components/IconComponent.php'))->toBeTrue();
-        expect(file_exists($this->scaffoldRoot.'/tests/Unit/IconSetTest.php'))->toBeTrue();
-        expect(file_exists($this->scaffoldRoot.'/.gitignore'))->toBeTrue();
-        expect(file_exists($this->scaffoldRoot.'/.gitattributes'))->toBeTrue();
-        expect(file_exists($this->scaffoldRoot.'/CHANGELOG.md'))->toBeTrue();
-        expect(file_exists($this->scaffoldRoot.'/LICENSE.md'))->toBeTrue();
-        expect(file_exists($this->scaffoldRoot.'/phpunit.xml.dist'))->toBeTrue();
+        expect(file_exists($this->scaffoldRoot . '/composer.json'))->toBeTrue();
+        expect(file_exists($this->scaffoldRoot . '/src/Providers/IconsServiceProvider.php'))->toBeTrue();
+        expect(file_exists($this->scaffoldRoot . '/src/Constants/IconsConstants.php'))->toBeTrue();
+        expect(file_exists($this->scaffoldRoot . '/src/Enums/Variant.php'))->toBeTrue();
+        expect(file_exists($this->scaffoldRoot . '/src/View/Components/IconComponent.php'))->toBeTrue();
+        expect(file_exists($this->scaffoldRoot . '/tests/Unit/IconSetTest.php'))->toBeTrue();
+        expect(file_exists($this->scaffoldRoot . '/.gitignore'))->toBeTrue();
+        expect(file_exists($this->scaffoldRoot . '/.gitattributes'))->toBeTrue();
+        expect(file_exists($this->scaffoldRoot . '/CHANGELOG.md'))->toBeTrue();
+        expect(file_exists($this->scaffoldRoot . '/LICENSE.md'))->toBeTrue();
+        expect(file_exists($this->scaffoldRoot . '/phpunit.xml.dist'))->toBeTrue();
 
         expect(leftoverPlaceholders($this->scaffoldRoot))->toBe([]);
     });
 
     it('produces valid composer.json with the right namespace, package name, and provider entry', function () {
         $this->artisan('make:icon-package', [
-            'name' => 'Hero',
+            'name'     => 'Hero',
             '--vendor' => 'Acme',
-            '--email' => 'team@acme.test',
+            '--email'  => 'team@acme.test',
             '--prefix' => 'hi',
-            '--type' => 'single',
-            '--path' => $this->scaffoldRoot,
-            '--force' => true,
+            '--type'   => 'single',
+            '--path'   => $this->scaffoldRoot,
+            '--force'  => true,
         ])->assertSuccessful();
 
-        $composer = json_decode(file_get_contents($this->scaffoldRoot.'/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+        $composer = json_decode(file_get_contents($this->scaffoldRoot . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
 
         expect($composer['name'])->toBe('acme/hero-icons');
         expect($composer['authors'][0]['name'])->toBe('Acme');
@@ -103,57 +103,57 @@ describe('make:icon-package', function () {
 
     it('lints clean across every generated PHP file', function () {
         $this->artisan('make:icon-package', [
-            'name' => 'Hero',
+            'name'     => 'Hero',
             '--vendor' => 'Acme',
-            '--email' => 'team@acme.test',
+            '--email'  => 'team@acme.test',
             '--prefix' => 'hi',
-            '--type' => 'single',
-            '--path' => $this->scaffoldRoot,
-            '--force' => true,
+            '--type'   => 'single',
+            '--path'   => $this->scaffoldRoot,
+            '--force'  => true,
         ])->assertSuccessful();
 
         $finder = (new Finder)->in($this->scaffoldRoot)->files()->name('*.php');
         foreach ($finder as $file) {
             $output = [];
             $exit = 0;
-            exec('php -l '.escapeshellarg($file->getPathname()).' 2>&1', $output, $exit);
-            expect($exit)->toBe(0, 'php -l failed for '.$file->getRelativePathname().": \n".implode("\n", $output));
+            exec('php -l ' . escapeshellarg($file->getPathname()) . ' 2>&1', $output, $exit);
+            expect($exit)->toBe(0, 'php -l failed for ' . $file->getRelativePathname() . ": \n" . implode("\n", $output));
         }
     });
 
     it('normalises a vendor name with spaces into a kebab composer name and a studly namespace', function () {
         $this->artisan('make:icon-package', [
-            'name' => 'Hero',
+            'name'     => 'Hero',
             '--vendor' => 'Your Company',
-            '--email' => 'team@example.test',
+            '--email'  => 'team@example.test',
             '--prefix' => 'hi',
-            '--type' => 'single',
-            '--path' => $this->scaffoldRoot,
-            '--force' => true,
+            '--type'   => 'single',
+            '--path'   => $this->scaffoldRoot,
+            '--force'  => true,
         ])->assertSuccessful();
 
-        $composer = json_decode(file_get_contents($this->scaffoldRoot.'/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+        $composer = json_decode(file_get_contents($this->scaffoldRoot . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
         expect($composer['name'])->toBe('your-company/hero-icons');
         expect($composer['autoload']['psr-4'])->toHaveKey('YourCompany\\HeroIcons\\');
 
-        $providerSrc = file_get_contents($this->scaffoldRoot.'/src/Providers/IconsServiceProvider.php');
+        $providerSrc = file_get_contents($this->scaffoldRoot . '/src/Providers/IconsServiceProvider.php');
         expect($providerSrc)->toContain('namespace YourCompany\\HeroIcons\\Providers;');
     });
 
     it('emits the canonical variant schema for multi-set packages', function () {
         $this->artisan('make:icon-package', [
-            'name' => 'Hero',
-            '--vendor' => 'Acme',
-            '--email' => 'team@acme.test',
-            '--prefix' => 'hi',
-            '--type' => 'multi',
+            'name'       => 'Hero',
+            '--vendor'   => 'Acme',
+            '--email'    => 'team@acme.test',
+            '--prefix'   => 'hi',
+            '--type'     => 'multi',
             '--variants' => 'outline,solid,duotone',
-            '--path' => $this->scaffoldRoot,
-            '--force' => true,
+            '--path'     => $this->scaffoldRoot,
+            '--force'    => true,
         ])->assertSuccessful();
 
         $config = json_decode(
-            file_get_contents($this->scaffoldRoot.'/resources/assets/svg/config.json'),
+            file_get_contents($this->scaffoldRoot . '/resources/assets/svg/config.json'),
             true,
             512,
             JSON_THROW_ON_ERROR,
@@ -186,8 +186,8 @@ describe('make:icon-package', function () {
         }
 
         // Multi-set creates a sub-folder per variant with a .gitkeep
-        expect(is_dir($this->scaffoldRoot.'/resources/assets/svg/files/outline'))->toBeTrue();
-        expect(is_dir($this->scaffoldRoot.'/resources/assets/svg/files/solid'))->toBeTrue();
-        expect(is_dir($this->scaffoldRoot.'/resources/assets/svg/files/duotone'))->toBeTrue();
+        expect(is_dir($this->scaffoldRoot . '/resources/assets/svg/files/outline'))->toBeTrue();
+        expect(is_dir($this->scaffoldRoot . '/resources/assets/svg/files/solid'))->toBeTrue();
+        expect(is_dir($this->scaffoldRoot . '/resources/assets/svg/files/duotone'))->toBeTrue();
     });
 });

@@ -19,8 +19,9 @@ trait IconSeederHelpers
      * Removes the base_path prefix to get a portable relative path.
      * Works for both SINGLE-SET and MULTI-SET structures.
      *
-     * @param  string  $absolutePath  Full filesystem path to icon
-     * @param  string  $basePath  Base path from IconRegistry
+     * @param string $absolutePath Full filesystem path to icon
+     * @param string $basePath Base path from IconRegistry
+     *
      * @return string Relative path
      */
     protected function extractRelativePath(string $absolutePath, string $basePath): string
@@ -29,7 +30,7 @@ trait IconSeederHelpers
         $absolutePath = str_replace('\\', '/', $absolutePath);
         $basePath = str_replace('\\', '/', $basePath);
 
-        $effectiveRoot = rtrim($basePath, '/').'/';
+        $effectiveRoot = rtrim($basePath, '/') . '/';
 
         return str_replace($effectiveRoot, '', $absolutePath);
     }
@@ -43,7 +44,8 @@ trait IconSeederHelpers
      * - files/fontawesome/solid/icon.svg → fontawesome
      * - files/test-icons/icon.svg → test-icons
      *
-     * @param  string  $relativePath  Relative path to icon
+     * @param string $relativePath Relative path to icon
+     *
      * @return string|null Category slug or null if not found
      */
     protected function extractCategorySlug(string $relativePath): ?string
@@ -80,8 +82,9 @@ trait IconSeederHelpers
      *
      * Tags include directory names and the icon name itself.
      *
-     * @param  string  $relativePath  Relative path to icon
-     * @param  string  $name  Icon filename (without extension)
+     * @param string $relativePath Relative path to icon
+     * @param string $name Icon filename (without extension)
+     *
      * @return array<string> Array of tags
      */
     protected function extractTags(string $relativePath, string $name): array
@@ -106,8 +109,9 @@ trait IconSeederHelpers
      * Keywords are individual words extracted from icon name and path.
      * Words shorter than 3 characters are excluded.
      *
-     * @param  string  $relativePath  Relative path to icon
-     * @param  string  $name  Icon filename (without extension)
+     * @param string $relativePath Relative path to icon
+     * @param string $name Icon filename (without extension)
+     *
      * @return array<string> Array of keywords
      */
     protected function extractKeywords(string $relativePath, string $name): array

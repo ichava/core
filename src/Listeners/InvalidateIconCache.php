@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Listeners;
 
 use Exception;
+use Throwable;
 use Illuminate\Support\Facades\Cache;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
-use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
-use Throwable;
+use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
 
 /**
  * Invalidates all icon-related caches when an IconCacheEvent fires.
@@ -55,10 +55,10 @@ final class InvalidateIconCache
 
             // Log the invalidation
             $this->logger->info('Icon cache invalidated', [
-                'package' => $event->package,
-                'reason' => $reason,
+                'package'      => $event->package,
+                'reason'       => $reason,
                 'cleared_keys' => count($clearedKeys),
-                'metadata' => $event->metadata,
+                'metadata'     => $event->metadata,
             ]);
 
             // Dispatch invalidation event
@@ -66,9 +66,9 @@ final class InvalidateIconCache
 
         } catch (Throwable $e) {
             $this->logger->error('Failed to invalidate icon cache', [
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
                 'package' => $event->package,
-                'reason' => $reason,
+                'reason'  => $reason,
             ]);
         }
     }

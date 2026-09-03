@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
-use DOMDocument;
-use DOMElement;
 use DOMNode;
+use DOMElement;
+use DOMDocument;
 use Illuminate\Support\Str;
+use Simtabi\Laranail\Ichava\Support\SvgPolicy;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
@@ -43,21 +44,6 @@ trait SanitizesSvg
         'onanimationend', 'onanimationiteration', 'ontransitionend',
         'formaction', 'form',
     ];
-
-    /**
-     * Attributes whose value is a reference. Allowed only when the value is a
-     * same-document fragment: a fragment cannot fetch, leak or execute, while
-     * every other form can. See REFERENCE_FRAGMENT.
-     */
-    private const REFERENCE_ATTRIBUTES = [
-        'href', 'xlink:href',
-    ];
-
-    /**
-     * A same-document fragment reference. Deliberately strict about the first
-     * character: an id has to be a name, and `#1nvalid` is not one.
-     */
-    private const REFERENCE_FRAGMENT = '/^#[A-Za-z_][\w.:-]*$/';
 
     /**
      * Dangerous protocols
@@ -183,6 +169,39 @@ trait SanitizesSvg
         $this->forbiddenTags = config('ichava.core.svg.forbidden_tags', ['script', 'foreignObject', 'iframe']);
 
         $this->refreshLookups();
+    }
+
+    /**
+     * Attributes whose value is a reference. Allowed only when the value is a
+     * same-document fragment: a fragment cannot fetch, leak or execute, while
+     * every other form can. See referenceFragmentPattern().
+     */
+    /**
+     * Reference attributes and the value they may carry come from the shared
+     * policy, not from constants here.
+     *
+     * They WERE constants until 2026-09-02, and the archetype gate caught it:
+     * emptying `fragmentOnlyRefs.attributes` in the policy changed nothing on
+     * this side while changing every client, because this trait admitted
+     * `href` from its own hardcoded list regardless. That is not a hole -- the
+     * value check still ran -- but it made a section of the policy decorative
+     * on the server, which is a fresh divergence vector of exactly the kind
+     * P4 exists to close.
+     *
+     * @return list<string>
+     */
+    private function referenceAttributes(): array
+    {
+        return SvgPolicy::referenceAttributes();
+    }
+
+    /**
+     * A same-document fragment reference. Deliberately strict about the first
+     * character: an id has to be a name, and `#1nvalid` is not one.
+     */
+    private function referenceFragmentPattern(): string
+    {
+        return SvgPolicy::fragmentPattern();
     }
 
     /**
@@ -340,7 +359,7 @@ trait SanitizesSvg
             return true;
         }
 
-        if (in_array($name, self::REFERENCE_ATTRIBUTES, true)) {
+        if (in_array($name, $this->referenceAttributes(), true)) {
             return false;
         }
 
@@ -392,7 +411,7 @@ trait SanitizesSvg
             return true;
         }
 
-        if (in_array($name, self::REFERENCE_ATTRIBUTES, true)) {
+        if (in_array($name, $this->referenceAttributes(), true)) {
             return true;
         }
 
@@ -449,10 +468,10 @@ trait SanitizesSvg
      */
     private function isAllowedReferenceValue(string $name, string $value): bool
     {
-        if (! in_array($name, self::REFERENCE_ATTRIBUTES, true)) {
+        if (! in_array($name, $this->referenceAttributes(), true)) {
             return true;
         }
 
-        return (bool) preg_match(self::REFERENCE_FRAGMENT, $value);
+        return (bool) preg_match($this->referenceFragmentPattern(), $value);
     }
 }

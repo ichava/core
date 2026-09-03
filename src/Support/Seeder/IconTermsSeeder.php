@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support\Seeder;
 
+use Illuminate\Support\Str;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 
@@ -84,11 +84,11 @@ class IconTermsSeeder extends Seeder
         }
 
         match ($type) {
-            'info' => $this->command->info($message),
-            'warn' => $this->command->warn($message),
-            'error' => $this->command->error($message),
+            'info'    => $this->command->info($message),
+            'warn'    => $this->command->warn($message),
+            'error'   => $this->command->error($message),
             'newLine' => $this->command->newLine(),
-            default => $this->command->line($message),
+            default   => $this->command->line($message),
         };
     }
 
@@ -106,7 +106,7 @@ class IconTermsSeeder extends Seeder
         }
 
         // Look for 'files/' directory
-        $filesPath = $basePath.'/files';
+        $filesPath = $basePath . '/files';
         if (! File::isDirectory($filesPath)) {
             $filesPath = $basePath; // Fallback to base path
         }
@@ -139,7 +139,7 @@ class IconTermsSeeder extends Seeder
         }
 
         // Check for config.json
-        $configPath = $basePath.'/config.json';
+        $configPath = $basePath . '/config.json';
         if (! File::exists($configPath)) {
             return;
         }
@@ -155,15 +155,15 @@ class IconTermsSeeder extends Seeder
         $variantTerms = [];
         foreach ($variants as $variantSlug => $variantData) {
             $variantTerms[] = [
-                'name' => $variantData['name'] ?? ucwords(str_replace(['-', '_'], ' ', $variantSlug)),
-                'slug' => $variantSlug,
+                'name'        => $variantData['name'] ?? ucwords(str_replace(['-', '_'], ' ', $variantSlug)),
+                'slug'        => $variantSlug,
                 'description' => $variantData['description'] ?? null,
             ];
         }
 
         $this->insertTerms(IconTerm::TYPE_VARIANT, $variantTerms, null, $packageName);
 
-        $this->output('    <fg=green>✓</fg=green> Seeded '.count($variantTerms).' variants');
+        $this->output('    <fg=green>✓</fg=green> Seeded ' . count($variantTerms) . ' variants');
     }
 
     /**
@@ -200,8 +200,8 @@ class IconTermsSeeder extends Seeder
 
             // Build category
             $category = [
-                'name' => $this->formatCategoryName($folderName),
-                'slug' => $folderName,
+                'name'        => $this->formatCategoryName($folderName),
+                'slug'        => $folderName,
                 'description' => $this->generateCategoryDescription($folderName),
             ];
 
@@ -223,7 +223,7 @@ class IconTermsSeeder extends Seeder
      */
     protected function hasSvgFiles(string $directory): bool
     {
-        $svgFiles = File::glob($directory.'/*.svg');
+        $svgFiles = File::glob($directory . '/*.svg');
 
         return ! empty($svgFiles);
     }
@@ -244,19 +244,19 @@ class IconTermsSeeder extends Seeder
     {
         // Simple heuristic descriptions
         $descriptions = [
-            'logos' => 'Brand logos and company identities',
-            'regular' => 'Regular style icons with standard line weight',
-            'solid' => 'Solid filled icons',
-            'outlined' => 'Outlined style icons',
-            'filled' => 'Filled style icons',
-            'linear' => 'Linear style with thin lines',
-            'bold' => 'Bold style with thick lines',
-            'duotone' => 'Two-tone style icons',
-            'brands' => 'Brand and company icons',
-            'social' => 'Social media platform icons',
-            'ui' => 'User interface elements and controls',
-            'arrows' => 'Directional arrows and navigation',
-            'files' => 'File types and document icons',
+            'logos'         => 'Brand logos and company identities',
+            'regular'       => 'Regular style icons with standard line weight',
+            'solid'         => 'Solid filled icons',
+            'outlined'      => 'Outlined style icons',
+            'filled'        => 'Filled style icons',
+            'linear'        => 'Linear style with thin lines',
+            'bold'          => 'Bold style with thick lines',
+            'duotone'       => 'Two-tone style icons',
+            'brands'        => 'Brand and company icons',
+            'social'        => 'Social media platform icons',
+            'ui'            => 'User interface elements and controls',
+            'arrows'        => 'Directional arrows and navigation',
+            'files'         => 'File types and document icons',
             'communication' => 'Communication and messaging icons',
         ];
 
@@ -282,10 +282,10 @@ class IconTermsSeeder extends Seeder
     /**
      * Insert terms (supports unlimited nesting).
      *
-     * @param  string  $type  category, variant, etc.
-     * @param  array  $items  nested term definitions
-     * @param  int|null  $parentId  parent term id
-     * @param  string  $package  vendor/package name
+     * @param string $type category, variant, etc.
+     * @param array $items nested term definitions
+     * @param int|null $parentId parent term id
+     * @param string $package vendor/package name
      */
     protected function insertTerms(string $type, array $items, ?int $parentId, string $package): void
     {
@@ -297,12 +297,12 @@ class IconTermsSeeder extends Seeder
             /** @var IconTerm $term */
             $term = IconTerm::firstOrNew(
                 [
-                    'type' => $type,
-                    'slug' => $slug,
+                    'type'    => $type,
+                    'slug'    => $slug,
                     'package' => $package,
                 ],
                 [
-                    'name' => $name,
+                    'name'        => $name,
                     'description' => $description,
                 ],
             );

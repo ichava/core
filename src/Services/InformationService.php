@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services;
 
 use Exception;
+use Throwable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\Ichava\Models\Icon;
-use Throwable;
 
 /**
  * InformationService
@@ -42,10 +42,10 @@ class InformationService
             $iconCount = Icon::where('package', $name)->count();
 
             $result[$name] = [
-                'name' => $name,
-                'base_path' => $data['base_path'] ?? $data['path'] ?? '-',
+                'name'       => $name,
+                'base_path'  => $data['base_path'] ?? $data['path'] ?? '-',
                 'icon_count' => $iconCount,
-                'status' => 'active',
+                'status'     => 'active',
             ];
         }
 
@@ -61,11 +61,11 @@ class InformationService
         $discovered = [];
 
         if (File::isDirectory($vendorPath)) {
-            $directories = File::glob($vendorPath.'/*/ichava-*');
+            $directories = File::glob($vendorPath . '/*/ichava-*');
             foreach ($directories as $dir) {
-                $name = basename(dirname($dir)).'/'.basename($dir);
+                $name = basename(dirname($dir)) . '/' . basename($dir);
                 $discovered[$name] = [
-                    'path' => $dir,
+                    'path'       => $dir,
                     'registered' => $this->registry->has($name),
                 ];
             }
@@ -76,10 +76,10 @@ class InformationService
         if (File::isDirectory($platformPath)) {
             $directories = File::directories($platformPath);
             foreach ($directories as $dir) {
-                $name = 'ichava/'.basename($dir);
+                $name = 'ichava/' . basename($dir);
                 if (! isset($discovered[$name])) {
                     $discovered[$name] = [
-                        'path' => $dir,
+                        'path'       => $dir,
                         'registered' => $this->registry->has($name),
                     ];
                 }
@@ -167,12 +167,12 @@ class InformationService
         $stage = $this->lifecycle->getStage();
 
         $status = [
-            'stage' => $stage,
+            'stage'    => $stage,
             'is_ready' => $isReady,
-            'checks' => [
+            'checks'   => [
                 'migrations' => $hasMigrations,
-                'seeds' => $hasSeeds,
-                'cache' => $hasCache,
+                'seeds'      => $hasSeeds,
+                'cache'      => $hasCache,
             ],
             'icon_count' => null,
             'next_steps' => [],
@@ -224,8 +224,8 @@ class InformationService
             ");
 
             return array_map(fn ($lang) => [
-                'language' => $lang->language,
-                'owner' => $lang->owner ?? '-',
+                'language'    => $lang->language,
+                'owner'       => $lang->owner ?? '-',
                 'description' => $lang->description ?? '-',
             ], $languages);
         } catch (Exception $e) {
@@ -252,10 +252,10 @@ class InformationService
 
         $parts = explode('/', $path);
         if (count($parts) <= 2) {
-            return substr($path, 0, $maxLength - 3).'...';
+            return substr($path, 0, $maxLength - 3) . '...';
         }
 
-        return $parts[0].'/.../'.end($parts);
+        return $parts[0] . '/.../' . end($parts);
     }
 
     /**
@@ -270,7 +270,7 @@ class InformationService
         $units = ['B', 'KB', 'MB', 'GB'];
         $i = floor(log($bytes, 1024));
 
-        return round($bytes / pow(1024, $i), 2).' '.$units[$i];
+        return round($bytes / pow(1024, $i), 2) . ' ' . $units[$i];
     }
 
     /**

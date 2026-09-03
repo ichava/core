@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Simtabi\Laranail\Ichava\Data\IconAttributes;
 use Simtabi\Laranail\Ichava\Data\IconData;
 use Simtabi\Laranail\Ichava\Data\IconMetadata;
-use Simtabi\Laranail\Ichava\Data\IconPathResult;
 use Simtabi\Laranail\Ichava\Data\IconSetConfig;
+use Simtabi\Laranail\Ichava\Data\IconAttributes;
+use Simtabi\Laranail\Ichava\Data\IconPathResult;
 
 describe('IconAttributes', function () {
     it('exposes the attributes array unchanged via toArray', function () {
@@ -20,8 +20,8 @@ describe('IconAttributes', function () {
 
         expect($merged)->not->toBe($original);
         expect($merged->toArray())->toBe([
-            'class' => 'h-8',
-            'role' => 'img',
+            'class'       => 'h-8',
+            'role'        => 'img',
             'aria-hidden' => 'true',
         ]);
         // Original is untouched.

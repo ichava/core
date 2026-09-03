@@ -7,27 +7,27 @@ use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 
 beforeEach(function () {
     $this->service = app(ConfigurationService::class);
-    $this->dir = sys_get_temp_dir().'/ichava-config-'.bin2hex(random_bytes(4));
+    $this->dir = sys_get_temp_dir() . '/ichava-config-' . bin2hex(random_bytes(4));
     mkdir($this->dir);
 });
 
 afterEach(function () {
     if (is_dir($this->dir)) {
-        @unlink($this->dir.'/config.json');
+        @unlink($this->dir . '/config.json');
         @rmdir($this->dir);
     }
 });
 
 function _writeConfig(string $dir, array $data): void
 {
-    file_put_contents($dir.'/config.json', json_encode($data));
+    file_put_contents($dir . '/config.json', json_encode($data));
 }
 
 describe('ConfigurationService::loadPackageConfig', function () {
     it('loads a valid config.json', function () {
         _writeConfig($this->dir, [
-            'package' => ['name' => 'myorg/icons'],
-            'config' => ['icon_prefix' => 'ic'],
+            'package'  => ['name' => 'myorg/icons'],
+            'config'   => ['icon_prefix' => 'ic'],
             'variants' => ['outline', 'filled'],
         ]);
         $cfg = $this->service->loadPackageConfig($this->dir);
@@ -40,7 +40,7 @@ describe('ConfigurationService::loadPackageConfig', function () {
     })->throws(IchavaException::class);
 
     it('throws on invalid JSON', function () {
-        file_put_contents($this->dir.'/config.json', '{not json');
+        file_put_contents($this->dir . '/config.json', '{not json');
         $this->service->loadPackageConfig($this->dir);
     })->throws(IchavaException::class);
 
@@ -52,7 +52,7 @@ describe('ConfigurationService::loadPackageConfig', function () {
     it('throws on malformed package.name', function () {
         _writeConfig($this->dir, [
             'package' => ['name' => 'no-slash-here'],
-            'config' => ['icon_prefix' => 'ic'],
+            'config'  => ['icon_prefix' => 'ic'],
         ]);
         $this->service->loadPackageConfig($this->dir);
     })->throws(IchavaException::class);

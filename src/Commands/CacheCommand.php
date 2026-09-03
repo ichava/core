@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
-use Simtabi\Laranail\Ichava\Services\IchavaLogger;
-
-use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\intro;
 use function Laravel\Prompts\note;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\outro;
 use function Laravel\Prompts\table;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
+
+use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
 
 /**
  * Unified Icon Cache Command
@@ -61,12 +61,12 @@ final class CacheCommand extends BaseCommand
             $action = select(
                 label: 'What cache operation would you like to perform?',
                 options: [
-                    'clear' => 'Clear - Remove all cached data',
-                    'rebuild' => 'Rebuild - Regenerate all caches',
-                    'refresh' => 'Refresh - Clear and rebuild caches',
+                    'clear'    => 'Clear - Remove all cached data',
+                    'rebuild'  => 'Rebuild - Regenerate all caches',
+                    'refresh'  => 'Refresh - Clear and rebuild caches',
                     'generate' => 'Generate - Create production-optimized cache',
                     'manifest' => 'Manifest - Generate icon manifest file',
-                    'stats' => 'Stats - Show cache statistics',
+                    'stats'    => 'Stats - Show cache statistics',
                 ],
                 default: 'stats',
                 hint: 'Select an action to perform',
@@ -74,13 +74,13 @@ final class CacheCommand extends BaseCommand
         }
 
         return match ($action) {
-            'clear' => $this->handleClear(),
-            'rebuild' => $this->handleRebuild(),
-            'refresh' => $this->handleRefresh(),
+            'clear'    => $this->handleClear(),
+            'rebuild'  => $this->handleRebuild(),
+            'refresh'  => $this->handleRefresh(),
             'generate' => $this->handleGenerate(),
             'manifest' => $this->handleManifest(),
-            'stats' => $this->handleStats(),
-            default => $this->handleInvalidAction($action, $this->validActions),
+            'stats'    => $this->handleStats(),
+            default    => $this->handleInvalidAction($action, $this->validActions),
         };
     }
 
@@ -105,7 +105,7 @@ final class CacheCommand extends BaseCommand
                     : 'Clearing all caches...',
             );
 
-            info('Cleared '.count($clearedKeys).' cache key(s)');
+            info('Cleared ' . count($clearedKeys) . ' cache key(s)');
 
             if ($this->isVerbose() && ! empty($clearedKeys)) {
                 table(
@@ -114,7 +114,7 @@ final class CacheCommand extends BaseCommand
                 );
             }
 
-            outro('⏱️  Completed in '.$this->formatMs($this->getElapsedMs()));
+            outro('⏱️  Completed in ' . $this->formatMs($this->getElapsedMs()));
 
             return self::SUCCESS;
         }, 'Failed to clear cache');
@@ -139,7 +139,7 @@ final class CacheCommand extends BaseCommand
                     ['Categories', (string) $result['categories']],
                     ['Packages', (string) $result['packages']],
                     ['Total Icons', $this->formatNumber($result['total_icons'])],
-                    ['Build Time', $result['build_time_ms'].'ms'],
+                    ['Build Time', $result['build_time_ms'] . 'ms'],
                 ],
             );
 
@@ -247,7 +247,7 @@ final class CacheCommand extends BaseCommand
                     ['Packages', (string) $result['packages']],
                     ['Total Icons', $this->formatNumber($result['total_icons'])],
                     ['File Size', $this->formatBytes($result['file_size'])],
-                    ['Build Time', $result['build_time_ms'].'ms'],
+                    ['Build Time', $result['build_time_ms'] . 'ms'],
                 ],
             );
 

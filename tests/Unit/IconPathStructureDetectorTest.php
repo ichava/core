@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Simtabi\Laranail\Ichava\Support\IconPathStructureDetector;
 
 beforeEach(function () {
-    $this->root = sys_get_temp_dir().'/ichava-pathstruct-'.bin2hex(random_bytes(4));
+    $this->root = sys_get_temp_dir() . '/ichava-pathstruct-' . bin2hex(random_bytes(4));
     mkdir($this->root, 0755, true);
 });
 
@@ -28,7 +28,7 @@ afterEach(function () {
 
 describe('IconPathStructureDetector::detect', function () {
     it('returns SINGLE_SET when the base directory does not exist', function () {
-        $result = IconPathStructureDetector::detect($this->root.'/missing');
+        $result = IconPathStructureDetector::detect($this->root . '/missing');
         expect($result)->toBe(IconPathStructureDetector::SINGLE_SET);
     });
 
@@ -81,7 +81,7 @@ describe('IconPathStructureDetector::getScanPaths', function () {
     it('returns the single-set scan path when files/ lives at the base', function () {
         mkdir("{$this->root}/files");
         $paths = IconPathStructureDetector::getScanPaths($this->root);
-        expect($paths)->toContain($this->root.'/files');
+        expect($paths)->toContain($this->root . '/files');
     });
 
     it('returns one scan path per set when in multi-set layout', function () {
@@ -90,8 +90,8 @@ describe('IconPathStructureDetector::getScanPaths', function () {
         $paths = IconPathStructureDetector::getScanPaths($this->root);
         sort($paths);
         expect($paths)->toBe([
-            $this->root.'/set-a/files',
-            $this->root.'/set-b/files',
+            $this->root . '/set-a/files',
+            $this->root . '/set-b/files',
         ]);
     });
 });

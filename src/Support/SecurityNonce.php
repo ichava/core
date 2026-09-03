@@ -39,7 +39,7 @@ final class SecurityNonce
 
     public function attribute(): string
     {
-        return ' nonce="'.htmlspecialchars($this->value(), ENT_QUOTES | ENT_HTML5, 'UTF-8').'"';
+        return ' nonce="' . htmlspecialchars($this->value(), ENT_QUOTES | ENT_HTML5, 'UTF-8') . '"';
     }
 
     public function reset(): void

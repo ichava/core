@@ -23,9 +23,9 @@ describe('SVG malformed input recovery', function () {
 
     $recoverable = [
         'an unclosed tag, HTML style' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"></svg>',
-        'an undefined HTML entity' => '<svg xmlns="http://www.w3.org/2000/svg"><title>A&nbsp;B</title><path d="M0 0"/></svg>',
-        'a bare ampersand in text' => '<svg xmlns="http://www.w3.org/2000/svg"><title>Tom & Jerry</title><path d="M0 0"/></svg>',
-        'an uppercase root element' => '<SVG xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></SVG>',
+        'an undefined HTML entity'    => '<svg xmlns="http://www.w3.org/2000/svg"><title>A&nbsp;B</title><path d="M0 0"/></svg>',
+        'a bare ampersand in text'    => '<svg xmlns="http://www.w3.org/2000/svg"><title>Tom & Jerry</title><path d="M0 0"/></svg>',
+        'an uppercase root element'   => '<SVG xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></SVG>',
         'an unquoted attribute value' => '<svg xmlns="http://www.w3.org/2000/svg"><path d=M00/></svg>',
         'junk after the root element' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>trailing',
         'a bare ampersand in a value' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0" data-x="a&b"/></svg>',

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Events;
 
-use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * Lifecycle event covering icon-cache state changes.
@@ -35,8 +35,8 @@ final class IconCacheEvent
     /**
      * Create an 'invalidated' event (cache was cleared)
      *
-     * @param  string  $reason  Why the cache was invalidated
-     * @param  array<string>  $clearedKeys  List of cache keys that were cleared
+     * @param string $reason Why the cache was invalidated
+     * @param array<string> $clearedKeys List of cache keys that were cleared
      */
     public static function invalidated(string $reason, array $clearedKeys = []): self
     {
@@ -50,10 +50,10 @@ final class IconCacheEvent
     /**
      * Create a 'rebuilt' event (cache was rebuilt with new data)
      *
-     * @param  int  $iconCount  Total number of icons cached
-     * @param  int  $categoryCount  Total number of categories cached
-     * @param  int  $packageCount  Total number of packages cached
-     * @param  float  $buildTimeMs  Time taken to rebuild cache (milliseconds)
+     * @param int $iconCount Total number of icons cached
+     * @param int $categoryCount Total number of categories cached
+     * @param int $packageCount Total number of packages cached
+     * @param float $buildTimeMs Time taken to rebuild cache (milliseconds)
      */
     public static function rebuilt(
         int $iconCount,
@@ -64,10 +64,10 @@ final class IconCacheEvent
         return new self(
             action: self::ACTION_REBUILT,
             metadata: [
-                'icon_count' => $iconCount,
+                'icon_count'     => $iconCount,
                 'category_count' => $categoryCount,
-                'package_count' => $packageCount,
-                'build_time_ms' => $buildTimeMs,
+                'package_count'  => $packageCount,
+                'build_time_ms'  => $buildTimeMs,
             ],
         );
     }
@@ -75,9 +75,9 @@ final class IconCacheEvent
     /**
      * Create a 'changed' event (icons were added/removed/modified)
      *
-     * @param  string|null  $package  Specific package that changed (null = all packages)
-     * @param  string|null  $reason  Why the icons changed
-     * @param  array<string, mixed>  $metadata  Additional metadata about the change
+     * @param string|null $package Specific package that changed (null = all packages)
+     * @param string|null $reason Why the icons changed
+     * @param array<string, mixed> $metadata Additional metadata about the change
      */
     public static function changed(?string $package = null, ?string $reason = null, array $metadata = []): self
     {
@@ -131,10 +131,10 @@ final class IconCacheEvent
     public function getRebuildStats(): array
     {
         return [
-            'icon_count' => $this->metadata['icon_count'] ?? 0,
+            'icon_count'     => $this->metadata['icon_count'] ?? 0,
             'category_count' => $this->metadata['category_count'] ?? 0,
-            'package_count' => $this->metadata['package_count'] ?? 0,
-            'build_time_ms' => $this->metadata['build_time_ms'] ?? 0.0,
+            'package_count'  => $this->metadata['package_count'] ?? 0,
+            'build_time_ms'  => $this->metadata['build_time_ms'] ?? 0.0,
         ];
     }
 
@@ -176,9 +176,9 @@ final class IconCacheEvent
     public function toArray(): array
     {
         return [
-            'action' => $this->action,
-            'package' => $this->package,
-            'reason' => $this->reason,
+            'action'   => $this->action,
+            'package'  => $this->package,
+            'reason'   => $this->reason,
             'metadata' => $this->metadata,
         ];
     }

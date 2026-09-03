@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services;
 
 use Closure;
-use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
-use Simtabi\Laranail\Ichava\Support\Helpers;
 use Throwable;
+use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
 
 /**
  * Registration Configuration Builder
@@ -72,7 +72,7 @@ class RegistrationConfig
         // Load config.json using centralized helper
         $config = Helpers::loadConfigJson(dirname($path));
 
-        $this->path = dirname($path).'/files';
+        $this->path = dirname($path) . '/files';
         $this->prefix = $config['config']['icon_prefix'] ?? '';
         $this->displayName = $config['package']['title'] ?? '';
         $this->description = $config['package']['description'] ?? '';
@@ -220,16 +220,16 @@ class RegistrationConfig
 
             // Build metadata
             $metadata = array_merge([
-                'package_name' => $this->name,
-                'name' => $this->displayName ?? $this->name,
-                'description' => $this->description ?? '',
-                'vendor' => $this->vendor ?? '',
-                'version' => $this->version ?? '1.0.0',
-                'base_path' => $this->path,
-                'icon_set_name' => $this->name,
+                'package_name'   => $this->name,
+                'name'           => $this->displayName ?? $this->name,
+                'description'    => $this->description ?? '',
+                'vendor'         => $this->vendor ?? '',
+                'version'        => $this->version ?? '1.0.0',
+                'base_path'      => $this->path,
+                'icon_set_name'  => $this->name,
                 'provider_class' => $this->providerClass,
-                'prefix' => $this->prefix ?? $this->name,
-                'total' => $this->registry->countIconsInDirectory($this->path),
+                'prefix'         => $this->prefix ?? $this->name,
+                'total'          => $this->registry->countIconsInDirectory($this->path),
             ], $this->metadata);
 
             // Register

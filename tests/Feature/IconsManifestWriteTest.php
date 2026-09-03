@@ -15,9 +15,9 @@ use Simtabi\Laranail\Ichava\Services\IconsManifest;
  * pins the fix and locks in the on-disk format that load() expects.
  */
 beforeEach(function (): void {
-    $this->dir = sys_get_temp_dir().'/ichava-manifest-write-'.bin2hex(random_bytes(4));
+    $this->dir = sys_get_temp_dir() . '/ichava-manifest-write-' . bin2hex(random_bytes(4));
     mkdir($this->dir, 0755, true);
-    $this->path = $this->dir.'/manifest.php';
+    $this->path = $this->dir . '/manifest.php';
 });
 
 afterEach(function (): void {

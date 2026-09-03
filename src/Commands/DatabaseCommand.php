@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\warning;
+
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconTermsSeeder;
-
-use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\info;
-use function Laravel\Prompts\intro;
-use function Laravel\Prompts\note;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\select;
-use function Laravel\Prompts\spin;
-use function Laravel\Prompts\table;
-use function Laravel\Prompts\warning;
+use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
 
 /**
  * Unified Icon Database Command
@@ -72,14 +72,14 @@ final class DatabaseCommand extends BaseCommand
             $action = select(
                 label: 'What database operation would you like to perform?',
                 options: [
-                    'seed' => 'Seed - Populate database with icons and terms',
+                    'seed'       => 'Seed - Populate database with icons and terms',
                     'seed:icons' => 'Seed Icons - Seed icons only',
                     'seed:terms' => 'Seed Terms - Seed terms only',
-                    'migrate' => 'Migrate - Run Ichava migrations',
-                    'unseed' => 'Unseed - Remove icon data from database',
-                    'refresh' => 'Refresh - Truncate and re-seed',
-                    'truncate' => 'Truncate - Clear all tables',
-                    'stats' => 'Stats - Show database statistics',
+                    'migrate'    => 'Migrate - Run Ichava migrations',
+                    'unseed'     => 'Unseed - Remove icon data from database',
+                    'refresh'    => 'Refresh - Truncate and re-seed',
+                    'truncate'   => 'Truncate - Clear all tables',
+                    'stats'      => 'Stats - Show database statistics',
                 ],
                 default: 'stats',
                 hint: 'Select an action to perform',
@@ -97,14 +97,14 @@ final class DatabaseCommand extends BaseCommand
         }
 
         return match ($action) {
-            'seed' => $this->handleSeed(),
+            'seed'       => $this->handleSeed(),
             'seed:icons' => $this->handleSeedIcons(),
             'seed:terms' => $this->handleSeedTerms(),
-            'unseed' => $this->handleUnseed(),
-            'refresh' => $this->handleRefresh(),
-            'truncate' => $this->handleTruncate(),
-            'stats' => $this->handleStats(),
-            default => $this->handleInvalidAction($action, $this->validActions),
+            'unseed'     => $this->handleUnseed(),
+            'refresh'    => $this->handleRefresh(),
+            'truncate'   => $this->handleTruncate(),
+            'stats'      => $this->handleStats(),
+            default      => $this->handleInvalidAction($action, $this->validActions),
         };
     }
 
@@ -246,7 +246,7 @@ final class DatabaseCommand extends BaseCommand
     {
         $forceUpdate = (bool) $this->option('update');
 
-        info('📦 Seeding icons...'.($forceUpdate ? ' (force update mode)' : ''));
+        info('📦 Seeding icons...' . ($forceUpdate ? ' (force update mode)' : ''));
 
         return $this->tryExecute(function () use ($forceUpdate) {
             if ($this->option('sync')) {
@@ -267,8 +267,8 @@ final class DatabaseCommand extends BaseCommand
             );
 
             $this->logOperation('Icons seeded', [
-                'package' => $this->option('package'),
-                'sync' => $this->option('sync'),
+                'package'      => $this->option('package'),
+                'sync'         => $this->option('sync'),
                 'force_update' => $forceUpdate,
             ]);
 
@@ -315,9 +315,9 @@ final class DatabaseCommand extends BaseCommand
             $choice = select(
                 label: 'What would you like to unseed?',
                 options: [
-                    'all' => 'All packages - Remove all Ichava data',
+                    'all'     => 'All packages - Remove all Ichava data',
                     'package' => 'Specific package - Choose a package to unseed',
-                    'cancel' => 'Cancel - Do nothing',
+                    'cancel'  => 'Cancel - Do nothing',
                 ],
                 default: 'cancel',
                 hint: 'Select what to unseed',
@@ -490,7 +490,7 @@ final class DatabaseCommand extends BaseCommand
                 message: 'Truncating tables...',
             );
 
-            info('Tables truncated: '.implode(', ', $truncated));
+            info('Tables truncated: ' . implode(', ', $truncated));
             $this->logOperation('Tables truncated');
 
             return self::SUCCESS;

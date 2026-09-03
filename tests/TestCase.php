@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Tests;
 
 use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Simtabi\Laranail\Ichava\Providers\IchavaServiceProvider;
 
 /**
@@ -30,7 +30,8 @@ abstract class TestCase extends Orchestra
     /**
      * Get package providers
      *
-     * @param  Application  $app
+     * @param Application $app
+     *
      * @return array<int, class-string>
      */
     protected function getPackageProviders($app): array
@@ -43,22 +44,22 @@ abstract class TestCase extends Orchestra
     /**
      * Define environment setup
      *
-     * @param  Application  $app
+     * @param Application $app
      */
     protected function getEnvironmentSetUp($app): void
     {
         // Setup default database to use sqlite :memory:
         $app['config']->set('database.default', 'testing');
         $app['config']->set('database.connections.testing', [
-            'driver' => 'sqlite',
+            'driver'   => 'sqlite',
             'database' => ':memory:',
-            'prefix' => '',
+            'prefix'   => '',
         ]);
 
         // Setup cache to use array driver for testing
         $app['config']->set('cache.default', 'array');
         $app['config']->set('cache.stores.array', [
-            'driver' => 'array',
+            'driver'    => 'array',
             'serialize' => false,
         ]);
 

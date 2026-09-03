@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services;
 
 use Exception;
-use Illuminate\Support\Facades\Artisan;
+use Throwable;
+use Illuminate\Support\Str;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
+use Illuminate\Support\Facades\Artisan;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Support\Helpers;
-use Throwable;
 
 /**
  * DatabaseOperationsService
@@ -142,7 +142,7 @@ class DatabaseOperationsService
         $this->logger->info('🗄️ Running Ichava migrations');
 
         return Artisan::call('migrate', [
-            '--path' => 'platform/ichava/ichava/database/migrations',
+            '--path'  => 'platform/ichava/ichava/database/migrations',
             '--force' => true,
         ]);
     }
@@ -159,9 +159,9 @@ class DatabaseOperationsService
         $exitCode = $this->runMigrations();
 
         return [
-            'dropped_tables' => $dropped,
+            'dropped_tables'      => $dropped,
             'migration_exit_code' => $exitCode,
-            'success' => $exitCode === 0,
+            'success'             => $exitCode === 0,
         ];
     }
 
@@ -207,8 +207,8 @@ class DatabaseOperationsService
         $this->logger->info("Unseeding package: {$packageName}");
 
         $stats = [
-            'package' => $packageName,
-            'icons_deleted' => 0,
+            'package'                => $packageName,
+            'icons_deleted'          => 0,
             'term_relations_deleted' => 0,
             'orphaned_terms_deleted' => 0,
         ];
@@ -253,9 +253,9 @@ class DatabaseOperationsService
         $this->logger->info('Unseeding all packages');
 
         $stats = [
-            'icons_deleted' => 0,
+            'icons_deleted'          => 0,
             'term_relations_deleted' => 0,
-            'terms_deleted' => 0,
+            'terms_deleted'          => 0,
         ];
 
         DB::beginTransaction();
@@ -357,12 +357,12 @@ class DatabaseOperationsService
     public function getStatistics(): array
     {
         $stats = [
-            'icons' => 0,
-            'packages' => 0,
-            'categories' => 0,
-            'variants' => 0,
+            'icons'              => 0,
+            'packages'           => 0,
+            'categories'         => 0,
+            'variants'           => 0,
             'term_relationships' => 0,
-            'database_size' => null,
+            'database_size'      => null,
         ];
 
         try {

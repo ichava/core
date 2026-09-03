@@ -5,18 +5,19 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Commands;
 
 use Carbon\Carbon;
+
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\warning;
+
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\JobProgressTracker;
-
-use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\info;
-use function Laravel\Prompts\intro;
-use function Laravel\Prompts\note;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\spin;
-use function Laravel\Prompts\table;
-use function Laravel\Prompts\warning;
 
 /**
  * Display icon seeding job status
@@ -116,9 +117,9 @@ class JobStatusCommand extends BaseCommand
 
             match ($status) {
                 'processing' => $activeJobs++,
-                'completed' => $completedJobs++,
-                'failed' => $failedJobs++,
-                default => null,
+                'completed'  => $completedJobs++,
+                'failed'     => $failedJobs++,
+                default      => null,
             };
 
             $progressBar = $this->createProgressBar($progressPercent);
