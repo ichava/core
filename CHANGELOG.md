@@ -15,8 +15,21 @@ The additions are new public surface; nothing existing changed shape.
 - `Icon::render_version` — `file_hash` combined with that fingerprint, identifying the exact
   bytes an icon renders to.
 
+- `Support\SvgPolicy`, the reader for `resources/security/svg-policy.json` — the single
+  definition of what survives SVG sanitisation, shipped with the package and read by every
+  runtime rather than duplicated into each one.
+- 26 elements and 23 attributes the shipped policy stripped: `filter` and every `fe*`
+  primitive, `pattern`, `textPath`, `switch`, `metadata`; `stroke-dasharray`,
+  `stroke-dashoffset`, `stroke-miterlimit`, `transform-origin`, `patternUnits`,
+  `patternTransform`, the `font-*` and text-layout attributes, `vector-effect`,
+  `paint-order`, `shape-rendering`.
+
 ### Changed
 
+- `ichava.core.svg.*` now derives from `resources/security/svg-policy.json` instead of
+  being a second list of literals in `config/core.php`. A host can still publish the config
+  and narrow it; what is no longer possible is the two drifting apart by accident. Note
+  `config:cache` freezes the resolved arrays, so a policy edit needs `config:clear`.
 - The SVG cache key is now `svg:{id}:{render_version}` rather than `svg:{id}:{file_hash}`.
   The cached value is the *processed* SVG — ids namespaced, sizing normalised, allow-list
   applied — so a file hash never identified it: widening the policy changes every icon while

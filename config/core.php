@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Enums\OptimizationLevel;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Support\SvgPolicy;
 
 /**
  * Ichava, SVG icon management configuration.
@@ -351,38 +352,29 @@ return [
         'extensions' => ['.svg'],
 
         /*
-        | These two lists ARE the effective policy. Until 2026-08-31 they were
-        | not: the config file was merged at a key nothing read, so
-        | SanitizesSvg fell through to its own in-trait defaults, which are
-        | wider than what was shipped here. Both lists below are now the trait
-        | defaults verbatim, so making the config load changed no behaviour.
-        | Widen deliberately, with a test per construct; do not trim to look
-        | tidy, and read `SanitizesSvg::getDefaultAllowedTags()` before editing.
+        | These lists ARE the effective policy, and they now come from ONE file:
+        | resources/security/svg-policy.json, which the Vue client, the React
+        | client and the Python build pipeline read too.
+        |
+        | They were literals here until 2026-09-02. That is how the policies
+        | diverged: W1-6 widened this side and nothing widened the clients, and
+        | a census then measured 3,507 icons rendering correctly on the Blade
+        | path and wrong in the SPA. Two hand-maintained copies of one policy is
+        | not a policy.
+        |
+        | A host may still publish this config and narrow it -- that is a
+        | deliberate local decision. What is no longer possible is drifting
+        | apart by accident. Widen the JSON, with a test per construct; do not
+        | trim these to look tidy.
+        |
+        | Note `config:cache` freezes the resolved arrays, so a policy edit needs
+        | `config:clear` to take effect in a cached application.
         */
-        'allowed_tags' => [
-            'svg', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon',
-            'g', 'defs', 'clipPath', 'mask', 'use', 'symbol',
-            'linearGradient', 'radialGradient', 'ellipse', 'text', 'tspan',
-            'stop', 'title', 'desc',
-        ],
+        'allowed_tags' => SvgPolicy::allowedTags(),
 
-        'allowed_attributes' => [
-            'viewBox', 'width', 'height', 'fill', 'stroke', 'd',
-            'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'transform',
-            'stroke-width', 'stroke-linecap', 'stroke-linejoin',
-            'opacity', 'fill-opacity', 'stroke-opacity',
-            'x1', 'x2', 'y1', 'y2', 'offset', 'stop-color',
-            'fill-rule', 'clip-rule', 'points', 'style',
-            'stop-opacity', 'gradientUnits', 'gradientTransform', 'spreadMethod',
-            'fx', 'fy', 'fr', 'clipPathUnits', 'clip-path',
-            'maskUnits', 'maskContentUnits', 'mask',
-            'preserveAspectRatio',
-        ],
+        'allowed_attributes' => SvgPolicy::allowedAttributes(),
 
-        'forbidden_tags' => [
-            'script', 'iframe', 'object', 'embed', 'foreignObject',
-            'animation', 'animate',
-        ],
+        'forbidden_tags' => SvgPolicy::forbiddenTags(),
     ],
 
     /*
