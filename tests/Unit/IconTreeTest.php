@@ -24,7 +24,12 @@ function scanTestIconsFolder(): array
     $method = (new ReflectionClass($service))->getMethod('scanFolderTree');
     $method->setAccessible(true);
 
-    $basePath = realpath(__DIR__ . '/../../resources/assets/svg/test-icons');
+    $fixturePath = __DIR__ . '/../../resources/assets/svg/test-icons';
+    $basePath = realpath($fixturePath);
+
+    if ($basePath === false) {
+        throw new RuntimeException("test-icons fixture not found at {$fixturePath} -- scanFolderTree() requires a string path, and realpath() on a missing directory returns false, which fails invoke() with a TypeError that doesn't say why.");
+    }
 
     return $method->invoke($service, $basePath, 'ichava/test-icons', []);
 }
