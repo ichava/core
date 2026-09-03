@@ -9,13 +9,13 @@ The additions are new public surface; nothing existing changed shape.
 
 ### Added
 
-- `SvgProcessingService::renderFingerprint()` — a short digest of everything that decides the
+- `SvgProcessingService::renderFingerprint()` -- a short digest of everything that decides the
   output bytes for a given input file: the three allow-lists, the optimization level and a
   `RENDER_PIPELINE_VERSION` constant for code changes config cannot see.
-- `Icon::render_version` — `file_hash` combined with that fingerprint, identifying the exact
+- `Icon::render_version` -- `file_hash` combined with that fingerprint, identifying the exact
   bytes an icon renders to.
 
-- `Support\SvgPolicy`, the reader for `resources/security/svg-policy.json` — the single
+- `Support\SvgPolicy`, the reader for `resources/security/svg-policy.json` -- the single
   definition of what survives SVG sanitisation, shipped with the package and read by every
   runtime rather than duplicated into each one.
 - 26 elements and 23 attributes the shipped policy stripped: `filter` and every `fe*`
@@ -31,8 +31,8 @@ The additions are new public surface; nothing existing changed shape.
   and narrow it; what is no longer possible is the two drifting apart by accident. Note
   `config:cache` freezes the resolved arrays, so a policy edit needs `config:clear`.
 - The SVG cache key is now `svg:{id}:{render_version}` rather than `svg:{id}:{file_hash}`.
-  The cached value is the *processed* SVG — ids namespaced, sizing normalised, allow-list
-  applied — so a file hash never identified it: widening the policy changes every icon while
+  The cached value is the *processed* SVG -- ids namespaced, sizing normalised, allow-list
+  applied -- so a file hash never identified it: widening the policy changes every icon while
   every file hash stays put. Existing cache entries are orphaned and repopulate on first read.
 
 ### Why
