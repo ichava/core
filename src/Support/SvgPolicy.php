@@ -141,6 +141,18 @@ final class SvgPolicy
     }
 
     /**
+     * The attributes carrying a reference, from the policy rather than a
+     * constant in the sanitiser. Emptying this in the policy must actually
+     * change what the server admits.
+     *
+     * @return list<string>
+     */
+    public static function referenceAttributes(): array
+    {
+        return array_values((array) (self::all()['fragmentOnlyRefs']['attributes'] ?? []));
+    }
+
+    /**
      * The regex a `href`/`xlink:href` value must match to survive. Fragments are
      * inert; everything else is blocked.
      */

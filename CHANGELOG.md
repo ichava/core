@@ -24,8 +24,17 @@ The additions are new public surface; nothing existing changed shape.
   `patternTransform`, the `font-*` and text-layout attributes, `vector-effect`,
   `paint-order`, `shape-rendering`.
 
+- An archetype rendering gate (`SvgArchetypeRegressionTest`) over real corpus icons, one per
+  archetype rather than one per pack, with provenance in
+  `tests/fixtures/archetypes/manifest.json`. Three rendering defects accumulated in this
+  subsystem without detection because nothing rendered an icon in CI.
+
 ### Changed
 
+- `SanitizesSvg` reads the reference attributes and the fragment pattern from the policy
+  instead of its own constants. They were constants, so emptying `fragmentOnlyRefs` in the
+  policy changed every client and nothing here. Not a hole, since the value check still ran,
+  but it made a section of the policy decorative on the server.
 - `ichava.core.svg.*` now derives from `resources/security/svg-policy.json` instead of
   being a second list of literals in `config/core.php`. A host can still publish the config
   and narrow it; what is no longer possible is the two drifting apart by accident. Note

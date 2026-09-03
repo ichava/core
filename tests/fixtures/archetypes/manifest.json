@@ -1,0 +1,31 @@
+{
+  "_note": "Real corpus icons, not synthetic fixtures. One per ARCHETYPE, not per pack: a pack is not an archetype, since 6,184 tabler icons are one monochrome shape while five metronic logos are five different problems. Copied here because core cannot depend on the sibling packs. sha256 records which upstream file each came from, so a refresh is detectable.",
+  "_captured": "2026-09-02",
+  "icons": {
+    "gradient": {
+      "source": "metronic-icons/resources/assets/svg/files/brand-logos/lykke-lkk.svg",
+      "sha256": "4400a7c9a645da199165df8359633da1c23c7833327daf0918a8023835681923",
+      "proves": "linearGradient + <stop>: a gradient with no stops paints nothing"
+    },
+    "use-fragment": {
+      "source": "flag-icons/resources/assets/svg/files/1x1/hn.svg",
+      "sha256": "545c93c9f9e361604b5ae8a54028e10e84ee6284bb8d74ef67c50baef8cba63b",
+      "proves": "<use href=\"#...\"> sprite: 126 flag icons render as nothing without it"
+    },
+    "inline-style": {
+      "source": "metronic-icons/resources/assets/svg/files/flags/dominican-republic.svg",
+      "sha256": "4f81d7c95be644f9710158ff163c6ed42d70c04f2e8db403351b895a853f2989",
+      "proves": "style=\"fill:...\" is the ONLY paint source for 261 of 501 metronic icons"
+    },
+    "title": {
+      "source": "bundled-icons/resources/assets/svg/files/clarity-icons/menu-line.svg",
+      "sha256": "93fcb5c899cfcb06e5e98c2b474d7b0b8e294e97c4b33957035510fb588f4d9c",
+      "proves": "<title> is the accessible name; 6,966 bundled icons carry one"
+    },
+    "control": {
+      "source": "tabler-icons/resources/assets/svg/files/outline/a-b-2.svg",
+      "sha256": "9d7501e66352ac414252bed14164cac0d00833584a63a20daaeaa2a0a067f181",
+      "proves": "the archetype the policy was designed against: must never change"
+    }
+  }
+}
