@@ -495,10 +495,10 @@ final class IconBrowserService
             }
 
             $tree[] = [
-                'id'         => "{$package}::{$folderName}",
-                'type'       => 'folder',
-                'name'       => $folderName,
-                'label'      => ucwords(str_replace(['-', '_'], ' ', $folderName)),
+                'id'    => "{$package}::{$folderName}",
+                'type'  => 'folder',
+                'name'  => $folderName,
+                'label' => ucwords(str_replace(['-', '_'], ' ', $folderName)),
                 // No 'path' key: $dir is the folder's ABSOLUTE server filesystem
                 // path, and this array is served verbatim as the GET /icons/tree
                 // response body. It was never read back by any consumer -- the

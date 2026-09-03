@@ -24,7 +24,7 @@ function scanTestIconsFolder(): array
     $method = (new ReflectionClass($service))->getMethod('scanFolderTree');
     $method->setAccessible(true);
 
-    $basePath = realpath(__DIR__.'/../../resources/assets/svg/test-icons');
+    $basePath = realpath(__DIR__ . '/../../resources/assets/svg/test-icons');
 
     return $method->invoke($service, $basePath, 'ichava/test-icons', []);
 }
