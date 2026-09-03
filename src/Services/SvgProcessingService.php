@@ -7,13 +7,13 @@ namespace Simtabi\Laranail\Ichava\Services;
 use DOMDocument;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Simtabi\Laranail\Ichava\Enums\OptimizationLevel;
-use Simtabi\Laranail\Ichava\Services\Traits\ManagesAttributes;
-use Simtabi\Laranail\Ichava\Services\Traits\ManagesSizes;
-use Simtabi\Laranail\Ichava\Services\Traits\NamespacesSvgIds;
-use Simtabi\Laranail\Ichava\Services\Traits\NormalisesSvgSizing;
-use Simtabi\Laranail\Ichava\Services\Traits\OptimizesSvg;
 use Simtabi\Laranail\Ichava\Services\Traits\ParsesSvg;
+use Simtabi\Laranail\Ichava\Services\Traits\ManagesSizes;
+use Simtabi\Laranail\Ichava\Services\Traits\OptimizesSvg;
 use Simtabi\Laranail\Ichava\Services\Traits\SanitizesSvg;
+use Simtabi\Laranail\Ichava\Services\Traits\NamespacesSvgIds;
+use Simtabi\Laranail\Ichava\Services\Traits\ManagesAttributes;
+use Simtabi\Laranail\Ichava\Services\Traits\NormalisesSvgSizing;
 
 /**
  * SvgProcessingService - Unified SVG Processing Pipeline
@@ -91,9 +91,10 @@ final class SvgProcessingService
     /**
      * Process SVG: sanitize, optimize, and apply attributes
      *
-     * @param  string  $content  Raw SVG content
-     * @param  array<string, mixed>  $attributes  HTML attributes to apply
-     * @param  bool  $optimize  Whether to optimize the SVG
+     * @param string $content Raw SVG content
+     * @param array<string, mixed> $attributes HTML attributes to apply
+     * @param bool $optimize Whether to optimize the SVG
+     *
      * @return string Processed SVG content
      */
     public function process(string $content, array $attributes = [], bool $optimize = true): string
@@ -135,8 +136,9 @@ final class SvgProcessingService
     /**
      * Apply HTML attributes to SVG root element
      *
-     * @param  string  $svg  SVG content
-     * @param  array<string, mixed>  $attributes  Attributes to apply
+     * @param string $svg SVG content
+     * @param array<string, mixed> $attributes Attributes to apply
+     *
      * @return string SVG with attributes
      */
     protected function applyAttributes(string $svg, array $attributes): string

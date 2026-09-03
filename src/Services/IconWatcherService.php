@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Throwable;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
+use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
-use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Support\IconPathStructureDetector;
-use Throwable;
 
 /**
  * Watches icon directories for changes and keeps the icon cache + DB in sync.
@@ -59,10 +59,10 @@ class IconWatcherService
         }
 
         $fingerprint = [
-            'path' => $path,
+            'path'     => $path,
             'modified' => $this->getLastModifiedTime($path),
-            'count' => $this->countSvgFiles($path),
-            'size' => $this->getTotalSize($path),
+            'count'    => $this->countSvgFiles($path),
+            'size'     => $this->getTotalSize($path),
         ];
 
         return md5(serialize($fingerprint));
@@ -152,13 +152,13 @@ class IconWatcherService
 
             return [
                 'total_watched' => count($fingerprints),
-                'directories' => array_keys($fingerprints),
+                'directories'   => array_keys($fingerprints),
             ];
         } catch (IchavaException $e) {
             return [
                 'total_watched' => 0,
-                'directories' => [],
-                'error' => $e->getMessage(),
+                'directories'   => [],
+                'error'         => $e->getMessage(),
             ];
         }
     }
@@ -311,17 +311,17 @@ class IconWatcherService
             }
 
             return [
-                'count' => count($svgFiles),
+                'count'        => count($svgFiles),
                 'latest_mtime' => $latestMtime,
-                'total_size' => $totalSize,
-                'path_hash' => md5($path),
+                'total_size'   => $totalSize,
+                'path_hash'    => md5($path),
             ];
         } catch (Throwable) {
             return [
-                'count' => 0,
+                'count'        => 0,
                 'latest_mtime' => 0,
-                'total_size' => 0,
-                'path_hash' => md5($path),
+                'total_size'   => 0,
+                'path_hash'    => md5($path),
             ];
         }
     }
@@ -348,7 +348,7 @@ class IconWatcherService
                 $diff = $fingerprint['count'] - $oldFingerprint['count'];
                 $changed[$package] = $diff > 0
                     ? "Added {$diff} icon(s)"
-                    : 'Removed '.abs($diff).' icon(s)';
+                    : 'Removed ' . abs($diff) . ' icon(s)';
 
                 continue;
             }
@@ -385,10 +385,10 @@ class IconWatcherService
 
         $stats = [
             'packages_scanned' => 0,
-            'new_icons' => 0,
-            'updated_icons' => 0,
-            'deleted_icons' => 0,
-            'total_changes' => 0,
+            'new_icons'        => 0,
+            'updated_icons'    => 0,
+            'deleted_icons'    => 0,
+            'total_changes'    => 0,
         ];
 
         foreach ($packages as $package => $metadata) {
@@ -411,7 +411,7 @@ class IconWatcherService
     protected function syncPackage(string $package, array $metadata): array
     {
         $stats = [
-            'new' => 0,
+            'new'     => 0,
             'updated' => 0,
             'deleted' => 0,
         ];
@@ -439,8 +439,8 @@ class IconWatcherService
 
                 $this->logger->debug('New icon detected', [
                     'package' => $package,
-                    'name' => $iconData['name'],
-                    'path' => $path,
+                    'name'    => $iconData['name'],
+                    'path'    => $path,
                 ]);
             } elseif ($dbIcons[$path]->file_hash !== $iconData['file_hash']) {
                 // Updated icon
@@ -449,8 +449,8 @@ class IconWatcherService
 
                 $this->logger->debug('Icon updated', [
                     'package' => $package,
-                    'name' => $iconData['name'],
-                    'path' => $path,
+                    'name'    => $iconData['name'],
+                    'path'    => $path,
                 ]);
             }
         }
@@ -466,8 +466,8 @@ class IconWatcherService
 
                 $this->logger->debug('Icon deleted', [
                     'package' => $package,
-                    'name' => $icon->name,
-                    'path' => $icon->path,
+                    'name'    => $icon->name,
+                    'path'    => $icon->path,
                 ]);
             });
         }
@@ -487,8 +487,8 @@ class IconWatcherService
         } catch (IchavaException $e) {
             $this->logger->error('Failed to scan directory', [
                 'package' => $package,
-                'path' => $basePath,
-                'error' => $e->getMessage(),
+                'path'    => $basePath,
+                'error'   => $e->getMessage(),
             ]);
 
             return [];
@@ -505,8 +505,8 @@ class IconWatcherService
             } catch (IchavaException $e) {
                 $this->logger->warning('Failed to process icon file', [
                     'package' => $package,
-                    'file' => $file->getPathname(),
-                    'error' => $e->getMessage(),
+                    'file'    => $file->getPathname(),
+                    'error'   => $e->getMessage(),
                 ]);
             }
         }
@@ -528,7 +528,7 @@ class IconWatcherService
     {
         // Get relative path from base_path (preserves set-name/files/ or files/ structure)
         $absolutePath = $file->getPathname();
-        $relativePath = str_replace(rtrim($basePath, '/\\').DIRECTORY_SEPARATOR, '', $absolutePath);
+        $relativePath = str_replace(rtrim($basePath, '/\\') . DIRECTORY_SEPARATOR, '', $absolutePath);
 
         // Extract category from the path (everything except filename)
         $pathParts = explode(DIRECTORY_SEPARATOR, $relativePath);
@@ -540,20 +540,20 @@ class IconWatcherService
         $svgMetadata = $this->extractSvgMetadata($content);
 
         return [
-            'package' => $package,
-            'name' => $name,
-            'path' => $relativePath, // Store relative path (includes set-name/files/ or files/)
-            'file_hash' => md5_file($absolutePath),
-            'tags' => $this->generateTags($name, $category),
-            'keywords' => $this->generateKeywords($name, $category),
+            'package'    => $package,
+            'name'       => $name,
+            'path'       => $relativePath, // Store relative path (includes set-name/files/ or files/)
+            'file_hash'  => md5_file($absolutePath),
+            'tags'       => $this->generateTags($name, $category),
+            'keywords'   => $this->generateKeywords($name, $category),
             'attributes' => $svgMetadata,
-            'metadata' => [
-                'file_size' => $file->getSize(),
+            'metadata'   => [
+                'file_size'        => $file->getSize(),
                 'file_modified_at' => Carbon::createFromTimestamp($file->getMTime())->toIso8601String(),
-                'category' => $category, // Store in metadata for reference
+                'category'         => $category, // Store in metadata for reference
             ],
             'file_modified_at' => Carbon::createFromTimestamp($file->getMTime()),
-            'updated_at' => now(),
+            'updated_at'       => now(),
         ];
     }
 

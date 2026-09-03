@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
-use Simtabi\Laranail\Ichava\Enums\OptimizationLevel;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Support\SvgPolicy;
+use Simtabi\Laranail\Ichava\Enums\OptimizationLevel;
+use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 
 /**
  * Ichava, SVG icon management configuration.
@@ -40,8 +40,8 @@ return [
     | icons, batch processing) get the headroom they need.
     */
     'runtime' => [
-        'memory_limit' => env('ICHAVA_MEMORY_LIMIT', '2G'),
-        'max_execution_time' => env('ICHAVA_MAX_EXECUTION_TIME', 0),
+        'memory_limit'               => env('ICHAVA_MEMORY_LIMIT', '2G'),
+        'max_execution_time'         => env('ICHAVA_MAX_EXECUTION_TIME', 0),
         'disable_telescope_in_queue' => env('ICHAVA_DISABLE_TELESCOPE_QUEUE', true),
     ],
 
@@ -53,32 +53,32 @@ return [
     | is recommended (full-text search); MySQL 8+ is supported.
     */
     'database' => [
-        'enabled' => env('ICHAVA_DATABASE_ENABLED', true),
-        'auto_sync' => env('ICHAVA_AUTO_SYNC', true),
-        'sync_interval' => env('ICHAVA_SYNC_INTERVAL', IchavaConstants::DB_SYNC_INTERVAL),
-        'auto_seed' => env('ICHAVA_AUTO_SEED', false),
-        'use_queue' => env('ICHAVA_USE_QUEUE', true),
-        'queue_connection' => env('ICHAVA_QUEUE_CONNECTION'),
-        'batch_size' => env('ICHAVA_BATCH_SIZE', 1000),
+        'enabled'               => env('ICHAVA_DATABASE_ENABLED', true),
+        'auto_sync'             => env('ICHAVA_AUTO_SYNC', true),
+        'sync_interval'         => env('ICHAVA_SYNC_INTERVAL', IchavaConstants::DB_SYNC_INTERVAL),
+        'auto_seed'             => env('ICHAVA_AUTO_SEED', false),
+        'use_queue'             => env('ICHAVA_USE_QUEUE', true),
+        'queue_connection'      => env('ICHAVA_QUEUE_CONNECTION'),
+        'batch_size'            => env('ICHAVA_BATCH_SIZE', 1000),
         'smart_queue_threshold' => env('ICHAVA_SMART_QUEUE_THRESHOLD', 5000),
 
         'search' => [
-            'strategy' => env('ICHAVA_SEARCH_STRATEGY', 'simple'),
-            'language' => env('ICHAVA_SEARCH_LANGUAGE', 'simple'),
+            'strategy'  => env('ICHAVA_SEARCH_STRATEGY', 'simple'),
+            'language'  => env('ICHAVA_SEARCH_LANGUAGE', 'simple'),
             'languages' => [
                 'simple', 'english', 'french', 'german', 'spanish', 'portuguese', 'italian',
             ],
             'scope' => [
-                'icon_name' => true,
-                'keywords' => true,
-                'tags' => true,
-                'categories' => true,
-                'variants' => true,
-                'metadata' => true,
+                'icon_name'    => true,
+                'keywords'     => true,
+                'tags'         => true,
+                'categories'   => true,
+                'variants'     => true,
+                'metadata'     => true,
                 'package_name' => true,
             ],
             'fuzzy' => [
-                'enabled' => true,
+                'enabled'   => true,
                 'threshold' => 0.3,
             ],
         ],
@@ -92,8 +92,8 @@ return [
     | php artisan ichava:cache generate
     */
     'manifest' => [
-        'enabled' => env('ICHAVA_MANIFEST_ENABLED', true),
-        'path' => env('ICHAVA_MANIFEST_PATH', base_path('bootstrap/cache/ichava-manifest.php')),
+        'enabled'      => env('ICHAVA_MANIFEST_ENABLED', true),
+        'path'         => env('ICHAVA_MANIFEST_PATH', base_path('bootstrap/cache/ichava-manifest.php')),
         'auto_rebuild' => env('ICHAVA_MANIFEST_AUTO_REBUILD', env('APP_ENV') === 'local'),
     ],
 
@@ -123,7 +123,7 @@ return [
     */
     'test' => [
         'enabled' => true,
-        'path' => null, // null → resources/assets/svg/test-icons
+        'path'    => null, // null → resources/assets/svg/test-icons
     ],
 
     /*
@@ -133,7 +133,7 @@ return [
     | Drivers honoured: file, redis, memcached, array.
     */
     'cache' => [
-        'ttl' => IchavaConstants::DEFAULT_CACHE_TTL,
+        'ttl'    => IchavaConstants::DEFAULT_CACHE_TTL,
         'prefix' => 'ichava',
     ],
 
@@ -144,11 +144,11 @@ return [
     | Levels: none | basic (recommended) | aggressive.
     */
     'optimization' => [
-        'level' => OptimizationLevel::BASIC->value,
-        'remove_comments' => true,
+        'level'                  => OptimizationLevel::BASIC->value,
+        'remove_comments'        => true,
         'remove_xml_declaration' => true,
-        'remove_metadata' => false, // true under 'aggressive'
-        'minify' => false, // true under 'aggressive'
+        'remove_metadata'        => false, // true under 'aggressive'
+        'minify'                 => false, // true under 'aggressive'
     ],
 
     /*
@@ -180,10 +180,10 @@ return [
         | it to a list of event names to whitelist only those.
         */
         'audit' => [
-            'enabled' => env('ICHAVA_AUDIT_ENABLED', true),
-            'channel' => env('ICHAVA_AUDIT_CHANNEL', 'ichava-audit'),
+            'enabled'        => env('ICHAVA_AUDIT_ENABLED', true),
+            'channel'        => env('ICHAVA_AUDIT_CHANNEL', 'ichava-audit'),
             'dispatch_event' => env('ICHAVA_AUDIT_DISPATCH_EVENT', true),
-            'events' => [], // empty = record all
+            'events'         => [], // empty = record all
         ],
     ],
 
@@ -193,7 +193,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'components' => [
-        'enabled' => env('ICHAVA_COMPONENTS_ENABLED', true),
+        'enabled'    => env('ICHAVA_COMPONENTS_ENABLED', true),
         'test_icons' => env('ICHAVA_TEST_COMPONENT_ENABLED', env('APP_ENV') === 'local'),
     ],
 
@@ -227,7 +227,7 @@ return [
     | per icon set or per Blade component as needed.
     */
     'defaults' => [
-        'class' => 'w-6 h-6',
+        'class'      => 'w-6 h-6',
         'attributes' => [
             // 'aria-hidden' => 'true',  // decorative icons (WCAG 2.1 A)
             // 'focusable'   => 'false', // legacy IE/Edge focus suppression
@@ -261,22 +261,22 @@ return [
     | ichava-queue.log. Daily rotation appends YYYY-MM-DD before .log.
     */
     'logging' => [
-        'enabled' => env('ICHAVA_LOGGING_ENABLED', true),
-        'channel' => env('ICHAVA_LOG_CHANNEL', 'ichava'),
-        'seeding_channel' => env('ICHAVA_SEEDING_LOG_CHANNEL', 'ichava-icons'),
-        'queue_channel' => env('ICHAVA_QUEUE_LOG_CHANNEL', 'ichava-queue'),
-        'level' => env('ICHAVA_LOG_LEVEL', 'warning'),
-        'seeding_level' => env('ICHAVA_SEEDING_LOG_LEVEL', 'info'),
-        'retention_days' => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
-        'auto_cleanup' => env('ICHAVA_LOG_AUTO_CLEANUP', true),
-        'cleanup_time' => env('ICHAVA_LOG_CLEANUP_TIME', '03:00'),
-        'security' => env('ICHAVA_LOG_SECURITY', true),
-        'performance' => env('ICHAVA_LOG_PERFORMANCE', false),
-        'requests' => env('ICHAVA_LOG_REQUESTS', false),
-        'auth_debug' => env('ICHAVA_LOG_AUTH_DEBUG', false),
-        'session_debug' => env('ICHAVA_LOG_SESSION_DEBUG', false),
+        'enabled'               => env('ICHAVA_LOGGING_ENABLED', true),
+        'channel'               => env('ICHAVA_LOG_CHANNEL', 'ichava'),
+        'seeding_channel'       => env('ICHAVA_SEEDING_LOG_CHANNEL', 'ichava-icons'),
+        'queue_channel'         => env('ICHAVA_QUEUE_LOG_CHANNEL', 'ichava-queue'),
+        'level'                 => env('ICHAVA_LOG_LEVEL', 'warning'),
+        'seeding_level'         => env('ICHAVA_SEEDING_LOG_LEVEL', 'info'),
+        'retention_days'        => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
+        'auto_cleanup'          => env('ICHAVA_LOG_AUTO_CLEANUP', true),
+        'cleanup_time'          => env('ICHAVA_LOG_CLEANUP_TIME', '03:00'),
+        'security'              => env('ICHAVA_LOG_SECURITY', true),
+        'performance'           => env('ICHAVA_LOG_PERFORMANCE', false),
+        'requests'              => env('ICHAVA_LOG_REQUESTS', false),
+        'auth_debug'            => env('ICHAVA_LOG_AUTH_DEBUG', false),
+        'session_debug'         => env('ICHAVA_LOG_SESSION_DEBUG', false),
         'performance_threshold' => env('ICHAVA_PERFORMANCE_THRESHOLD', IchavaConstants::PERFORMANCE_THRESHOLD_MS),
-        'deduplication_ttl' => env('ICHAVA_LOG_DEDUP_TTL', 300),
+        'deduplication_ttl'     => env('ICHAVA_LOG_DEDUP_TTL', 300),
 
         // Resolved log directory. Absolute paths used as-is; relative paths
         // are resolved against base_path(). Empty falls back to storage/logs.
@@ -284,24 +284,24 @@ return [
 
         'channels' => [
             'ichava' => [
-                'driver' => 'daily',
-                'path' => Helpers::logPath('ichava.log'),
-                'level' => env('ICHAVA_LOG_LEVEL', 'info'),
-                'days' => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
+                'driver'     => 'daily',
+                'path'       => Helpers::logPath('ichava.log'),
+                'level'      => env('ICHAVA_LOG_LEVEL', 'info'),
+                'days'       => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
                 'permission' => 0644,
             ],
             'ichava-icons' => [
-                'driver' => 'daily',
-                'path' => Helpers::logPath('ichava-icons.log'),
-                'level' => env('ICHAVA_SEEDING_LOG_LEVEL', 'info'),
-                'days' => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
+                'driver'     => 'daily',
+                'path'       => Helpers::logPath('ichava-icons.log'),
+                'level'      => env('ICHAVA_SEEDING_LOG_LEVEL', 'info'),
+                'days'       => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
                 'permission' => 0644,
             ],
             'ichava-queue' => [
-                'driver' => 'daily',
-                'path' => Helpers::logPath('ichava-queue.log'),
-                'level' => env('ICHAVA_QUEUE_LOG_LEVEL', 'info'),
-                'days' => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
+                'driver'     => 'daily',
+                'path'       => Helpers::logPath('ichava-queue.log'),
+                'level'      => env('ICHAVA_QUEUE_LOG_LEVEL', 'info'),
+                'days'       => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
                 'permission' => 0644,
             ],
         ],
@@ -316,26 +316,26 @@ return [
     | `horizon.auto_register` is set to false.
     */
     'queue' => [
-        'name' => env('ICHAVA_QUEUE_NAME', 'ichava-icons'),
-        'connection' => env('ICHAVA_QUEUE_CONNECTION'),
+        'name'          => env('ICHAVA_QUEUE_NAME', 'ichava-icons'),
+        'connection'    => env('ICHAVA_QUEUE_CONNECTION'),
         'stagger_delay' => env('ICHAVA_QUEUE_STAGGER_DELAY', IchavaConstants::QUEUE_STAGGER_DELAY),
-        'timeout' => env('ICHAVA_QUEUE_TIMEOUT', IchavaConstants::QUEUE_TIMEOUT),
-        'retries' => env('ICHAVA_QUEUE_RETRIES', IchavaConstants::QUEUE_RETRIES),
-        'progress_ttl' => env('ICHAVA_PROGRESS_TTL', IchavaConstants::PROGRESS_TTL),
+        'timeout'       => env('ICHAVA_QUEUE_TIMEOUT', IchavaConstants::QUEUE_TIMEOUT),
+        'retries'       => env('ICHAVA_QUEUE_RETRIES', IchavaConstants::QUEUE_RETRIES),
+        'progress_ttl'  => env('ICHAVA_PROGRESS_TTL', IchavaConstants::PROGRESS_TTL),
 
         'horizon' => [
             'auto_register' => env('ICHAVA_HORIZON_AUTO_REGISTER', true),
-            'supervisor' => [
-                'connection' => env('ICHAVA_HORIZON_CONNECTION', 'redis'),
-                'balance' => env('ICHAVA_HORIZON_BALANCE', 'simple'),
+            'supervisor'    => [
+                'connection'          => env('ICHAVA_HORIZON_CONNECTION', 'redis'),
+                'balance'             => env('ICHAVA_HORIZON_BALANCE', 'simple'),
                 'autoScalingStrategy' => 'time',
-                'maxProcesses' => (int) env('ICHAVA_HORIZON_MAX_PROCESSES', 25),
-                'maxTime' => 0,
-                'maxJobs' => 0,
-                'memory' => (int) env('ICHAVA_HORIZON_MEMORY', 256),
-                'tries' => (int) env('ICHAVA_QUEUE_RETRIES', IchavaConstants::QUEUE_RETRIES),
-                'timeout' => (int) env('ICHAVA_QUEUE_TIMEOUT', IchavaConstants::QUEUE_TIMEOUT),
-                'nice' => 0,
+                'maxProcesses'        => (int) env('ICHAVA_HORIZON_MAX_PROCESSES', 25),
+                'maxTime'             => 0,
+                'maxJobs'             => 0,
+                'memory'              => (int) env('ICHAVA_HORIZON_MEMORY', 256),
+                'tries'               => (int) env('ICHAVA_QUEUE_RETRIES', IchavaConstants::QUEUE_RETRIES),
+                'timeout'             => (int) env('ICHAVA_QUEUE_TIMEOUT', IchavaConstants::QUEUE_TIMEOUT),
+                'nice'                => 0,
             ],
         ],
     ],
@@ -348,7 +348,7 @@ return [
     | extend to match the surface area you actually need.
     */
     'svg' => [
-        'tag' => 'svg',
+        'tag'        => 'svg',
         'extensions' => ['.svg'],
 
         /*
@@ -396,8 +396,8 @@ return [
     | `::` and normalized to slash form internally.
     */
     'separators' => [
-        'path' => '::',
-        'variant' => '/',
+        'path'     => '::',
+        'variant'  => '/',
         'category' => '/',
     ],
 ];

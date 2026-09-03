@@ -27,7 +27,7 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  */
 function archetype(string $name): string
 {
-    return file_get_contents(__DIR__.'/../fixtures/archetypes/'.$name.'.svg');
+    return file_get_contents(__DIR__ . '/../fixtures/archetypes/' . $name . '.svg');
 }
 
 function renderArchetype(string $name): string
@@ -62,7 +62,7 @@ describe('archetype rendering regression', function () {
             ->and($out)->toMatch('/(xlink:)?href="#[^"]+"/');
 
         preg_match('/(?:xlink:)?href="#([^"]+)"/', $out, $ref);
-        expect($out)->toContain('id="'.$ref[1].'"');
+        expect($out)->toContain('id="' . $ref[1] . '"');
     });
 
     it('keeps the inline style that is the only paint 261 metronic icons have', function () {
@@ -83,7 +83,7 @@ describe('archetype rendering regression', function () {
         if (str_contains($raw, 'aria-labelledby')) {
             preg_match('/aria-labelledby="([^"]+)"/', $out, $m);
             expect($m[1] ?? '')->not->toBe('')
-                ->and($out)->toContain('id="'.$m[1].'"');
+                ->and($out)->toContain('id="' . $m[1] . '"');
         }
     });
 

@@ -7,7 +7,7 @@ use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Services\IconBrowserService;
 
 /**
- * S1 — `svg_content` must not hand back whatever is on disk.
+ * S1 -- `svg_content` must not hand back whatever is on disk.
  *
  * The accessor was a bare `File::get()`. The SVG endpoint's own comment asserted the
  * content "has been sanitised by SvgProcessingService" and added nosniff plus a
@@ -26,22 +26,22 @@ use Simtabi\Laranail\Ichava\Services\IconBrowserService;
 beforeEach(function () {
     Icon::query()->delete();
 
-    $this->dir = sys_get_temp_dir().'/ichava-svg-sanitise-'.bin2hex(random_bytes(4));
+    $this->dir = sys_get_temp_dir() . '/ichava-svg-sanitise-' . bin2hex(random_bytes(4));
     File::ensureDirectoryExists($this->dir);
 
     $this->plant = function (string $filename, string $svg): Icon {
-        $abs = $this->dir.'/'.$filename;
+        $abs = $this->dir . '/' . $filename;
         File::put($abs, $svg);
 
         $icon = Icon::create([
-            'package' => 'ichava/test-pack',
-            'name' => pathinfo($filename, PATHINFO_FILENAME),
-            'path' => $abs,
-            'file_hash' => md5($svg),
-            'keywords' => [],
-            'tags' => [],
+            'package'    => 'ichava/test-pack',
+            'name'       => pathinfo($filename, PATHINFO_FILENAME),
+            'path'       => $abs,
+            'file_hash'  => md5($svg),
+            'keywords'   => [],
+            'tags'       => [],
             'attributes' => [],
-            'metadata' => [],
+            'metadata'   => [],
         ]);
 
         // The accessor resolves `absolute_path`; point it at the file just written.

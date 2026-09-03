@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
+use Illuminate\Filesystem\Filesystem;
 use Simtabi\Laranail\Ichava\Data\IconData;
 use Simtabi\Laranail\Ichava\Data\IconSetConfig;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
+use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
 /**
  * IconSetBuilder - Universal Icon Set Builder & Base Class
@@ -105,7 +105,7 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Fluent builder factory method
      *
-     * @param  string  $name  Icon set name
+     * @param string $name Icon set name
      */
     public static function make(string $name): static
     {
@@ -122,10 +122,10 @@ class IconSetBuilder implements IconSetInterface
      * Automatically resolves the path from the calling class location.
      * Perfect for use in service providers.
      *
-     * @param  string  $name  Icon set name
-     * @param  string  $class  Caller class (usually self::class from service provider)
-     * @param  int  $levelsUp  Levels to go up from class (default: 3)
-     * @param  string  $append  Path to append (e.g., 'resources/assets/svg/icons')
+     * @param string $name Icon set name
+     * @param string $class Caller class (usually self::class from service provider)
+     * @param int $levelsUp Levels to go up from class (default: 3)
+     * @param string $append Path to append (e.g., 'resources/assets/svg/icons')
      *
      * @example In Service Provider
      * ```php
@@ -156,7 +156,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set icon path
      *
-     * @param  string  $path  Path to icons
+     * @param string $path Path to icons
+     *
      * @return $this
      */
     public function path(string $path): static
@@ -190,7 +191,8 @@ class IconSetBuilder implements IconSetInterface
      *   ->setBasePath('/path/to/icons' . '/files')
      *   ->setBasePath('/path/to/icons/files/')
      *
-     * @param  string  $basePath  Path to icons (with or without trailing slash)
+     * @param string $basePath Path to icons (with or without trailing slash)
+     *
      * @return $this
      */
     public function setBasePath(string $basePath): static
@@ -201,7 +203,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set multiple icon paths
      *
-     * @param  array  $paths  Array of paths
+     * @param array $paths Array of paths
+     *
      * @return $this
      */
     public function paths(array $paths): static
@@ -214,7 +217,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set icon prefix
      *
-     * @param  string  $prefix  Icon prefix
+     * @param string $prefix Icon prefix
+     *
      * @return $this
      */
     public function prefix(string $prefix): static
@@ -227,7 +231,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set default variant
      *
-     * @param  string  $variant  Default variant name
+     * @param string $variant Default variant name
+     *
      * @return $this
      */
     public function defaultVariant(string $variant): static
@@ -240,7 +245,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set available variants
      *
-     * @param  array  $variants  Variant names
+     * @param array $variants Variant names
+     *
      * @return $this
      */
     public function withVariants(array $variants): static
@@ -253,7 +259,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set whether categories are supported
      *
-     * @param  bool  $supports  Support categories
+     * @param bool $supports Support categories
+     *
      * @return $this
      */
     public function withCategories(bool $supports = true): static
@@ -266,7 +273,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set default CSS class
      *
-     * @param  string  $class  Default class
+     * @param string $class Default class
+     *
      * @return $this
      */
     public function defaultClass(string $class): static
@@ -279,7 +287,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set default attributes
      *
-     * @param  array  $attributes  Default attributes
+     * @param array $attributes Default attributes
+     *
      * @return $this
      */
     public function defaultAttributes(array $attributes): static
@@ -292,7 +301,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set fallback icon
      *
-     * @param  string|null  $icon  Fallback icon name
+     * @param string|null $icon Fallback icon name
+     *
      * @return $this
      */
     public function fallback(?string $icon): static
@@ -305,7 +315,8 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Enable/disable caching
      *
-     * @param  bool  $enabled  Cache enabled
+     * @param bool $enabled Cache enabled
+     *
      * @return $this
      */
     public function cache(bool $enabled = true): static
@@ -573,7 +584,7 @@ class IconSetBuilder implements IconSetInterface
     protected function discoverAllIcons(?string $variant, ?string $category): array
     {
         $searchPath = $this->buildSearchPath($variant, $category);
-        $files = $this->files->glob($searchPath.'/*.svg');
+        $files = $this->files->glob($searchPath . '/*.svg');
 
         $icons = [];
         foreach ($files as $file) {
@@ -609,7 +620,7 @@ class IconSetBuilder implements IconSetInterface
             $parts[] = $category;
         }
 
-        $parts[] = $name.'.svg';
+        $parts[] = $name . '.svg';
 
         return implode(DIRECTORY_SEPARATOR, $parts);
     }

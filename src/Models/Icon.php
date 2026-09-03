@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Models;
 
+use Throwable;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
-use Simtabi\Laranail\Ichava\Services\IconCacheService;
-use Simtabi\Laranail\Ichava\Services\IconRegistry;
-use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
-use Simtabi\Laranail\Ichava\Support\AuditLogger;
-use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Simtabi\Laranail\Ichava\Support\Helpers;
-use Throwable;
+use Simtabi\Laranail\Ichava\Support\AuditLogger;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Simtabi\Laranail\Ichava\Services\IconCacheService;
+use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
 /**
  * Eloquent model for icon metadata. SVG content is not stored, only metadata
@@ -81,10 +81,10 @@ final class Icon extends Model
      * @var array<string, mixed>
      */
     protected $attributes = [
-        'tags' => '[]',
-        'keywords' => '[]',
+        'tags'       => '[]',
+        'keywords'   => '[]',
         'attributes' => '{}',
-        'metadata' => '{}',
+        'metadata'   => '{}',
     ];
 
     /***********************************************************************
@@ -100,8 +100,9 @@ final class Icon extends Model
      * This helper ensures JSON attributes are properly cast for bulk operations
      * where Eloquent's automatic casting doesn't apply.
      *
-     * @param  string  $key  Attribute name
-     * @param  mixed  $value  Value to cast
+     * @param string $key Attribute name
+     * @param mixed $value Value to cast
+     *
      * @return mixed Properly formatted value for database storage
      */
     public static function prepareAttributeForDatabase(string $key, mixed $value): mixed
@@ -207,7 +208,7 @@ final class Icon extends Model
      */
     public function scopeFuzzySearch(Builder $query, string $search): Builder
     {
-        $like = '%'.$search.'%';
+        $like = '%' . $search . '%';
 
         /*
          * This is the path every non-PostgreSQL driver takes -- `scopeSearch` delegates
@@ -571,14 +572,14 @@ final class Icon extends Model
     protected function casts(): array
     {
         return [
-            'tags' => 'array',
-            'keywords' => 'array',
-            'search_text' => 'array',
-            'attributes' => 'array',
-            'metadata' => 'array',
+            'tags'             => 'array',
+            'keywords'         => 'array',
+            'search_text'      => 'array',
+            'attributes'       => 'array',
+            'metadata'         => 'array',
             'file_modified_at' => 'datetime',
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
+            'created_at'       => 'datetime',
+            'updated_at'       => 'datetime',
         ];
     }
 
@@ -659,7 +660,7 @@ final class Icon extends Model
                 // Build absolute path: base_path + relative_path
                 // Works for both core (with set-name/) and standard (with files/) packages
                 $packageBasePath = $this->getPackageBasePath();
-                $absolutePath = $packageBasePath.DIRECTORY_SEPARATOR.ltrim($this->path, '/\\');
+                $absolutePath = $packageBasePath . DIRECTORY_SEPARATOR . ltrim($this->path, '/\\');
 
                 // Normalize directory separators for cross-platform compatibility
                 return str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $absolutePath);
@@ -701,8 +702,8 @@ final class Icon extends Model
             get: fn (): string => mb_substr(hash(
                 'sha256',
                 ($this->file_hash ?? md5((string) $this->path))
-                    .'|'
-                    .app(SvgProcessingService::class)->renderFingerprint()
+                    . '|'
+                    . app(SvgProcessingService::class)->renderFingerprint(),
             ), 0, 16),
         );
     }
@@ -728,7 +729,7 @@ final class Icon extends Model
                  * gone on serving bytes produced by a policy that no longer
                  * existed, making the widening look like it had not worked.
                  */
-                $cacheKey = 'svg:'.$this->id.':'.$this->render_version;
+                $cacheKey = 'svg:' . $this->id . ':' . $this->render_version;
 
                 /*
                  * Sanitise here, at the single point every consumer reads through.
@@ -781,9 +782,9 @@ final class Icon extends Model
                              */
                             $raw = $svg->normaliseSizing($raw, function (string $reason): void {
                                 app(AuditLogger::class)->warning('svg.unusable_sizing', [
-                                    'path' => $this->path,
+                                    'path'    => $this->path,
                                     'package' => $this->package,
-                                    'reason' => $reason,
+                                    'reason'  => $reason,
                                 ]);
                             });
 
@@ -795,9 +796,9 @@ final class Icon extends Model
                              * it could not be made safe.
                              */
                             app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
-                                'path' => $this->path,
+                                'path'    => $this->path,
                                 'package' => $this->package,
-                                'reason' => $e->getMessage(),
+                                'reason'  => $e->getMessage(),
                             ]);
 
                             return '';
@@ -816,16 +817,16 @@ final class Icon extends Model
     {
         return Attribute::make(
             get: function (): string {
-                $path = $this->package.'::';
+                $path = $this->package . '::';
 
                 if ($category = $this->primary_category) {
-                    $path .= $category->slug.'/';
+                    $path .= $category->slug . '/';
                 }
 
                 $path .= $this->name;
 
                 if ($variant = $this->primary_variant) {
-                    $path .= ':'.$variant->slug;
+                    $path .= ':' . $variant->slug;
                 }
 
                 return $path;

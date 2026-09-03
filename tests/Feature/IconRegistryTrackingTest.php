@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Event;
-use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
 
 /**
  * End-to-end coverage for the public IconRegistry tracking and lookup APIs.
@@ -17,9 +17,9 @@ use Simtabi\Laranail\Ichava\Services\IconRegistry;
  * contract so a future refactor cannot silently regress pack discovery.
  */
 beforeEach(function (): void {
-    $this->fixtureRoot = sys_get_temp_dir().'/ichava-registry-'.bin2hex(random_bytes(4));
-    $this->packA = $this->fixtureRoot.'/pack-a';
-    $this->packB = $this->fixtureRoot.'/pack-b';
+    $this->fixtureRoot = sys_get_temp_dir() . '/ichava-registry-' . bin2hex(random_bytes(4));
+    $this->packA = $this->fixtureRoot . '/pack-a';
+    $this->packB = $this->fixtureRoot . '/pack-b';
 
     $svg = '<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/></svg>';
 
@@ -27,14 +27,14 @@ beforeEach(function (): void {
         ['dir' => $this->packA, 'name' => 'tests/pack-a', 'prefix' => 'pa'],
         ['dir' => $this->packB, 'name' => 'tests/pack-b', 'prefix' => 'pb'],
     ] as $pack) {
-        mkdir($pack['dir'].'/files/'.basename($pack['dir']), 0700, true);
-        file_put_contents($pack['dir'].'/config.json', json_encode([
+        mkdir($pack['dir'] . '/files/' . basename($pack['dir']), 0700, true);
+        file_put_contents($pack['dir'] . '/config.json', json_encode([
             'schema_version' => '1.0',
-            'package' => [
-                'name' => $pack['name'],
-                'title' => 'Fixture pack',
+            'package'        => [
+                'name'    => $pack['name'],
+                'title'   => 'Fixture pack',
                 'version' => '1.0.0',
-                'type' => 'collection',
+                'type'    => 'collection',
                 'license' => 'MIT',
             ],
             'metadata' => [
@@ -46,9 +46,9 @@ beforeEach(function (): void {
         ]));
     }
 
-    file_put_contents($this->packA.'/files/'.basename($this->packA).'/star.svg', $svg);
-    file_put_contents($this->packA.'/files/'.basename($this->packA).'/heart.svg', $svg);
-    file_put_contents($this->packB.'/files/'.basename($this->packB).'/cube.svg', $svg);
+    file_put_contents($this->packA . '/files/' . basename($this->packA) . '/star.svg', $svg);
+    file_put_contents($this->packA . '/files/' . basename($this->packA) . '/heart.svg', $svg);
+    file_put_contents($this->packB . '/files/' . basename($this->packB) . '/cube.svg', $svg);
 });
 
 afterEach(function (): void {
@@ -86,8 +86,8 @@ it('returns the correct icon-count for a registered directory', function (): voi
     /** @var IconRegistry $registry */
     $registry = $this->app->make(IconRegistry::class);
 
-    expect($registry->countIconsInDirectory($this->packA.'/files'))->toBe(2);
-    expect($registry->countIconsInDirectory($this->packB.'/files'))->toBe(1);
+    expect($registry->countIconsInDirectory($this->packA . '/files'))->toBe(2);
+    expect($registry->countIconsInDirectory($this->packB . '/files'))->toBe(1);
 });
 
 it('throws when asking for a package that was never registered', function (): void {
@@ -135,7 +135,7 @@ it('clears pending and conflict state on unregister', function (): void {
     $conflictsProp->setAccessible(true);
     $conflictsProp->setValue($registry, [
         'icon_set_name' => ['tests/pack-a' => ['where' => 'fixture']],
-        'prefix' => ['unrelated/pack' => ['where' => 'fixture']],
+        'prefix'        => ['unrelated/pack' => ['where' => 'fixture']],
     ]);
 
     $registry->unregister('tests/pack-a');

@@ -6,7 +6,7 @@ use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Services\IconBrowserService;
 
 /**
- * B1 and B2 — search must respect filters, and must run on the configured driver.
+ * B1 and B2 -- search must respect filters, and must run on the configured driver.
  *
  * B2: `scopeFuzzySearch` is documented as the "fallback for non-PostgreSQL" and is what
  * `scopeSearch` delegates to on every other driver, yet its body called
@@ -24,14 +24,14 @@ beforeEach(function () {
 
     $this->makeIcon = function (string $package, string $name, array $keywords = [], array $tags = []) {
         return Icon::create([
-            'package' => $package,
-            'name' => $name,
-            'path' => "{$package}::misc/{$name}",
-            'file_hash' => md5($package.$name),
-            'keywords' => $keywords,
-            'tags' => $tags,
+            'package'    => $package,
+            'name'       => $name,
+            'path'       => "{$package}::misc/{$name}",
+            'file_hash'  => md5($package . $name),
+            'keywords'   => $keywords,
+            'tags'       => $tags,
             'attributes' => [],
-            'metadata' => [],
+            'metadata'   => [],
         ]);
     };
 });
@@ -73,7 +73,7 @@ it('keeps the package filter applied while searching', function () {
     // With one, it must still apply. Previously this returned both icons.
     $searched = $service->getIcons([
         'packages' => ['ichava/tabler-icons'],
-        'search' => 'arrow',
+        'search'   => 'arrow',
     ]);
     expect($searched->total())->toBe(1);
     expect($searched->first()->package)->toBe('ichava/tabler-icons');

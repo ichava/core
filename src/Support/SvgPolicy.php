@@ -62,7 +62,7 @@ final class SvgPolicy
          */
         if (! is_array($decoded)) {
             throw new RuntimeException(
-                "SVG policy at {$path} is not valid JSON: ".json_last_error_msg()
+                "SVG policy at {$path} is not valid JSON: " . json_last_error_msg(),
             );
         }
 
@@ -71,7 +71,7 @@ final class SvgPolicy
 
     public static function path(): string
     {
-        return realpath(__DIR__.self::RELATIVE_PATH) ?: __DIR__.self::RELATIVE_PATH;
+        return realpath(__DIR__ . self::RELATIVE_PATH) ?: __DIR__ . self::RELATIVE_PATH;
     }
 
     /**
@@ -160,7 +160,7 @@ final class SvgPolicy
     {
         $raw = (string) (self::all()['fragmentOnlyRefs']['allow'] ?? '^#[A-Za-z_][\w.:-]*$');
 
-        return '/'.$raw.'/';
+        return '/' . $raw . '/';
     }
 
     /**
