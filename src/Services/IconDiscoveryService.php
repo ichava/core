@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
 /**
  * IconDiscoveryService - Unified Discovery for Icons and Packages

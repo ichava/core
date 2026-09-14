@@ -2,7 +2,7 @@ name: Code Quality
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main]
     paths-ignore:
       - '*.md'
   workflow_dispatch:
@@ -54,12 +54,7 @@ jobs:
         run: composer update --prefer-stable --prefer-dist --no-interaction
 
       - name: Run PHPStan
-        run: |
-          if [ -f "phpstan.neon" ] || [ -f "phpstan.neon.dist" ]; then
-            vendor/bin/phpstan analyse --memory-limit=2G
-          else
-            echo "PHPStan configuration not found, skipping..."
-          fi
+        run: composer analyse
 
   security:
     runs-on: ubuntu-latest
