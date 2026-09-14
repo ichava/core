@@ -123,14 +123,44 @@ We use Pest PHP for testing:
 
 ```bash
 # Run all tests
-php artisan test
+vendor/bin/pest
 
 # Run specific test file
-php artisan test tests/Unit/SvgSanitizerTest.php
+vendor/bin/pest tests/Unit/SvgSanitizerTest.php
 
 # Run with coverage
-php artisan test --coverage
+vendor/bin/pest --coverage
 ```
+
+### Testing against a database driver
+
+The suite defaults to in-memory SQLite so the inner loop needs no service running. Point it at
+any other driver with the standard Laravel environment variables:
+
+```bash
+DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_PORT=5432 \
+DB_DATABASE=ichava_test DB_USERNAME=ichava DB_PASSWORD=secret \
+vendor/bin/pest
+```
+
+`DB_CONNECTION` accepts `sqlite`, `pgsql`, `mysql` and `mariadb`.
+
+**A green SQLite run is not evidence for the other three.** It cannot be: SQLite never reaches
+the PostgreSQL full-text path, does not enforce index-length limits, and spells conflict
+resolution differently. The PostgreSQL search path shipped broken for exactly this reason — it
+called `jsonb_array_elements_text()` on `json` columns, which resolves to no function, and no
+test had ever executed it.
+
+CI runs the full matrix on every pull request — SQLite on PHP 8.4 and 8.5, then PostgreSQL 17,
+MySQL 8.4 and MariaDB 11.4 as service containers. If you touch anything that reaches the
+database, run at least one server driver locally before opening the PR.
+
+### Testing anything that goes through the cache
+
+The suite pins `cache.default` to the `array` store, which hands back the object it was given
+and never serialises. Tests that depend on what happens between `serialize()` and
+`unserialize()` must switch to a serialising store themselves — `tests/Feature/CachePoisoningTest.php`
+is the worked example.
 
 ## Commit Message Guidelines
 
