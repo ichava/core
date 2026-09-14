@@ -64,7 +64,9 @@
   "scripts": {
     "pint": "@php vendor/bin/laranail-pint --test",
     "pint-fix": "@php vendor/bin/laranail-pint --parallel",
-    "test":  "vendor/bin/pest --parallel"
+    "lint": "@pint",
+    "format": "@pint-fix",
+    "test": "vendor/bin/pest --parallel"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
@@ -99,8 +101,7 @@
       "/tests",
       "/.github",
       "/.gitignore",
-      "phpunit.xml.dist",
-      "pint.json"
+      "phpunit.xml.dist"
     ]
   }
 }
