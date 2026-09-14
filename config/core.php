@@ -135,6 +135,13 @@ return [
     'cache' => [
         'ttl'    => IchavaConstants::DEFAULT_CACHE_TTL,
         'prefix' => 'ichava',
+
+        // Every Ichava cache key carries this segment. Bump it to abandon every
+        // existing entry at once -- the supported way to invalidate after an
+        // upgrade changes the shape of a cached value. buildKey() has always
+        // read this key; until now the config never declared it, so the
+        // fallback was the only value it could ever have.
+        'version' => env('ICHAVA_CACHE_VERSION', 'v1'),
     ],
 
     /*

@@ -393,7 +393,7 @@ class IconSetBuilder implements IconSetInterface
 
         return $this->cache->remember($cacheKey, function () use ($name, $variant, $category) {
             return $this->discoverIcon($name, $variant, $category);
-        });
+        }, IconData::class);
     }
 
     /**
@@ -411,11 +411,11 @@ class IconSetBuilder implements IconSetInterface
             return $allIcons;
         }
 
-        $cacheKey = $this->getCacheKey('all', $variant, $category);
+        $cacheKey = $this->getAllCacheKey($variant, $category);
 
         return $this->cache->remember($cacheKey, function () use ($variant, $category) {
             return $this->discoverAllIcons($variant, $category);
-        });
+        }, IconData::class);
     }
 
     /**
@@ -679,11 +679,31 @@ class IconSetBuilder implements IconSetInterface
     }
 
     /**
-     * Generate cache key
+     * Cache key for one icon.
      */
     protected function getCacheKey(string $name, ?string $variant, ?string $category): string
     {
+        return $this->namespacedCacheKey('icon', $name, $variant, $category);
+    }
+
+    /**
+     * Cache key for a whole set.
+     *
+     * Deliberately a separate method. Both keys used to flatten to
+     * "<set>:<variant>:<category>:<name>", so all() and get('all') addressed
+     * the same entry and whichever ran second overwrote the other with a value
+     * of the wrong shape -- an array of IconData where the caller's return type
+     * says ?IconData, or the reverse.
+     */
+    protected function getAllCacheKey(?string $variant, ?string $category): string
+    {
+        return $this->namespacedCacheKey('set', 'all', $variant, $category);
+    }
+
+    private function namespacedCacheKey(string $kind, string $name, ?string $variant, ?string $category): string
+    {
         return implode(':', Arr::where([
+            $kind,
             $this->name(),
             $variant,
             $category,

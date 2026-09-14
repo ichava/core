@@ -146,7 +146,7 @@ final class Icon extends Model
                 ->groupBy('package')
                 ->pluck('count', 'package')
                 ->toArray(),
-            60 * 24, // 24 hours
+            ttl: 60 * 60 * 24, // 24 hours, in seconds
         );
     }
 
