@@ -6,6 +6,7 @@ namespace Simtabi\Laranail\Ichava\Services;
 
 use Closure;
 use Exception;
+use __PHP_Incomplete_Class;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Artisan;
@@ -193,8 +194,30 @@ final class IconCacheService
      *
      * Only caches after Laravel has fully booted to avoid serializing host
      * paths during package discovery. Gracefully handles cache failures.
+     *
+     * A cache is untrusted input. Whatever a store hands back was written by
+     * some other process, possibly running a different build of this package
+     * or a different autoload map, so it is checked before it is served. A
+     * payload naming a class that cannot be resolved at read time unserialises
+     * to __PHP_Incomplete_Class; PHP raises no error for that, so the value
+     * travels all the way to the caller and detonates against the caller's
+     * return type. Worse, the poisoned entry survives, so every subsequent
+     * request fails the same way until the TTL expires. Such an entry is
+     * evicted and rebuilt here instead.
+     *
+     * Pass $expects and $ttl by name. This method took exactly two parameters
+     * for its whole life, and PHP accepts surplus arguments to a userland
+     * function without complaint, so a third positional argument was silently
+     * discarded rather than rejected -- which is how Icon::getPackageCounts()
+     * spent its life believing it had asked for a 24-hour TTL.
+     *
+     * @param string $key Logical (unhashed) cache key.
+     * @param callable $callback Produces the value on a miss.
+     * @param string|null $expects Class that every object in the result must
+     *                             be an instance of. Checked inside arrays too.
+     * @param int|null $ttl Lifetime in seconds; defaults to the configured TTL.
      */
-    public function remember(string $key, callable $callback): mixed
+    public function remember(string $key, callable $callback, ?string $expects = null, ?int $ttl = null): mixed
     {
         // Only cache after Laravel has fully booted
         if (! app()->hasBeenBootstrapped()) {
@@ -204,9 +227,19 @@ final class IconCacheService
         $fullKey = $this->buildKey($key);
 
         try {
+            $cached = cache()->get($fullKey);
+
+            if ($cached !== null) {
+                if ($this->isServable($cached, $expects)) {
+                    return $cached;
+                }
+
+                $this->evictUnservable($fullKey, $cached, $expects);
+            }
+
             return cache()->remember(
                 key: $fullKey,
-                ttl: now()->addSeconds($this->ttl),
+                ttl: now()->addSeconds($ttl ?? $this->ttl),
                 callback: $callback,
             );
         } catch (Exception $e) {
@@ -570,6 +603,62 @@ final class IconCacheService
      *
      * Uses MD5 hash for collision prevention and length normalization
      */
+    /**
+     * Whether a value read back from the cache can be handed to a caller.
+     *
+     * Arrays are probed on their first element only. Ichava caches homogeneous
+     * collections -- discoverAllIcons() builds nothing but IconData -- and an
+     * entry poisoned by an unresolvable class is poisoned wholesale, so one
+     * probe answers the question without walking 121,000 entries on every read.
+     */
+    private function isServable(mixed $value, ?string $expects): bool
+    {
+        if (is_array($value)) {
+            if ($value === []) {
+                return true;
+            }
+
+            return $this->isServable(reset($value), $expects);
+        }
+
+        if ($value instanceof __PHP_Incomplete_Class) {
+            return false;
+        }
+
+        if ($expects !== null && is_object($value)) {
+            return $value instanceof $expects;
+        }
+
+        return true;
+    }
+
+    /**
+     * Drop a cache entry that cannot be served, and record why.
+     *
+     * The name of the class that failed to resolve survives on the incomplete
+     * object, and it is the only part of this failure an operator can act on,
+     * so the log line carries it rather than just "wrong type".
+     */
+    private function evictUnservable(string $fullKey, mixed $cached, ?string $expects): void
+    {
+        $probe = is_array($cached) ? reset($cached) : $cached;
+        $found = get_debug_type($probe);
+
+        if ($probe instanceof __PHP_Incomplete_Class) {
+            $name = ((array) $probe)['__PHP_Incomplete_Class_Name'] ?? 'unknown';
+            $found = "unresolvable class {$name}";
+        }
+
+        $this->logger->warning('Ichava discarded an unusable cache entry', [
+            'key'      => $fullKey,
+            'expected' => $expects ?? 'any',
+            'found'    => $found,
+            'driver'   => config('cache.default'),
+        ]);
+
+        cache()->forget($fullKey);
+    }
+
     private function buildKey(string $key): string
     {
         $hashedKey = md5($key);

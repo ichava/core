@@ -6,10 +6,45 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Added
 
+- **Tested support for SQLite, PostgreSQL, MySQL and MariaDB.** CI runs the suite against
+  PostgreSQL 17, MySQL 8.4 and MariaDB 11.4 as service containers alongside the existing
+  SQLite lane. `tests/TestCase.php` reads `DB_CONNECTION`, so the same suite runs against any
+  of the four locally. See `documentation/core/databases.md`.
 - PHPStan static analysis (level 0) with `composer analyse` wired into CI.
+- `ichava.core.cache.version` config key (`ICHAVA_CACHE_VERSION`). Cache keys have always
+  carried this segment; until now the config never declared it, so it could not be changed.
+  Bump it to abandon every cached entry at once after an upgrade changes a value's shape.
+- Cache round-trip tests that run on a serialising store. The rest of the suite uses the
+  `array` driver, which returns the object it was given and therefore cannot see anything
+  that happens between `serialize()` and `unserialize()` -- the blind spot that let the
+  bug above ship green.
 
 ### Fixed
 
+- **Icon search was broken on PostgreSQL.** `FtsLanguageHelper` and `Icon::scopeFuzzySearch()`
+  called `jsonb_array_elements_text()` against `tags`, `keywords` and `search_text`, which are
+  `json` columns — Laravel's `$table->json()` emits `json`, not `jsonb`, on PostgreSQL, and no
+  implicit cast exists between the two, so the call resolved to no function at all. The
+  migration's own trigger had always done this correctly. Five call sites now cast explicitly.
+  Nothing caught it because the suite ran only on SQLite, which never reaches that code.
+- SQLite test runs never enforced foreign keys, so the schema's cascading deletes went
+  unexercised on the one driver that ran. `foreign_key_constraints` is on in the test harness.
+- `tests/TestCase.php` set `ichava.cache_enabled`, `ichava.cache_driver` and
+  `ichava.default_set` — bare keys left over from before the `V39` config rename, none of which
+  any code reads. Replaced with the live `ichava.core.default_set`.
+- A cached icon whose class could not be resolved at read time crashed every request after
+  the first. `unserialize()` answers with `__PHP_Incomplete_Class` rather than an error, so
+  the value travelled untouched to `IconSetBuilder::get()` and failed its `?IconData` return
+  type there. The entry then survived, so the failure repeated until the TTL expired.
+  `IconCacheService::remember()` now checks what a store hands back, evicts an entry it
+  cannot serve, rebuilds it, and logs the class that failed to resolve.
+- `IconSetBuilder::all()` and `get('all')` addressed the same cache key, so one overwrote the
+  other with a value of the wrong shape and produced the same crash. Set keys and icon keys
+  are now namespaced apart.
+- `Icon::getPackageCounts()` passed a TTL as a third positional argument to a
+  two-parameter `remember()`. PHP discards surplus arguments to a userland function without
+  complaint, so the 24-hour lifetime it asked for was never applied. `remember()` takes a
+  `$ttl` parameter now and the call site passes it by name.
 - `IconDiscoveryService` missing `IchavaException` import left 7 catch blocks dead.
 - `SvgDriver` threw non-existent `IconRenderException`; now uses `IchavaException::renderFailed()` with chained previous exception.
 - `PerformanceTimer` type-hint pointed at wrong `IchavaLogger` namespace.
