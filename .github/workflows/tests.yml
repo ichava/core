@@ -2,12 +2,19 @@ name: Tests
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
+    paths-ignore:
+      - '*.md'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
 
     strategy:
       fail-fast: false
@@ -66,4 +73,3 @@ jobs:
           # Don't fail the whole pipeline on a codecov upload glitch --
           # the gate is the `--min=` flag above, not the upload step.
           fail_ci_if_error: false
-
