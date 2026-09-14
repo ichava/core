@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Exceptions;
 
+use Throwable;
 use RuntimeException;
 
 /**
@@ -11,6 +12,8 @@ use RuntimeException;
  *
  * Provides static factory methods for common error scenarios.
  * Consolidates all Ichava exception types into a single, maintainable class.
+ *
+ * @phpstan-consistent-constructor
  */
 class IchavaException extends RuntimeException
 {
@@ -279,9 +282,9 @@ class IchavaException extends RuntimeException
     /**
      * Icon rendering failed
      */
-    public static function renderFailed(string $iconName, string $reason): static
+    public static function renderFailed(string $iconName, string $reason, ?Throwable $previous = null): static
     {
-        return new static("Failed to render icon '{$iconName}': {$reason}");
+        return new static("Failed to render icon '{$iconName}': {$reason}", previous: $previous);
     }
 
     /**

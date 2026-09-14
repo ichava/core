@@ -12,7 +12,6 @@ use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
-use Simtabi\Laranail\Ichava\Exceptions\IconRenderException;
 
 /**
  * SvgDriver - SVG Loading and Rendering Driver
@@ -55,14 +54,14 @@ class SvgDriver
      * Load, process, and render an SVG icon to an HTML string.
      *
      * Delegates to load() then injectAttributes(). On any exception the raw
-     * message is re-thrown as an IconRenderException with the icon name included.
+     * message is re-thrown as an IchavaException with the icon name included.
      *
      * @param IconData $icon Resolved icon data object (path, name, set)
      * @param array<string, mixed> $attributes HTML attributes to inject onto the SVG element
      *
      * @return string Rendered HTML-safe SVG string
      *
-     * @throws IconRenderException wrapping any underlying load or processing failure
+     * @throws IchavaException wrapping any underlying load or processing failure
      */
     public function render(IconData $icon, array $attributes = []): string
     {
@@ -72,10 +71,7 @@ class SvgDriver
 
             return $content;
         } catch (Exception $e) {
-            throw new IconRenderException(
-                "Failed to render icon '{$icon->name}': {$e->getMessage()}",
-                previous: $e,
-            );
+            throw IchavaException::renderFailed($icon->name, $e->getMessage(), $e);
         }
     }
 
