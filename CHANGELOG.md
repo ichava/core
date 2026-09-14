@@ -2,6 +2,12 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - Unreleased
+
+### Changed
+
+- Hardened CI workflows: concurrency groups, job timeouts, problem matchers, docs-only skip paths, and tidy composer scripts.
+
 ## [0.1.1] - 2026-09-02
 
 Patch rather than a minor so that consumers on `^0.1` pick it up without a constraint change.
