@@ -23,6 +23,8 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
  * - Base class for generated icon packages
  * - Fluent builder for dynamic icon set configuration
  * - Core icon discovery and caching engine
+ *
+ * @phpstan-consistent-constructor
  */
 class IconSetBuilder implements IconSetInterface
 {

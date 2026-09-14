@@ -18,31 +18,31 @@ use Simtabi\Laranail\Ichava\Services\IconRegistry;
  * @see IconRegistry
  * @see ServiceProvider
  */
-class IchavaRegistrar
+final class IchavaRegistrar
 {
-    protected string $name;
+    private string $name;
 
-    protected string $basePath = '';
+    private string $basePath = '';
 
-    protected string $packagePrefix = '';
+    private string $packagePrefix = '';
 
-    protected string $iconSetSuffix = '';
+    private string $iconSetSuffix = '';
 
-    protected string $bladeNamespace = '';
+    private string $bladeNamespace = '';
 
-    protected string $providerClass = '';
+    private string $providerClass = '';
 
-    protected string $vendor = '';
+    private string $vendor = '';
 
-    protected array $iconSets = [];
+    private array $iconSets = [];
 
-    protected bool $trackStats = false;
+    private bool $trackStats = false;
 
-    protected bool $logging = false;
+    private bool $logging = false;
 
-    protected int $registered = 0;
+    private int $registered = 0;
 
-    protected int $skipped = 0;
+    private int $skipped = 0;
 
     private function __construct(string $name)
     {
@@ -56,7 +56,7 @@ class IchavaRegistrar
      */
     public static function register(string $name): static
     {
-        return new static($name);
+        return new self($name);
     }
 
     /**
@@ -193,7 +193,7 @@ class IchavaRegistrar
     /**
      * Iterate over configured icon sets and register each valid directory.
      */
-    protected function process(): void
+    private function process(): void
     {
         if (! File::isDirectory($this->basePath)) {
             return;
@@ -218,7 +218,7 @@ class IchavaRegistrar
      * No-ops gracefully if IconRegistry is not yet bound (should not happen
      * when called from boot(), but safe-guards against mis-use in register()).
      */
-    protected function registerIconSet(string $path): void
+    private function registerIconSet(string $path): void
     {
         if (! app()->bound(IconRegistry::class)) {
             return;
@@ -226,7 +226,7 @@ class IchavaRegistrar
 
         app(IconRegistry::class)->fromDirectory(
             $path,
-            $this->providerClass ?: static::class,
+            $this->providerClass ?: self::class,
         );
     }
 }
