@@ -115,8 +115,10 @@ final class FtsLanguageHelper
         // Multilingual strategy
         $languages = config('ichava.core.database.search.languages', ['simple', 'english']);
 
+        // Static context: simple validation without DB check or logger,
+        // mirroring getPrimaryLanguage() above.
         return array_map(
-            fn ($lang) => self::validateLanguage($lang),
+            fn ($lang) => in_array($lang, self::AVAILABLE_LANGUAGES) ? $lang : 'simple',
             $languages,
         );
     }

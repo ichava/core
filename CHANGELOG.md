@@ -4,9 +4,22 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [0.2.0] - Unreleased
 
+### Added
+
+- PHPStan static analysis (level 0) with `composer analyse` wired into CI.
+
+### Fixed
+
+- `IconDiscoveryService` missing `IchavaException` import left 7 catch blocks dead.
+- `SvgDriver` threw non-existent `IconRenderException`; now uses `IchavaException::renderFailed()` with chained previous exception.
+- `PerformanceTimer` type-hint pointed at wrong `IchavaLogger` namespace.
+- Facade imports (`DB`, `Schema`) made explicit in `IconPreferenceService`.
+- `FtsLanguageHelper::getLanguages()` called an instance method statically.
+
 ### Changed
 
 - Hardened CI workflows: concurrency groups, job timeouts, problem matchers, docs-only skip paths, and tidy composer scripts.
+- CI branch triggers standardized on `main` only.
 
 ## [0.1.1] - 2026-09-02
 

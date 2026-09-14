@@ -1,0 +1,17 @@
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 0
+    paths:
+        - src
+    tmpDir: .phpstan.cache
+    treatPhpDocTypesAsCertain: false
+
+    excludePaths:
+        - src/Providers
+        - src/Commands
+        - src/Jobs
+        - src/Listeners
+        - src/View
+        - src/Facades

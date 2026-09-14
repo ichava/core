@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+
 /**
  * PerformanceTimer - Simple performance timer helper
  *
