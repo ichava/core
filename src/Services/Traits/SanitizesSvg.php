@@ -27,7 +27,7 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  *
  * Event handler attributes (on*) and formaction are always stripped regardless of
  * whitelist contents. `href`/`xlink:href` survive only as same-document fragments.
- * Allowed tags and attributes can be overridden via ichava.core.svg.* config.
+ * Allowed tags and attributes can be overridden via ichava.ichava-core.svg.* config.
  *
  * @see SvgProcessingService
  */
@@ -164,9 +164,9 @@ trait SanitizesSvg
      */
     protected function initializeSanitizer(): void
     {
-        $this->allowedTags = config('ichava.core.svg.allowed_tags', $this->getDefaultAllowedTags());
-        $this->allowedAttributes = config('ichava.core.svg.allowed_attributes', $this->getDefaultAllowedAttributes());
-        $this->forbiddenTags = config('ichava.core.svg.forbidden_tags', ['script', 'foreignObject', 'iframe']);
+        $this->allowedTags = config('ichava.ichava-core.svg.allowed_tags', $this->getDefaultAllowedTags());
+        $this->allowedAttributes = config('ichava.ichava-core.svg.allowed_attributes', $this->getDefaultAllowedAttributes());
+        $this->forbiddenTags = config('ichava.ichava-core.svg.forbidden_tags', ['script', 'foreignObject', 'iframe']);
 
         $this->refreshLookups();
     }

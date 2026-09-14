@@ -125,7 +125,7 @@ class Helpers
      */
     public static function assetVersion(string $relativePath): string
     {
-        $configured = config('ichava.core.version');
+        $configured = config('ichava.ichava-core.version');
 
         if (! empty($configured)) {
             return (string) $configured;

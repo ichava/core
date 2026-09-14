@@ -318,7 +318,7 @@ class DatabaseOperationsService
             return false;
         }
 
-        $threshold = config('ichava.core.database.smart_queue_threshold', self::SMART_QUEUE_THRESHOLD);
+        $threshold = config('ichava.ichava-core.database.smart_queue_threshold', self::SMART_QUEUE_THRESHOLD);
 
         return $iconCount >= $threshold;
     }

@@ -31,8 +31,8 @@ class PathResolver
 
     public function __construct()
     {
-        $this->pathSeparator = config('ichava.core.separators.path', '::');
-        $this->variantSeparator = config('ichava.core.separators.variant', '/');
+        $this->pathSeparator = config('ichava.ichava-core.separators.path', '::');
+        $this->variantSeparator = config('ichava.ichava-core.separators.variant', '/');
     }
 
     /**
@@ -327,7 +327,7 @@ class PathResolver
     public function getManifestPathFromConfig(): string
     {
         return $this->resolveManifestPath(
-            config('ichava.core.manifest.path'),
+            config('ichava.ichava-core.manifest.path'),
         );
     }
 

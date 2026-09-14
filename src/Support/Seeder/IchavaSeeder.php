@@ -222,7 +222,7 @@ class IchavaSeeder extends Seeder
         // Resolve IchavaLogger from the container at execution time instead.
         $batch = Bus::batch($jobs)
             ->name("Seed Icons: {$packageName}")
-            ->onQueue(config('ichava.core.queue.name', 'ichava-icons'))
+            ->onQueue(config('ichava.ichava-core.queue.name', 'ichava-icons'))
             ->allowFailures()
             ->before(function (Batch $b) use ($packageName) {
                 app(IchavaLogger::class)->seedingInfo('🌱 Icon seeding started', [
@@ -454,7 +454,7 @@ class IchavaSeeder extends Seeder
         $this->command->newLine();
         $this->logger->seedingInfo('Found ' . count($packages) . ' registered packages');
 
-        $chunkSize = (int) config('ichava.core.database.batch_size', self::DEFAULT_CHUNK_SIZE);
+        $chunkSize = (int) config('ichava.ichava-core.database.batch_size', self::DEFAULT_CHUNK_SIZE);
 
         $stats = [
             'packages_total'   => count($packages),
@@ -502,7 +502,7 @@ class IchavaSeeder extends Seeder
                 // Step 3: Seed icons
                 $forceMsg = $this->forceUpdate ? ' (force update)' : '';
 
-                if ($this->syncMode || ! config('ichava.core.database.use_queue', true)) {
+                if ($this->syncMode || ! config('ichava.ichava-core.database.use_queue', true)) {
                     $this->command->line("    <fg=yellow>→ Seeding icons synchronously{$forceMsg} (chunk size: {$chunkSize})...</fg=yellow>");
 
                     $result = $this->seedSync($packageName, $packageData['svg_path'], $chunkSize, $this->forceUpdate);
@@ -756,7 +756,7 @@ class IchavaSeeder extends Seeder
      */
     protected function processQueuedJobs(int $jobCount): void
     {
-        $queueName = config('ichava.core.queue.name', 'ichava-icons');
+        $queueName = config('ichava.ichava-core.queue.name', 'ichava-icons');
         $terminal = new AnsiTerminal;
 
         $this->command->newLine();
@@ -784,7 +784,7 @@ class IchavaSeeder extends Seeder
 
     protected function displayJobInstructions(int $jobCount): void
     {
-        $queueName = config('ichava.core.queue.name', 'ichava-icons');
+        $queueName = config('ichava.ichava-core.queue.name', 'ichava-icons');
 
         $this->command->newLine();
         warning("⏳ {$jobCount} seeding jobs dispatched to queue");

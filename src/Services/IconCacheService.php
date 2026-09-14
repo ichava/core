@@ -28,8 +28,8 @@ final class IconCacheService
         private IchavaLogger $logger,
     ) {
         // Use config() directly instead of injecting ConfigurationService
-        $this->ttl = config('ichava.core.cache.ttl', IchavaConstants::DEFAULT_CACHE_TTL);
-        $this->prefix = config('ichava.core.cache.prefix', 'ichava');
+        $this->ttl = config('ichava.ichava-core.cache.ttl', IchavaConstants::DEFAULT_CACHE_TTL);
+        $this->prefix = config('ichava.ichava-core.cache.prefix', 'ichava');
     }
 
     /**
@@ -574,7 +574,7 @@ final class IconCacheService
     {
         $hashedKey = md5($key);
 
-        return $this->prefix . ':' . config('ichava.core.cache.version', 'v1') . ':' . $hashedKey;
+        return $this->prefix . ':' . config('ichava.ichava-core.cache.version', 'v1') . ':' . $hashedKey;
     }
 
     /**
