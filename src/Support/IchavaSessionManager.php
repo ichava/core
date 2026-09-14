@@ -60,7 +60,7 @@ final class IchavaSessionManager
             $sessionKey = $this->makeKey($key);
             session()->put($sessionKey, $value);
 
-            if (config('app.debug') && config('ichava.core.logging.session_debug', false)) {
+            if (config('app.debug') && config('ichava.ichava-core.logging.session_debug', false)) {
                 app(IchavaLogger::class)->debug("Session stored: {$key}", ['value' => $value]);
             }
 
@@ -91,7 +91,7 @@ final class IchavaSessionManager
             $sessionKey = $this->makeKey($key);
             $value = session()->get($sessionKey, $default);
 
-            if (config('app.debug') && config('ichava.core.logging.session_debug', false)) {
+            if (config('app.debug') && config('ichava.ichava-core.logging.session_debug', false)) {
                 app(IchavaLogger::class)->debug("Session retrieved: {$key}", ['value' => $value]);
             }
 

@@ -4,6 +4,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [0.2.0] - Unreleased
 
+### Breaking
+
+- **Config renamed: `config/core.php` → `config/ichava-core.php`, key `ichava.core.*` → `ichava.ichava-core.*`.** Republish with `php artisan vendor:publish --tag=ichava::ichava-core-config` and update every `config('ichava.core.*')` read, including host apps and sibling `ichava/*` packages. Published overrides at the old nested path are no longer loaded.
+
 ### Added
 
 - PHPStan static analysis (level 0) with `composer analyse` wired into CI.

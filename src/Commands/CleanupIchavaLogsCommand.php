@@ -88,7 +88,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
 
         // Ask user if not provided
         if (! $this->isQuiet()) {
-            $configDefault = config('ichava.core.logging.retention_days', 7);
+            $configDefault = config('ichava.ichava-core.logging.retention_days', 7);
 
             $days = text(
                 label: 'How many days of logs to retain?',
@@ -103,7 +103,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
             return (int) $days;
         }
 
-        return (int) config('ichava.core.logging.retention_days', 7);
+        return (int) config('ichava.ichava-core.logging.retention_days', 7);
     }
 
     /**

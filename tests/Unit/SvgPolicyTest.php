@@ -21,8 +21,8 @@ function sanitiseSvg(string $svg): string
 
 describe('SvgPolicy as the single source', function () {
     it('is the source of the shipped config, not a parallel list', function () {
-        expect(config('ichava.core.svg.allowed_tags'))->toBe(SvgPolicy::allowedTags())
-            ->and(config('ichava.core.svg.forbidden_tags'))->toBe(SvgPolicy::forbiddenTags());
+        expect(config('ichava.ichava-core.svg.allowed_tags'))->toBe(SvgPolicy::allowedTags())
+            ->and(config('ichava.ichava-core.svg.forbidden_tags'))->toBe(SvgPolicy::forbiddenTags());
     });
 
     it('merges the value-restricted names into the by-name allow-list', function () {

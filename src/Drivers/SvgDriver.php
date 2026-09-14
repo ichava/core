@@ -174,7 +174,7 @@ class SvgDriver
         }
 
         // Prevent loading excessively large files
-        $maxSize = config('ichava.core.max_file_size', IchavaConstants::MAX_SVG_FILE_SIZE);
+        $maxSize = config('ichava.ichava-core.max_file_size', IchavaConstants::MAX_SVG_FILE_SIZE);
         if ($size > $maxSize) {
             throw IchavaException::invalidSvg("File exceeds maximum size of {$maxSize} bytes: {$path}");
         }

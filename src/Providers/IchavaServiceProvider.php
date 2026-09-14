@@ -71,8 +71,8 @@ class IchavaServiceProvider extends PackageServiceProvider
     {
         $packager
             ->setPathFrom(source: $this, levelsUp: 2)
-            ->setName('ichava/core')
-            ->hasConfigFile('core')
+            ->setName('ichava/core', fn (string $package): string => 'ichava-core')
+            ->hasConfigFile('ichava-core')
             ->discoversMigrations()
             ->runsMigrations()
             ->hasBladeDirectives([
@@ -202,10 +202,12 @@ class IchavaServiceProvider extends PackageServiceProvider
         // Intentionally empty. This used to re-merge a nested config block back
         // onto the flat 'ichava' key. The nesting came from the config file
         // being named 'ichava' while the package short name is 'core', so
-        // package-tools appended the filename to the namespace. The file is now
-        // 'config/core.php', which makes the key exactly 'ichava.core', and the
-        // workaround is unnecessary. It never worked anyway: it looked for
-        // 'ichava.ichava' when the real key was 'ichava.core.ichava'.
+        // package-tools appended the filename to the namespace. The short name
+        // is now remapped to 'ichava-core' via the setName() transformer and the
+        // file is 'config/ichava-core.php', which makes the key exactly
+        // 'ichava.ichava-core', and the workaround is unnecessary. It never
+        // worked anyway: it looked for 'ichava.ichava' when the real key was
+        // 'ichava.core.ichava'.
     }
 
     /**
@@ -310,12 +312,12 @@ class IchavaServiceProvider extends PackageServiceProvider
      */
     protected function scheduleLogCleanup(): void
     {
-        if (! config('ichava.core.logging.auto_cleanup', true)) {
+        if (! config('ichava.ichava-core.logging.auto_cleanup', true)) {
             return;
         }
 
         $this->callAfterResolving(Schedule::class, function ($schedule) {
-            $cleanupTime = config('ichava.core.logging.cleanup_time', '03:00');
+            $cleanupTime = config('ichava.ichava-core.logging.cleanup_time', '03:00');
 
             $schedule->command('ichava:cleanup-logs')
                 ->daily()
@@ -341,16 +343,16 @@ class IchavaServiceProvider extends PackageServiceProvider
      */
     protected function registerFileWatcher(): void
     {
-        if (! config('ichava.core.database.auto_sync', true)) {
+        if (! config('ichava.ichava-core.database.auto_sync', true)) {
             return;
         }
 
         $this->callAfterResolving(Schedule::class, function ($schedule) {
-            $interval = config('ichava.core.database.sync_interval', 60);
+            $interval = config('ichava.ichava-core.database.sync_interval', 60);
 
             $schedule->command('ichava:watch')
                 ->everyMinute()
-                ->when(fn () => config('ichava.core.database.auto_sync', true))
+                ->when(fn () => config('ichava.ichava-core.database.auto_sync', true))
                 ->runInBackground()
                 ->withoutOverlapping($interval);
         });
@@ -380,7 +382,7 @@ class IchavaServiceProvider extends PackageServiceProvider
      */
     protected function registerCustomIconSets(): void
     {
-        $customIconsConfig = config('ichava.core.custom-icons.sets', []);
+        $customIconsConfig = config('ichava.ichava-core.custom-icons.sets', []);
 
         if (blank($customIconsConfig)) {
             return;
@@ -428,7 +430,7 @@ class IchavaServiceProvider extends PackageServiceProvider
         // Merge into Horizon's defaults and environment config
         $this->app->booted(function () use ($supervisorConfig, $environment) {
             // Skip if auto-registration is disabled (check after config is loaded)
-            if (! config('ichava.core.queue.horizon.auto_register', true)) {
+            if (! config('ichava.ichava-core.queue.horizon.auto_register', true)) {
                 return;
             }
 
@@ -456,9 +458,9 @@ class IchavaServiceProvider extends PackageServiceProvider
     protected function configureRuntimeSettings(): void
     {
         // Get configured values with sensible defaults
-        $memoryLimit = config('ichava.core.runtime.memory_limit', '1G');
-        $maxExecutionTime = (int) config('ichava.core.runtime.max_execution_time', 0);
-        $disableTelescopeInQueue = config('ichava.core.runtime.disable_telescope_in_queue', true);
+        $memoryLimit = config('ichava.ichava-core.runtime.memory_limit', '1G');
+        $maxExecutionTime = (int) config('ichava.ichava-core.runtime.max_execution_time', 0);
+        $disableTelescopeInQueue = config('ichava.ichava-core.runtime.disable_telescope_in_queue', true);
 
         // Build runtime configurator with settings from config
         $configurator = RuntimeConfigurator::make()

@@ -238,7 +238,7 @@ class InformationService
      */
     public function getCurrentFtsLanguage(): string
     {
-        return config('ichava.core.database.search.language', 'simple');
+        return config('ichava.ichava-core.database.search.language', 'simple');
     }
 
     /**

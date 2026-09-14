@@ -553,7 +553,7 @@ final class Icon extends Model
     {
         self::created(function (self $icon): void {
             // Auto-attach categories from path on creation
-            if (config('ichava.core.database.auto_sync', true)) {
+            if (config('ichava.ichava-core.database.auto_sync', true)) {
                 $icon->syncCategoriesFromPath();
             }
         });
