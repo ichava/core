@@ -114,7 +114,7 @@ describe('Helpers::logPath', function () {
 
 describe('Helpers::assetVersion', function () {
     it('returns the configured version when one is set', function () {
-        config(['ichava.core.version' => 'v1.2.3']);
+        config(['ichava.ichava-core.version' => 'v1.2.3']);
 
         expect(Helpers::assetVersion('anything.css'))->toBe('v1.2.3');
     });
@@ -125,7 +125,7 @@ describe('Helpers::assetVersion', function () {
         // This test passed for the wrong reason until 2026-08-31: the config
         // file was merged at a key nothing read, so the version was always
         // empty and this branch was the only one reachable.
-        config(['ichava.core.version' => null]);
+        config(['ichava.ichava-core.version' => null]);
 
         expect(Helpers::assetVersion('definitely-missing-' . bin2hex(random_bytes(4)) . '.css'))
             ->toBe('dev');

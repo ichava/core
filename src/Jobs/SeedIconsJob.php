@@ -65,9 +65,9 @@ class SeedIconsJob implements ShouldQueue
         public int $totalJobs,
         public bool $force = false,
     ) {
-        $this->tries = (int) config('ichava.core.queue.retries', 3);
-        $this->timeout = (int) config('ichava.core.queue.timeout', 300);
-        $this->onQueue(config('ichava.core.queue.name', 'ichava-icons'));
+        $this->tries = (int) config('ichava.ichava-core.queue.retries', 3);
+        $this->timeout = (int) config('ichava.ichava-core.queue.timeout', 300);
+        $this->onQueue(config('ichava.ichava-core.queue.name', 'ichava-icons'));
     }
 
     /**

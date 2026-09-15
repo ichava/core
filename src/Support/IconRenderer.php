@@ -404,7 +404,7 @@ final class IconRenderer implements Htmlable
     {
         // Generate unique ID for this icon
         $iconPath = $this->pathResolver->parseIconPath($this->name);
-        $set = $iconPath->set ?? config('ichava.core.default_set');
+        $set = $iconPath->set ?? config('ichava.ichava-core.default_set');
         $iconId = $this->deferredRegistry->generateId($set, $iconPath->name, $this->variant ?? $iconPath->variant);
 
         // Register icon if not already registered

@@ -56,12 +56,12 @@ class AutoSeedIconsOnRegistration
         }
 
         // Check if auto-seeding is enabled (disabled by default)
-        if (! config('ichava.core.database.auto_seed', false)) {
+        if (! config('ichava.ichava-core.database.auto_seed', false)) {
             return; // Silent return - this is the default state
         }
 
         // Check if database seeding is enabled
-        if (! config('ichava.core.database.enabled', true)) {
+        if (! config('ichava.ichava-core.database.enabled', true)) {
             $this->logger->debug('ℹ️ Database is disabled in config');
 
             return;
@@ -83,8 +83,8 @@ class AutoSeedIconsOnRegistration
             return;
         }
 
-        $useQueue = config('ichava.core.database.use_queue', true);
-        $chunkSize = (int) config('ichava.core.database.batch_size', IchavaSeeder::DEFAULT_CHUNK_SIZE);
+        $useQueue = config('ichava.ichava-core.database.use_queue', true);
+        $chunkSize = (int) config('ichava.ichava-core.database.batch_size', IchavaSeeder::DEFAULT_CHUNK_SIZE);
 
         $this->logger->info("Auto-seeding package: {$packageName}", [
             'method'     => $useQueue ? 'queue' : 'sync',
@@ -234,7 +234,7 @@ class AutoSeedIconsOnRegistration
      */
     protected function logMigrationsWarningOnce(string $packageName): void
     {
-        $ttl = (int) config('ichava.core.logging.deduplication_ttl', 300);
+        $ttl = (int) config('ichava.ichava-core.logging.deduplication_ttl', 300);
         $cacheKey = "ichava:migration-warning:{$packageName}";
         $shouldLog = true;
 
