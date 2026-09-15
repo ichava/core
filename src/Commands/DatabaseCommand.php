@@ -228,7 +228,7 @@ final class DatabaseCommand extends BaseCommand
         $this->displayElapsedTime();
 
         // Show queue instructions if using queue
-        if (! $this->option('sync') && config('ichava.core.database.use_queue', true)) {
+        if (! $this->option('sync') && config('ichava.ichava-core.database.use_queue', true)) {
             warning('Icon seeding jobs are queued. Stats will be accurate after jobs complete.');
             note('Monitor jobs: php artisan ichava:job-status');
             note('View stats: php artisan ichava:database stats');

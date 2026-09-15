@@ -131,14 +131,14 @@ final class Ichava
     /**
      * Get a value from the ichava config, auto-prefixed with `ichava.`.
      *
-     * Equivalent to `config("ichava.core.{$key}", $default)`.
+     * Equivalent to `config("ichava.ichava-core.{$key}", $default)`.
      *
      * @param string $key Config key relative to the ichava namespace
      * @param mixed $default Value to return when the key is not set
      */
     public function config(string $key, mixed $default = null): mixed
     {
-        return config("ichava.core.{$key}", $default);
+        return config("ichava.ichava-core.{$key}", $default);
     }
 
     /**

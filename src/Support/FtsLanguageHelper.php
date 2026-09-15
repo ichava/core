@@ -61,7 +61,7 @@ final class FtsLanguageHelper
      */
     public static function getStrategy(): string
     {
-        return config('ichava.core.database.search.strategy', 'simple');
+        return config('ichava.ichava-core.database.search.strategy', 'simple');
     }
 
     /**
@@ -69,7 +69,7 @@ final class FtsLanguageHelper
      */
     public static function getPrimaryLanguage(): string
     {
-        $language = config('ichava.core.database.search.language', 'simple');
+        $language = config('ichava.ichava-core.database.search.language', 'simple');
 
         // For static context, use simple validation without DB check
         if (! in_array($language, self::AVAILABLE_LANGUAGES)) {
@@ -113,7 +113,7 @@ final class FtsLanguageHelper
         }
 
         // Multilingual strategy
-        $languages = config('ichava.core.database.search.languages', ['simple', 'english']);
+        $languages = config('ichava.ichava-core.database.search.languages', ['simple', 'english']);
 
         // Static context: simple validation without DB check or logger,
         // mirroring getPrimaryLanguage() above.
@@ -128,7 +128,7 @@ final class FtsLanguageHelper
      */
     public static function getSearchScope(): array
     {
-        return config('ichava.core.database.search.scope', [
+        return config('ichava.ichava-core.database.search.scope', [
             'icon_name'    => true,
             'keywords'     => true,
             'tags'         => true,

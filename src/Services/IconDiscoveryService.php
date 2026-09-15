@@ -165,7 +165,7 @@ class IconDiscoveryService
         string $sortDirection = 'asc',
     ): array {
         // Use database if enabled and table exists
-        if (config('ichava.core.database.enabled', true) && $this->isDatabaseAvailable()) {
+        if (config('ichava.ichava-core.database.enabled', true) && $this->isDatabaseAvailable()) {
             return $this->searchIconsFromDatabase($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection);
         }
 

@@ -32,14 +32,14 @@ class AutoUnseedOnUnregistration
         }
 
         // Check if auto-unseed is enabled
-        if (! config('ichava.core.database.auto_unseed', true)) {
+        if (! config('ichava.ichava-core.database.auto_unseed', true)) {
             $this->logger->debug('ℹ️ Auto-unseed is disabled in config');
 
             return;
         }
 
         // Check if database is enabled
-        if (! config('ichava.core.database.enabled', true)) {
+        if (! config('ichava.ichava-core.database.enabled', true)) {
             $this->logger->debug('ℹ️ Database is disabled in config');
 
             return;

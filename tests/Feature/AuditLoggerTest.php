@@ -21,7 +21,7 @@ it('dispatches a SecurityAuditEvent when an audit record is written', function (
 });
 
 it('respects the audit.enabled config flag', function (): void {
-    config(['ichava.core.security.audit.enabled' => false]);
+    config(['ichava.ichava-core.security.audit.enabled' => false]);
     Event::fake([SecurityAuditEvent::class]);
 
     /** @var AuditLogger $logger */
@@ -32,7 +32,7 @@ it('respects the audit.enabled config flag', function (): void {
 });
 
 it('honours the audit.events whitelist', function (): void {
-    config(['ichava.core.security.audit.events' => ['allowed.event']]);
+    config(['ichava.ichava-core.security.audit.events' => ['allowed.event']]);
     Event::fake([SecurityAuditEvent::class]);
 
     /** @var AuditLogger $logger */
@@ -44,7 +44,7 @@ it('honours the audit.events whitelist', function (): void {
 });
 
 it('skips event dispatch when dispatch_event is disabled but still logs', function (): void {
-    config(['ichava.core.security.audit.dispatch_event' => false]);
+    config(['ichava.ichava-core.security.audit.dispatch_event' => false]);
     Event::fake([SecurityAuditEvent::class]);
 
     /** @var AuditLogger $logger */

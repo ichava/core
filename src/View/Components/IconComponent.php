@@ -84,7 +84,7 @@ class IconComponent extends Component
      * @param string|null $aria Value for the `aria-label` attribute (screen-reader accessible name).
      * @param string|null $role ARIA role attribute (default: 'img'; use 'presentation' for decorative icons).
      * @param string|null $fallback Fallback icon path rendered if the primary icon fails.
-     *                              Falls back further to config('ichava.core.fallback_icon') if this is also absent.
+     *                              Falls back further to config('ichava.ichava-core.fallback_icon') if this is also absent.
      * @param string|null $dark Reserved for dark-mode variant support (not yet implemented).
      * @param IconRegistry|null $iconRegistry Injected by Laravel's service container.
      * @param SvgProcessingService|null $svgProcessor Injected by Laravel's service container.
@@ -116,7 +116,7 @@ class IconComponent extends Component
      * 3. Parse WCAG accessibility attributes (title, aria-label, role)
      * 4. Collect and smart-merge the Blade attributes bag (strips conflicting w-/h- classes)
      * 5. Merge all attribute layers (default → bag → a11y → size)
-     * 6. Render via IconRegistry; fall back to $fallback or config('ichava.core.fallback_icon') on exception
+     * 6. Render via IconRegistry; fall back to $fallback or config('ichava.ichava-core.fallback_icon') on exception
      *
      * @return string Rendered HTML-safe SVG string
      *
@@ -168,7 +168,7 @@ class IconComponent extends Component
         try {
             return $this->iconRegistry->render($iconPath, null, null, $attributes);
         } catch (Throwable $e) {
-            $fallback = $this->fallback ?? config('ichava.core.fallback_icon');
+            $fallback = $this->fallback ?? config('ichava.ichava-core.fallback_icon');
 
             if ($fallback && $fallback !== $iconPath) {
                 return $this->iconRegistry->render($fallback, null, null, $attributes);

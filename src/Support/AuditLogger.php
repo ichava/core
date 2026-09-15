@@ -71,11 +71,11 @@ final class AuditLogger
 
     public function record(string $event, int $severity, array $context = []): void
     {
-        if (! (bool) $this->config->get('ichava.core.security.audit.enabled', true)) {
+        if (! (bool) $this->config->get('ichava.ichava-core.security.audit.enabled', true)) {
             return;
         }
 
-        $allowed = (array) $this->config->get('ichava.core.security.audit.events', []);
+        $allowed = (array) $this->config->get('ichava.ichava-core.security.audit.events', []);
         if ($allowed !== [] && ! in_array($event, $allowed, true)) {
             return;
         }
@@ -104,7 +104,7 @@ final class AuditLogger
 
     private function writeLog(int $severity, string $event, array $payload): void
     {
-        $channel = (string) $this->config->get('ichava.core.security.audit.channel', 'ichava-audit');
+        $channel = (string) $this->config->get('ichava.ichava-core.security.audit.channel', 'ichava-audit');
 
         try {
             $logger = $this->logs->channel($channel);
@@ -125,7 +125,7 @@ final class AuditLogger
 
     private function dispatchEvent(array $payload): void
     {
-        if (! (bool) $this->config->get('ichava.core.security.audit.dispatch_event', true)) {
+        if (! (bool) $this->config->get('ichava.ichava-core.security.audit.dispatch_event', true)) {
             return;
         }
 

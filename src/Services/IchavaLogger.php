@@ -33,11 +33,11 @@ final class IchavaLogger
     {
         // Channels are registered dynamically by IchavaServiceProvider
         // Defaults match the channel names registered there
-        $this->channel = config('ichava.core.logging.channel', 'ichava');
-        $this->enabled = config('ichava.core.logging.enabled', true);
-        $this->logPerformance = config('ichava.core.logging.performance', false);
-        $this->logSecurity = config('ichava.core.logging.security', true);
-        $this->seedingChannel = config('ichava.core.logging.seeding_channel', 'ichava-icons');
+        $this->channel = config('ichava.ichava-core.logging.channel', 'ichava');
+        $this->enabled = config('ichava.ichava-core.logging.enabled', true);
+        $this->logPerformance = config('ichava.ichava-core.logging.performance', false);
+        $this->logSecurity = config('ichava.ichava-core.logging.security', true);
+        $this->seedingChannel = config('ichava.ichava-core.logging.seeding_channel', 'ichava-icons');
     }
 
     /**

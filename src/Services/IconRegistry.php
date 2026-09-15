@@ -551,7 +551,7 @@ final class IconRegistry
      */
     private function logRegistrationOnce(string $name, array $metadata): void
     {
-        $ttl = (int) config('ichava.core.logging.deduplication_ttl', 300);
+        $ttl = (int) config('ichava.ichava-core.logging.deduplication_ttl', 300);
 
         // TTL of 0 disables deduplication
         if ($ttl === 0) {
@@ -593,7 +593,7 @@ final class IconRegistry
      */
     private function dispatchRegistrationEventOnce(string $name, array $metadata): void
     {
-        $ttl = (int) config('ichava.core.logging.deduplication_ttl', 300);
+        $ttl = (int) config('ichava.ichava-core.logging.deduplication_ttl', 300);
 
         // TTL of 0 disables deduplication
         if ($ttl === 0) {
