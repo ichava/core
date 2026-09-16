@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Throwable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Filesystem\Filesystem;
@@ -375,7 +376,13 @@ class IconSetBuilder implements IconSetInterface
     }
 
     /**
-     * Get icon with caching
+     * Get icon with caching.
+     *
+     * Only plain arrays are stored in the cache. Laravel 13 defaults
+     * `cache.serializable_classes` to `false`, so any cached object comes
+     * back as `__PHP_Incomplete_Class` and would violate this method's
+     * `?IconData` return type on the second request. Stale object payloads
+     * from previous versions are detected, forgotten, and rediscovered.
      */
     public function get(string $name, ?string $variant = null, ?string $category = null): ?IconData
     {
@@ -391,13 +398,34 @@ class IconSetBuilder implements IconSetInterface
 
         $cacheKey = $this->getCacheKey($name, $variant, $category);
 
-        return $this->cache->remember($cacheKey, function () use ($name, $variant, $category) {
-            return $this->discoverIcon($name, $variant, $category);
+        $cached = $this->cache->remember($cacheKey, function () use ($name, $variant, $category) {
+            return $this->discoverIcon($name, $variant, $category)?->toArray();
         });
+
+        if ($cached === null) {
+            return null;
+        }
+
+        if (is_array($cached)) {
+            try {
+                return IconData::fromArray($cached);
+            } catch (Throwable) {
+                // Malformed payload: drop it and rediscover below.
+            }
+        }
+
+        $this->cache->forget($cacheKey);
+
+        return $this->discoverIcon($name, $variant, $category);
     }
 
     /**
-     * Get all icons
+     * Get all icons.
+     *
+     * Cached as `array<string, array>` (never objects) for the same reason
+     * documented on {@see get()}.
+     *
+     * @return array<string, IconData>
      */
     public function all(?string $variant = null, ?string $category = null): array
     {
@@ -413,9 +441,31 @@ class IconSetBuilder implements IconSetInterface
 
         $cacheKey = $this->getCacheKey('all', $variant, $category);
 
-        return $this->cache->remember($cacheKey, function () use ($variant, $category) {
-            return $this->discoverAllIcons($variant, $category);
+        $cached = $this->cache->remember($cacheKey, function () use ($variant, $category) {
+            $icons = $this->discoverAllIcons($variant, $category);
+
+            return array_map(fn (IconData $icon) => $icon->toArray(), $icons);
         });
+
+        if (is_array($cached)) {
+            try {
+                $icons = [];
+                foreach ($cached as $key => $data) {
+                    if (! is_array($data)) {
+                        throw IchavaException::invalidConfiguration('Cached icon payload is malformed');
+                    }
+                    $icons[$key] = IconData::fromArray($data);
+                }
+
+                return $icons;
+            } catch (Throwable) {
+                // Malformed payload: drop it and rediscover below.
+            }
+        }
+
+        $this->cache->forget($cacheKey);
+
+        return $this->discoverAllIcons($variant, $category);
     }
 
     /**
