@@ -574,7 +574,7 @@ final class IconCacheService
     {
         $hashedKey = md5($key);
 
-        return $this->prefix . ':' . config('ichava.ichava-core.cache.version', 'v1') . ':' . $hashedKey;
+        return $this->prefix . ':' . config('ichava.ichava-core.cache.version', 'v2') . ':' . $hashedKey;
     }
 
     /**
