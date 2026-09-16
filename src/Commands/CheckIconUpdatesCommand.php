@@ -21,13 +21,22 @@ use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
  * command can be wired into CI / scheduled tasks.
  *
  * @example
- *   php artisan ichava::ichava-core.icons:check-updates
- *   php artisan ichava::ichava-core.icons:check-updates --package=ichava/twemoji-icons
- *   php artisan ichava::ichava-core.icons:check-updates --quiet --format=json
+ *   php artisan ichava::ichava-core.check-updates
+ *   php artisan ichava::ichava-core.check-updates --package=ichava/twemoji-icons
+ *   php artisan ichava::ichava-core.check-updates --quiet --format=json
  */
 final class CheckIconUpdatesCommand extends BaseCommand
 {
-    protected $signature = 'ichava::ichava-core.icons:check-updates
+    /*
+     * Named `.check-updates`, not `.icons:check-updates`.
+     *
+     * The `:` inside a command segment is the sub-command separator -- it is how
+     * `laranail::db-console.webhook:list` groups a family. It earns its place when
+     * there is a family to group. Here `icons:` grouped exactly one command, in a
+     * package whose entire subject is icons, so it said nothing twice. The three
+     * -segment original predates the namespacing and its siblings never had it.
+     */
+    protected $signature = 'ichava::ichava-core.check-updates
                             {--package= : Check just this package (vendor/name)}
                             {--format=table : Output format: table|json}
                             {--fail-on-stale : Exit non-zero when any pack is behind}';
