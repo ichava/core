@@ -16,6 +16,24 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   published pointing at `v0.2.0`'s commit — a tag whose version had no section at all. That
   tag was deleted within the minute, but nothing except a person noticing stood in the way.
 
+## [0.2.3] - 2026-09-16
+
+### Fixed
+
+- **Readiness was decided against a schema that has never existed**, so `info status` reported
+  `UNINITIALIZED` on a fully migrated and seeded database, and both auto-seed listeners — which
+  gate on the same check — never fired.
+
+  `IchavaLifecycleManager::hasMigrations()` required `category` and `svg_content` on
+  `ichava_icons`. A category is a row in `ichava_icon_terms` reached through the polymorphic
+  pivot, and `svg_content` is an accessor that reads the file from disk; the migration says so
+  directly — *"File Information (NOT the content!)"*. The check therefore returned `false` on
+  every install ever made, and `hasSeeds()` short-circuits on it, so that reported `false` too.
+
+  Verified against a real application holding 138,480 icons: `Migrations ✅ / Seeds ✅ / READY`,
+  where it previously said `NOT READY / UNINITIALIZED`. `tests/Feature/LifecycleReadinessTest.php`
+  pins the check against the migration, so a column the schema lacks cannot be required again.
+
 ## [0.2.2] - 2026-09-16
 
 ### Fixed
