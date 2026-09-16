@@ -14,6 +14,8 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- `IconSetBuilder::get()`/`all()` cached raw `IconData` objects, which Laravel 13 returns as `__PHP_Incomplete_Class` (`cache.serializable_classes` defaults to `false`). Every page refresh after the first failed with a `TypeError`. Payloads are now cached as plain arrays and rehydrated via `IconData::toArray()`/`fromArray()`; stale object entries are forgotten, rediscovered, and orphaned by a cache version bump (`v1` → `v2`).
+- `<x-ichava::icon class="...">` silently dropped every Blade attribute. The compiled template calls `render()` before `withAttributes()` populates the bag, so the eagerly built SVG froze before `class` arrived (the fluent `ichava()->class()` path was unaffected). `IconComponent::render()` now returns a deferred `Htmlable` built in `toHtml()`, after the bag is set; direct callers can use the new `renderNow()` for an immediate string (note the `render()` signature change).
 - Icon examples now use variant-prefixed Tabler paths (`outline/home`, `filled/home`). Bare `ichava/tabler-icons::home` does not resolve.
 - `IconDiscoveryService` missing `IchavaException` import left 7 catch blocks dead.
 - `SvgDriver` threw non-existent `IconRenderException`; now uses `IchavaException::renderFailed()` with chained previous exception.
