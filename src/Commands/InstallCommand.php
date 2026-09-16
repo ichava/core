@@ -26,14 +26,14 @@ use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
  * `composer require` for it, then seeds its icons into the database.
  *
  * @example
- * php artisan ichava:install              # Pick from a list
- * php artisan ichava:install tabler       # Install by catalog key
- * php artisan ichava:install ichava/tabler-icons --force
- * php artisan ichava:install tabler --no-seed
+ * php artisan ichava::ichava-core.install              # Pick from a list
+ * php artisan ichava::ichava-core.install tabler       # Install by catalog key
+ * php artisan ichava::ichava-core.install ichava/tabler-icons --force
+ * php artisan ichava::ichava-core.install tabler --no-seed
  */
 final class InstallCommand extends BaseCommand
 {
-    protected $signature = 'ichava:install
+    protected $signature = 'ichava::ichava-core.install
                             {set? : Catalog key or composer package name}
                             {--force : Skip confirmations}
                             {--no-seed : Only composer require, skip database seeding}
@@ -124,7 +124,7 @@ final class InstallCommand extends BaseCommand
         }
 
         if ($this->option('no-seed')) {
-            note("Skipped seeding. Seed later with: php artisan ichava:database seed --package={$package}");
+            note("Skipped seeding. Seed later with: php artisan ichava::ichava-core.database seed --package={$package}");
             outro("✅ {$set['title']} required successfully");
 
             return self::SUCCESS;
@@ -142,7 +142,7 @@ final class InstallCommand extends BaseCommand
 
         if ($seedExit !== 0) {
             $this->failure("Composer require succeeded but seeding '{$package}' failed.");
-            $this->tip("Retry seeding with: php artisan ichava:database seed --package={$package}");
+            $this->tip("Retry seeding with: php artisan ichava::ichava-core.database seed --package={$package}");
 
             return self::FAILURE;
         }
@@ -222,7 +222,7 @@ final class InstallCommand extends BaseCommand
 
         if (! $runNow) {
             warning('Operation cancelled.');
-            note('Re-run this command once migration is done: php artisan ichava:install');
+            note('Re-run this command once migration is done: php artisan ichava::ichava-core.install');
 
             return null;
         }

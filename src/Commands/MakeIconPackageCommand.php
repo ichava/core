@@ -42,7 +42,7 @@ use Illuminate\Filesystem\Filesystem;
  */
 class MakeIconPackageCommand extends BaseCommand
 {
-    protected $signature = 'make:icon-package
+    protected $signature = 'ichava::ichava-core.make:icon-package
                            {name? : The name of the icon package (e.g., HeroIcons)}
                            {--vendor= : Vendor name (default: YourVendor)}
                            {--email= : Author email address}

@@ -11,7 +11,6 @@ use Illuminate\Support\Str;
 use RecursiveIteratorIterator;
 use Illuminate\Database\Seeder;
 use RecursiveDirectoryIterator;
-use Ajaxray\AnsiKit\AnsiTerminal;
 
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
@@ -667,23 +666,21 @@ class IchavaSeeder extends Seeder
 
     protected function displayHeader(): void
     {
-        $terminal = new AnsiTerminal;
-        $terminal->writeStyled("🚀 Ichava Icon Database Seeding\n", [AnsiTerminal::TEXT_BOLD, AnsiTerminal::FG_CYAN]);
+        $this->command->line('<options=bold;fg=cyan>🚀 Ichava Icon Database Seeding</>');
         $this->command->newLine();
     }
 
     protected function displayFooter(): void
     {
-        $terminal = new AnsiTerminal;
         $this->command->newLine();
-        $terminal->writeStyled("✅ Seeding completed!\n", [AnsiTerminal::TEXT_BOLD, AnsiTerminal::FG_GREEN]);
+        $this->command->line('<options=bold;fg=green>✅ Seeding completed!</>');
 
         if ($this->syncMode) {
             try {
                 $totalIcons = Icon::count();
                 info('📊 Total icons in database: ' . number_format($totalIcons));
             } catch (Exception $e) {
-                warning('📊 Unable to query database. Run: php artisan ichava:database stats');
+                warning('📊 Unable to query database. Run: php artisan ichava::ichava-core.database stats');
             }
         }
     }
@@ -692,9 +689,7 @@ class IchavaSeeder extends Seeder
     {
         $this->command->newLine();
 
-        // Header using AnsiKit
-        $terminal = new AnsiTerminal;
-        $terminal->writeStyled("📊 ICHAVA SEEDING SUMMARY\n", [AnsiTerminal::TEXT_BOLD, AnsiTerminal::FG_CYAN]);
+        $this->command->line('<options=bold;fg=cyan>📊 ICHAVA SEEDING SUMMARY</>');
 
         // Configuration summary table
         $mode = $stats['mode'] === 'sync' ? 'Synchronous' : 'Queue';
@@ -744,7 +739,7 @@ class IchavaSeeder extends Seeder
         if ($stats['packages_failed'] > 0) {
             warning("⚠ {$stats['packages_failed']} package(s) failed!");
         } else {
-            $terminal->writeStyled("✓ All {$stats['packages_success']} package(s) processed successfully!\n", [AnsiTerminal::TEXT_BOLD, AnsiTerminal::FG_GREEN]);
+            $this->command->line("<options=bold;fg=green>✓ All {$stats['packages_success']} package(s) processed successfully!</>");
         }
     }
 
@@ -757,10 +752,9 @@ class IchavaSeeder extends Seeder
     protected function processQueuedJobs(int $jobCount): void
     {
         $queueName = config('ichava.ichava-core.queue.name', 'ichava-icons');
-        $terminal = new AnsiTerminal;
 
         $this->command->newLine();
-        $terminal->writeStyled("⏳ Processing {$jobCount} seeding jobs...\n", [AnsiTerminal::TEXT_BOLD, AnsiTerminal::FG_YELLOW]);
+        $this->command->line("<options=bold;fg=yellow>⏳ Processing {$jobCount} seeding jobs...</>");
         $this->command->newLine();
 
         try {
@@ -773,10 +767,10 @@ class IchavaSeeder extends Seeder
             ], $this->command->getOutput());
 
             $this->command->newLine();
-            $terminal->writeStyled("✅ All seeding jobs processed!\n", [AnsiTerminal::TEXT_BOLD, AnsiTerminal::FG_GREEN]);
+            $this->command->line('<options=bold;fg=green>✅ All seeding jobs processed!</>');
 
         } catch (Throwable $e) {
-            $terminal->writeStyled('❌ Queue processing failed: ' . $e->getMessage() . "\n", [AnsiTerminal::TEXT_BOLD, AnsiTerminal::FG_RED]);
+            $this->command->line('<options=bold;fg=red>❌ Queue processing failed: ' . $e->getMessage() . '</>');
             $this->command->newLine();
             note("Run manually: php artisan queue:work --queue={$queueName} --stop-when-empty");
         }

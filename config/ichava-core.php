@@ -89,7 +89,7 @@ return [
     | Icon manifest (production caching)
     |--------------------------------------------------------------------------
     | Pre-compiles icon discovery for fast lookups. Generate with:
-    | php artisan ichava:cache generate
+    | php artisan ichava::ichava-core.cache generate
     */
     'manifest' => [
         'enabled'      => env('ICHAVA_MANIFEST_ENABLED', true),

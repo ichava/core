@@ -193,8 +193,16 @@ final class IconCacheService
      *
      * Only caches after Laravel has fully booted to avoid serializing host
      * paths during package discovery. Gracefully handles cache failures.
+     *
+     * Pass $ttl by name. This method took exactly two parameters for its whole
+     * life, and PHP accepts surplus arguments to a userland function without
+     * complaint, so a third positional argument was silently discarded rather
+     * than rejected -- which is how Icon::getPackageCounts() spent its life
+     * believing it had asked for a 24-hour TTL.
+     *
+     * @param int|null $ttl Lifetime in seconds; defaults to the configured TTL.
      */
-    public function remember(string $key, callable $callback): mixed
+    public function remember(string $key, callable $callback, ?int $ttl = null): mixed
     {
         // Only cache after Laravel has fully booted
         if (! app()->hasBeenBootstrapped()) {
@@ -206,7 +214,7 @@ final class IconCacheService
         try {
             return cache()->remember(
                 key: $fullKey,
-                ttl: now()->addSeconds($this->ttl),
+                ttl: now()->addSeconds($ttl ?? $this->ttl),
                 callback: $callback,
             );
         } catch (Exception $e) {

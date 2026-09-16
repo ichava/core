@@ -168,11 +168,11 @@ final class FtsLanguageHelper
 
         // Keywords and tags (JSON arrays)
         if ($scope['keywords']) {
-            $searchComponents[] = "COALESCE(array_to_string(ARRAY(SELECT jsonb_array_elements_text(i.keywords)), ' '), '')";
+            $searchComponents[] = "COALESCE(array_to_string(ARRAY(SELECT json_array_elements_text(i.keywords::json)), ' '), '')";
         }
 
         if ($scope['tags']) {
-            $searchComponents[] = "COALESCE(array_to_string(ARRAY(SELECT jsonb_array_elements_text(i.tags)), ' '), '')";
+            $searchComponents[] = "COALESCE(array_to_string(ARRAY(SELECT json_array_elements_text(i.tags::json)), ' '), '')";
         }
 
         // Categories (including parent hierarchy)
@@ -263,7 +263,7 @@ final class FtsLanguageHelper
     public static function buildSingleLanguageQuery(string $searchTerm, string $language): string
     {
         return sprintf(
-            "to_tsvector('%s', COALESCE(array_to_string(ARRAY(SELECT jsonb_array_elements_text(search_text)), ' '), '')) @@ plainto_tsquery('%s', ?)",
+            "to_tsvector('%s', COALESCE(array_to_string(ARRAY(SELECT json_array_elements_text(search_text::json)), ' '), '')) @@ plainto_tsquery('%s', ?)",
             $language,
             $language,
         );

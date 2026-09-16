@@ -22,7 +22,7 @@ use Simtabi\Laranail\Ichava\Services\IconWatcherService;
  */
 class WatchIconFilesCommand extends BaseCommand
 {
-    protected $signature = 'ichava:watch
+    protected $signature = 'ichava::ichava-core.watch
                             {--force : Force scan even if already running}';
 
     protected $description = 'Watch icon files for changes and auto-sync database';

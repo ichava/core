@@ -193,7 +193,7 @@ class InformationService
                 $status['next_steps'][] = 'Run: php artisan migrate';
             }
             if ($hasMigrations && ! $hasSeeds) {
-                $status['next_steps'][] = 'Run: php artisan ichava:database seed';
+                $status['next_steps'][] = 'Run: php artisan ichava::ichava-core.database seed';
             }
         }
 
