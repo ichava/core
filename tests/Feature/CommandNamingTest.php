@@ -94,7 +94,7 @@ it('registers the canonical name for each command', function (string $name): voi
     'ichava::ichava-core.job-status',
     'ichava::ichava-core.watch',
     'ichava::ichava-core.cleanup-logs',
-    'ichava::ichava-core.icons:check-updates',
+    'ichava::ichava-core.check-updates',
     'ichava::ichava-core.make:icon-package',
 ]);
 

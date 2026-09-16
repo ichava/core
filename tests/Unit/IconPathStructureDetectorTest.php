@@ -50,6 +50,20 @@ describe('IconPathStructureDetector::detect', function () {
         expect($result)->toBe(IconPathStructureDetector::SINGLE_SET);
     });
 
+    it('ignores what sits beside the directory it was given', function () {
+        // Pins the contract directly: the answer is a property of $basePath alone.
+        // A previous strategy counted sibling set directories in the parent, which
+        // made a single set report MULTI_SET purely because of its neighbours --
+        // and in a real install those neighbours are other packages in the vendor
+        // directory. This fails if that strategy ever comes back.
+        mkdir("{$this->root}/files");
+        mkdir("{$this->sandbox}/noisy-neighbour-a/files", 0755, true);
+        mkdir("{$this->sandbox}/noisy-neighbour-b/files", 0755, true);
+
+        expect(IconPathStructureDetector::detect($this->root))
+            ->toBe(IconPathStructureDetector::SINGLE_SET);
+    });
+
     it('returns MULTI_SET when multiple sub-directories carry files/', function () {
         mkdir("{$this->root}/set-a/files", 0755, true);
         mkdir("{$this->root}/set-b/files", 0755, true);
