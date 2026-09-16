@@ -73,3 +73,96 @@ jobs:
           # Don't fail the whole pipeline on a codecov upload glitch --
           # the gate is the `--min=` flag above, not the upload step.
           fail_ci_if_error: false
+
+  # ---------------------------------------------------------------------------
+  # The same suite against every database this package supports.
+  #
+  # The job above runs on in-memory SQLite, which is the fast lane and cannot see
+  # a difference between drivers: index-length limits, JSON column semantics,
+  # `ON CONFLICT` versus `ON DUPLICATE KEY`, foreign-key enforcement, and the
+  # whole PostgreSQL full-text path that SQLite never reaches. Those only show up
+  # against a real server, so they run here.
+  #
+  # SQLite is not repeated -- the job above is its lane.
+  # ---------------------------------------------------------------------------
+  test-databases:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - db: pgsql
+            image: postgres:17
+            port: 5432
+            health: >-
+              --health-cmd="pg_isready -U ichava -d ichava_test"
+              --health-interval=10s --health-timeout=5s --health-retries=10
+          - db: mysql
+            image: mysql:8.4
+            port: 3306
+            health: >-
+              --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -psecret"
+              --health-interval=10s --health-timeout=5s --health-retries=10
+          - db: mariadb
+            image: mariadb:11.4
+            port: 3306
+            health: >-
+              --health-cmd="healthcheck.sh --connect --innodb_initialized"
+              --health-interval=10s --health-timeout=5s --health-retries=10
+
+    name: DB ${{ matrix.db }} - P8.4 - L13.*
+
+    services:
+      database:
+        image: ${{ matrix.image }}
+        ports:
+          - ${{ matrix.port }}:${{ matrix.port }}
+        # One env block serves all three images. Each reads only its own prefix
+        # and ignores the rest, which keeps this a single service definition
+        # instead of three near-identical jobs.
+        env:
+          POSTGRES_DB: ichava_test
+          POSTGRES_USER: ichava
+          POSTGRES_PASSWORD: secret
+          MYSQL_DATABASE: ichava_test
+          MYSQL_USER: ichava
+          MYSQL_PASSWORD: secret
+          MYSQL_ROOT_PASSWORD: secret
+          MARIADB_DATABASE: ichava_test
+          MARIADB_USER: ichava
+          MARIADB_PASSWORD: secret
+          MARIADB_ROOT_PASSWORD: secret
+        options: ${{ matrix.health }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql, pdo_pgsql, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
+
+      - name: Setup problem matchers
+        run: |
+          echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+          echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:13.*" "orchestra/testbench:^11.0" --no-interaction --no-update
+          composer update --prefer-stable --prefer-dist --no-interaction
+
+      - name: Execute tests
+        env:
+          DB_CONNECTION: ${{ matrix.db }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ matrix.port }}
+          DB_DATABASE: ichava_test
+          DB_USERNAME: ichava
+          DB_PASSWORD: secret
+        run: vendor/bin/pest

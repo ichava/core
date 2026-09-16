@@ -439,7 +439,7 @@ class IconSetBuilder implements IconSetInterface
             return $allIcons;
         }
 
-        $cacheKey = $this->getCacheKey('all', $variant, $category);
+        $cacheKey = $this->getAllCacheKey($variant, $category);
 
         $cached = $this->cache->remember($cacheKey, function () use ($variant, $category) {
             $icons = $this->discoverAllIcons($variant, $category);
@@ -729,11 +729,31 @@ class IconSetBuilder implements IconSetInterface
     }
 
     /**
-     * Generate cache key
+     * Cache key for one icon.
      */
     protected function getCacheKey(string $name, ?string $variant, ?string $category): string
     {
+        return $this->namespacedCacheKey('icon', $name, $variant, $category);
+    }
+
+    /**
+     * Cache key for a whole set.
+     *
+     * Deliberately separate. Both keys used to flatten to
+     * "<set>:<variant>:<category>:<name>", so all() and get('all') addressed the
+     * same entry and whichever ran second overwrote the other with a payload of
+     * the wrong shape -- a map of icon arrays where get() expects one icon array,
+     * which fromArray() then reads as a single malformed icon.
+     */
+    protected function getAllCacheKey(?string $variant, ?string $category): string
+    {
+        return $this->namespacedCacheKey('set', 'all', $variant, $category);
+    }
+
+    private function namespacedCacheKey(string $kind, string $name, ?string $variant, ?string $category): string
+    {
         return implode(':', Arr::where([
+            $kind,
             $this->name(),
             $variant,
             $category,

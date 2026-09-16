@@ -146,7 +146,7 @@ final class Icon extends Model
                 ->groupBy('package')
                 ->pluck('count', 'package')
                 ->toArray(),
-            60 * 24, // 24 hours
+            ttl: 60 * 60 * 24, // 24 hours, in seconds
         );
     }
 
@@ -220,6 +220,13 @@ final class Icon extends Model
          * The bug was invisible to whoever wrote it, because on PostgreSQL this function is
          * never reached.
          *
+         * The PostgreSQL branch was wrong in its own way: these columns are `json`, not
+         * `jsonb` -- Laravel's `$table->json()` emits `json` on PostgreSQL -- and PostgreSQL
+         * registers no implicit cast from `json` to `jsonb`, so
+         * `jsonb_array_elements_text(keywords)` resolves to no function at all. The
+         * migration's own trigger already had this right
+         * (`json_array_elements_text(i.keywords::json)`); the query code did not.
+         *
          * Elsewhere the jsonb form is kept: it matches array ELEMENTS, so searching "nav"
          * cannot match the literal characters of a different key. The portable branch is a
          * LIKE over the encoded JSON, which is looser but is what these drivers can express
@@ -232,13 +239,13 @@ final class Icon extends Model
 
             if (FtsLanguageHelper::isScopeEnabled('keywords')) {
                 $isPostgres
-                    ? $q->orWhereRaw('EXISTS (SELECT 1 FROM jsonb_array_elements_text(keywords) AS kw WHERE kw LIKE ?)', [$like])
+                    ? $q->orWhereRaw('EXISTS (SELECT 1 FROM json_array_elements_text(keywords::json) AS kw WHERE kw LIKE ?)', [$like])
                     : $q->orWhere('keywords', 'LIKE', $like);
             }
 
             if (FtsLanguageHelper::isScopeEnabled('tags')) {
                 $isPostgres
-                    ? $q->orWhereRaw('EXISTS (SELECT 1 FROM jsonb_array_elements_text(tags) AS tag WHERE tag LIKE ?)', [$like])
+                    ? $q->orWhereRaw('EXISTS (SELECT 1 FROM json_array_elements_text(tags::json) AS tag WHERE tag LIKE ?)', [$like])
                     : $q->orWhere('tags', 'LIKE', $like);
             }
 
