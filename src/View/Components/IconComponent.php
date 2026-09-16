@@ -7,6 +7,7 @@ namespace Simtabi\Laranail\Ichava\View\Components;
 use Throwable;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
+use Illuminate\Contracts\Support\Htmlable;
 use Simtabi\Laranail\Ichava\Traits\HasIconSizing;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -108,9 +109,16 @@ class IconComponent extends Component
     ) {}
 
     /**
-     * Render the icon to an HTML SVG string.
+     * Render the icon as deferred HTML.
      *
-     * Execution order:
+     * Returns an Htmlable instead of a string on purpose: Blade compiles
+     * component tags so `render()` executes before `withAttributes()`
+     * populates the attribute bag. An eager string would freeze the SVG
+     * before `class` and friends arrive; the deferred wrapper builds it in
+     * `toHtml()`, which the compiled template calls after the bag is set.
+     * Direct callers should use `->render()->toHtml()`.
+     *
+     * Execution order once built:
      * 1. Build the full icon path via buildIconPath()
      * 2. Parse size attributes via HasIconSizing::parseSizeAttributes()
      * 3. Parse WCAG accessibility attributes (title, aria-label, role)
@@ -118,11 +126,24 @@ class IconComponent extends Component
      * 5. Merge all attribute layers (default → bag → a11y → size)
      * 6. Render via IconRegistry; fall back to $fallback or config('ichava.ichava-core.fallback_icon') on exception
      *
+     * @throws IchavaException if rendering fails and no valid fallback is configured
+     */
+    public function render(): Htmlable
+    {
+        return new DeferredIconHtml(fn (): string => $this->renderNow());
+    }
+
+    /**
+     * Build the icon HTML SVG string immediately.
+     *
+     * Reads the attribute bag as-is, so direct callers must populate it via
+     * `withAttributes()` before calling. Prefer `render()->toHtml()`.
+     *
      * @return string Rendered HTML-safe SVG string
      *
      * @throws IchavaException if rendering fails and no valid fallback is configured
      */
-    public function render(): string
+    public function renderNow(): string
     {
         if (! $this->iconRegistry) {
             throw IchavaException::dependencyNotInjected('IconRegistry', static::class);
