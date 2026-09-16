@@ -29,26 +29,26 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  *
  * Usage examples (path mirrors the designer's folder structure):
  * ```blade
- * <x-ichava::icon name="ichava/tabler-icons::home" />
  * <x-ichava::icon name="ichava/tabler-icons::outline/home" />
+ * <x-ichava::icon name="ichava/tabler-icons::filled/home" />
  * <x-ichava::icon name="ichava/metronic-icons::brand-logos/google" />
  * <x-ichava::icon name="vendor/icons::ui/buttons/primary/large" />
  * ```
  *
  * With accessibility:
  * ```blade
- * <x-ichava::icon name="ichava/tabler-icons::home" title="Go Home" aria="Navigate home" />
+ * <x-ichava::icon name="ichava/tabler-icons::outline/home" title="Go Home" aria="Navigate home" />
  * ```
  *
  * With sizing:
  * ```blade
- * <x-ichava::icon name="ichava/tabler-icons::home" size="lg" />
- * <x-ichava::icon name="ichava/tabler-icons::home" width="24" height="24" />
+ * <x-ichava::icon name="ichava/tabler-icons::outline/home" size="lg" />
+ * <x-ichava::icon name="ichava/tabler-icons::outline/home" width="24" height="24" />
  * ```
  *
  * With fallback:
  * ```blade
- * <x-ichava::icon name="ichava/tabler-icons::home" fallback="ichava/tabler-icons::circle-x" />
+ * <x-ichava::icon name="ichava/tabler-icons::outline/home" fallback="ichava/tabler-icons::outline/circle-x" />
  * ```
  *
  * Extend to create package-scoped shorthand components:
