@@ -1,0 +1,36 @@
+{
+    "schema_version": "3.0",
+    "_note": "Static snapshot refreshed daily by .github/workflows/sync-icon-sets.yml (bin/sync-icon-sets.php). Each set pins key/package/repository; title, description, license, icon_count, variants and latest_version are synced from the pack's config.json at its latest GitHub tag. To add a set, append key/package/repository and let the workflow fill in the snapshot. ichava:install reads this file only — zero runtime network calls.",
+    "config_path": "resources/assets/svg/config.json",
+    "sets": [
+        {
+            "key": "tabler",
+            "package": "ichava/tabler-icons",
+            "repository": "ichava/tabler-icons",
+            "title": "Tabler Icons",
+            "description": "Over 5,200 pixel-perfect icons for web apps. Free and open source icons designed with attention to detail to make your design stand out.",
+            "license": "MIT",
+            "icon_count": 6146,
+            "variants": [
+                "outline",
+                "filled"
+            ],
+            "latest_version": "0.1.0"
+        },
+        {
+            "key": "flags",
+            "package": "ichava/flag-icons",
+            "repository": "ichava/flag-icons",
+            "title": "Flag Icons",
+            "description": "265 country flag SVGs sourced from lipis/flag-icons, available in 4x3 and 1x1 aspect ratios. Replaces the flag half of the deprecated simtabi/laflamoji.",
+            "license": "MIT",
+            "icon_count": 542,
+            "variants": [
+                "4x3",
+                "1x1"
+            ],
+            "latest_version": "0.1.0"
+        }
+    ],
+    "synced_at": "2026-09-16T09:58:51Z"
+}

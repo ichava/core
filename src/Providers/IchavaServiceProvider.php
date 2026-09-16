@@ -23,6 +23,7 @@ use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\SecurityNonce;
 use Simtabi\Laranail\Ichava\Services\IconsManifest;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Simtabi\Laranail\Ichava\Commands\InstallCommand;
 use Simtabi\Laranail\Ichava\Support\ServiceProvider;
 use Simtabi\Laranail\Ichava\Commands\DatabaseCommand;
 use Simtabi\Laranail\Ichava\Commands\JobStatusCommand;
@@ -39,6 +40,7 @@ use Simtabi\Laranail\Ichava\View\Components\IconComponent;
 use Simtabi\Laranail\Ichava\Commands\WatchIconFilesCommand;
 use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
 use Simtabi\Laranail\Ichava\Services\IconPreferenceService;
+use Simtabi\Laranail\Ichava\Services\IconSetCatalogService;
 use Simtabi\Laranail\Ichava\Commands\MakeIconPackageCommand;
 use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
 use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
@@ -84,6 +86,7 @@ class IchavaServiceProvider extends PackageServiceProvider
                 CacheCommand::class,     // cache, manifest
                 DatabaseCommand::class,  // seed, migrate, unseed
                 InfoCommand::class,      // info, status
+                InstallCommand::class,   // install icon sets
 
                 // Specialized commands (kept separate by design)
                 JobStatusCommand::class,
@@ -158,6 +161,7 @@ class IchavaServiceProvider extends PackageServiceProvider
         $this->app->singleton(DatabaseOperationsService::class);
         $this->app->singleton(CacheOperationsService::class);
         $this->app->singleton(InformationService::class);
+        $this->app->singleton(IconSetCatalogService::class);
         $this->app->singleton(IchavaSeeder::class);
         $this->app->singleton(IconPackUpdateChecker::class);
 
