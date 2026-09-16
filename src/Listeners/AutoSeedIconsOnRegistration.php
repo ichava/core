@@ -275,7 +275,7 @@ class AutoSeedIconsOnRegistration
         return Str::contains($command, 'migrate')
             || Str::contains($command, 'db:seed')
             || Str::contains($command, 'db:wipe')
-            || Str::contains($command, 'ichava:database')
+            || Str::contains($command, 'ichava::ichava-core.database')
             || Str::contains($command, 'schema:dump');
     }
 }
