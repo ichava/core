@@ -33,9 +33,6 @@ use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
  */
 final class InstallCommand extends BaseCommand
 {
-    /** @var list<string> */
-    protected array $commandAliases = ['ichava:install'];
-
     protected $signature = 'ichava::ichava-core.install
                             {set? : Catalog key or composer package name}
                             {--force : Skip confirmations}
@@ -127,7 +124,7 @@ final class InstallCommand extends BaseCommand
         }
 
         if ($this->option('no-seed')) {
-            note("Skipped seeding. Seed later with: php artisan ichava:database seed --package={$package}");
+            note("Skipped seeding. Seed later with: php artisan ichava::ichava-core.database seed --package={$package}");
             outro("✅ {$set['title']} required successfully");
 
             return self::SUCCESS;
@@ -145,7 +142,7 @@ final class InstallCommand extends BaseCommand
 
         if ($seedExit !== 0) {
             $this->failure("Composer require succeeded but seeding '{$package}' failed.");
-            $this->tip("Retry seeding with: php artisan ichava:database seed --package={$package}");
+            $this->tip("Retry seeding with: php artisan ichava::ichava-core.database seed --package={$package}");
 
             return self::FAILURE;
         }

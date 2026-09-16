@@ -20,7 +20,7 @@ use {{namespace}}\Commands\UpdateIconsCommand;
  * Icons are automatically discovered and made available via:
  * - Blade component: <x-{{kebabName}}-icons-icon name="icon-name" />
  * - Helper function: ichava('{{packageName}}::icon-name')
- * - Update command: php artisan ichava:update-{{kebabName}}-icons
+ * - Update command: php artisan {{vendorKebab}}::{{kebabName}}-icons.update
  *
  * @package {{namespace}}
  */

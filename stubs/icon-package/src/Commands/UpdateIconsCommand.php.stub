@@ -26,9 +26,9 @@ use function Laravel\Prompts\warning;
  * All business logic is handled by the parent class.
  *
  * Usage:
- *   php artisan ichava:update-{{kebabName}}-icons
- *   php artisan ichava:update-{{kebabName}}-icons --source=/path/to/icons
- *   php artisan ichava:update-{{kebabName}}-icons --force
+ *   php artisan {{vendorKebab}}::{{kebabName}}-icons.update
+ *   php artisan {{vendorKebab}}::{{kebabName}}-icons.update --source=/path/to/icons
+ *   php artisan {{vendorKebab}}::{{kebabName}}-icons.update --force
  *
  * Note: Customize getRepository() and related methods based on your
  * icons source (GitHub repository, local directory, zip file, CDN, etc.)
@@ -46,8 +46,6 @@ class UpdateIconsCommand extends BaseUpdateIconsCommand
      */
     use SupportsNamespacedNames;
 
-    /** @var list<string> */
-    protected array $commandAliases = ['{{vendorKebab}}:update-{{kebabName}}-icons'];
 
     protected $signature = 'ichava:update-{{kebabName}}-icons
                             {--source= : Source path or URL for icons}

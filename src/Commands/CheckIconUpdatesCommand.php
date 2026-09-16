@@ -21,15 +21,12 @@ use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
  * command can be wired into CI / scheduled tasks.
  *
  * @example
- *   php artisan ichava:icons:check-updates
- *   php artisan ichava:icons:check-updates --package=ichava/twemoji-icons
- *   php artisan ichava:icons:check-updates --quiet --format=json
+ *   php artisan ichava::ichava-core.icons:check-updates
+ *   php artisan ichava::ichava-core.icons:check-updates --package=ichava/twemoji-icons
+ *   php artisan ichava::ichava-core.icons:check-updates --quiet --format=json
  */
 final class CheckIconUpdatesCommand extends BaseCommand
 {
-    /** @var list<string> */
-    protected array $commandAliases = ['ichava:icons:check-updates'];
-
     protected $signature = 'ichava::ichava-core.icons:check-updates
                             {--package= : Check just this package (vendor/name)}
                             {--format=table : Output format: table|json}
