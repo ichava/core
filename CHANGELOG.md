@@ -16,6 +16,24 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   published pointing at `v0.2.0`'s commit — a tag whose version had no section at all. That
   tag was deleted within the minute, but nothing except a person noticing stood in the way.
 
+## [0.2.2] - 2026-09-16
+
+### Fixed
+
+- **`ichava::ichava-core.database migrate` never ran a migration.** `runMigrations()` passed
+  `migrate` a literal `--path platform/ichava/ichava/database/migrations` — a layout from
+  another project. `migrate --path` against a directory that does not exist runs nothing and
+  **exits 0**, so the command printed its success outro, returned `0`, and created no tables.
+  In every consuming application, for the whole life of the package.
+
+  The path is resolved from the service's own file now, passed with `--realpath`, and a missing
+  directory returns a failure code instead of a silent success.
+
+  Nothing caught it because the suite runs migrations through Testbench, which loads the
+  registered path directly and never calls this service. It surfaced by running the command in
+  a real application and then reading `sqlite_master` rather than the exit code.
+  `tests/Unit/MigrationPathTest.php` now refuses any relative `--path` literal in `src/`.
+
 ## [0.2.1] - 2026-09-16
 
 ### Fixed
