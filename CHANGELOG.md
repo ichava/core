@@ -6,6 +6,15 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Breaking
 
+- **Artisan commands are now namespaced `ichava::ichava-core.<command>`.** Every previous name
+  is retained as an alias, so nothing that exists today breaks — with one deliberate exception:
+  **`make:icon-package` is gone.** It registered into Laravel's own `make:` namespace, which is
+  the defect being fixed, so keeping it as an alias would have kept the defect. Use
+  `ichava::ichava-core.make:icon-package`, or the `ichava:make:icon-package` alias.
+- **`ajaxray/ansikit` dropped from `require`.** Terminal output in `IchavaSeeder` now goes
+  through the command it already held, so it honours `--quiet`, `--no-ansi` and redirection,
+  which raw ANSI writes to STDOUT did not.
+
 - **Config renamed: `config/core.php` → `config/ichava-core.php`, key `ichava.core.*` → `ichava.ichava-core.*`.** Republish with `php artisan vendor:publish --tag=ichava::ichava-core-config` and update every `config('ichava.core.*')` read, including host apps and sibling `ichava/*` packages. Published overrides at the old nested path are no longer loaded.
 
 ### Added
@@ -17,6 +26,15 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 - PHPStan static analysis (level 0) with `composer analyse` wired into CI.
 
 ### Fixed
+
+- Nine commands registered bare generic slugs into Artisan's flat command map, where a second
+  package claiming the same key replaces the first silently rather than colliding. All now
+  carry vendor and slug, pinned by a test that reads the live console registry rather than
+  `$signature` — the `::` name only survives because a trait writes it past Symfony's
+  `validateName()`, so reading the property would pass against a registration that never took.
+- The `make:icon-package` scaffolder stub emitted `#[AsCommand(name: 'ichava:update-…-icons')]`,
+  so every pack generated from it reintroduced a bare name. It now emits
+  `{{vendorKebab}}::{{kebabName}}-icons.update`.
 
 - **Icon search was broken on PostgreSQL.** `FtsLanguageHelper` and `Icon::scopeFuzzySearch()`
   called `jsonb_array_elements_text()` against `tags`, `keywords` and `search_text`, which are

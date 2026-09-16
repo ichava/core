@@ -28,7 +28,10 @@ use Simtabi\Laranail\Ichava\Support\JobProgressTracker;
  */
 class JobStatusCommand extends BaseCommand
 {
-    protected $signature = 'ichava:job-status
+    /** @var list<string> */
+    protected array $commandAliases = ['ichava:job-status'];
+
+    protected $signature = 'ichava::ichava-core.job-status
                             {package? : Specific package to check}
                             {--all : Show all packages including inactive}
                             {--clear= : Clear progress for a specific package}

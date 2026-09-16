@@ -49,6 +49,11 @@ beforeEach(function () {
     };
 });
 
+/*
+ * These invoke the command by its retained alias `ichava:icons:check-updates`
+ * rather than the canonical `ichava::ichava-core.icons:check-updates`, on purpose:
+ * it exercises the backwards-compatibility promise through a real dispatch.
+ */
 it('returns SUCCESS when every pack is up to date', function () {
     ($this->stubRows)([
         [

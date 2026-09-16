@@ -33,7 +33,7 @@ php artisan vendor:publish --tag={{kebabName}}-icons-config
 If you want to use the icon browser or search functionality:
 
 ```bash
-php artisan ichava:database seed --package={{packageName}}
+php artisan ichava::ichava-core.database seed --package={{packageName}}
 ```
 
 ## Usage
@@ -193,7 +193,7 @@ php artisan serve
 Or list icons via command line:
 
 ```bash
-php artisan ichava:info icons --package={{packageName}}
+php artisan ichava::ichava-core.info icons --package={{packageName}}
 ```
 
 ## Auto-Update Command
@@ -201,13 +201,13 @@ php artisan ichava:info icons --package={{packageName}}
 Update icons from the latest source:
 
 ```bash
-php artisan ichava:update-{{kebabName}}-icons
+php artisan {{vendorKebab}}::{{kebabName}}-icons.update
 
 # With custom source
-php artisan ichava:update-{{kebabName}}-icons --source=/path/to/icons
+php artisan {{vendorKebab}}::{{kebabName}}-icons.update --source=/path/to/icons
 
 # Force update without confirmation
-php artisan ichava:update-{{kebabName}}-icons --force
+php artisan {{vendorKebab}}::{{kebabName}}-icons.update --force
 ```
 
 ## Adding Your Own Icons
@@ -215,7 +215,7 @@ php artisan ichava:update-{{kebabName}}-icons --force
 1. Place your SVG files in `resources/assets/svg/files/`
 2. For multi-variant icons, organize by variant: `files/regular/`, `files/solid/`, etc.
 3. Update `resources/assets/svg/config.json` with metadata
-4. Clear cache: `php artisan ichava:cache clear`
+4. Clear cache: `php artisan ichava::ichava-core.cache clear`
 
 ### Icon Guidelines
 

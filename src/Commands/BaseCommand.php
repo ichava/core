@@ -29,6 +29,7 @@ use function Laravel\Prompts\progress;
 
 use Illuminate\Support\Facades\Schema;
 use Simtabi\Laranail\Console\Tools\Commands\Command;
+use Simtabi\Laranail\Console\Tools\Commands\Concerns\SupportsNamespacedNames;
 
 /**
  * Base command for all Ichava Artisan commands
@@ -50,6 +51,15 @@ use Simtabi\Laranail\Console\Tools\Commands\Command;
  */
 abstract class BaseCommand extends Command
 {
+    /*
+     * Symfony's validateName() rejects the empty segment in `::`, so a command
+     * named `ichava::ichava-core.cache` cannot be registered through the normal
+     * path. This trait writes the name past that validator. Dispatch still works
+     * because Symfony resolves an exact name before its `:`-splitting namespace
+     * lookup. Same mechanism `laranail/db-console` uses.
+     */
+    use SupportsNamespacedNames;
+
     /**
      * Start time for performance tracking
      */

@@ -27,7 +27,10 @@ use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
  */
 final class CheckIconUpdatesCommand extends BaseCommand
 {
-    protected $signature = 'ichava:icons:check-updates
+    /** @var list<string> */
+    protected array $commandAliases = ['ichava:icons:check-updates'];
+
+    protected $signature = 'ichava::ichava-core.icons:check-updates
                             {--package= : Check just this package (vendor/name)}
                             {--format=table : Output format: table|json}
                             {--fail-on-stale : Exit non-zero when any pack is behind}';
