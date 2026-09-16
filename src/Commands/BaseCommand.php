@@ -531,7 +531,7 @@ abstract class BaseCommand extends Command
         if (! $this->ichavaTablesExist()) {
             $missing = $this->getMissingIchavaTables();
             $this->failure('Required tables do not exist: ' . implode(', ', $missing));
-            $this->tip('Run migrations first: php artisan ichava:database migrate');
+            $this->tip('Run migrations first: php artisan ichava::ichava-core.database migrate');
 
             return false;
         }

@@ -680,7 +680,7 @@ class IchavaSeeder extends Seeder
                 $totalIcons = Icon::count();
                 info('📊 Total icons in database: ' . number_format($totalIcons));
             } catch (Exception $e) {
-                warning('📊 Unable to query database. Run: php artisan ichava:database stats');
+                warning('📊 Unable to query database. Run: php artisan ichava::ichava-core.database stats');
             }
         }
     }

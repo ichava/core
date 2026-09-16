@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Cache-backed progress counters for long-running icon-seeding jobs.
- * Read by `php artisan ichava:job-status` and the browser UI.
+ * Read by `php artisan ichava::ichava-core.job-status` and the browser UI.
  */
 class JobProgressTracker
 {

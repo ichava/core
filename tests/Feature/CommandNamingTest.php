@@ -98,24 +98,19 @@ it('registers the canonical name for each command', function (string $name): voi
     'ichava::ichava-core.make:icon-package',
 ]);
 
-it('keeps the previous name working as an alias', function (string $alias): void {
-    // The compatibility promise is tested, not asserted. setAliases() is also
-    // written past Symfony's validator, so it can fail independently of the name.
-    $command = app(Kernel::class)->all()[$alias] ?? null;
-
-    expect($command)->not->toBeNull("alias {$alias} is not registered")
-        ->and($command::class)->toStartWith('Simtabi\Laranail\Ichava\\')
-        ->and($command->getName())->toStartWith('ichava::ichava-core.');
-})->with([
-    'ichava:cache',
-    'ichava:install',
-    'ichava:database',
-    'ichava:info',
-    'ichava:job-status',
-    'ichava:watch',
-    'ichava:cleanup-logs',
-    'ichava:icons:check-updates',
-]);
+it('registers no bare name at all, not even as an alias', function (): void {
+    // The global standard is explicit: "No convenience alias may reintroduce the
+    // bare name ... and makes the convention decorative." A retained
+    // `ichava:cache` is still a generic key in Artisan's flat map, which is the
+    // collision the namespaced name exists to prevent -- so the old names are
+    // gone rather than aliased.
+    foreach (ichavaCommands() as $key => $command) {
+        expect($key)->toMatch(
+            '/^ichava::[a-z0-9-]+\./',
+            sprintf('%s answers to the bare name %s', $command::class, $key),
+        );
+    }
+});
 
 it('no longer squats Laravel\'s make: namespace', function (): void {
     // The one alias deliberately NOT retained. Keeping `make:icon-package` alive

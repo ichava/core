@@ -25,20 +25,17 @@ use Simtabi\Laranail\Ichava\Services\InformationService;
  * Merges functionality from IchavaStatusCommand.
  *
  * @example
- * php artisan ichava:info packages            # List all packages
- * php artisan ichava:info icons               # List all icons
- * php artisan ichava:info status              # Show lifecycle status
- * php artisan ichava:info languages           # List FTS languages
- * php artisan ichava:info discover            # Discover packages
- * php artisan ichava:info stats               # Show statistics
+ * php artisan ichava::ichava-core.info packages            # List all packages
+ * php artisan ichava::ichava-core.info icons               # List all icons
+ * php artisan ichava::ichava-core.info status              # Show lifecycle status
+ * php artisan ichava::ichava-core.info languages           # List FTS languages
+ * php artisan ichava::ichava-core.info discover            # Discover packages
+ * php artisan ichava::ichava-core.info stats               # Show statistics
  *
  * @see https://laravel.com/docs/12.x/prompts
  */
 final class InfoCommand extends BaseCommand
 {
-    /** @var list<string> */
-    protected array $commandAliases = ['ichava:info'];
-
     protected $signature = 'ichava::ichava-core.info
                             {type? : Type: packages, icons, status, languages, discover, stats}
                             {--search= : Search filter}

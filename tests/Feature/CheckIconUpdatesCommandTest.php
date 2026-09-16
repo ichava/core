@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Artisan;
 use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
 
 /**
- * Feature coverage for `php artisan ichava:icons:check-updates`.
+ * Feature coverage for `php artisan ichava::ichava-core.icons:check-updates`.
  *
  * Pins the contract on which CI / cron / dashboard tooling depends:
  *
@@ -49,11 +49,6 @@ beforeEach(function () {
     };
 });
 
-/*
- * These invoke the command by its retained alias `ichava:icons:check-updates`
- * rather than the canonical `ichava::ichava-core.icons:check-updates`, on purpose:
- * it exercises the backwards-compatibility promise through a real dispatch.
- */
 it('returns SUCCESS when every pack is up to date', function () {
     ($this->stubRows)([
         [
@@ -67,7 +62,7 @@ it('returns SUCCESS when every pack is up to date', function () {
         ],
     ]);
 
-    $this->artisan('ichava:icons:check-updates')->assertExitCode(0);
+    $this->artisan('ichava::ichava-core.icons:check-updates')->assertExitCode(0);
 });
 
 it('emits valid JSON under --format=json', function () {
@@ -87,7 +82,7 @@ it('emits valid JSON under --format=json', function () {
     // captures $this->line(). $this->artisan(...) chains through a
     // PendingCommand that doesn't expose the line output for substring
     // assertion when it contains the linebreaks JSON_PRETTY_PRINT adds.
-    Artisan::call('ichava:icons:check-updates', ['--format' => 'json']);
+    Artisan::call('ichava::ichava-core.icons:check-updates', ['--format' => 'json']);
     $output = Artisan::output();
 
     expect($output)
@@ -114,7 +109,7 @@ it('exits non-zero with --fail-on-stale when any pack is behind', function () {
         ],
     ]);
 
-    $this->artisan('ichava:icons:check-updates --fail-on-stale')->assertExitCode(1);
+    $this->artisan('ichava::ichava-core.icons:check-updates --fail-on-stale')->assertExitCode(1);
 });
 
 it('exits non-zero with --fail-on-stale when a pack is unreachable', function () {
@@ -130,7 +125,7 @@ it('exits non-zero with --fail-on-stale when a pack is unreachable', function ()
         ],
     ]);
 
-    $this->artisan('ichava:icons:check-updates --fail-on-stale')->assertExitCode(1);
+    $this->artisan('ichava::ichava-core.icons:check-updates --fail-on-stale')->assertExitCode(1);
 });
 
 it('forwards --package= to the checker', function () {
@@ -155,7 +150,7 @@ it('forwards --package= to the checker', function () {
         ],
     ]);
 
-    Artisan::call('ichava:icons:check-updates', [
+    Artisan::call('ichava::ichava-core.icons:check-updates', [
         '--package' => 'ichava/tabler-icons',
         '--format'  => 'json',
     ]);
@@ -169,5 +164,5 @@ it('forwards --package= to the checker', function () {
 it('soft-succeeds when the registry is empty', function () {
     ($this->stubRows)([]);
 
-    $this->artisan('ichava:icons:check-updates')->assertExitCode(0);
+    $this->artisan('ichava::ichava-core.icons:check-updates')->assertExitCode(0);
 });
