@@ -2,6 +2,20 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **`release.yml`** — tag-driven, so a `v*.*.*` push publishes a release whose body is that
+  version's CHANGELOG section rather than auto-generated notes, plus a CycloneDX SBOM of the
+  runtime dependency tree.
+
+  It **fails closed when the tagged version has no CHANGELOG section**. Both releases before
+  this workflow existed were cut by hand against the API, and the second went wrong exactly
+  there: a transport error killed the merge call, the script carried on, and a `v0.2.1` tag was
+  published pointing at `v0.2.0`'s commit — a tag whose version had no section at all. That
+  tag was deleted within the minute, but nothing except a person noticing stood in the way.
+
 ## [0.2.1] - 2026-09-16
 
 ### Fixed
