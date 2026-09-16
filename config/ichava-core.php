@@ -133,8 +133,9 @@ return [
     | Drivers honoured: file, redis, memcached, array.
     */
     'cache' => [
-        'ttl'    => IchavaConstants::DEFAULT_CACHE_TTL,
-        'prefix' => 'ichava',
+        'ttl'     => IchavaConstants::DEFAULT_CACHE_TTL,
+        'prefix'  => 'ichava',
+        'version' => 'v2',
     ],
 
     /*
