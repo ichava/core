@@ -18,12 +18,24 @@ use Illuminate\Contracts\Console\Kernel;
  * Symfony's validateName(). A test that reads the property would pass against a
  * registration that never took effect.
  */
+/**
+ * Commands declared by *this repository*, keyed by every name they answer to.
+ *
+ * Scoped by the file the class is declared in, not by namespace prefix. A
+ * dependency can register a command into this vendor's namespace -- CI caught
+ * `laranail/package-tools` doing exactly that with a bare `ichava:install` on a
+ * version this suite does not resolve locally -- and that is upstream's to fix,
+ * not something this suite can assert away.
+ */
 function ichavaCommands(): array
 {
+    $src = realpath(__DIR__ . '/../../src') . DIRECTORY_SEPARATOR;
     $owned = [];
 
     foreach (app(Kernel::class)->all() as $name => $command) {
-        if (str_starts_with($command::class, 'Simtabi\\Laranail\\Ichava\\')) {
+        $file = new ReflectionClass($command)->getFileName();
+
+        if ($file !== false && str_starts_with($file, $src)) {
             $owned[$name] = $command;
         }
     }
@@ -41,8 +53,9 @@ it('gives every command a canonical name carrying the vendor and slug', function
 
     expect($canonical)->not->toBeEmpty();
 
-    foreach ($canonical as $name) {
-        expect($name)->toMatch('/^ichava::[a-z0-9-]+\./');
+    foreach (ichavaCommands() as $command) {
+        expect($command->getName())
+            ->toMatch('/^ichava::[a-z0-9-]+\./', $command::class . ' registers a name outside the convention');
     }
 });
 
