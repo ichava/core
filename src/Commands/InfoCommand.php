@@ -36,7 +36,10 @@ use Simtabi\Laranail\Ichava\Services\InformationService;
  */
 final class InfoCommand extends BaseCommand
 {
-    protected $signature = 'ichava:info
+    /** @var list<string> */
+    protected array $commandAliases = ['ichava:info'];
+
+    protected $signature = 'ichava::ichava-core.info
                             {type? : Type: packages, icons, status, languages, discover, stats}
                             {--search= : Search filter}
                             {--package= : Filter by package}

@@ -7,6 +7,7 @@ namespace {{namespace}}\Commands;
 use Symfony\Component\Console\Attribute\AsCommand;
 use {{namespace}}\Constants\IconsConstants;
 use Simtabi\Laranail\Ichava\Commands\UpdateIconsCommand as BaseUpdateIconsCommand;
+use Simtabi\Laranail\Console\Tools\Commands\Concerns\SupportsNamespacedNames;
 
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
@@ -35,9 +36,19 @@ use function Laravel\Prompts\warning;
  * @see https://laravel.com/docs/12.x/prompts
  * @package {{namespace}}\Commands
  */
-#[AsCommand(name: 'ichava:update-{{kebabName}}-icons')]
+#[AsCommand(name: '{{vendorKebab}}::{{kebabName}}-icons.update')]
 class UpdateIconsCommand extends BaseUpdateIconsCommand
 {
+    /*
+     * Symfony's validateName() rejects the empty segment in `::`. Declared on the
+     * class rather than inherited so the name survives whatever base this ends up
+     * extending.
+     */
+    use SupportsNamespacedNames;
+
+    /** @var list<string> */
+    protected array $commandAliases = ['{{vendorKebab}}:update-{{kebabName}}-icons'];
+
     protected $signature = 'ichava:update-{{kebabName}}-icons
                             {--source= : Source path or URL for icons}
                             {--force : Force update without confirmation}';

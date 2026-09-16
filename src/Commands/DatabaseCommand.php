@@ -42,7 +42,10 @@ use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
  */
 final class DatabaseCommand extends BaseCommand
 {
-    protected $signature = 'ichava:database
+    /** @var list<string> */
+    protected array $commandAliases = ['ichava:database'];
+
+    protected $signature = 'ichava::ichava-core.database
                             {action? : Action: seed, seed:icons, seed:terms, migrate, unseed, refresh, truncate, stats}
                             {--package= : Specific package to target}
                             {--fresh : Drop tables before migrate, or truncate before seed}

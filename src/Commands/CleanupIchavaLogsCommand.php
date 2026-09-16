@@ -25,7 +25,10 @@ use function Laravel\Prompts\progress;
  */
 class CleanupIchavaLogsCommand extends BaseCommand
 {
-    protected $signature = 'ichava:cleanup-logs
+    /** @var list<string> */
+    protected array $commandAliases = ['ichava:cleanup-logs'];
+
+    protected $signature = 'ichava::ichava-core.cleanup-logs
                             {--days= : Number of days to retain logs (default: from config)}
                             {--dry-run : Show what would be deleted without actually deleting}
                             {--force : Force operation without confirmation}';

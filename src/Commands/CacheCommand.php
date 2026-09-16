@@ -35,7 +35,10 @@ use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
  */
 final class CacheCommand extends BaseCommand
 {
-    protected $signature = 'ichava:cache
+    /** @var list<string> */
+    protected array $commandAliases = ['ichava:cache'];
+
+    protected $signature = 'ichava::ichava-core.cache
                             {action? : Action: clear, rebuild, refresh, generate, manifest, stats}
                             {--package= : Specific package to target}
                             {--path= : Custom path for manifest file}
