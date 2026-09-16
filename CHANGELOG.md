@@ -2,6 +2,23 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-09-16
+
+### Fixed
+
+- **Six call sites still invoked commands by the names `0.2.0` retired**, so the paths through
+  them raised `CommandNotFoundException` at runtime: the `cleanup-logs` and `watch` scheduled
+  tasks, both `ichava::ichava-core.database` calls inside the installer, the cache rebuild in
+  `IconCacheService::rebuild()`, and the `argv` sniff in `AutoSeedIconsOnRegistration` that
+  skips auto-seeding during an explicit database command — that one failed silently by simply
+  never matching again.
+
+  They are string literals that nothing type-checks, on paths this suite does not exercise;
+  the first report came from `ichava/browser` running against the released `0.2.0` tag.
+  `tests/Unit/CommandInvocationTest.php` now reads the source for invocation sites, because
+  the defect is inert until the line runs and there is nothing to inspect at runtime before
+  that.
+
 ## [0.2.0] - 2026-09-16
 
 ### Breaking

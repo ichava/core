@@ -133,7 +133,7 @@ final class InstallCommand extends BaseCommand
         $this->line('');
         $this->line("  <fg=white>Seeding icons for</fg=white> <fg=cyan>{$package}</fg=cyan>...");
 
-        $seedExit = $this->call('ichava:database', array_filter([
+        $seedExit = $this->call('ichava::ichava-core.database', array_filter([
             'action'    => 'seed',
             '--package' => $package,
             '--sync'    => $this->option('sync') ?: null,
@@ -227,7 +227,7 @@ final class InstallCommand extends BaseCommand
             return null;
         }
 
-        $exit = $this->call('ichava:database', ['action' => 'migrate']);
+        $exit = $this->call('ichava::ichava-core.database', ['action' => 'migrate']);
 
         if ($exit !== 0 || ! $this->database->tablesExist()) {
             $this->failure('Core migrations did not complete.');

@@ -323,7 +323,7 @@ class IchavaServiceProvider extends PackageServiceProvider
         $this->callAfterResolving(Schedule::class, function ($schedule) {
             $cleanupTime = config('ichava.ichava-core.logging.cleanup_time', '03:00');
 
-            $schedule->command('ichava:cleanup-logs')
+            $schedule->command('ichava::ichava-core.cleanup-logs')
                 ->daily()
                 ->at($cleanupTime)
                 ->name('ichava-log-cleanup')
@@ -354,7 +354,7 @@ class IchavaServiceProvider extends PackageServiceProvider
         $this->callAfterResolving(Schedule::class, function ($schedule) {
             $interval = config('ichava.ichava-core.database.sync_interval', 60);
 
-            $schedule->command('ichava:watch')
+            $schedule->command('ichava::ichava-core.watch')
                 ->everyMinute()
                 ->when(fn () => config('ichava.ichava-core.database.auto_sync', true))
                 ->runInBackground()

@@ -98,7 +98,7 @@ final class IconCacheService
             $options[] = "--package={$package}";
         }
 
-        $exitCode = Artisan::call('ichava:cache', ['action' => 'rebuild'] + $options);
+        $exitCode = Artisan::call('ichava::ichava-core.cache', ['action' => 'rebuild'] + $options);
         $output = Artisan::output();
 
         $stats = $this->parseRebuildOutput($output);
