@@ -73,7 +73,21 @@ class IchavaLifecycleManager
                 return false;
             }
 
-            $requiredColumns = ['id', 'package', 'category', 'name', 'path', 'file_hash', 'svg_content'];
+            /*
+             * The columns the schema actually has.
+             *
+             * This list used to include `category` and `svg_content`, and neither has
+             * ever been a column: a category is a row in `ichava_icon_terms` reached
+             * through the polymorphic pivot, and `svg_content` is an accessor that
+             * reads the file from disk -- the migration says so in as many words,
+             * "File Information (NOT the content!)".
+             *
+             * So this returned false on every install that ever existed, which made
+             * `info status` report UNINITIALIZED against a fully seeded database and
+             * silently disabled both AutoSeedIconsOnRegistration and
+             * AutoUnseedOnUnregistration, which gate on it.
+             */
+            $requiredColumns = ['id', 'package', 'name', 'path', 'file_hash'];
             foreach ($requiredColumns as $column) {
                 if (! Schema::hasColumn('ichava_icons', $column)) {
                     return false;
