@@ -44,6 +44,9 @@ class DatabaseOperationsService
         'ichava_icons',
     ];
 
+    /** Migration directory could not be resolved on disk. */
+    private const MIGRATION_PATH_MISSING = 1;
+
     public function __construct(
         protected IchavaLogger $logger,
         protected IconRegistry $registry,
@@ -141,9 +144,30 @@ class DatabaseOperationsService
     {
         $this->logger->info('🗄️ Running Ichava migrations');
 
+        /*
+         * Resolved from this file, not written down.
+         *
+         * This passed `--path` a literal `platform/ichava/ichava/database/migrations`,
+         * a layout from some other project. `migrate --path` against a directory
+         * that does not exist runs nothing and **exits 0**, so the command reported
+         * success, printed its outro and created no tables -- in every consuming
+         * application, for the whole life of the package. Nothing caught it because
+         * the suite runs migrations through Testbench, which never calls this.
+         */
+        $migrations = realpath(__DIR__ . '/../../database/migrations');
+
+        if ($migrations === false) {
+            $this->logger->error('🗄️ Ichava migration directory is missing', [
+                'looked_in' => __DIR__ . '/../../database/migrations',
+            ]);
+
+            return self::MIGRATION_PATH_MISSING;
+        }
+
         return Artisan::call('migrate', [
-            '--path'  => 'platform/ichava/ichava/database/migrations',
-            '--force' => true,
+            '--path'     => $migrations,
+            '--realpath' => true,
+            '--force'    => true,
         ]);
     }
 
