@@ -54,8 +54,13 @@ it('gives every command a canonical name carrying the vendor and slug', function
     expect($canonical)->not->toBeEmpty();
 
     foreach (ichavaCommands() as $command) {
+        $where = new ReflectionClass($command)->getFileName() ?: '(no file)';
+
         expect($command->getName())
-            ->toMatch('/^ichava::[a-z0-9-]+\./', $command::class . ' registers a name outside the convention');
+            ->toMatch(
+                '/^ichava::[a-z0-9-]+\./',
+                sprintf('%s (declared in %s) registers a name outside the convention', $command::class, $where),
+            );
     }
 });
 
