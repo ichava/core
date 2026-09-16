@@ -14,6 +14,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- Icon examples now use variant-prefixed Tabler paths (`outline/home`, `filled/home`). Bare `ichava/tabler-icons::home` does not resolve.
 - `IconDiscoveryService` missing `IchavaException` import left 7 catch blocks dead.
 - `SvgDriver` threw non-existent `IconRenderException`; now uses `IchavaException::renderFailed()` with chained previous exception.
 - `PerformanceTimer` type-hint pointed at wrong `IchavaLogger` namespace.
