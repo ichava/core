@@ -21,11 +21,15 @@ use Illuminate\Contracts\Console\Kernel;
 /**
  * Commands declared by *this repository*, keyed by every name they answer to.
  *
- * Scoped by the file the class is declared in, not by namespace prefix. A
- * dependency can register a command into this vendor's namespace -- CI caught
- * `laranail/package-tools` doing exactly that with a bare `ichava:install` on a
- * version this suite does not resolve locally -- and that is upstream's to fix,
- * not something this suite can assert away.
+ * Scoped by the file the class is declared in, not by namespace prefix, so a
+ * command a dependency registers into this vendor's namespace is not claimed as
+ * ours -- that would be upstream's to fix and not something this suite can
+ * assert away.
+ *
+ * This guard has already earned its keep. A pull request adding a bare
+ * `ichava:install` landed on main while this branch was in flight, and because
+ * CI tests the merge result rather than the branch, the failure surfaced before
+ * the two could land together.
  */
 function ichavaCommands(): array
 {
@@ -84,6 +88,7 @@ it('registers the canonical name for each command', function (string $name): voi
     expect(ichavaCommands())->toHaveKey($name);
 })->with([
     'ichava::ichava-core.cache',
+    'ichava::ichava-core.install',
     'ichava::ichava-core.database',
     'ichava::ichava-core.info',
     'ichava::ichava-core.job-status',
@@ -103,6 +108,7 @@ it('keeps the previous name working as an alias', function (string $alias): void
         ->and($command->getName())->toStartWith('ichava::ichava-core.');
 })->with([
     'ichava:cache',
+    'ichava:install',
     'ichava:database',
     'ichava:info',
     'ichava:job-status',

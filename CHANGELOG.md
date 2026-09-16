@@ -6,7 +6,8 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Breaking
 
-- **Artisan commands are now namespaced `ichava::ichava-core.<command>`.** Every previous name
+- **Artisan commands are now namespaced `ichava::ichava-core.<command>`.** Includes
+  `ichava:install`, added in #21 while this was in flight. Every previous name
   is retained as an alias, so nothing that exists today breaks — with one deliberate exception:
   **`make:icon-package` is gone.** It registered into Laravel's own `make:` namespace, which is
   the defect being fixed, so keeping it as an alias would have kept the defect. Use
