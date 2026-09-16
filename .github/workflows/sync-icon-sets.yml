@@ -1,0 +1,41 @@
+name: Sync icon sets catalog
+
+on:
+  schedule:
+    # Daily at 03:00 UTC — keeps icon-sets.json (counts, variants, latest
+    # versions) fresh without any runtime network calls in ichava:install.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: curl, json, mbstring
+
+      - name: Sync icon-sets.json from pack repositories
+        run: php bin/sync-icon-sets.php
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit updated catalog
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git diff --quiet -- icon-sets.json || (git add icon-sets.json && git commit -m 'docs: sync icon-sets catalog' && git push)
