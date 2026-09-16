@@ -28,7 +28,7 @@ use Simtabi\Laranail\Ichava\Support\JobProgressTracker;
  */
 class JobStatusCommand extends BaseCommand
 {
-    protected $signature = 'ichava:job-status
+    protected $signature = 'ichava::ichava-core.job-status
                             {package? : Specific package to check}
                             {--all : Show all packages including inactive}
                             {--clear= : Clear progress for a specific package}
@@ -135,7 +135,7 @@ class JobStatusCommand extends BaseCommand
 
         if (empty($rows)) {
             warning('No job progress data found.');
-            note('💡 Jobs are tracked after running: php artisan ichava:database seed');
+            note('💡 Jobs are tracked after running: php artisan ichava::ichava-core.database seed');
 
             return self::SUCCESS;
         }

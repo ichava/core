@@ -20,7 +20,7 @@ use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
  *
  * Disabled by default, set `ichava.database.auto_seed = true` to enable.
  * Only seeds when the package has zero icons in the database, preventing
- * duplicate work. The recommended approach is `php artisan ichava:database seed`.
+ * duplicate work. The recommended approach is `php artisan ichava::ichava-core.database seed`.
  */
 class AutoSeedIconsOnRegistration
 {

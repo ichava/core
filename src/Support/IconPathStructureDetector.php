@@ -24,10 +24,19 @@ final class IconPathStructureDetector
     /**
      * Detect the icon path structure type
      *
+     * The answer depends only on what is inside $basePath. A previous strategy also
+     * counted sibling directories in the *parent*, on the theory that a set handed in
+     * directly (`svg/test-icons`) should report the shape of the tree it belongs to.
+     * That answered a question nobody asked -- `svg/test-icons` is one set, whatever
+     * its neighbours are -- and made the result depend on directories the caller never
+     * named. In a real install that parent is the vendor directory, which legitimately
+     * holds other packages; under test it was whatever the temp directory happened to
+     * contain, so the same fixture answered differently on CI and on a developer
+     * machine. Nothing called it and no test covered it.
+     *
      * STRATEGY:
-     * 1. Check if this path is part of a multi-set hierarchy (has siblings with files/)
-     * 2. Check for direct files/ directory = SINGLE-SET
-     * 3. Check for subdirectories with files/ = MULTI-SET
+     * 1. Check for direct files/ directory = SINGLE-SET
+     * 2. Check for subdirectories with files/ = MULTI-SET
      *
      * @param string $basePath Base SVG directory path (where config.json is registered)
      *
@@ -39,19 +48,7 @@ final class IconPathStructureDetector
             return self::SINGLE_SET;
         }
 
-        // STRATEGY 1: Check if we're a set directory within a multi-set parent
-        // Example: /svg/test-icons should detect that /svg/ has multiple sibling sets
-        $parent = dirname($basePath);
-        if (File::isDirectory($parent) && basename($parent) !== '.') {
-            $siblingSetDirs = self::findSetDirectories($parent);
-
-            // If parent has multiple set directories, WE are part of a multi-set
-            if (count($siblingSetDirs) > 1) {
-                return self::MULTI_SET;
-            }
-        }
-
-        // STRATEGY 2: Check for direct files/ directory = SINGLE-SET
+        // Check for direct files/ directory = SINGLE-SET
         if (File::isDirectory($basePath . '/files')) {
             // But double-check: are there OTHER dirs with files/ at this level?
             $setDirs = self::findSetDirectories($basePath);
@@ -64,7 +61,7 @@ final class IconPathStructureDetector
             return self::SINGLE_SET;
         }
 
-        // STRATEGY 3: Check for subdirectories with files/ = MULTI-SET
+        // Check for subdirectories with files/ = MULTI-SET
         $setDirectories = self::findSetDirectories($basePath);
 
         if (count($setDirectories) > 0) {

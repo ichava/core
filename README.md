@@ -15,17 +15,17 @@ The engine for the [Ichava Laravel icon ecosystem](https://github.com/ichava/doc
 | Blade       | The base `<x-ichava::icon>` component every icon pack extends.                                                                                                         |
 | Fluent API  | `ichava('vendor/pkg::category/name')->color('...')->class('...')`.                                                                                                     |
 | Seeder      | Queue-backed pipeline with multi-level dedup, change detection, Horizon-aware.                                                                                         |
-| Scaffolder  | `php artisan make:icon-package <Name>` bootstraps a new icon pack from a stub tree.                                                                                    |
+| Scaffolder  | `php artisan ichava::ichava-core.make:icon-package <Name>` bootstraps a new icon pack from a stub tree.                                                                                    |
 | Logging     | Three dedicated channels: `ichava`, `ichava-icons`, `ichava-queue`.                                                                                                    |
-| Search      | PostgreSQL full-text search (recommended) or MySQL 8+.                                                                                                                 |
+| Search      | Full-text search on PostgreSQL; portable `LIKE` search on SQLite, MySQL and MariaDB.                                                                                                                 |
 
 Zero HTTP surface. No REST endpoints, no middleware, no routes. The HTTP layer (REST API + Vue/Vite SPA) lives in the optional [`ichava/browser`](https://github.com/ichava/browser) package.
 
 ## Requirements
 
-- PHP 8.3+
+- PHP 8.4.1+ (8.5 supported)
 - Laravel 13+
-- PostgreSQL (recommended) or MySQL 8+
+- SQLite, PostgreSQL, MySQL 8+ or MariaDB 10.3+ — see [Database support](https://github.com/ichava/documentation/blob/main/core/databases.md)
 
 ## Install
 
@@ -44,7 +44,7 @@ Install at least one icon pack (core ships with no icons):
 
 ```bash
 composer require ichava/tabler-icons
-php artisan ichava:database seed --package=ichava/tabler-icons
+php artisan ichava::ichava-core.database seed --package=ichava/tabler-icons
 ```
 
 Add `ichava/browser` if you want the visual icon browser plus REST API:

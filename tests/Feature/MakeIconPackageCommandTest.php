@@ -6,7 +6,11 @@ use Symfony\Component\Finder\Finder;
 use Illuminate\Filesystem\Filesystem;
 
 /**
- * Feature coverage for `make:icon-package`.
+ * Feature coverage for `ichava::ichava-core.make:icon-package`.
+ *
+ * Invoked by its canonical name. The bare `make:icon-package` it used to answer
+ * to is deliberately gone rather than aliased: leaving it would keep this
+ * package squatting Laravel's own `make:` namespace, which is the defect.
  *
  * Exercises the full scaffold pipeline against a temp directory:
  *   • every stub is emitted (auto-discovery walk)
@@ -48,9 +52,9 @@ function leftoverPlaceholders(string $root): array
     return $hits;
 }
 
-describe('make:icon-package', function () {
+describe('ichava::ichava-core.make:icon-package', function () {
     it('scaffolds a complete single-set package with no leftover placeholders', function () {
-        $this->artisan('make:icon-package', [
+        $this->artisan('ichava::ichava-core.make:icon-package', [
             'name'     => 'Hero',
             '--vendor' => 'Acme',
             '--email'  => 'team@acme.test',
@@ -80,7 +84,7 @@ describe('make:icon-package', function () {
     });
 
     it('produces valid composer.json with the right namespace, package name, and provider entry', function () {
-        $this->artisan('make:icon-package', [
+        $this->artisan('ichava::ichava-core.make:icon-package', [
             'name'     => 'Hero',
             '--vendor' => 'Acme',
             '--email'  => 'team@acme.test',
@@ -102,7 +106,7 @@ describe('make:icon-package', function () {
     });
 
     it('lints clean across every generated PHP file', function () {
-        $this->artisan('make:icon-package', [
+        $this->artisan('ichava::ichava-core.make:icon-package', [
             'name'     => 'Hero',
             '--vendor' => 'Acme',
             '--email'  => 'team@acme.test',
@@ -122,7 +126,7 @@ describe('make:icon-package', function () {
     });
 
     it('normalises a vendor name with spaces into a kebab composer name and a studly namespace', function () {
-        $this->artisan('make:icon-package', [
+        $this->artisan('ichava::ichava-core.make:icon-package', [
             'name'     => 'Hero',
             '--vendor' => 'Your Company',
             '--email'  => 'team@example.test',
@@ -141,7 +145,7 @@ describe('make:icon-package', function () {
     });
 
     it('emits the canonical variant schema for multi-set packages', function () {
-        $this->artisan('make:icon-package', [
+        $this->artisan('ichava::ichava-core.make:icon-package', [
             'name'       => 'Hero',
             '--vendor'   => 'Acme',
             '--email'    => 'team@acme.test',

@@ -25,24 +25,24 @@ use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
  * Single command for all database operations: migrate, seed, unseed, truncate, stats.
  *
  * @example
- * php artisan ichava:database seed              # Seed all icons and terms
- * php artisan ichava:database seed --sync       # Seed synchronously (no queue)
- * php artisan ichava:database seed --package=X  # Seed specific package
- * php artisan ichava:database seed:icons        # Seed icons only
- * php artisan ichava:database seed:terms        # Seed terms only
- * php artisan ichava:database migrate           # Run Ichava migrations
- * php artisan ichava:database migrate --fresh   # Drop and re-run Ichava tables
- * php artisan ichava:database unseed            # Remove all Ichava data
- * php artisan ichava:database unseed --package=X # Remove specific package data
- * php artisan ichava:database refresh           # Truncate + seed
- * php artisan ichava:database truncate          # Truncate tables
- * php artisan ichava:database stats             # Show statistics
+ * php artisan ichava::ichava-core.database seed              # Seed all icons and terms
+ * php artisan ichava::ichava-core.database seed --sync       # Seed synchronously (no queue)
+ * php artisan ichava::ichava-core.database seed --package=X  # Seed specific package
+ * php artisan ichava::ichava-core.database seed:icons        # Seed icons only
+ * php artisan ichava::ichava-core.database seed:terms        # Seed terms only
+ * php artisan ichava::ichava-core.database migrate           # Run Ichava migrations
+ * php artisan ichava::ichava-core.database migrate --fresh   # Drop and re-run Ichava tables
+ * php artisan ichava::ichava-core.database unseed            # Remove all Ichava data
+ * php artisan ichava::ichava-core.database unseed --package=X # Remove specific package data
+ * php artisan ichava::ichava-core.database refresh           # Truncate + seed
+ * php artisan ichava::ichava-core.database truncate          # Truncate tables
+ * php artisan ichava::ichava-core.database stats             # Show statistics
  *
  * @see https://laravel.com/docs/12.x/prompts
  */
 final class DatabaseCommand extends BaseCommand
 {
-    protected $signature = 'ichava:database
+    protected $signature = 'ichava::ichava-core.database
                             {action? : Action: seed, seed:icons, seed:terms, migrate, unseed, refresh, truncate, stats}
                             {--package= : Specific package to target}
                             {--fresh : Drop tables before migrate, or truncate before seed}
@@ -230,8 +230,8 @@ final class DatabaseCommand extends BaseCommand
         // Show queue instructions if using queue
         if (! $this->option('sync') && config('ichava.ichava-core.database.use_queue', true)) {
             warning('Icon seeding jobs are queued. Stats will be accurate after jobs complete.');
-            note('Monitor jobs: php artisan ichava:job-status');
-            note('View stats: php artisan ichava:database stats');
+            note('Monitor jobs: php artisan ichava::ichava-core.job-status');
+            note('View stats: php artisan ichava::ichava-core.database stats');
         } else {
             $this->displayDatabaseStats();
         }

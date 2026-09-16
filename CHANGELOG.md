@@ -6,13 +6,54 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Breaking
 
+- **Artisan commands are now namespaced `ichava::ichava-core.<command>`, and the bare names are
+  gone.** Includes `ichava:install`, added in #21 while this was in flight. The old names are
+  **not** retained as aliases: an alias like `ichava:cache` is still a generic key in Artisan's
+  flat command map, which is exactly the collision the namespaced name exists to prevent, and
+  keeping it would make the convention decorative. `make:icon-package` additionally registered
+  into Laravel's own `make:` namespace.
+- **`ajaxray/ansikit` dropped from `require`.** Terminal output in `IchavaSeeder` now goes
+  through the command it already held, so it honours `--quiet`, `--no-ansi` and redirection,
+  which raw ANSI writes to STDOUT did not.
+
 - **Config renamed: `config/core.php` → `config/ichava-core.php`, key `ichava.core.*` → `ichava.ichava-core.*`.** Republish with `php artisan vendor:publish --tag=ichava::ichava-core-config` and update every `config('ichava.core.*')` read, including host apps and sibling `ichava/*` packages. Published overrides at the old nested path are no longer loaded.
 
 ### Added
 
+- **Tested support for SQLite, PostgreSQL, MySQL and MariaDB.** CI runs the suite against
+  PostgreSQL 17, MySQL 8.4 and MariaDB 11.4 as service containers alongside the existing
+  SQLite lane, and `tests/TestCase.php` reads `DB_CONNECTION` so the same suite targets any
+  of the four locally. See `documentation/core/databases.md`.
 - PHPStan static analysis (level 0) with `composer analyse` wired into CI.
 
 ### Fixed
+
+- Nine commands registered bare generic slugs into Artisan's flat command map, where a second
+  package claiming the same key replaces the first silently rather than colliding. All now
+  carry vendor and slug, pinned by a test that reads the live console registry rather than
+  `$signature` — the `::` name only survives because a trait writes it past Symfony's
+  `validateName()`, so reading the property would pass against a registration that never took.
+- The `make:icon-package` scaffolder stub emitted `#[AsCommand(name: 'ichava:update-…-icons')]`,
+  so every pack generated from it reintroduced a bare name. It now emits
+  `{{vendorKebab}}::{{kebabName}}-icons.update`.
+
+- **Icon search was broken on PostgreSQL.** `FtsLanguageHelper` and `Icon::scopeFuzzySearch()`
+  called `jsonb_array_elements_text()` against `tags`, `keywords` and `search_text`, which are
+  `json` columns — `$table->json()` emits `json`, not `jsonb`, on PostgreSQL, and no implicit
+  cast exists between the two, so the call resolved to no function at all. The migration's own
+  trigger had always done this correctly. Five call sites now cast explicitly. Nothing caught it
+  because the suite ran only on SQLite, which never reaches that code.
+- `IconSetBuilder::all()` and `get('all')` addressed the same cache key, so one overwrote the
+  other and a reader expecting a single icon payload was handed a map of them. Set keys and icon
+  keys are now namespaced apart.
+- `Icon::getPackageCounts()` passed a TTL as a third positional argument to a two-parameter
+  `remember()`. PHP discards surplus arguments to a userland function without complaint, so the
+  24-hour lifetime it asked for was never applied. `remember()` takes a `$ttl` parameter now and
+  the call site passes it by name.
+- SQLite test runs never enforced foreign keys, so the schema's cascading deletes went
+  unexercised on the only driver that ran. `foreign_key_constraints` is on in the test harness.
+- `tests/TestCase.php` set `ichava.cache_enabled`, `ichava.cache_driver` and `ichava.default_set`
+  — bare keys that no code reads. Replaced with the live `ichava.ichava-core.default_set`.
 
 - `IconSetBuilder::get()`/`all()` cached raw `IconData` objects, which Laravel 13 returns as `__PHP_Incomplete_Class` (`cache.serializable_classes` defaults to `false`). Every page refresh after the first failed with a `TypeError`. Payloads are now cached as plain arrays and rehydrated via `IconData::toArray()`/`fromArray()`; stale object entries are forgotten, rediscovered, and orphaned by a cache version bump (`v1` → `v2`).
 - `<x-ichava::icon class="...">` silently dropped every Blade attribute. The compiled template calls `render()` before `withAttributes()` populates the bag, so the eagerly built SVG froze before `class` arrived (the fluent `ichava()->class()` path was unaffected). `IconComponent::render()` now returns a deferred `Htmlable` built in `toHtml()`, after the bag is set; direct callers can use the new `renderNow()` for an immediate string (note the `render()` signature change).

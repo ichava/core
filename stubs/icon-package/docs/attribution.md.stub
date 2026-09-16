@@ -41,7 +41,7 @@ The upstream icon assets are <!-- specify --> licensed.
 ## Updating from upstream
 
 ```bash
-php artisan ichava:update-{{kebabName}}-icons
+php artisan {{vendorKebab}}::{{kebabName}}-icons.update
 ```
 
 Pulls the latest upstream snapshot, replaces the bundled SVGs, and re-seeds.

@@ -429,7 +429,7 @@ return new class extends Migration
         // migration for minutes and time out CI. Set ICHAVA_SKIP_FTS_BACKFILL=1
         // in the env to opt out (fresh installs don't need it; the trigger
         // populates new rows. For existing-data installs, run the backfill
-        // out-of-band via `php artisan ichava:database refresh`).
+        // out-of-band via `php artisan ichava::ichava-core.database refresh`).
 
         if (! env('ICHAVA_SKIP_FTS_BACKFILL', false)) {
             DB::statement('

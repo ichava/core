@@ -23,19 +23,19 @@ use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
  * Single command for all cache operations: clear, rebuild, refresh, generate, manifest.
  *
  * @example
- * php artisan ichava:cache clear              # Clear all caches
- * php artisan ichava:cache clear --package=X  # Clear cache for specific package
- * php artisan ichava:cache rebuild            # Rebuild caches
- * php artisan ichava:cache refresh            # Clear and rebuild
- * php artisan ichava:cache generate           # Generate production cache
- * php artisan ichava:cache manifest           # Generate icon manifest
- * php artisan ichava:cache stats              # Show cache statistics
+ * php artisan ichava::ichava-core.cache clear              # Clear all caches
+ * php artisan ichava::ichava-core.cache clear --package=X  # Clear cache for specific package
+ * php artisan ichava::ichava-core.cache rebuild            # Rebuild caches
+ * php artisan ichava::ichava-core.cache refresh            # Clear and rebuild
+ * php artisan ichava::ichava-core.cache generate           # Generate production cache
+ * php artisan ichava::ichava-core.cache manifest           # Generate icon manifest
+ * php artisan ichava::ichava-core.cache stats              # Show cache statistics
  *
  * @see https://laravel.com/docs/12.x/prompts
  */
 final class CacheCommand extends BaseCommand
 {
-    protected $signature = 'ichava:cache
+    protected $signature = 'ichava::ichava-core.cache
                             {action? : Action: clear, rebuild, refresh, generate, manifest, stats}
                             {--package= : Specific package to target}
                             {--path= : Custom path for manifest file}
@@ -252,7 +252,7 @@ final class CacheCommand extends BaseCommand
             );
 
             note("📁 Manifest saved to: {$result['path']}");
-            note('💡 Add this command to your deployment process: php artisan ichava:cache manifest --force');
+            note('💡 Add this command to your deployment process: php artisan ichava::ichava-core.cache manifest --force');
 
             outro('✅ Manifest generation complete!');
 
