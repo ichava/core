@@ -155,7 +155,7 @@ class IchavaException extends RuntimeException
     {
         return new static(
             "Invalid icon path format: '{$path}'. " .
-            "Expected format: '{$expectedFormat}'. Example: 'ichava/tabler-icons::home'",
+            "Expected format: '{$expectedFormat}'. Example: 'ichava/tabler-icons::outline/home'",
         );
     }
 
@@ -166,7 +166,7 @@ class IchavaException extends RuntimeException
     {
         return new static(
             "Icon path must include vendor/package: '{$path}'. " .
-            "Expected format: vendor/package::icon (e.g., 'ichava/tabler-icons::home')",
+            "Expected format: vendor/package::icon (e.g., 'ichava/tabler-icons::outline/home')",
         );
     }
 

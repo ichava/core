@@ -59,10 +59,10 @@ A convenience metapackage (`ichava/ichava`) that pulls core + browser + a defaul
 
 ```blade
 {{-- Generic Blade component, works with any installed pack --}}
-<x-ichava::icon name="ichava/tabler-icons::home" class="w-6 h-6" />
+<x-ichava::icon name="ichava/tabler-icons::outline/home" class="w-6 h-6" />
 
 {{-- Fluent helper --}}
-{{ ichava('ichava/tabler-icons::home')->color('#FFD700')->class('w-5 h-5') }}
+{{ ichava('ichava/tabler-icons::filled/home')->color('#FFD700')->class('w-5 h-5') }}
 ```
 
 ## Documentation
