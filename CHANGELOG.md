@@ -27,6 +27,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   now checks the stable pins (`key`/`package`/`repository`) and only the shape of the
   synced fields, deriving expected versions from the loaded catalog.
 
+- **Workflow tokens scoped to least privilege.** `tests.yml` and `code-quality.yml`
+  ran with the repository default token; both now declare `permissions:
+  contents: read`.
+
 ### Security
 
 - **Post-sanitizer attributes now pass the sanitizer gate.** `process()` sanitized the
