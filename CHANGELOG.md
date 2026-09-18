@@ -22,6 +22,21 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   pushes (GH013), so the workflow now commits to the stable branch `chore/sync-icon-sets`
   and opens (or updates) a single pull request instead of one per run.
 
+- **Catalog tests no longer assert hardcoded snapshot values.** The daily sync refreshes
+  `icon-sets.json` (counts, versions), so exact assertions broke on every sync. The suite
+  now checks the stable pins (`key`/`package`/`repository`) and only the shape of the
+  synced fields, deriving expected versions from the loaded catalog.
+
+### Security
+
+- **Post-sanitizer attributes now pass the sanitizer gate.** `process()` sanitized the
+  file and then applied every caller-supplied attribute unchecked, so `onload`,
+  `href="javascript:…"`, malicious `style` values and quote-breaking keys (via the
+  defer `buildHtml()` path) survived into rendered output. Both sinks now enforce the
+  same allow-list and value checks as file-content sanitization; legitimate `class`,
+  `id`, sizing, `role`, `aria-*`, `data-*`, `title` and safe `style` values pass
+  through unchanged.
+
 ## [0.2.3] - 2026-09-16
 
 ### Fixed

@@ -430,6 +430,26 @@ trait SanitizesSvg
     }
 
     /**
+     * Names admitted onto the root element after sanitization, beyond the
+     * file-content allow-list: the global `title` tooltip attribute and
+     * `data-*` carriers. Both hold inert text only, and the value checks
+     * still run against them. Exact casing is required so a mixed-case
+     * spelling cannot ride a parser differential past the name checks.
+     */
+    private function isAllowedPostSanitizerAttribute(string $actual, string $name): bool
+    {
+        if ($this->isAllowedAttribute($name)) {
+            return true;
+        }
+
+        if ($name === 'title' || preg_match('/^data-[a-z0-9_-]+$/', $name) === 1) {
+            return $actual === $name;
+        }
+
+        return false;
+    }
+
+    /**
      * The `style` attribute stays because it is the only paint source for
      * thousands of icons, but a CSS `url()` aimed off the document is an
      * exfiltration vector that needs no dangerous protocol to work: loading it
