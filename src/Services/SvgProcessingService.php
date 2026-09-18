@@ -51,7 +51,7 @@ final class SvgProcessingService
      * the changes config cannot see, and it sits in the class whose output it
      * describes so that a reader changing that output has it in front of them.
      */
-    public const RENDER_PIPELINE_VERSION = 1;
+    public const RENDER_PIPELINE_VERSION = 2;
 
     public function __construct(
         protected OptimizationLevel $optimizationLevel = OptimizationLevel::BASIC,
@@ -207,7 +207,7 @@ final class SvgProcessingService
                 $this->hasDangerousValue($stringValue) ||
                 ! $this->isAllowedPostSanitizerAttribute($actual, $name) ||
                 ! $this->isAllowedReferenceValue($name, $stringValue) ||
-                ! $this->isAllowedStyleValue($name, $stringValue)) {
+                ! $this->isAllowedUrlValue($name, $stringValue)) {
                 continue;
             }
 
