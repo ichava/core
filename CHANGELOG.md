@@ -50,6 +50,11 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   attribute value, in file content as well as applied attributes; plain paint values
   and `url(#fragment)` references are unaffected.
 
+- **The icon watcher rejects symlinks and oversized files.** Extraction read
+  whatever the scan found with no size cap and followed symlinks. Symlinked entries
+  and files over `max_file_size` are now skipped with a warning, using the same cap
+  as the SVG driver.
+
 ## [0.2.3] - 2026-09-16
 
 ### Fixed
