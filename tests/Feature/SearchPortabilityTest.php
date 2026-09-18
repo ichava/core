@@ -90,3 +90,12 @@ it('narrows rather than widens when a search is combined with a filter', functio
     expect($service->getIcons(['packages' => ['ichava/tabler-icons'], 'search' => 'arrow'])->total())
         ->toBe(1);
 });
+
+it('treats percent and underscore as literal characters, not wildcards', function () {
+    ($this->makeIcon)('ichava/tabler-icons', 'home');
+    ($this->makeIcon)('ichava/tabler-icons', 'settings');
+
+    expect(Icon::fuzzySearch('%')->count())->toBe(0);
+    expect(Icon::fuzzySearch('h_me')->count())->toBe(0);
+    expect(Icon::fuzzySearch('home')->count())->toBe(1);
+});
