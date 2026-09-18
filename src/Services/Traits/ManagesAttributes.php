@@ -21,7 +21,7 @@ trait ManagesAttributes
      */
     public function buildHtml(array $attributes): string
     {
-        $formatted = $this->formatAttributes($attributes);
+        $formatted = $this->formatAttributes($this->filterAttributes($attributes));
 
         return collect($formatted)
             ->map(function (?string $value, string|int $key) {
