@@ -50,6 +50,11 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   attribute value, in file content as well as applied attributes; plain paint values
   and `url(#fragment)` references are unaffected.
 
+- **SVG driver loads are contained to the package directory.** `load()` only checked
+  the path against its own directory, so any absolute path passed. Callers can now
+  pin loads to a base directory — the registry passes each set's own — and escapes
+  are rejected instead of read.
+
 ## [0.2.3] - 2026-09-16
 
 ### Fixed
