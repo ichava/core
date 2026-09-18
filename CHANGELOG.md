@@ -37,6 +37,12 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   `id`, sizing, `role`, `aria-*`, `data-*`, `title` and safe `style` values pass
   through unchanged.
 
+- **Icon file reads are contained to the package directory.** A poisoned `path` row
+  (`../…`, a symlink, or an absolute stored path) made `svg_content` and `file_size`
+  read outside the package base directory. Both readers now resolve through
+  `realpath()` and return `null` on escape, behaving exactly like a missing file;
+  rows without a registered base keep the legacy absolute-path behaviour.
+
 ## [0.2.3] - 2026-09-16
 
 ### Fixed
