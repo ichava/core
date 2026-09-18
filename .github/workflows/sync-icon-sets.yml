@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,8 +35,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Commit updated catalog
+      - name: Open catalog sync pull request
         run: |
+          set -euo pipefail
+          # Single stable branch, so every run updates the same PR instead of
+          # opening duplicates. main is branch-protected (PR-only), so never
+          # push there directly.
+          BRANCH='chore/sync-icon-sets'
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git diff --quiet -- icon-sets.json || (git add icon-sets.json && git commit -m 'docs: sync icon-sets catalog' && git push)
+          if git diff --quiet -- icon-sets.json; then
+            echo 'icon-sets.json unchanged; nothing to do.'
+            exit 0
+          fi
+          git checkout -B "$BRANCH"
+          git add icon-sets.json
+          git commit -m 'docs: sync icon-sets catalog' || true
+          git push --force-with-lease origin "$BRANCH"
+          if gh pr view "$BRANCH" --json number --jq .number >/dev/null 2>&1; then
+            echo "Pull request already open for $BRANCH; updated in place."
+          else
+            gh pr create --base main --head "$BRANCH" --title 'docs: sync icon-sets catalog' --body 'Automated refresh of icon-sets.json from the pack repositories. Merging keeps ichava:install fully local.'
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
