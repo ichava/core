@@ -373,7 +373,10 @@ final class IconRegistry
 
         $attributes = array_merge($defaultAttributes, $attributes);
 
-        return $this->driver->render($icon, $attributes);
+        $metadata = $this->packages[$setName] ?? [];
+        $baseDir = $metadata['base_path'] ?? $metadata['path'] ?? null;
+
+        return $this->driver->render($icon, $attributes, $baseDir);
     }
 
     /**

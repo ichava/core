@@ -212,6 +212,18 @@ class IconPackUpdateChecker
             ];
         }
 
+        if (! $this->isAllowedVersionCheckUrl((string) $url)) {
+            return [
+                'package'     => $packageName,
+                'source'      => $sourceName,
+                'status'      => 'error',
+                'current'     => $current,
+                'latest'      => null,
+                'release_url' => null,
+                'reason'      => 'upstream.version_check_url is blocked: https with a publicly routable host is required',
+            ];
+        }
+
         try {
             $payload = $this->fetch($url);
         } catch (Throwable $e) {
@@ -403,8 +415,98 @@ class IconPackUpdateChecker
     }
 
     /**
+     * Whether a version-check URL may be requested. The URL comes from the
+     * pack's own config, so a malicious pack must not be able to aim it at
+     * the local network: https scheme only, and every resolved address must
+     * be publicly routable. Unresolvable hosts fail closed.
+     */
+    protected function isAllowedVersionCheckUrl(string $url): bool
+    {
+        $parts = parse_url($url);
+
+        if (! is_array($parts) || ($parts['scheme'] ?? null) !== 'https') {
+            return false;
+        }
+
+        $host = $parts['host'] ?? '';
+
+        if ($host === '') {
+            return false;
+        }
+
+        $ips = $this->resolveHostIps($host);
+
+        if ($ips === []) {
+            return false;
+        }
+
+        foreach ($ips as $ip) {
+            if (! $this->isPublicIp($ip)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * All addresses a host resolves to, literal or via DNS. Numeric
+     * obfuscations (decimal, hex, octal) are normalised through the system
+     * resolver so they cannot dodge the public-IP check.
+     *
+     * @return list<string>
+     */
+    protected function resolveHostIps(string $host): array
+    {
+        $host = trim($host, '[]');
+
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return [$host];
+        }
+
+        $ips = [];
+
+        foreach (@dns_get_record($host, DNS_A) ?: [] as $record) {
+            if (isset($record['ip'])) {
+                $ips[] = $record['ip'];
+            }
+        }
+
+        foreach (@dns_get_record($host, DNS_AAAA) ?: [] as $record) {
+            if (isset($record['ipv6'])) {
+                $ips[] = $record['ipv6'];
+            }
+        }
+
+        foreach (gethostbynamel($host) ?: [] as $ip) {
+            $ips[] = $ip;
+        }
+
+        return array_values(array_unique($ips));
+    }
+
+    /**
+     * No private, reserved, loopback, link-local, multicast or unspecified
+     * addresses. The loopback check is explicit rather than trusting flag
+     * behaviour across PHP builds.
+     */
+    protected function isPublicIp(string $ip): bool
+    {
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            return false;
+        }
+
+        $lower = strtolower($ip);
+
+        return ! str_starts_with($lower, '127.') && $lower !== '::1';
+    }
+
+    /**
      * GET the version-check URL with caching. Cache TTL defaults to 12
      * hours; pass a lower value to the constructor for tighter polling.
+     *
+     * Redirects are not followed: the URL above was validated, its redirect
+     * target would not be.
      */
     protected function fetch(string $url): array
     {
@@ -413,6 +515,7 @@ class IconPackUpdateChecker
         return Cache::remember($cacheKey, $this->cacheTtl, function () use ($url): array {
             $response = Http::timeout($this->httpTimeout)
                 ->acceptJson()
+                ->withoutRedirecting()
                 ->withUserAgent('ichava-icon-pack-update-checker (https://github.com/ichava/core)')
                 ->get($url);
             $response->throw();

@@ -63,10 +63,10 @@ class SvgDriver
      *
      * @throws IchavaException wrapping any underlying load or processing failure
      */
-    public function render(IconData $icon, array $attributes = []): string
+    public function render(IconData $icon, array $attributes = [], ?string $baseDir = null): string
     {
         try {
-            $content = $this->load($icon->path);
+            $content = $this->load($icon->path, [], $baseDir);
             $content = $this->processor->process($content, $attributes);
 
             return $content;
@@ -83,14 +83,15 @@ class SvgDriver
      *
      * @param string $path Absolute filesystem path to the .svg file
      * @param array<string, mixed> $options Reserved for future use
+     * @param string|null $baseDir Package base directory the path must stay within
      *
      * @return string Raw SVG content (unsanitized)
      *
      * @throws IchavaException if the file does not exist, is unreadable, or fails security checks
      */
-    public function load(string $path, array $options = []): string
+    public function load(string $path, array $options = [], ?string $baseDir = null): string
     {
-        return $this->loadFromLocal($path);
+        return $this->loadFromLocal($path, $baseDir);
     }
 
     /**
@@ -129,20 +130,22 @@ class SvgDriver
     /**
      * Read an SVG file from the local filesystem with security and size enforcement.
      *
-     * Performs four checks before reading:
+     * Performs checks before reading:
      * 1. File existence
      * 2. Symlink rejection, `is_link()` check prevents directory-escape attacks
-     * 3. `realpath()` containment, resolved path must stay within its own directory
+     * 3. `realpath()` containment, resolved path must stay within the given base
+     *    directory when one is provided, otherwise within its own directory
      * 4. File size bounds, rejects files smaller than MIN_SVG_FILE_SIZE or larger
      *    than `ichava.max_file_size` (falls back to MAX_SVG_FILE_SIZE)
      *
      * @param string $path Absolute path to the SVG file
+     * @param string|null $baseDir Package base directory the path must stay within
      *
      * @return string Raw SVG content
      *
      * @throws IchavaException on any security violation, size violation, or read failure
      */
-    protected function loadFromLocal(string $path): string
+    protected function loadFromLocal(string $path, ?string $baseDir = null): string
     {
         if (! $this->files->exists($path)) {
             throw IchavaException::pathNotFound($path);
@@ -153,11 +156,13 @@ class SvgDriver
             throw IchavaException::securityViolation("Symlinks are not allowed: '{$path}'");
         }
 
-        // Realpath containment: ensure the resolved path stays within its parent directory
+        // Realpath containment: ensure the resolved path stays within the base
+        // directory. realpath() resolves traversal and symlinked components, so
+        // an escape fails the prefix check below.
         $realPath = realpath($path);
-        $realDir = realpath(dirname($path));
+        $realBase = $baseDir !== null && $baseDir !== '' ? realpath($baseDir) : realpath(dirname($path));
 
-        if ($realPath === false || $realDir === false || ! Str::startsWith($realPath, $realDir . DIRECTORY_SEPARATOR)) {
+        if ($realPath === false || $realBase === false || ! Str::startsWith($realPath, rtrim($realBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
             throw IchavaException::securityViolation("Path escapes its directory: '{$path}'");
         }
 

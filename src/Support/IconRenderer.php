@@ -362,7 +362,7 @@ final class IconRenderer implements Htmlable
         } catch (Exception $e) {
             // Return empty string or fallback icon on error
             if (config('app.debug', false)) {
-                return "<!-- Icon render error: {$e->getMessage()} -->";
+                return '<!-- Icon render error: ' . class_basename($e) . ' -->';
             }
 
             return '';
