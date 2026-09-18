@@ -170,6 +170,51 @@ it('reports unreachable when the http call fails', function () {
     expect($result['status'])->toBe('unreachable');
 });
 
+it('blocks version check urls pointing at cloud metadata ips without sending', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    $checker = build_checker_for('vendor/pack-evil-meta', MetadataIpConstants::class);
+
+    $result = $checker->checkOne('vendor/pack-evil-meta');
+
+    expect($result['status'])->toBe('error');
+    Http::assertNothingSent();
+});
+
+it('blocks version check urls pointing at loopback and private networks', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    foreach (
+        [
+            'vendor/pack-evil-loop' => LoopbackConstants::class,
+            'vendor/pack-evil-priv' => PrivateNetConstants::class,
+        ] as $package => $constants
+    ) {
+        $result = build_checker_for($package, $constants)->checkOne($package);
+
+        expect($result['status'])->toBe('error');
+    }
+
+    Http::assertNothingSent();
+});
+
+it('blocks non-https version check urls', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    foreach (
+        [
+            'vendor/pack-evil-http' => PlainHttpConstants::class,
+            'vendor/pack-evil-file' => FileSchemeConstants::class,
+        ] as $package => $constants
+    ) {
+        $result = build_checker_for($package, $constants)->checkOne($package);
+
+        expect($result['status'])->toBe('error');
+    }
+
+    Http::assertNothingSent();
+});
+
 /* -----------------------------------------------------------------------
  *  Fixtures
  * -----------------------------------------------------------------------
@@ -240,6 +285,11 @@ final class PackagistConstants extends _FakeUpstreamConstants {}
 final class BareConstants extends _FakeUpstreamConstants {}
 final class UrlSourceConstants extends _FakeUpstreamConstants {}
 final class MultiSourceConstants extends _FakeUpstreamConstants {}
+final class MetadataIpConstants extends _FakeUpstreamConstants {}
+final class LoopbackConstants extends _FakeUpstreamConstants {}
+final class PrivateNetConstants extends _FakeUpstreamConstants {}
+final class PlainHttpConstants extends _FakeUpstreamConstants {}
+final class FileSchemeConstants extends _FakeUpstreamConstants {}
 
 beforeEach(function () {
     inject_constants_config(GithubUpToDateConstants::class, [
@@ -314,6 +364,46 @@ beforeEach(function () {
                     'version_check_url' => 'https://api.github.com/repos/hfg-gmuend/openmoji/releases/latest',
                 ],
             ],
+        ],
+    ]);
+    inject_constants_config(MetadataIpConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-meta'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'http://169.254.169.254/latest/meta-data/',
+        ],
+    ]);
+    inject_constants_config(LoopbackConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-loop'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'https://127.0.0.1:8443/latest.json',
+        ],
+    ]);
+    inject_constants_config(PrivateNetConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-priv'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'https://10.0.0.1/latest.json',
+        ],
+    ]);
+    inject_constants_config(PlainHttpConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-http'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'http://example.com/latest.json',
+        ],
+    ]);
+    inject_constants_config(FileSchemeConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-file'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'file:///etc/passwd',
         ],
     ]);
 });
