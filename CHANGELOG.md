@@ -16,6 +16,12 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   published pointing at `v0.2.0`'s commit — a tag whose version had no section at all. That
   tag was deleted within the minute, but nothing except a person noticing stood in the way.
 
+### Fixed
+
+- **Sync icon sets catalog no longer pushes to `main`.** Branch protection rejects direct
+  pushes (GH013), so the workflow now commits to the stable branch `chore/sync-icon-sets`
+  and opens (or updates) a single pull request instead of one per run.
+
 ## [0.2.3] - 2026-09-16
 
 ### Fixed

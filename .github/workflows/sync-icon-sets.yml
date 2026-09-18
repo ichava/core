@@ -55,7 +55,7 @@ jobs:
           if gh pr view "$BRANCH" --json number --jq .number >/dev/null 2>&1; then
             echo "Pull request already open for $BRANCH; updated in place."
           else
-            gh pr create --base main --head "$BRANCH" --title 'docs: sync icon-sets catalog' --body 'Automated refresh of icon-sets.json from the pack repositories. Merging keeps ichava:install fully local.'
+            gh pr create --base main --head "$BRANCH" --title 'docs: sync icon-sets catalog' --body 'Automated refresh of icon-sets.json.'
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
