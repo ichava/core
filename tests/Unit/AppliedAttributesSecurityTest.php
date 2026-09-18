@@ -32,6 +32,40 @@ describe('Post-sanitizer attributes', function () {
             ->and($form)->not->toContain('formaction');
     });
 
+    it('drops off-document paint urls applied after sanitization', function () {
+        foreach (['fill', 'stroke', 'clip-path', 'mask', 'filter'] as $name) {
+            $result = $this->service->process($this->clean, [$name => 'url(https://attacker.test/x.svg#g)']);
+
+            expect($result)->not->toContain('attacker.test');
+        }
+    });
+
+    it('drops disguised off-document paint urls', function () {
+        $upper = $this->service->process($this->clean, ['fill' => 'URL(HTTPS://ATTACKER.TEST/x)']);
+        $spaced = $this->service->process($this->clean, ['fill' => 'url( https://attacker.test/x )']);
+        $quoted = $this->service->process($this->clean, ['stroke' => "url('https://attacker.test/x')"]);
+
+        expect(strtolower($upper))->not->toContain('attacker.test')
+            ->and($spaced)->not->toContain('attacker.test')
+            ->and($quoted)->not->toContain('attacker.test');
+    });
+
+    it('drops off-document paint urls in file content', function () {
+        $result = $this->service->sanitize('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="url(https://evil.test/x)"/></svg>');
+
+        expect($result)->not->toContain('evil.test');
+    });
+
+    it('keeps fragment paint urls and plain paint values', function () {
+        $fragment = $this->service->process($this->clean, ['fill' => 'url(#g)']);
+        $plain = $this->service->process($this->clean, ['fill' => 'red', 'stroke' => 'none']);
+        $file = $this->service->sanitize('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><defs><linearGradient id="g"><stop offset="0" stop-color="#fff"/></linearGradient></defs><path d="M0 0h24v24H0z" fill="url(#g)"/></svg>');
+
+        expect($fragment)->toContain('url(#g)')
+            ->and($plain)->toContain('fill="red"')->toContain('stroke="none"')
+            ->and($file)->toContain('url(#g)');
+    });
+
     it('drops event handlers and broken keys from built html', function () {
         $handlers = $this->service->buildHtml(['onload' => 'alert(1)']);
         $breakout = $this->service->buildHtml(['x" onmouseover="alert(1)' => 'y']);

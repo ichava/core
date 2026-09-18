@@ -43,6 +43,13 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   `realpath()` and return `null` on escape, behaving exactly like a missing file;
   rows without a registered base keep the legacy absolute-path behaviour.
 
+- **Off-document paint URLs are rejected everywhere.** The post-sanitizer gate checked
+  `url()` targets on `style` only, so `fill`, `stroke`, `clip-path`, `mask` and
+  `filter` values like `url(https://…)` survived into rendered output and would make
+  viewers fetch an attacker URL. The fragment-only rule now applies to every
+  attribute value, in file content as well as applied attributes; plain paint values
+  and `url(#fragment)` references are unaffected.
+
 ## [0.2.3] - 2026-09-16
 
 ### Fixed
