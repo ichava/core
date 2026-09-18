@@ -50,6 +50,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   attribute value, in file content as well as applied attributes; plain paint values
   and `url(#fragment)` references are unaffected.
 
+- **Debug render errors no longer leak paths.** The `app.debug` fallback embedded
+  the exception message — including absolute filesystem paths — in an HTML comment.
+  It now carries only the exception class.
+
 ## [0.2.3] - 2026-09-16
 
 ### Fixed
