@@ -10,27 +10,27 @@
             "title": "Tabler Icons",
             "description": "Over 5,200 pixel-perfect icons for web apps. Free and open source icons designed with attention to detail to make your design stand out.",
             "license": "MIT",
-            "icon_count": 6146,
+            "icon_count": 6184,
             "variants": [
                 "outline",
                 "filled"
             ],
-            "latest_version": "0.1.0"
+            "latest_version": "0.2.2"
         },
         {
             "key": "flags",
             "package": "ichava/flag-icons",
             "repository": "ichava/flag-icons",
             "title": "Flag Icons",
-            "description": "265 country flag SVGs sourced from lipis/flag-icons, available in 4x3 and 1x1 aspect ratios. Replaces the flag half of the deprecated simtabi/laflamoji.",
+            "description": "271 country flag SVGs sourced from lipis/flag-icons, available in 4x3 and 1x1 aspect ratios. Replaces the flag half of the deprecated simtabi/laflamoji.",
             "license": "MIT",
             "icon_count": 542,
             "variants": [
                 "4x3",
                 "1x1"
             ],
-            "latest_version": "0.1.0"
+            "latest_version": "0.2.2"
         }
     ],
-    "synced_at": "2026-09-16T09:58:51Z"
+    "synced_at": "2026-09-18T08:16:13Z"
 }
