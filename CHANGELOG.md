@@ -50,6 +50,12 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   attribute value, in file content as well as applied attributes; plain paint values
   and `url(#fragment)` references are unaffected.
 
+- **Sanitizer policy flags are enforced, not just declared.** `stripComments`,
+  `stripDoctype` and `stripEntities` existed in `svg-policy.json` with no PHP
+  reader, so comments survived the main read path and entity references lingered.
+  The sanitizer now honors all three, and the blocked-protocol list gains `blob:`,
+  `filesystem:`, `jar:` and `data:text/plain`.
+
 ## [0.2.3] - 2026-09-16
 
 ### Fixed
