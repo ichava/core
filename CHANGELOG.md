@@ -54,6 +54,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   attribute value, in file content as well as applied attributes; plain paint values
   and `url(#fragment)` references are unaffected.
 
+- **Debug render errors no longer leak paths.** The `app.debug` fallback embedded
+  the exception message — including absolute filesystem paths — in an HTML comment.
+  It now carries only the exception class.
+
 - **Pack update checks no longer request arbitrary URLs.** The `version_check_url`
   from a pack's config was fetched with no validation, so a malicious pack could
   aim it at the local network. Only `https` URLs with publicly routable hosts are
