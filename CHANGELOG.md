@@ -27,6 +27,11 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   now checks the stable pins (`key`/`package`/`repository`) and only the shape of the
   synced fields, deriving expected versions from the loaded catalog.
 
+- **Search terms match literally.** `%`, `_` and `\` in a query acted as `LIKE`
+  wildcards, widening results and forcing full-table scans. Both search scopes now
+  escape them with an explicit `ESCAPE` clause, which also keeps the fix correct on
+  drivers without a default escape character.
+
 ### Security
 
 - **Post-sanitizer attributes now pass the sanitizer gate.** `process()` sanitized the
