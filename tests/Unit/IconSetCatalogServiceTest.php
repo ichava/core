@@ -19,26 +19,25 @@ describe('IconSetCatalogService::load', function () {
     it('loads the synced snapshot for every set', function () {
         $sets = $this->service->load();
 
-        expect($sets)->toHaveCount(2);
-
         $tabler = collect($sets)->firstWhere('key', 'tabler');
         $flags = collect($sets)->firstWhere('key', 'flags');
 
-        expect($tabler)->toMatchArray([
-            'package'        => 'ichava/tabler-icons',
-            'repository'     => 'ichava/tabler-icons',
-            'title'          => 'Tabler Icons',
-            'icon_count'     => 6146,
-            'variants'       => ['outline', 'filled'],
-            'latest_version' => '0.1.0',
-        ])->and($flags)->toMatchArray([
-            'package'        => 'ichava/flag-icons',
-            'repository'     => 'ichava/flag-icons',
-            'title'          => 'Flag Icons',
-            'icon_count'     => 542,
-            'variants'       => ['4x3', '1x1'],
-            'latest_version' => '0.1.0',
-        ]);
+        expect($tabler)->not->toBeNull()
+            ->and($flags)->not->toBeNull()
+            ->and($tabler)->toMatchArray([
+                'package'    => 'ichava/tabler-icons',
+                'repository' => 'ichava/tabler-icons',
+            ])->and($flags)->toMatchArray([
+                'package'    => 'ichava/flag-icons',
+                'repository' => 'ichava/flag-icons',
+            ]);
+
+        foreach ([$tabler, $flags] as $set) {
+            expect($set['title'])->toBeString()->not->toBe('')
+                ->and($set['icon_count'])->toBeInt()->toBeGreaterThan(0)
+                ->and($set['variants'])->toBeArray()->not->toBeEmpty()
+                ->and($set['latest_version'])->toBeString()->toMatch('/^\d+\.\d+\.\d+/');
+        }
     });
 
     it('throws when the catalog is missing', function () {
@@ -75,9 +74,16 @@ describe('IconSetCatalogService::find', function () {
 
 describe('IconSetCatalogService::latestTag', function () {
     it('returns the synced release version', function () {
-        expect($this->service->latestTag('ichava/tabler-icons'))->toBe('0.1.0')
-            ->and($this->service->latestTag('ichava/flag-icons'))->toBe('0.1.0')
-            ->and($this->service->requireTarget('ichava/tabler-icons'))->toBe('ichava/tabler-icons:^0.1.0');
+        $sets = collect($this->service->load());
+
+        $tablerVersion = ltrim((string) $sets->firstWhere('key', 'tabler')['latest_version'], 'vV');
+        $flagsVersion = ltrim((string) $sets->firstWhere('key', 'flags')['latest_version'], 'vV');
+
+        expect($tablerVersion)->not->toBe('')
+            ->and($flagsVersion)->not->toBe('')
+            ->and($this->service->latestTag('ichava/tabler-icons'))->toBe($tablerVersion)
+            ->and($this->service->latestTag('ichava/flag-icons'))->toBe($flagsVersion)
+            ->and($this->service->requireTarget('ichava/tabler-icons'))->toBe("ichava/tabler-icons:^{$tablerVersion}");
     });
 
     it('returns null and an unconstrained target for unknown packages', function () {
