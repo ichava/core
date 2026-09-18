@@ -27,6 +27,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   now checks the stable pins (`key`/`package`/`repository`) and only the shape of the
   synced fields, deriving expected versions from the loaded catalog.
 
+- **Workflow tokens scoped to least privilege.** `tests.yml` and `code-quality.yml`
+  ran with the repository default token; both now declare `permissions:
+  contents: read`.
+
 ### Security
 
 - **Post-sanitizer attributes now pass the sanitizer gate.** `process()` sanitized the
@@ -55,6 +59,21 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   reader, so comments survived the main read path and entity references lingered.
   The sanitizer now honors all three, and the blocked-protocol list gains `blob:`,
   `filesystem:`, `jar:` and `data:text/plain`.
+
+- **SVG driver loads are contained to the package directory.** `load()` only checked
+  the path against its own directory, so any absolute path passed. Callers can now
+  pin loads to a base directory — the registry passes each set's own — and escapes
+  are rejected instead of read.
+
+- **Debug render errors no longer leak paths.** The `app.debug` fallback embedded
+  the exception message — including absolute filesystem paths — in an HTML comment.
+  It now carries only the exception class.
+
+- **Pack update checks no longer request arbitrary URLs.** The `version_check_url`
+  from a pack's config was fetched with no validation, so a malicious pack could
+  aim it at the local network. Only `https` URLs with publicly routable hosts are
+  requested now, redirects are not followed, and anything else reports an error
+  without sending.
 
 ## [0.2.3] - 2026-09-16
 
