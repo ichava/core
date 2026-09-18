@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
+use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Support\IconPathStructureDetector;
 
@@ -536,6 +537,17 @@ class IconWatcherService
         $category = ! empty($pathParts) ? implode('/', $pathParts) : null;
 
         $name = $file->getFilenameWithoutExtension();
+
+        if ($file->isLink()) {
+            throw IchavaException::securityViolation("Symlinks are not allowed: '{$absolutePath}'");
+        }
+
+        $maxSize = config('ichava.ichava-core.max_file_size', IchavaConstants::MAX_SVG_FILE_SIZE);
+
+        if ($file->getSize() > $maxSize) {
+            throw IchavaException::invalidSvg("File exceeds maximum size of {$maxSize} bytes: {$absolutePath}");
+        }
+
         $content = File::get($absolutePath);
         $svgMetadata = $this->extractSvgMetadata($content);
 
