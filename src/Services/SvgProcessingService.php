@@ -143,6 +143,8 @@ final class SvgProcessingService
      */
     protected function applyAttributes(string $svg, array $attributes): string
     {
+        $attributes = $this->filterAttributes($attributes);
+
         if (empty($attributes)) {
             return $svg;
         }
@@ -170,5 +172,48 @@ final class SvgProcessingService
         $result = $dom->saveXML($dom->documentElement);
 
         return $result !== false ? $result : $svg;
+    }
+
+    /**
+     * Drop caller-supplied attributes that would not survive sanitization:
+     * event handlers, namespaced names, dangerous values, and names outside
+     * the allow-list. `class` passes through for merging; everything else
+     * must clear the same gate the file-content sanitizer enforces.
+     *
+     * @param array<string, mixed> $attributes
+     *
+     * @return array<string, mixed>
+     */
+    protected function filterAttributes(array $attributes): array
+    {
+        $filtered = [];
+
+        foreach ($attributes as $key => $value) {
+            if (is_int($key)) {
+                continue;
+            }
+
+            $actual = (string) $key;
+            $name = mb_strtolower($actual);
+            $stringValue = (string) $value;
+
+            if ($name === 'class') {
+                $filtered[$actual] = $value;
+
+                continue;
+            }
+
+            if ($this->isDangerousAttribute($name) ||
+                $this->hasDangerousValue($stringValue) ||
+                ! $this->isAllowedPostSanitizerAttribute($actual, $name) ||
+                ! $this->isAllowedReferenceValue($name, $stringValue) ||
+                ! $this->isAllowedStyleValue($name, $stringValue)) {
+                continue;
+            }
+
+            $filtered[$actual] = $value;
+        }
+
+        return $filtered;
     }
 }
