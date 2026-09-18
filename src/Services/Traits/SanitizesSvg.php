@@ -336,7 +336,7 @@ trait SanitizesSvg
                 $this->hasDangerousValue($value) ||
                 ! $this->isAllowedAttribute($name) ||
                 ! $this->isAllowedReferenceValue($name, (string) $value) ||
-                ! $this->isAllowedStyleValue($name, (string) $value)) {
+                ! $this->isAllowedUrlValue($name, (string) $value)) {
                 $toRemove[] = $actual;
             }
         }
@@ -450,22 +450,18 @@ trait SanitizesSvg
     }
 
     /**
-     * The `style` attribute stays because it is the only paint source for
-     * thousands of icons, but a CSS `url()` aimed off the document is an
-     * exfiltration vector that needs no dangerous protocol to work: loading it
-     * reveals the viewer. Inside an icon the only legitimate target is a
-     * fragment. `behavior:` and `-moz-binding` are script sinks in their own
-     * right, whatever they point at.
+     * A `url()` aimed off the document is an exfiltration vector that needs
+     * no dangerous protocol to work: loading it reveals the viewer. Paint
+     * attributes (`fill`, `stroke`, `clip-path`, `mask`, `filter`) take
+     * `url()` targets exactly like `style` does, so the fragment-only rule
+     * applies to every value, not just `style` -- values without `url()` are
+     * unaffected. `behavior:` and `-moz-binding` are style-only script sinks.
      */
-    private function isAllowedStyleValue(string $name, string $value): bool
+    private function isAllowedUrlValue(string $name, string $value): bool
     {
-        if ($name !== 'style') {
-            return true;
-        }
-
         $collapsed = (string) preg_replace('/[\s\x00-\x1f\x7f]+/u', '', mb_strtolower($value));
 
-        if (Str::contains($collapsed, ['behavior:', '-moz-binding'])) {
+        if ($name === 'style' && Str::contains($collapsed, ['behavior:', '-moz-binding'])) {
             return false;
         }
 
