@@ -676,14 +676,60 @@ final class Icon extends Model
     }
 
     /**
+     * Resolve the stored path against the package base directory, contained.
+     *
+     * Returns null when the resolved file would escape the package base
+     * directory through traversal, a symlink, or an absolute stored path.
+     * Missing files resolve to the candidate itself, preserving the
+     * missing-file behaviour of the fileSize and svgContent readers, as do
+     * rows whose package has no registered base directory to contain
+     * against (legacy absolute stored paths).
+     */
+    protected function containedAbsolutePath(): ?string
+    {
+        $packageBasePath = $this->getPackageBasePath();
+
+        $candidate = $this->isAbsolutePath($this->path)
+            ? $this->path
+            : $packageBasePath . DIRECTORY_SEPARATOR . ltrim($this->path, '/\\');
+
+        $candidate = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $candidate);
+
+        // No registered base directory: nothing to contain against, keep the
+        // legacy behaviour (absolute stored paths). Note realpath('') resolves
+        // to the working directory rather than failing, so the empty base
+        // must be excluded explicitly.
+        $realBase = $packageBasePath !== '' ? realpath($packageBasePath) : false;
+
+        if ($realBase === false) {
+            return $candidate;
+        }
+
+        $realCandidate = realpath($candidate);
+
+        if ($realCandidate === false) {
+            return $candidate;
+        }
+
+        if ($realCandidate === $realBase
+            || ! str_starts_with($realCandidate, rtrim($realBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
+            return null;
+        }
+
+        return $realCandidate;
+    }
+
+    /**
      * Get file size (computed from filesystem)
      */
     protected function fileSize(): Attribute
     {
         return Attribute::make(
-            get: fn (): ?int => File::exists($this->absolute_path)
-                ? File::size($this->absolute_path)
-                : null,
+            get: function (): ?int {
+                $path = $this->containedAbsolutePath();
+
+                return $path !== null && File::exists($path) ? File::size($path) : null;
+            },
         );
     }
 
@@ -722,7 +768,9 @@ final class Icon extends Model
     {
         return Attribute::make(
             get: function (): ?string {
-                if (! File::exists($this->absolute_path)) {
+                $path = $this->containedAbsolutePath();
+
+                if ($path === null || ! File::exists($path)) {
                     return null;
                 }
 
@@ -758,8 +806,8 @@ final class Icon extends Model
                  */
                 return app(IconCacheService::class)->remember(
                     $cacheKey,
-                    function (): string {
-                        $raw = File::get($this->absolute_path);
+                    function () use ($path): string {
+                        $raw = File::get($path);
 
                         try {
                             $svg = app(SvgProcessingService::class);
