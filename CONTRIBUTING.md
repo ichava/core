@@ -132,6 +132,19 @@ vendor/bin/pest tests/Unit/SvgSanitizerTest.php
 vendor/bin/pest --coverage
 ```
 
+### The suite must not touch the network
+
+A test that resolves a name or opens a socket is not a unit test: it is
+non-deterministic, it is slow, and it fails for anyone offline, in a sandbox, or behind
+a restrictive resolver.
+
+`Http::fake()` alone is not enough to guarantee that, and the gap is easy to miss.
+`IconPackUpdateChecker` validates a `version_check_url` against the public internet
+*before* the request is made, so the name lookup happens whether or not the HTTP call is
+faked — eight tests looked isolated and were not. Inject a host resolver with
+`setHostResolver()` in that case, and reach for the same shape wherever else resolution
+sits in front of a faked call.
+
 ### Testing against a database driver
 
 The suite defaults to in-memory SQLite so the inner loop needs no service running. Point it

@@ -7,6 +7,9 @@ on:
       - '*.md'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -32,6 +35,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Check out flag-icons beside the checkout
+        # tests/Feature/StubEstateParityTest.php measures the scaffolder stubs
+        # against a real pack's manifest read off disk, rather than against
+        # literals that would age silently beside the thing they guard. That
+        # needs a sibling pack, and a runner clones one repository -- without
+        # this the guard skips every case and reports 0 assertions, which is
+        # how the eight stub defects it catalogues accumulated in the first
+        # place. This repo has already paid for that bargain once, with the
+        # react-browser -darwin baselines no CI job compared.
+        #
+        # actions/checkout refuses a path outside the workspace and the
+        # sibling is exactly that, so clone it directly. Failing loudly when
+        # flag-icons is unreachable is deliberate: a guard that cannot run
+        # should say so rather than pass by skipping.
+        run: |
+          git clone --depth 1 --no-tags \
+            https://github.com/ichava/flag-icons.git \
+            "$(dirname "$GITHUB_WORKSPACE")/flag-icons"
 
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
@@ -64,7 +86,7 @@ jobs:
         run: vendor/bin/pest --coverage --min=15 --coverage-clover=coverage.xml
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: matrix.php == '8.4' && matrix.laravel == '13.*'
         with:
           files: ./coverage.xml
@@ -139,6 +161,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Check out flag-icons beside the checkout
+        # tests/Feature/StubEstateParityTest.php measures the scaffolder stubs
+        # against a real pack's manifest read off disk, rather than against
+        # literals that would age silently beside the thing they guard. That
+        # needs a sibling pack, and a runner clones one repository -- without
+        # this the guard skips every case and reports 0 assertions, which is
+        # how the eight stub defects it catalogues accumulated in the first
+        # place. This repo has already paid for that bargain once, with the
+        # react-browser -darwin baselines no CI job compared.
+        #
+        # actions/checkout refuses a path outside the workspace and the
+        # sibling is exactly that, so clone it directly. Failing loudly when
+        # flag-icons is unreachable is deliberate: a guard that cannot run
+        # should say so rather than pass by skipping.
+        run: |
+          git clone --depth 1 --no-tags \
+            https://github.com/ichava/flag-icons.git \
+            "$(dirname "$GITHUB_WORKSPACE")/flag-icons"
 
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
