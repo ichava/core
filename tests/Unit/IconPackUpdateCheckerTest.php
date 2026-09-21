@@ -170,6 +170,113 @@ it('reports unreachable when the http call fails', function () {
     expect($result['status'])->toBe('unreachable');
 });
 
+it('blocks version check urls pointing at cloud metadata ips without sending', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    $checker = build_checker_for('vendor/pack-evil-meta', MetadataIpConstants::class);
+
+    $result = $checker->checkOne('vendor/pack-evil-meta');
+
+    expect($result['status'])->toBe('error');
+    Http::assertNothingSent();
+});
+
+it('blocks version check urls pointing at loopback and private networks', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    foreach (
+        [
+            'vendor/pack-evil-loop' => LoopbackConstants::class,
+            'vendor/pack-evil-priv' => PrivateNetConstants::class,
+        ] as $package => $constants
+    ) {
+        $result = build_checker_for($package, $constants)->checkOne($package);
+
+        expect($result['status'])->toBe('error');
+    }
+
+    Http::assertNothingSent();
+});
+
+it('blocks non-https version check urls', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    foreach (
+        [
+            'vendor/pack-evil-http' => PlainHttpConstants::class,
+            'vendor/pack-evil-file' => FileSchemeConstants::class,
+        ] as $package => $constants
+    ) {
+        $result = build_checker_for($package, $constants)->checkOne($package);
+
+        expect($result['status'])->toBe('error');
+    }
+
+    Http::assertNothingSent();
+});
+
+/*
+ * The three below are why the resolver seam is safe to expose. Making the
+ * guard testable must not make it bypassable, so each pins one way a name
+ * could otherwise be used to reach somewhere it should not.
+ */
+
+it('blocks a host that resolves to a private address', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    // internal.test resolves -- to 10.1.2.3. The injected resolver decides
+    // what the name points at; it does not get to decide that is allowed.
+    $result = build_checker_for('vendor/pack-evil-host', PrivateHostnameConstants::class)
+        ->checkOne('vendor/pack-evil-host');
+
+    expect($result['status'])->toBe('error');
+    expect($result['reason'])->toContain('blocked');
+    Http::assertNothingSent();
+});
+
+it('blocks a host that does not resolve', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    // No records is the offline/NXDOMAIN case, and it must fail closed --
+    // the same behaviour the real resolver gives a host that is not there.
+    $result = build_checker_for('vendor/pack-unresolvable', UnresolvableHostConstants::class)
+        ->checkOne('vendor/pack-unresolvable');
+
+    expect($result['status'])->toBe('error');
+    Http::assertNothingSent();
+});
+
+it('blocks a host that resolves into carrier-grade NAT', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    // cgnat.test resolves to 100.64.17.9. RFC 6598 space is neither private,
+    // reserved, nor link-local, so PHP's NO_PRIV_RANGE | NO_RES_RANGE pair
+    // passes it -- which is why the guard cannot be written in terms of those
+    // flags. On a host behind carrier-grade NAT the range reaches the
+    // carrier's own network, so it has to be refused before the request.
+    $result = build_checker_for('vendor/pack-cgnat', CgnatHostConstants::class)
+        ->checkOne('vendor/pack-cgnat');
+
+    expect($result['status'])->toBe('error');
+    expect($result['reason'])->toContain('blocked');
+    Http::assertNothingSent();
+});
+
+it('blocks a literal private ip even when the resolver would allow the name', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    // A literal address short-circuits before the resolver is consulted, so
+    // a resolver that answered everything with a public IP still could not
+    // open up 127.0.0.1. Proved by handing it exactly that resolver.
+    $registry = mock_registry_with_pack('vendor/pack-evil-loop', LoopbackConstants::class);
+    $checker = new IconPackUpdateChecker($registry, cacheTtl: 0);
+    $checker->setConstantsResolver(fn (string $n): ?string => LoopbackConstants::class);
+    $checker->setHostResolver(static fn (string $host): array => ['140.82.121.4']);
+
+    expect($checker->checkOne('vendor/pack-evil-loop')['status'])->toBe('error');
+    Http::assertNothingSent();
+});
+
 /* -----------------------------------------------------------------------
  *  Fixtures
  * -----------------------------------------------------------------------
@@ -205,8 +312,48 @@ function build_checker_for(string $packageName, string $constantsClass): IconPac
     $checker->setConstantsResolver(
         fn (string $name): ?string => $name === $packageName ? $constantsClass : null,
     );
+    $checker->setHostResolver(fake_host_resolver());
 
     return $checker;
+}
+
+/**
+ * Stands in for DNS so these unit tests resolve nothing. Http::fake()
+ * intercepts the request but not the name lookup the SSRF guard does
+ * first, so without this seam every test here needs a working resolver
+ * and fails closed offline, in a sandbox, or behind a strict resolver.
+ *
+ * Reachable hosts map to real public addresses. They used to map into
+ * 192.0.2.0/24 (TEST-NET-1), chosen because the guard treated documentation
+ * space as routable while it could never be a real destination -- a neat
+ * trick that depended on a gap in `isPublicIp()`. That gap is closed: the
+ * predicate now rejects the whole IANA special-purpose registry, so no
+ * address is both allowed and guaranteed-unroutable, and there is nothing
+ * left to be clever with.
+ *
+ * Nothing is contacted regardless. This resolver is a stub and `Http::fake()`
+ * intercepts the request, so the addresses below are inert because of the
+ * test harness rather than because of the range they sit in.
+ *
+ * Three entries are the point of the fixture rather than scaffolding:
+ * `internal.test` maps into a private range, `cgnat.test` into RFC 6598
+ * carrier-grade NAT, and any host not listed resolves to nothing. They
+ * pin that the seam substitutes what a name resolves to, never whether
+ * an address is allowed.
+ *
+ * @return Closure(string):list<string>
+ */
+function fake_host_resolver(): Closure
+{
+    return static fn (string $host): array => match ($host) {
+        'api.github.com'     => ['140.82.121.4'],
+        'registry.npmjs.org' => ['104.16.24.35'],
+        'repo.packagist.org' => ['104.26.14.72'],
+        'example.com'        => ['93.184.216.34'],
+        'internal.test'      => ['10.1.2.3'],
+        'cgnat.test'         => ['100.64.17.9'],
+        default              => [],
+    };
 }
 
 /**
@@ -240,6 +387,14 @@ final class PackagistConstants extends _FakeUpstreamConstants {}
 final class BareConstants extends _FakeUpstreamConstants {}
 final class UrlSourceConstants extends _FakeUpstreamConstants {}
 final class MultiSourceConstants extends _FakeUpstreamConstants {}
+final class MetadataIpConstants extends _FakeUpstreamConstants {}
+final class LoopbackConstants extends _FakeUpstreamConstants {}
+final class PrivateNetConstants extends _FakeUpstreamConstants {}
+final class PlainHttpConstants extends _FakeUpstreamConstants {}
+final class FileSchemeConstants extends _FakeUpstreamConstants {}
+final class PrivateHostnameConstants extends _FakeUpstreamConstants {}
+final class UnresolvableHostConstants extends _FakeUpstreamConstants {}
+final class CgnatHostConstants extends _FakeUpstreamConstants {}
 
 beforeEach(function () {
     inject_constants_config(GithubUpToDateConstants::class, [
@@ -314,6 +469,70 @@ beforeEach(function () {
                     'version_check_url' => 'https://api.github.com/repos/hfg-gmuend/openmoji/releases/latest',
                 ],
             ],
+        ],
+    ]);
+    inject_constants_config(MetadataIpConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-meta'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'https://169.254.169.254/latest/meta-data/',
+        ],
+    ]);
+    inject_constants_config(LoopbackConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-loop'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'https://127.0.0.1:8443/latest.json',
+        ],
+    ]);
+    inject_constants_config(PrivateNetConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-priv'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'https://10.0.0.1/latest.json',
+        ],
+    ]);
+    inject_constants_config(PlainHttpConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-http'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'http://example.com/latest.json',
+        ],
+    ]);
+    inject_constants_config(FileSchemeConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-file'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'file:///etc/passwd',
+        ],
+    ]);
+    inject_constants_config(PrivateHostnameConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-host'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'https://internal.test/latest.json',
+        ],
+    ]);
+    inject_constants_config(UnresolvableHostConstants::class, [
+        'package'  => ['name' => 'vendor/pack-unresolvable'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'https://nowhere.invalid/latest.json',
+        ],
+    ]);
+    inject_constants_config(CgnatHostConstants::class, [
+        'package'  => ['name' => 'vendor/pack-cgnat'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'https://cgnat.test/latest.json',
         ],
     ]);
 });

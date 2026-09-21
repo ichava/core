@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
 use DOMNode;
+use DOMComment;
 use DOMElement;
 use DOMDocument;
+use DOMEntityReference;
 use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Support\SvgPolicy;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -53,11 +55,15 @@ trait SanitizesSvg
         'data:text/html',
         'data:text/xml',
         'data:text/javascript',
+        'data:text/plain',
         'data:application/',
         'data:image/svg+xml',
         'vbscript:',
         'file:',
         'about:',
+        'blob:',
+        'filesystem:',
+        'jar:',
     ];
 
     /** @var array<string, int> lowercased index of */
@@ -269,6 +275,10 @@ trait SanitizesSvg
             throw IchavaException::invalidSvgContent('Invalid SVG XML structure');
         }
 
+        if (SvgPolicy::stripDoctype() && $dom->doctype !== null) {
+            $dom->removeChild($dom->doctype);
+        }
+
         // Compared case-insensitively: an author writing <SVG> means svg, and
         // the element allow-list has matched case-insensitively since V42.
         // Rejecting only here would be an inconsistency, not a policy.
@@ -284,6 +294,18 @@ trait SanitizesSvg
      */
     private function sanitizeNode(DOMNode $node): void
     {
+        if ($node instanceof DOMComment && SvgPolicy::stripComments()) {
+            $node->parentNode?->removeChild($node);
+
+            return;
+        }
+
+        if ($node instanceof DOMEntityReference && SvgPolicy::stripEntities()) {
+            $node->parentNode?->removeChild($node);
+
+            return;
+        }
+
         if (! $node instanceof DOMElement) {
             return;
         }

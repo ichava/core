@@ -47,7 +47,7 @@ class UpdateIconsCommand extends BaseUpdateIconsCommand
     use SupportsNamespacedNames;
 
 
-    protected $signature = 'ichava:update-{{kebabName}}-icons
+    protected $signature = 'ichava::{{kebabName}}-icons.update
                             {--source= : Source path or URL for icons}
                             {--force : Force update without confirmation}';
 
