@@ -28,7 +28,7 @@ use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
  * @example
  * php artisan ichava::ichava-core.install              # Pick from a list
  * php artisan ichava::ichava-core.install tabler       # Install by catalog key
- * php artisan ichava::ichava-core.install ichava/tabler-icons --force
+ * php artisan ichava::ichava-core.install ichava/icon-sets-tabler --force
  * php artisan ichava::ichava-core.install tabler --no-seed
  */
 final class InstallCommand extends BaseCommand
