@@ -103,12 +103,12 @@ abstract class ServiceProvider extends PackageServiceProvider
      *
      * Example:
      * ```php
-     * // Registers: <x-tabler-icons-icon name="outline/home" />
-     * $this->loadBladeComponent(TablerIconComponent::class, 'tabler-icons');
+     * // Registers: <x-icon-sets-tabler-icon name="outline/home" />
+     * $this->loadBladeComponent(IconComponent::class, 'icon-sets-tabler');
      * ```
      *
      * @param string $componentClass Fully qualified component class name
-     * @param string $packageName Package identifier in kebab-case (e.g. 'tabler-icons')
+     * @param string $packageName Package identifier in kebab-case (e.g. 'icon-sets-tabler')
      *
      * @throws IchavaException if $packageName is empty
      */
@@ -121,7 +121,7 @@ abstract class ServiceProvider extends PackageServiceProvider
         $packageName = Str::lower($packageName);
 
         // Register as: <x-{package}-icon name="..." />
-        // Example: <x-tabler-icons-icon name="home" />
+        // Example: <x-icon-sets-tabler-icon name="home" />
         $alias = "{$packageName}-icon";
 
         Blade::component($alias, $componentClass);
@@ -142,7 +142,7 @@ abstract class ServiceProvider extends PackageServiceProvider
      * ```php
      * public function bootingPackage(): void
      * {
-     *     $this->loadBladeComponent(TablerIconComponent::class, 'tabler-icons');
+     *     $this->loadBladeComponent(IconComponent::class, 'icon-sets-tabler');
      *     $this->registerIconDirectory($this->package->basePath('resources/assets/svg'));
      * }
      * ```

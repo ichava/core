@@ -54,11 +54,11 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  *
  * Extend to create package-scoped shorthand components:
  * ```php
- * class TablerIconComponent extends IconComponent
+ * class IconComponent extends BaseIconComponent
  * {
  *     protected function getVendorPackage(): string { return 'ichava/icon-sets-tabler'; }
  * }
- * // Then use: <x-tabler-icons-icon name="outline/home" />
+ * // Then use: <x-icon-sets-tabler-icon name="outline/home" />
  * ```
  *
  * @see IconRegistry

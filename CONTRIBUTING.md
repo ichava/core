@@ -83,9 +83,9 @@ If you're working on `ichava/ichava` and one or more sibling icon packages (`ich
 **Per-developer override (not committed):**
 
 ```bash
-# From inside any sibling package directory (e.g, ichava-tabler-icons):
-composer config repositories.local-laranail path ../../laranail/packager
-composer config repositories.local-ichava-core path ../ichava
+# From inside any sibling package directory (e.g. packages/icon-sets-tabler):
+composer config repositories.local-laranail path ../../../laranail/packages/package-tools
+composer config repositories.local-ichava-core path ../core
 composer update
 ```
 
