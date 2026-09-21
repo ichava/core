@@ -30,6 +30,19 @@
                 "1x1"
             ],
             "latest_version": "0.2.4"
+        },
+        {
+            "key": "emoji",
+            "package": "ichava/icon-sets-emoji",
+            "repository": "ichava/icon-sets-emoji",
+            "title": "Emoji Sets",
+            "description": "Multi-source emoji bundle (Twemoji, OpenMoji color, OpenMoji black). Unicode 17 / Emoji 17 spec. Categorised by Unicode CLDR groups.",
+            "license": "MIT (code) / CC-BY 4.0 (Twemoji assets) / CC-BY-SA 4.0 (OpenMoji assets)",
+            "icon_count": 10567,
+            "variants": [
+                "default"
+            ],
+            "latest_version": "0.3.0"
         }
     ],
     "synced_at": "2026-09-21T13:04:46Z"
