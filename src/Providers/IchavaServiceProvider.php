@@ -74,6 +74,7 @@ class IchavaServiceProvider extends PackageServiceProvider
             ->setPathFrom(source: $this, levelsUp: 2)
             ->setName('ichava/core', fn (string $package): string => 'ichava-core')
             ->hasConfigFile('ichava-core')
+            ->hasAboutSection('Ichava', fn (): array => $this->aboutEcosystem())
             // Core extends PackageServiceProvider directly, so it does NOT
             // inherit the default-on registration Support\ServiceProvider gives
             // the packs -- it has to ask. That asymmetry has already cost one
@@ -258,6 +259,35 @@ class IchavaServiceProvider extends PackageServiceProvider
 
         // Schedule automatic log cleanup
         $this->scheduleLogCleanup();
+    }
+
+    /**
+     * What `php artisan about` reports for the ecosystem as a whole.
+     *
+     * Deliberately operational rather than descriptive: name, description,
+     * licence and homepage are `composer.json`'s job, and HasAbout says so.
+     * What a manifest cannot answer is what is actually installed and booted
+     * in this application right now.
+     *
+     * Resolved lazily -- `about` runs long after boot, so the registry is
+     * populated and this costs nothing on a normal request.
+     *
+     * @return array<string, string>
+     */
+    protected function aboutEcosystem(): array
+    {
+        $packages = $this->app->make(IconRegistry::class)->all();
+
+        return [
+            'Packages' => (string) count($packages),
+            'Icons'    => (string) array_sum(array_map(
+                static fn (array $meta): int => (int) ($meta['total'] ?? 0),
+                $packages,
+            )),
+            'Cache driver'  => (string) config('cache.default'),
+            'Cache version' => (string) config('ichava.ichava-core.cache.version', '1'),
+            'Queue'         => (string) config('ichava.ichava-core.database.queue', 'ichava-icons'),
+        ];
     }
 
     /**
