@@ -37,13 +37,14 @@ it('emits no PostgreSQL-only syntax on a non-PostgreSQL driver', function () {
     // Asserting on the generated SQL rather than only on the absence of a
     // throw: a future driver that happens to tolerate the syntax would make
     // the test above pass while the query still means nothing there.
-    expect(DB::connection()->getDriverName())->not->toBe('pgsql');
-
     $sql = Icon::query()->search('home')->toSql();
 
     expect($sql)->not->toContain('to_tsvector')
         ->and($sql)->not->toContain('plainto_tsquery');
-});
+})->skip(
+    fn (): bool => DB::connection()->getDriverName() === 'pgsql',
+    'PostgreSQL is the driver this syntax is correct on.',
+);
 
 it('finds an icon it should find', function () {
     // The repair must keep the method working, not merely stop it throwing.
