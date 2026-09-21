@@ -4,19 +4,98 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- **Two SVG counters caught an exception they cannot receive.**
-  `countSvgFiles()` and `countDirectSvgFiles()` wrapped their iterator in
-  `catch (IchavaException $e)`. Neither `RecursiveDirectoryIterator` nor
-  `scandir()` throws that -- an unreadable directory produces
-  `UnexpectedValueException`, which extends `RuntimeException` exactly as
-  `IchavaException` does and is therefore its **sibling**, not its subclass.
+- **Every resource type a pack ships is registered, not just translations.**
+  `Support\ServiceProvider::newPackage()` hand-rolled a directory check for
+  translations alone. Written as a special case it did not generalise, which is
+  why views and configs were never covered. `package-tools` already ships
+  `loadAllResources()` for exactly this and handles six resource types, so core
+  calls that rather than growing a second and a third conditional.
 
-  The handler could not fire, so the failure it was written for escaped a method
-  whose documented contract is to return `0`.
+  Two things make the substitution non-obvious and both are pinned by tests:
+  the base path has to be primed first, because `Package::$basePath` is empty
+  until `registerPackage()` calls `setPathFrom()` on the line *after*
+  `newPackage()` returns.
+
+- **Core has its own translations, and a gate that keeps them honest.** It
+  shipped no `resources/lang` at all and printed English from string literals.
+  The directory now exists, is registered, and one command is migrated end to
+  end.
+
+  Core extends `PackageServiceProvider` directly, so it does **not** inherit the
+  default-on registration `Support\ServiceProvider` gives the packs -- it calls
+  `hasTranslations()` itself, with a comment saying why, because that asymmetry
+  has already cost one defect class here.
+
+  The durable part is the gate rather than the strings. A missing translation
+  key does not throw in Laravel; it renders as the key. So the test sweeps
+  `src/` for every `__('<ns>::…')` call site and fails on any key that hands
+  itself back.
+
+- **`php artisan about` reports the ecosystem and every installed pack.**
+  `package-tools` has shipped `HasAbout` and `HasAboutSections` all along and
+  nothing here called either, so an operator had no way to ask what was actually
+  registered.
+
+  Core contributes one section -- packs, total icons, cache driver and version,
+  queue -- deliberately operational, because name, licence and homepage are
+  `composer.json`'s job. Every pack gets its own section without asking, read
+  from `IconRegistry` rather than a second reader: one pack in this estate
+  shipped translations claiming MIT while its `config.json` said Commercial.
 
 ### Changed
+
+- **A prefix flush a mutation check showed was uncovered is gone.** The
+  generation counter already changes the database search key, so
+  `IconCacheService::flushPrefix()` was code no assertion reached. It also
+  reached too far, clearing icon SVG caches and directory fingerprints the
+  method has no business discarding.
+
+- **The README is a slim pointer, and the pages the standard requires exist.**
+  The capability table, requirements list and quick example are relocated rather
+  than dropped -- into `architecture.md`, `installation.md` and a new
+  `getting-started.md`. `release.md` is new.
+
+  **Two badge claims were false and are gone rather than fixed.**
+  `ichava/core` is 404 on `repo.packagist.org`, so the registry-version badge
+  rendered as an "invalid" pill while asserting the package is installable.
+
+- **Shared pack documentation moved into recipes.** Four of the five icon packs
+  carried the same three sentences about the update checker with the upstream
+  name swapped, and four the same CDN framing. Two recipes absorb the shared
+  half. The CDN page documents how to read `upstream.cdn` from a pack's
+  `config.json` rather than reproducing URLs, because packs reproducing them is
+  what let a version drift.
+
+- **The changelog guard fires on a changelog.** It lived in `code-quality.yml`,
+  which carries `paths-ignore: '*.md'` so Pint and PHPStan skip
+  documentation-only changes. That filter applies to the whole workflow, so a
+  changelog-only pull request -- which is what every release is -- ran nothing.
+  Measured on `#63`: **0 checks**. The job now has its own workflow triggered on
+  `CHANGELOG.md`, in all eight repos that had it behind that filter.
+
+- **The component namespace keeps a bare slug, deliberately.** `ichava` is a
+  bare generic slug in Blade's flat class-component map, the same class of claim
+  corrected for browser's view hints. Here it is intended: packs register
+  short-name components under one shared ecosystem prefix. Recorded so it is not
+  re-discovered as drift, or "fixed" by accident inside unrelated work. Comment
+  only; the registered value is unchanged.
+
+- **The deferral note carries its command and date.** Its counts were overtaken
+  by the docs decentralisation -- moving pages into the packages raised the
+  per-package count and left `ichava/documentation` holding zero, so the note
+  pointed a reader at the one place with nothing to find. It is 112 lines across
+  the eight package repos, and the note now says how that was measured.
+
+- **Three test gaps closed, all additive.** The view assertion stopped at
+  `View::exists()`, which answers the finder without compiling anything -- a
+  template that resolves and then fails to compile satisfied it. The licence
+  assertion could not fail for the reason it exists, because both fixture packs
+  declared MIT; they now disagree. And a non-pgsql syntax guard asserted its own
+  precondition, failing the PostgreSQL lane for asking a question that does not
+  apply there -- a precondition that cannot hold on every lane is a skip, not an
+  assertion.
 
 - **`IconDiscoveryService` composes three extracted actions.** Its public
   surface is unchanged and no caller moves.
@@ -43,6 +122,60 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   > -- 653 to 587 lines, 14 tests where there were none, one latent bug closed
   > -- but the coupling argument is not yet proven, and further extraction
   > should be justified on its own before it proceeds.
+
+### Fixed
+
+- **Icon search ran the wrong query on three of four drivers, and clearing did
+  not clear.** `IconDiscoveryService::executeSearchQuery()` hand-wrote raw
+  full-text SQL -- `to_tsvector(…) @@ plainto_tsquery(…)` -- with no driver
+  branch, so `searchIcons()` threw on SQLite, MySQL and MariaDB the moment the
+  icons table existed. `Icon::scopeSearch()` has carried that decision and the
+  portable `LIKE` fallback all along; the service bypassed the model and built
+  its own. **The repair is a deletion** -- delegate to the scope, and have one
+  query builder to be wrong in.
+
+  The transform then called `$icon->getIconPath()`, declared on
+  `IconDriverInterface` and never present on the model, so the database path
+  threw on PostgreSQL too.
+
+- **The PostgreSQL search clause referenced an alias nothing provided.** Every
+  column in `buildComprehensiveSearchQuery()` read `i.name`, `i.id`,
+  `i.package`, but nothing aliased the icons table to `i` -- `Icon::query()`
+  emits `from "ichava_icons"`. Invalid SQL on the one driver it was written for.
+
+  It survived because `scopeSearch()` had no caller in `src/`: the discovery
+  service that should have used it hand-wrote its own query instead, leaving
+  this branch unreachable. Removing that duplication is what first executed it.
+
+- **A migrated command was still English, and the guard could not see it.** The
+  literal guard watched `$this->` helpers only. That command does most of its
+  talking through Laravel Prompts, which are free functions, so `intro()`,
+  `outro()`, `note()`, `warning()` and both `table()` calls were invisible to
+  it -- the file was reported clean while its summary table read
+  `Metric | Count | Kept | Failed`.
+
+  Eight sites migrated, sixteen keys added. The guard now also reads the file's
+  own `use function Laravel\Prompts\x` imports, so importing a new prompt brings
+  it under the guard instead of opening a hole.
+
+- **Preference writes report whether they persisted.** `IconPreferenceService`
+  took `IchavaSessionManager`, a final class that decides its own availability
+  in its constructor. Under the default test harness it resolves the browser
+  tier, so every write no-opped, every read returned the default, and any test
+  asserting preference behaviour **passed vacuously**. The seam is now a
+  `PreferenceStore` contract, bound to the same class in production and
+  substitutable in a test -- which is what made the second finding testable at
+  all: `set()` ignored whether the write landed.
+
+- **Two SVG counters caught an exception they cannot receive.**
+  `countSvgFiles()` and `countDirectSvgFiles()` wrapped their iterator in
+  `catch (IchavaException $e)`. Neither `RecursiveDirectoryIterator` nor
+  `scandir()` throws that -- an unreadable directory produces
+  `UnexpectedValueException`, which extends `RuntimeException` exactly as
+  `IchavaException` does and is therefore its **sibling**, not its subclass.
+
+  The handler could not fire, so the failure it was written for escaped a method
+  whose documented contract is to return `0`.
 
 ## [0.3.2] - 2026-09-21
 
