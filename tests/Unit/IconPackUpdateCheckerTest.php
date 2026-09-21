@@ -255,7 +255,7 @@ it('blocks a literal private ip even when the resolver would allow the name', fu
     $registry = mock_registry_with_pack('vendor/pack-evil-loop', LoopbackConstants::class);
     $checker = new IconPackUpdateChecker($registry, cacheTtl: 0);
     $checker->setConstantsResolver(fn (string $n): ?string => LoopbackConstants::class);
-    $checker->setHostResolver(static fn (string $host): array => ['192.0.2.99']);
+    $checker->setHostResolver(static fn (string $host): array => ['140.82.121.4']);
 
     expect($checker->checkOne('vendor/pack-evil-loop')['status'])->toBe('error');
     Http::assertNothingSent();
@@ -307,9 +307,17 @@ function build_checker_for(string $packageName, string $constantsClass): IconPac
  * first, so without this seam every test here needs a working resolver
  * and fails closed offline, in a sandbox, or behind a strict resolver.
  *
- * Reachable hosts map into 192.0.2.0/24 (TEST-NET-1, RFC 5737):
- * addresses the guard's filter treats as publicly routable, which are
- * reserved for documentation and can never be a real destination.
+ * Reachable hosts map to real public addresses. They used to map into
+ * 192.0.2.0/24 (TEST-NET-1), chosen because the guard treated documentation
+ * space as routable while it could never be a real destination -- a neat
+ * trick that depended on a gap in `isPublicIp()`. That gap is closed: the
+ * predicate now rejects the whole IANA special-purpose registry, so no
+ * address is both allowed and guaranteed-unroutable, and there is nothing
+ * left to be clever with.
+ *
+ * Nothing is contacted regardless. This resolver is a stub and `Http::fake()`
+ * intercepts the request, so the addresses below are inert because of the
+ * test harness rather than because of the range they sit in.
  *
  * Two entries are the point of the fixture rather than scaffolding:
  * `internal.test` maps into a private range, and any host not listed
@@ -321,10 +329,10 @@ function build_checker_for(string $packageName, string $constantsClass): IconPac
 function fake_host_resolver(): Closure
 {
     return static fn (string $host): array => match ($host) {
-        'api.github.com'     => ['192.0.2.10'],
-        'registry.npmjs.org' => ['192.0.2.11'],
-        'repo.packagist.org' => ['192.0.2.12'],
-        'example.com'        => ['192.0.2.13'],
+        'api.github.com'     => ['140.82.121.4'],
+        'registry.npmjs.org' => ['104.16.24.35'],
+        'repo.packagist.org' => ['104.26.14.72'],
+        'example.com'        => ['93.184.216.34'],
         'internal.test'      => ['10.1.2.3'],
         default              => [],
     };
