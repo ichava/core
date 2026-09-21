@@ -35,6 +35,22 @@ function aboutOutput(): string
     return Artisan::output();
 }
 
+/**
+ * The body of one `about` section, from its heading to the blank line.
+ *
+ * Replaces a fixed 400-character window, which is only correct while the
+ * sections happen to be short -- a longer section would spill into the next
+ * one and quietly widen every assertion made through it.
+ */
+function sectionFor(string $output, string $heading): string
+{
+    $after = preg_split('/' . preg_quote($heading, '/') . '/', $output, 2);
+
+    expect($after)->toHaveCount(2, "no `{$heading}` section in `about` output");
+
+    return preg_split('/\n\s*\n/', $after[1], 2)[0];
+}
+
 beforeEach(function () {
     $this->app->register(PackOne::class);
     $this->app->register(PackTwo::class);
@@ -58,19 +74,34 @@ it('gives every booted pack exactly one section', function () {
     }
 });
 
-it('reports a licence that matches the pack config.json', function () {
+it('reports a licence that matches the pack config.json', function (string $fixture, string $pack) {
+    // The two fixtures carry DIFFERENT licences on purpose -- fixture-pack is
+    // MIT, viewful-pack is Commercial. While both said MIT this assertion had
+    // no teeth: a section rendering the *other* pack's licence, or a hardcoded
+    // default, printed "MIT" and passed. That is the exact shape of the bug
+    // this ecosystem actually shipped, where a pack's translations claimed MIT
+    // and its config.json said Commercial.
     $out = aboutOutput();
 
     $config = json_decode(
-        (string) file_get_contents(dirname(__DIR__) . '/fixtures/ViewfulPack/resources/assets/svg/config.json'),
+        (string) file_get_contents(dirname(__DIR__) . "/fixtures/{$fixture}/resources/assets/svg/config.json"),
         true,
         flags: JSON_THROW_ON_ERROR,
     );
 
-    // Not merely "MIT appears somewhere": the licence must sit inside this
-    // pack's own section.
-    $section = (string) preg_split('/ichava\/viewful-pack/', $out)[1];
-    expect(substr($section, 0, 400))->toContain($config['package']['license']);
+    expect(sectionFor($out, $pack))->toContain($config['package']['license']);
+})->with([
+    ['TranslatedPack', 'ichava/fixture-pack'],
+    ['ViewfulPack', 'ichava/viewful-pack'],
+]);
+
+it('does not leak one pack\'s licence into another pack\'s section', function () {
+    // The negative half. Without it, a section printing *both* licences would
+    // satisfy the test above for both packs.
+    $out = aboutOutput();
+
+    expect(sectionFor($out, 'ichava/fixture-pack'))->not->toContain('Commercial');
+    expect(sectionFor($out, 'ichava/viewful-pack'))->not->toContain('MIT');
 });
 
 it('restates nothing composer.json already carries', function () {
