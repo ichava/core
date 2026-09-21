@@ -1,5 +1,3 @@
-[← Docs](../../README.md#documentation)
-
 # Using an icon pack
 
 *How-to guide.*

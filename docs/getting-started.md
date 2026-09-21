@@ -1,5 +1,3 @@
-[← Docs](../README.md#documentation)
-
 # Getting started
 
 *How-to guide.* Your first icon on the page, in Blade and in PHP, once [Installation](installation.md) is done.
