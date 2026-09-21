@@ -1,5 +1,3 @@
-[← Docs](../../README.md#documentation)
-
 # Database Seeding
 
 *How-to guide.*

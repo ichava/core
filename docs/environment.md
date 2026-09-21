@@ -1,5 +1,3 @@
-[← Docs](../README.md#documentation)
-
 # Environment variables
 
 *Reference.*
