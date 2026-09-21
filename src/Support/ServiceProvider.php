@@ -140,6 +140,52 @@ abstract class ServiceProvider extends PackageServiceProvider
     public function packageRegistered(): void {}
 
     /**
+     * Give every pack a `php artisan about` section, without it asking.
+     *
+     * Registered here rather than in `bootingPackage()` because every pack in
+     * this family overrides that hook and none calls `parent::` -- a default
+     * placed there would be silently lost by exactly the packages it exists
+     * for. `bootPackageAboutSections()` is a boot *step*, not an extension
+     * point, and the package name is resolved by the time it runs.
+     *
+     * Everything reported comes from `IconRegistry`, which already reads
+     * `resources/assets/svg/config.json`. Nothing is re-stated: a second
+     * reader of the same file is how this estate previously shipped a pack
+     * whose translations claimed MIT while its config.json said Commercial.
+     *
+     * The closure is evaluated when `about` runs, so the registry is populated
+     * by then even though this executes during boot.
+     */
+    protected function bootPackageAboutSections(): self
+    {
+        $name = $this->package->name === null ? null : $this->package->getSlashNamespace();
+
+        if ($name !== null) {
+            $this->package->hasAboutSection($name, function () use ($name): array {
+                $registry = $this->app->make(IconRegistry::class);
+
+                if (! $registry->isRegistered($name)) {
+                    // A pack that registered no icon directory still gets a
+                    // section; saying so beats an empty one that reads like a
+                    // rendering fault.
+                    return ['Icons' => 'not registered'];
+                }
+
+                $meta = $registry->get($name);
+
+                return array_filter([
+                    'Icons'   => (string) ($meta['total'] ?? 0),
+                    'Version' => $meta['version'] ?? null,
+                    'License' => $meta['license'] ?? null,
+                    'Prefix'  => $meta['prefix'] ?? null,
+                ], static fn (?string $value): bool => $value !== null && $value !== '');
+            });
+        }
+
+        return parent::bootPackageAboutSections();
+    }
+
+    /**
      * Register a Blade component using the Ichava naming convention.
      *
      * Registers the component under the tag `<x-{packageName}-icon name="..." />`.
