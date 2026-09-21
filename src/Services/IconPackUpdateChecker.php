@@ -75,6 +75,9 @@ class IconPackUpdateChecker
      * @var list<string>
      */
     protected const BLOCKED_V6 = [
+        '::/96',              // IPv4-compatible (RFC 4291 2.5.5.1), deprecated; also covers
+        // :: and ::1 below, which stay listed because a reader scanning
+        // for "is loopback blocked" should find it by name
         '::/128',             // unspecified
         '::1/128',            // loopback
         '100::/64',           // discard-only
@@ -581,11 +584,16 @@ class IconPackUpdateChecker
     /**
      * Whether an address may be requested.
      *
-     * Three IPv6 forms carry an IPv4 address inside them, and each is a way to
-     * write a blocked IPv4 address that looks like a public IPv6 one:
+     * Four IPv6 forms carry an IPv4 address inside them, and each is a way to
+     * write a blocked IPv4 address that looks like a public IPv6 one.
      * `::ffff:127.0.0.1` (IPv4-mapped), `64:ff9b::7f00:1` (NAT64) and
-     * `2002:7f00:1::` (6to4) all mean 127.0.0.1. They are unwrapped and judged
-     * as the IPv4 address they carry, so the answer cannot depend on notation.
+     * `2002:7f00:1::` (6to4) all mean 127.0.0.1 and are unwrapped here.
+     *
+     * The fourth, `::7f00:1` (IPv4-compatible, RFC 4291 2.5.5.1), is blocked by
+     * range instead: the whole of `::/96` is listed, because nothing legitimate
+     * lives there. It is deprecated and most stacks will not route it, so it is
+     * weaker than the other three -- but a notation that carries a blocked value
+     * and is accepted anyway is the exact defect this method exists to remove.
      */
     protected function isPublicIp(string $ip): bool
     {

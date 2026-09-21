@@ -16,11 +16,16 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   `100.64.0.0/10` carrier-grade NAT, `192.0.0.0/24`, `198.18.0.0/15` benchmarking, all three
   TEST-NET documentation blocks, and `224.0.0.0/4` multicast.
 
-  **Two of the gaps reached loopback.** Three IPv6 forms carry an IPv4 address inside them, and
-  the old check judged the notation rather than the address: `64:ff9b::7f00:1` (NAT64) and
-  `2002:7f00:1::` (6to4) both mean **127.0.0.1** and both passed. `::ffff:127.0.0.1` happened to
-  be caught; that it was, while its two siblings were not, is the sign the check was reading
-  spelling rather than value.
+  **Some of the gaps reached loopback.** Four IPv6 forms carry an IPv4 address inside them, and
+  the old check judged the notation rather than the address: `64:ff9b::7f00:1` (NAT64),
+  `2002:7f00:1::` (6to4) and `::7f00:1` (IPv4-compatible, RFC 4291 2.5.5.1) all mean
+  **127.0.0.1** and all passed. `::ffff:127.0.0.1` happened to be caught; that it was, while
+  its three siblings were not, is the sign the check was reading spelling rather than value.
+
+  The IPv4-compatible form is the weakest of the four — deprecated since 2006, and most stacks
+  will not route it — but `::a9fe:a9fe` is cloud metadata written in it, and a notation that
+  carries a blocked value and is accepted anyway is the exact defect this change exists to
+  remove.
 
   The predicate is now an explicit IANA special-purpose block list for v4 and v6, and the three
   IPv4-carrying IPv6 forms are unwrapped and judged as the address they carry, so the answer
@@ -30,8 +35,14 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   loopback-reaching cases additionally needed NAT64 or 6to4 on the host — narrow, but the
   guard exists precisely because a pack's config is not trusted input.
 
-  `tests/Unit/PublicIpBoundaryTest.php` pins 28 blocked addresses and 5 routable ones.
-  **Mutation-checked:** restoring the previous implementation fails 14 of them.
+  `tests/Unit/PublicIpBoundaryTest.php` pins 32 blocked addresses and 5 routable ones, and
+  asserts that all **five** spellings of loopback answer identically. **Mutation-checked:**
+  restoring the previous implementation fails 14 of them.
+
+  > The count in that last assertion is load-bearing. The first version of this fix unwrapped
+  > three notations and left `::7f00:1` accepted — which made "by value, not notation" false as
+  > stated, while reading as though it were true. A claim about notation is only worth as much
+  > as the enumeration behind it.
 
   > `fake_host_resolver()` in `IconPackUpdateCheckerTest` had to move off `192.0.2.0/24`. It
   > chose TEST-NET-1 deliberately, because the guard treated documentation space as routable
