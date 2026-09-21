@@ -2,6 +2,46 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.2.6] - 2026-09-21
+
+### Fixed
+
+- **`make:icon-package` generated a package that could not be installed.** Eight values in
+  `stubs/icon-package/` had drifted from the five real packs, and nothing compared the two, so
+  every scaffold since the drift began was born broken. The decisive one: the stub required
+  `ichava/core: ^1.0`, a version that has never existed, and shipped no `repositories` block --
+  so Composer consulted only Packagist, which answers 404 for every `ichava/*`. Resolution was
+  impossible, not merely wrong.
+
+  | Was | Now |
+  |---|---|
+  | `ichava/core: ^1.0` | `^0.2.5`, plus the four VCS `repositories` a pack needs |
+  | `php: ^8.3` | `^8.4.1 \|\| ^8.5` |
+  | `illuminate/support: ^10.0\|^12.0\|^13.0` | `^13.0` |
+  | `laranail/package-tools` absent | required, since the generated provider imports it |
+  | `Simtabi\Laranail\PackageTools\*` | `Simtabi\Laranail\Package\Tools\*` |
+  | `ichava:update-<pack>-icons` | `ichava::<pack>-icons.update` |
+  | `orchestra/testbench: ^8.0\|^10.0\|^11.0` | `^11.0` |
+  | `pestphp/pest: ^2.0\|^3.0` | `^4.6 \|\| ^5.0` |
+
+  The namespace and command-name entries are the instructive ones: both were fixed in the five
+  real packs and never propagated here, so the scaffolder kept emitting conventions the estate
+  had already retired. The bare `ichava:update-…` name in particular is exactly the flat-map
+  collision the namespaced scheme exists to prevent.
+
+### Added
+
+- **Scaffolded packages now ship the four workflows every real pack has** -- `tests`,
+  `code-quality`, `release` and `sync-upstream`. A pack generated before this had no CI at all,
+  so its tests never ran anywhere.
+
+- **`StubEstateParityTest` compares the stub against a real pack, not against literals.** It
+  reads `flag-icons/composer.json` and its provider off disk and asserts the scaffolded output
+  agrees. Hardcoded expectations are how all eight defects survived: a literal encodes the
+  estate as it was the day it was written, then ages silently beside the thing it guards. The
+  test skips when the sibling is absent, since CI clones one repo and a false red there would
+  train people to ignore it.
+
 ## [0.2.5] - 2026-09-21
 
 ### Security
