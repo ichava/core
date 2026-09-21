@@ -40,14 +40,14 @@ class CleanupIchavaLogsCommand extends BaseCommand
         intro("🧹 Cleaning up Ichava logs older than {$retentionDays} days");
 
         if ($dryRun) {
-            warning('DRY RUN MODE - No files will be deleted');
+            warning(__('ichava/ichava-core::commands.cleanup_logs.dry_run'));
         }
 
         $logPath = storage_path('logs');
         $cutoffDate = Carbon::now()->subDays($retentionDays);
 
         if (! File::isDirectory($logPath)) {
-            $this->failure("Log directory not found: {$logPath}");
+            $this->failure(__('ichava/ichava-core::commands.cleanup_logs.dir_missing', ['path' => $logPath]));
 
             return self::FAILURE;
         }
@@ -63,7 +63,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
         $logFiles = array_unique($logFiles);
 
         if (empty($logFiles)) {
-            $this->success('No Ichava log files found');
+            $this->success(__('ichava/ichava-core::commands.cleanup_logs.none_found'));
 
             return self::SUCCESS;
         }
@@ -91,13 +91,13 @@ class CleanupIchavaLogsCommand extends BaseCommand
             $configDefault = config('ichava.ichava-core.logging.retention_days', 7);
 
             $days = text(
-                label: 'How many days of logs to retain?',
+                label: __('ichava/ichava-core::commands.cleanup_logs.retention_ask'),
                 placeholder: (string) $configDefault,
                 default: (string) $configDefault,
                 validate: fn (string $value) => ! is_numeric($value) || (int) $value < 1
-                    ? 'Please enter a valid number of days (minimum 1)'
+                    ? __('ichava/ichava-core::commands.cleanup_logs.retention_invalid')
                     : null,
-                hint: 'Logs older than this will be deleted',
+                hint: __('ichava/ichava-core::commands.cleanup_logs.retention_hint'),
             );
 
             return (int) $days;
@@ -121,7 +121,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
 
         // Use progress bar for better UX
         $results = progress(
-            label: $dryRun ? 'Analyzing log files...' : 'Processing log files...',
+            label: $dryRun ? __('ichava/ichava-core::commands.cleanup_logs.analyzing') : __('ichava/ichava-core::commands.cleanup_logs.processing'),
             steps: $logFiles,
             callback: function ($file) use ($cutoffDate, $dryRun, &$stats) {
                 $fileName = basename($file);
@@ -177,8 +177,8 @@ class CleanupIchavaLogsCommand extends BaseCommand
         table(
             headers: ['Metric', 'Count'],
             rows: [
-                ['Total log files', (string) $stats['total']],
-                [$dryRun ? 'Would delete' : 'Deleted', (string) $stats['deleted']],
+                [__('ichava/ichava-core::commands.cleanup_logs.total_files'), (string) $stats['total']],
+                [$dryRun ? __('ichava/ichava-core::commands.cleanup_logs.would_delete') : __('ichava/ichava-core::commands.cleanup_logs.deleted'), (string) $stats['deleted']],
                 ['Kept', (string) $stats['kept']],
                 ['Failed', (string) $stats['failed']],
             ],
@@ -209,7 +209,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
         } elseif ($dryRun && $stats['deleted'] > 0) {
             note("Would delete {$stats['deleted']} file(s). Run without --dry-run to actually delete.");
         } elseif ($stats['deleted'] === 0) {
-            info('No old log files to clean up.');
+            info(__('ichava/ichava-core::commands.cleanup_logs.nothing_to_do'));
         }
 
         if ($stats['failed'] > 0) {
