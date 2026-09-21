@@ -79,6 +79,28 @@ it('clears every cache the discovery service writes', function () {
     expect($svc->searchIcons('anchor')['total'] ?? 0)->toBe(1);
 });
 
+it('clears through the service, which is how callers reach it', function () {
+    // The test above invokes the action directly, so it says nothing about the
+    // delegation. A mutation proved it: replacing the service's call with a
+    // no-op left every assertion green. Callers use clearCache(); that path
+    // needs its own coverage.
+    $svc = app(IconDiscoveryService::class);
+
+    expect($svc->searchIcons('beacon')['total'] ?? 0)->toBe(0);
+
+    Icon::query()->create([
+        'package'   => 'ichava/test-icons',
+        'name'      => 'beacon',
+        'path'      => 'ichava/test-icons::beacon',
+        'category'  => 'general',
+        'file_path' => 'beacon.svg',
+    ]);
+
+    $svc->clearCache();
+
+    expect($svc->searchIcons('beacon')['total'] ?? 0)->toBe(1);
+});
+
 it('keeps the service delegating, so callers are unaffected', function () {
     // The service's public API is the contract. An extraction that changes it
     // is a rewrite wearing a refactor's name.
