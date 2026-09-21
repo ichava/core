@@ -4,6 +4,33 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Fixed
+
+- **`icon-sets.json`'s `_note` told you to do something that breaks the catalog.** It said to
+  add a set by appending `key`/`package`/`repository` and letting the nightly sync fill the
+  rest. `IconSetCatalogService` rejects any set missing `title`, `icon_count` or `variants`,
+  treating an empty string or empty array as missing, so a set added that way makes
+  `ichava::ichava-core.install` throw until the sync runs -- up to a day.
+
+  Proven rather than reasoned about: a catalog holding one three-field set fails with
+  `Set at index 0 is missing required fields: title, icon_count, variants`.
+
+  The note now names all six required fields, says to take the values from the pack's own
+  `config.json`, and records that the file must be written with `JSON_PRETTY_PRINT |
+  JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE` -- it is generated, and any other encoding
+  reflows the whole thing. It also stops calling the command `ichava:install`, a name `V59`
+  retired.
+
+### Added
+
+- **A test pinning the note to the validator.** It asserts the thrown message names the three
+  fields a three-field set is missing, *and* that `_note` mentions every one of the six. So if
+  the required set changes, the message changes, the test fails, and the note is corrected with
+  it -- rather than prose and behaviour drifting apart again in silence, which is what happened
+  here. Mutation-checked: restoring the old note fails it.
+
+## [Unreleased]
+
 ### Added
 
 - **`ichava/icon-sets-emoji` in the install catalog.** `icon-sets.json` listed two of the five
