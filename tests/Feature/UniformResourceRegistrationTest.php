@@ -41,6 +41,19 @@ it('registers a view namespace for a pack that ships a template', function () {
         ->and(View::exists('ichava/viewful-pack::components.badge'))->toBeTrue();
 });
 
+it('renders the template the namespace resolves, not just finds it', function () {
+    // `View::exists()` answers the finder; it does not compile anything. A
+    // template that resolves and then fails to compile -- a bad directive, a
+    // missing `@endif` -- passes the assertion above and is still broken at the
+    // one moment it matters. Render it.
+    $this->app->register(ViewfulPack::class);
+
+    $html = View::make('ichava/viewful-pack::components.badge')->render();
+
+    expect(trim($html))->toBe('<span class="ichava-badge"></span>')
+        ->and($html)->not->toContain('{{');
+});
+
 it('registers no view namespace for a pack whose views directory is empty', function () {
     // The shape of all five real packs: the directory is a deliberate
     // placeholder, kept by an explicit decision. A namespace resolving nothing
@@ -61,6 +74,23 @@ it('still registers translations, which is what this replaced', function () {
 
     expect(Lang::getLoader()->namespaces())->toHaveKey('ichava/viewful-pack')
         ->and(__('ichava/viewful-pack::icons.variants.solid'))->toBe('Solid');
+});
+
+it('does not double-register a config the pack also declares by hand', function () {
+    // The packs still call hasConfigFile() themselves, which auto-discovery now
+    // also does. That redundancy is kept deliberately (see the note in
+    // Support\ServiceProvider), and the decision rests entirely on upstream
+    // de-duplicating by name. If it ever appends instead, every pack in this
+    // family starts merging its config twice -- so the assumption is pinned
+    // here rather than trusted.
+    $this->app->register(ViewfulPack::class);
+
+    $provider = app()->getProvider(ViewfulPack::class);
+    $package = (new ReflectionProperty($provider, 'package'))->getValue($provider);
+
+    $package->hasConfigFile('viewful-pack');
+
+    expect(array_count_values($package->configFileNames)['viewful-pack'])->toBe(1);
 });
 
 it('resolves the package base path before auto-registration runs', function () {
