@@ -2,7 +2,54 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.1] - 2026-09-21
+
+### Added
+
+- **Icon packs now get their translations registered, by existing rather than by
+  asking.** `laranail/package-tools` defaults `hasTranslations` to false, and no
+  pack in this family ever called it -- so every `resources/lang` file shipped
+  unreachable. That is why one pack could carry another pack's translations, and
+  another could state a licence it does not hold, without a test going red.
+
+  `Support\ServiceProvider::newPackage()` now switches it on when the package
+  actually has a `resources/lang` directory. `newPackage()` rather than
+  `packageRegistered()` on purpose: it runs before `configurePackage()`, so a
+  pack can still opt out, and no pack overrides it -- whereas
+  `packageRegistered()` is a documented extension point, and a child overriding
+  it without `parent::` would silently lose its translations. That is the same
+  quiet failure this change exists to end.
+
+- **`IconRegistry` metadata carries localised strings and taxonomy labels.**
+  `config.json` stays canonical; translations are an overlay on top. A pack's
+  `labels` key exposes its `variants` / `categories` / `sets` display names,
+  which `config.json` has no equivalent for, and groups a pack does not define
+  are omitted.
+
+
+- **`actionlint` runs on every pull request.** Nothing validated the workflow files at all:
+  `release.yml` triggers only on `push: tags`, so a broken workflow was first observed as a
+  release that refused to start — after the decision to release had been made.
+
+  A YAML parse is not a substitute, and that is the sharp part. `yaml.safe_load` accepts a
+  duplicate key and silently keeps the last one, so a double-applied patch that left
+  `continue-on-error:` twice on a single step validated clean and would have failed only at tag
+  time. `actionlint` rejects what Actions rejects.
+
+  Checked against the defect rather than assumed: injecting that duplicate key, a typo'd step
+  key, and an `if:` referencing a property that does not exist are all caught, while
+  `yaml.safe_load` still parses the first of them without complaint.
+
+### Changed
+
+- **One containment implementation instead of two.** `SvgDriver::loadFromLocal()`
+  and `IconWatcherService::extractIconData()` each carried their own
+  `realpath()` boundary check. Two copies of a security check drift, and the one
+  that drifts is the one nobody is looking at. Both now use
+  `Traits\ContainsFilePaths`.
+
+  Behaviour is unchanged. Neutering the shared check fails 5 tests across both
+  consumers, which is what makes the extraction real rather than cosmetic.
 
 ### Fixed
 
@@ -38,20 +85,6 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   consumer publishing the config found a switch for `auto_seed` -- which is off
   by default -- and none for this. Now shipped, with `ICHAVA_AUTO_UNSEED`.
 
-### Changed
-
-- **One containment implementation instead of two.** `SvgDriver::loadFromLocal()`
-  and `IconWatcherService::extractIconData()` each carried their own
-  `realpath()` boundary check. Two copies of a security check drift, and the one
-  that drifts is the one nobody is looking at. Both now use
-  `Traits\ContainsFilePaths`.
-
-  Behaviour is unchanged. Neutering the shared check fails 5 tests across both
-  consumers, which is what makes the extraction real rather than cosmetic.
-
-## [Unreleased]
-
-### Fixed
 
 - **Package titles and descriptions were read under a key nothing ever wrote.**
   Nine call sites in `IconBrowserService` and `IconDiscoveryService` read
@@ -77,29 +110,6 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
   > `ichava/browser` has seven more of these reads and is fixed separately.
 
-### Added
-
-- **Icon packs now get their translations registered, by existing rather than by
-  asking.** `laranail/package-tools` defaults `hasTranslations` to false, and no
-  pack in this family ever called it -- so every `resources/lang` file shipped
-  unreachable. That is why one pack could carry another pack's translations, and
-  another could state a licence it does not hold, without a test going red.
-
-  `Support\ServiceProvider::newPackage()` now switches it on when the package
-  actually has a `resources/lang` directory. `newPackage()` rather than
-  `packageRegistered()` on purpose: it runs before `configurePackage()`, so a
-  pack can still opt out, and no pack overrides it -- whereas
-  `packageRegistered()` is a documented extension point, and a child overriding
-  it without `parent::` would silently lose its translations. That is the same
-  quiet failure this change exists to end.
-
-- **`IconRegistry` metadata carries localised strings and taxonomy labels.**
-  `config.json` stays canonical; translations are an overlay on top. A pack's
-  `labels` key exposes its `variants` / `categories` / `sets` display names,
-  which `config.json` has no equivalent for, and groups a pack does not define
-  are omitted.
-
-### Fixed
 
 - **The overlay is applied when metadata is read, not when a pack registers.**
   Resolving it eagerly looked obvious and was wrong twice over:
@@ -126,24 +136,6 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   **Mutation-checked:** removing the default fails 5 of the 7; returning the
   overlay to registration time fails 3.
 
-## [Unreleased]
-
-### Added
-
-- **`actionlint` runs on every pull request.** Nothing validated the workflow files at all:
-  `release.yml` triggers only on `push: tags`, so a broken workflow was first observed as a
-  release that refused to start — after the decision to release had been made.
-
-  A YAML parse is not a substitute, and that is the sharp part. `yaml.safe_load` accepts a
-  duplicate key and silently keeps the last one, so a double-applied patch that left
-  `continue-on-error:` twice on a single step validated clean and would have failed only at tag
-  time. `actionlint` rejects what Actions rejects.
-
-  Checked against the defect rather than assumed: injecting that duplicate key, a typo'd step
-  key, and an `if:` referencing a property that does not exist are all caught, while
-  `yaml.safe_load` still parses the first of them without complaint.
-
-### Fixed
 
 - **A failed SBOM download no longer takes the whole release down.** `release.yml` generates the
   SBOM before it publishes, and the Syft installer fetches its checksums from GitHub's
@@ -163,6 +155,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   `fail_on_unmatched_files: false` is now stated on the publish step. It is already the action's
   default, but the point of this change is that a missing SBOM must not fail the publish, so it
   should not rest on a default a future reader has to know.
+
 ### Security
 
 - **The icon watcher now enforces realpath containment, matching `SvgDriver`.**
