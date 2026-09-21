@@ -203,11 +203,11 @@ class IconTerm extends Model
      */
     public function scopeSearch(Builder $query, string $search): Builder
     {
-        $like = '%' . addcslashes($search, '%_\\') . '%';
+        $like = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search) . '%';
 
         return $query->where(function (Builder $q) use ($like): void {
-            $q->whereRaw("name LIKE ? ESCAPE '\\'", [$like])
-                ->orWhereRaw("slug LIKE ? ESCAPE '\\'", [$like]);
+            $q->whereRaw("name LIKE ? ESCAPE '!'", [$like])
+                ->orWhereRaw("slug LIKE ? ESCAPE '!'", [$like]);
         });
     }
 

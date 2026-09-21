@@ -15,11 +15,20 @@ The engine for the [Ichava Laravel icon ecosystem](https://github.com/ichava/doc
 | Blade       | The base `<x-ichava::icon>` component every icon pack extends.                                                                                                         |
 | Fluent API  | `ichava('vendor/pkg::category/name')->color('...')->class('...')`.                                                                                                     |
 | Seeder      | Queue-backed pipeline with multi-level dedup, change detection, Horizon-aware.                                                                                         |
-| Scaffolder  | `php artisan ichava::ichava-core.make:icon-package <Name>` bootstraps a new icon pack from a stub tree.                                                                                    |
 | Logging     | Three dedicated channels: `ichava`, `ichava-icons`, `ichava-queue`.                                                                                                    |
 | Search      | Full-text search on PostgreSQL; portable `LIKE` search on SQLite, MySQL and MariaDB.                                                                                                                 |
 
 Zero HTTP surface. No REST endpoints, no middleware, no routes. The HTTP layer (REST API + Vue/Vite SPA) lives in the optional [`ichava/browser`](https://github.com/ichava/browser) package.
+
+Scaffolding a new icon pack is **not** part of core. It lives in
+[`ichava/icon-package-scaffolder`](https://github.com/ichava/icon-package-scaffolder):
+
+```bash
+composer require --dev ichava/icon-package-scaffolder
+php artisan ichava::icon-package-scaffolder.make
+```
+
+It replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0.2.7`.
 
 ## Requirements
 
