@@ -74,6 +74,12 @@ class IchavaServiceProvider extends PackageServiceProvider
             ->setPathFrom(source: $this, levelsUp: 2)
             ->setName('ichava/core', fn (string $package): string => 'ichava-core')
             ->hasConfigFile('ichava-core')
+            // Core extends PackageServiceProvider directly, so it does NOT
+            // inherit the default-on registration Support\ServiceProvider gives
+            // the packs -- it has to ask. That asymmetry has already cost one
+            // defect class here; anything added to the packs' default needs a
+            // deliberate counterpart on this line.
+            ->hasTranslations()
             ->discoversMigrations()
             ->runsMigrations()
             ->hasBladeDirectives([
