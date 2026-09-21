@@ -1,3 +1,5 @@
+[← Docs index](../../README.md#documentation)
+
 # Check pack updates
 
 *How-to guide.* Ask every installed icon pack whether its upstream source has shipped a newer release.
