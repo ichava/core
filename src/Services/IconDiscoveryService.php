@@ -105,7 +105,7 @@ class IconDiscoveryService
     public function getPackages(): array
     {
         $registryPackages = $this->registry->all();
-        $cacheKey = self::CACHE_PREFIX . '.packages.' . md5(serialize($registryPackages));
+        $cacheKey = self::CACHE_PREFIX . '.packages.' . $this->generation() . '.' . md5(serialize($registryPackages));
 
         return $this->remember($cacheKey, self::CACHE_DURATION, function () use ($registryPackages) {
             $packages = [];
@@ -186,7 +186,7 @@ class IconDiscoveryService
     public function getAllCategories(): array
     {
         $packages = $this->packages();
-        $cacheKey = self::CACHE_PREFIX . '.categories.' . md5(serialize(array_keys($packages)));
+        $cacheKey = self::CACHE_PREFIX . '.categories.' . $this->generation() . '.' . md5(serialize(array_keys($packages)));
 
         return $this->remember($cacheKey, self::CACHE_DURATION, function () use ($packages) {
             $categories = [];
@@ -290,12 +290,38 @@ class IconDiscoveryService
      */
     public function clearCache(): void
     {
+        // Every key this class writes, in the store each one actually lives in.
+        //
+        // This used to forget two of six, and could not have reached two of the
+        // rest: `.packages`, `.categories` and `.search` are written through
+        // `remember()` to the FILE store, and the database search path writes
+        // through IconCacheService under its own `icons.search.db.` prefix,
+        // while this method called `Cache::forget()` on the DEFAULT store with
+        // hand-built keys. Seeding icons cleared nothing a reader would notice.
+        //
+        // The md5-suffixed keys cannot be enumerated, so invalidation goes
+        // through a generation counter: bump it and every key this class builds
+        // changes shape at once. That is the mechanism `cache.version` already
+        // uses ecosystem-wide, applied locally rather than reinvented.
         Cache::forget(self::CACHE_PREFIX . '.installed');
+        Cache::increment(self::CACHE_PREFIX . '.generation');
 
-        // Clear package caches
-        $packages = $this->registry->all();
-        $cacheKey = self::CACHE_PREFIX . '.packages.' . md5(serialize($packages));
-        Cache::forget($cacheKey);
+        // The database search path is IconCacheService's, so it clears it.
+        // A second implementation of prefix-flushing here is how the two
+        // halves drifted apart in the first place.
+        $this->cache->flushPrefix();
+    }
+
+    /**
+     * The invalidation generation, mixed into every key this class builds.
+     *
+     * Read on every key construction rather than memoised: `clearCache()` may
+     * run in another request, and a memoised value would serve the previous
+     * generation for the life of this instance.
+     */
+    protected function generation(): int
+    {
+        return (int) Cache::get(self::CACHE_PREFIX . '.generation', 0);
     }
 
     /**
@@ -405,7 +431,7 @@ class IconDiscoveryService
         string $sortDirection,
     ): array {
         // Use Redis cache for super-fast repeated searches
-        $cacheKey = 'icons.search.db.' . md5(serialize(func_get_args()));
+        $cacheKey = 'icons.search.db.' . $this->generation() . '.' . md5(serialize(func_get_args()));
 
         return $this->cache->remember($cacheKey, function () use ($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection) {
             return $this->executeSearchQuery($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection);
@@ -427,15 +453,18 @@ class IconDiscoveryService
         // Build query
         $queryBuilder = Icon::query();
 
-        // Apply search
+        // Apply search.
+        //
+        // Delegated to the model rather than built here. This used to inline
+        // `to_tsvector(…) @@ plainto_tsquery(…)` with no driver branch, so the
+        // method threw on SQLite, MySQL and MariaDB the moment the icons table
+        // existed -- while `Icon::scopeSearch()` had carried the driver
+        // decision, and the portable LIKE fallback, all along.
+        //
+        // The rule this restores: one query builder to be wrong in. A second
+        // copy of a query is a second place for a driver to be forgotten.
         if (! empty($query)) {
-            $queryBuilder->whereRaw("
-                to_tsvector('english',
-                    COALESCE(name, '') || ' ' ||
-                    COALESCE(category, '') || ' ' ||
-                    COALESCE(keywords, '')
-                ) @@ plainto_tsquery('english', ?)
-            ", [$query]);
+            $queryBuilder->search($query);
         }
 
         // Filter by packages
@@ -473,7 +502,10 @@ class IconDiscoveryService
                 'category'     => $icon->category,
                 'variant'      => $icon->variant,
                 'path'         => $icon->path,
-                'icon_path'    => $icon->getIconPath(),
+                // `icon_path`, the model's own attribute -- not `getIconPath()`,
+                // which is declared on IconDriverInterface and has never existed
+                // on Icon. Unreachable until the query above stopped throwing.
+                'icon_path'    => $icon->icon_path,
                 'syntax'       => $this->getIconSyntax($icon->package, $icon->name, $icon->variant),
                 'svg_content'  => null, // Deferred rendering
             ];
@@ -500,7 +532,7 @@ class IconDiscoveryService
         string $sortBy,
         string $sortDirection,
     ): array {
-        $cacheKey = self::CACHE_PREFIX . '.search.' . md5(serialize(func_get_args()));
+        $cacheKey = self::CACHE_PREFIX . '.search.' . $this->generation() . '.' . md5(serialize(func_get_args()));
 
         return $this->remember($cacheKey, 300, function () use ($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection) {
             $allPackages = $this->getPackages();
