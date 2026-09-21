@@ -246,6 +246,22 @@ it('blocks a host that does not resolve', function () {
     Http::assertNothingSent();
 });
 
+it('blocks a host that resolves into carrier-grade NAT', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    // cgnat.test resolves to 100.64.17.9. RFC 6598 space is neither private,
+    // reserved, nor link-local, so PHP's NO_PRIV_RANGE | NO_RES_RANGE pair
+    // passes it -- which is why the guard cannot be written in terms of those
+    // flags. On a host behind carrier-grade NAT the range reaches the
+    // carrier's own network, so it has to be refused before the request.
+    $result = build_checker_for('vendor/pack-cgnat', CgnatHostConstants::class)
+        ->checkOne('vendor/pack-cgnat');
+
+    expect($result['status'])->toBe('error');
+    expect($result['reason'])->toContain('blocked');
+    Http::assertNothingSent();
+});
+
 it('blocks a literal private ip even when the resolver would allow the name', function () {
     Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
 
@@ -319,10 +335,11 @@ function build_checker_for(string $packageName, string $constantsClass): IconPac
  * intercepts the request, so the addresses below are inert because of the
  * test harness rather than because of the range they sit in.
  *
- * Two entries are the point of the fixture rather than scaffolding:
- * `internal.test` maps into a private range, and any host not listed
- * resolves to nothing. They pin that the seam substitutes what a name
- * resolves to, never whether an address is allowed.
+ * Three entries are the point of the fixture rather than scaffolding:
+ * `internal.test` maps into a private range, `cgnat.test` into RFC 6598
+ * carrier-grade NAT, and any host not listed resolves to nothing. They
+ * pin that the seam substitutes what a name resolves to, never whether
+ * an address is allowed.
  *
  * @return Closure(string):list<string>
  */
@@ -334,6 +351,7 @@ function fake_host_resolver(): Closure
         'repo.packagist.org' => ['104.26.14.72'],
         'example.com'        => ['93.184.216.34'],
         'internal.test'      => ['10.1.2.3'],
+        'cgnat.test'         => ['100.64.17.9'],
         default              => [],
     };
 }
@@ -376,6 +394,7 @@ final class PlainHttpConstants extends _FakeUpstreamConstants {}
 final class FileSchemeConstants extends _FakeUpstreamConstants {}
 final class PrivateHostnameConstants extends _FakeUpstreamConstants {}
 final class UnresolvableHostConstants extends _FakeUpstreamConstants {}
+final class CgnatHostConstants extends _FakeUpstreamConstants {}
 
 beforeEach(function () {
     inject_constants_config(GithubUpToDateConstants::class, [
@@ -506,6 +525,14 @@ beforeEach(function () {
             'source'            => ['type' => 'url', 'version_field' => 'version'],
             'current_version'   => '1.0.0',
             'version_check_url' => 'https://nowhere.invalid/latest.json',
+        ],
+    ]);
+    inject_constants_config(CgnatHostConstants::class, [
+        'package'  => ['name' => 'vendor/pack-cgnat'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'https://cgnat.test/latest.json',
         ],
     ]);
 });
