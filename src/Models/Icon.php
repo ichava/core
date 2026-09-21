@@ -194,7 +194,7 @@ final class Icon extends Model
             $languages = FtsLanguageHelper::getLanguages();
             $iconMorphType = addslashes(self::class);
 
-            $whereClause = FtsLanguageHelper::buildComprehensiveSearchQuery($iconMorphType);
+            $whereClause = FtsLanguageHelper::buildComprehensiveSearchQuery($iconMorphType, $this->getTable());
             $bindings = array_fill(0, count($languages), $search);
 
             return $query->whereRaw($whereClause, $bindings);
