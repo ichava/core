@@ -1,40 +1,12 @@
-# Ichava Core
+# ichava/core
 
-[![Latest Version](https://img.shields.io/packagist/v/ichava/core.svg)](https://packagist.org/packages/ichava/core)
-[![License](https://img.shields.io/packagist/l/ichava/core.svg)](LICENSE)
-[![PHP Version](https://img.shields.io/packagist/php-v/ichava/core.svg)](https://packagist.org/packages/ichava/core)
+[![Tests](https://github.com/ichava/core/actions/workflows/tests.yml/badge.svg)](https://github.com/ichava/core/actions/workflows/tests.yml)
+[![Code Quality](https://github.com/ichava/core/actions/workflows/code-quality.yml/badge.svg)](https://github.com/ichava/core/actions/workflows/code-quality.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-The engine for the [Ichava Laravel icon ecosystem](https://github.com/ichava/documentation). Services, registry, seeder, scaffolder, helpers, base Blade component. No HTTP surface. Works without a JS toolchain.
+> The engine for the Ichava Laravel icon ecosystem — icon registry, queue-backed seeder, DOM-based SVG sanitiser, icon cache, and the base `<x-ichava::icon>` Blade component, with zero HTTP surface.
 
-## What's in core
-
-|             |                                                                                                                                                                        |
-|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Security    | DOM-based SVG sanitiser with a strict allow-list. XXE-safe (`LIBXML_NONET`, `resolveExternals=false`). Blocks `javascript:`, `vbscript:`, `file:`, all `on*` handlers. |
-| Performance | Icon-level cache, SVG optimisation, indexed DB lookup, pre-built manifest for production.                                                                              |
-| Blade       | The base `<x-ichava::icon>` component every icon pack extends.                                                                                                         |
-| Fluent API  | `ichava('vendor/pkg::category/name')->color('...')->class('...')`.                                                                                                     |
-| Seeder      | Queue-backed pipeline with multi-level dedup, change detection, Horizon-aware.                                                                                         |
-| Logging     | Three dedicated channels: `ichava`, `ichava-icons`, `ichava-queue`.                                                                                                    |
-| Search      | Full-text search on PostgreSQL; portable `LIKE` search on SQLite, MySQL and MariaDB.                                                                                                                 |
-
-Zero HTTP surface. No REST endpoints, no middleware, no routes. The HTTP layer (REST API + Vue/Vite SPA) lives in the optional [`ichava/browser`](https://github.com/ichava/browser) package.
-
-Scaffolding a new icon pack is **not** part of core. It lives in
-[`ichava/icon-sets-package-scaffolder`](https://github.com/ichava/icon-sets-package-scaffolder):
-
-```bash
-composer require --dev ichava/icon-sets-package-scaffolder
-php artisan ichava::icon-sets-package-scaffolder.make
-```
-
-It replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0.2.7`.
-
-## Requirements
-
-- PHP 8.4.1+ (8.5 supported)
-- Laravel 13+
-- SQLite, PostgreSQL, MySQL 8+ or MariaDB 10.3+ — see [Database support](docs/databases.md)
+This package is not published to Packagist, so there is no registry-version badge to show. Targets PHP `^8.4.1 || ^8.5` on Laravel `^13`, against SQLite, PostgreSQL, MySQL or MariaDB.
 
 ## Install
 
@@ -42,71 +14,41 @@ It replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0
 composer require ichava/core
 ```
 
-Publish the config and run migrations:
-
-```bash
-php artisan vendor:publish --tag=ichava::ichava-core-config
-php artisan migrate
-```
-
-Install at least one icon pack (core ships with no icons):
-
-```bash
-composer require ichava/icon-sets-tabler
-php artisan ichava::ichava-core.database seed --package=ichava/icon-sets-tabler
-```
-
-Add `ichava/browser` if you want the visual icon browser plus REST API:
-
-```bash
-composer require ichava/browser
-```
-
-A convenience metapackage (`ichava/ichava`) that pulls core + browser + a default pack is planned for a future release.
-
-## Quick example
-
-```blade
-{{-- Generic Blade component, works with any installed pack --}}
-<x-ichava::icon name="ichava/icon-sets-tabler::outline/home" class="w-6 h-6" />
-
-{{-- Fluent helper --}}
-{{ ichava('ichava/icon-sets-tabler::filled/home')->color('#FFD700')->class('w-5 h-5') }}
-```
+Core and its `laranail/*` dependencies are unpublished, so your application's `composer.json` needs VCS repository entries before that command resolves — [Installation](docs/installation.md) gives the exact block, then covers publishing the config, migrating, and seeding your first pack.
 
 ## <a name="documentation"></a>Documentation
 
-Full documentation lives in a dedicated repo: [`ichava/documentation`](https://github.com/ichava/documentation).
+Full documentation is at **[opensource.simtabi.com/documentation/ichava/core](https://opensource.simtabi.com/documentation/ichava/core/)**.
 
-Per-topic shortcuts:
+### Guides
 
-- [Installation](docs/installation.md)
-- [Configuration](docs/configuration.md)
-- [Environment variables](docs/environment.md)
-- [Icon path format](docs/tools/icon-path-format.md)
-- [Blade components](docs/tools/blade-components.md)
-- [Global helper](docs/tools/global-helper.md)
-- [Artisan commands](docs/tools/artisan-commands.md)
-- [Database seeding](docs/recipes/seed-the-database.md)
-- [Custom icon sets](docs/recipes/add-a-custom-icon-set.md)
-- [Creating icon packages](https://opensource.simtabi.com/documentation/ichava/icon-sets-package-scaffolder/creating-icon-packages)
+- [Installation](docs/installation.md) — VCS repositories, config, migrations, first pack
+- [Getting started](docs/getting-started.md) — your first icon, in Blade and in PHP
+- [Configuration](docs/configuration.md) — every config key and what it changes
+- [Environment variables](docs/environment.md) — the `ICHAVA_*` surface
+- [Database support](docs/databases.md) — the four drivers, and what only PostgreSQL does
+- [Architecture](docs/architecture.md) — what core provides, topology, boot order, extension seams
+- [Troubleshooting](docs/troubleshooting.md) — the failures that look like something else
+- [Release](docs/release.md) — how a version is cut, and what a release carries
 
-Cross-cutting:
+### Reference
 
-- [Architecture](docs/architecture.md)
-- [Security model](https://github.com/ichava/documentation/blob/main/security-model.md)
-- [Troubleshooting](docs/troubleshooting.md)
+- [Icon path format](docs/tools/icon-path-format.md) — the one normaliser both spellings go through
+- [Blade components](docs/tools/blade-components.md) — `<x-ichava::icon>` and its attributes
+- [Global helper](docs/tools/global-helper.md) — the fluent `ichava()` API
+- [Artisan commands](docs/tools/artisan-commands.md) — every command core registers
 
-## Contributing
+### Recipes
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Full ecosystem development workflow lives in the documentation repo.
+- [Seed the database](docs/recipes/seed-the-database.md)
+- [Add a custom icon set](docs/recipes/add-a-custom-icon-set.md)
+- [Use an icon pack](docs/recipes/use-an-icon-pack.md)
+- [Seed pack icons](docs/recipes/seed-pack-icons.md)
 
-## Security
+## Contributing & security
 
-Email `security@simtabi.com` privately. Do not open public issues for security problems. See [SECURITY.md](SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately through [SECURITY.md](SECURITY.md) — never in a public issue.
 
 ## License
 
-This project is licensed under the MIT License.  
-
-© Simtabi LLC
+MIT. © Simtabi LLC. See [LICENSE](LICENSE).
