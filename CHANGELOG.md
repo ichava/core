@@ -33,6 +33,13 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   `tests/Unit/PublicIpBoundaryTest.php` pins 28 blocked addresses and 5 routable ones.
   **Mutation-checked:** restoring the previous implementation fails 14 of them.
 
+  > `fake_host_resolver()` in `IconPackUpdateCheckerTest` had to move off `192.0.2.0/24`. It
+  > chose TEST-NET-1 deliberately, because the guard treated documentation space as routable
+  > while it could never be a real destination — a neat trick that depended on this gap. With
+  > the registry blocked, no address is both allowed and guaranteed-unroutable, so the fixture
+  > now uses real public addresses and takes its inertness from the stub resolver and
+  > `Http::fake()` instead of from the range.
+
 ### Added
 
 - **`IconPackUpdateChecker` takes an optional host resolver** (constructor argument or
