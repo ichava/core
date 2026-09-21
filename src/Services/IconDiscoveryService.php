@@ -313,18 +313,6 @@ class IconDiscoveryService
     }
 
     /**
-     * The invalidation generation, mixed into every key this class builds.
-     *
-     * Read on every key construction rather than memoised: `clearCache()` may
-     * run in another request, and a memoised value would serve the previous
-     * generation for the life of this instance.
-     */
-    protected function generation(): int
-    {
-        return (int) Cache::get(self::CACHE_PREFIX . '.generation', 0);
-    }
-
-    /**
      * Get discovery statistics with unregistered package details
      */
     public function getDiscoveryStats(): array
@@ -352,6 +340,18 @@ class IconDiscoveryService
         // In production, packages register via IconRegistry automatically
         $cacheKey = self::CACHE_PREFIX . '.manual.' . $alias;
         Cache::put($cacheKey, $metadata, self::CACHE_DURATION);
+    }
+
+    /**
+     * The invalidation generation, mixed into every key this class builds.
+     *
+     * Read on every key construction rather than memoised: `clearCache()` may
+     * run in another request, and a memoised value would serve the previous
+     * generation for the life of this instance.
+     */
+    protected function generation(): int
+    {
+        return (int) Cache::get(self::CACHE_PREFIX . '.generation', 0);
     }
 
     /**
@@ -505,9 +505,9 @@ class IconDiscoveryService
                 // `icon_path`, the model's own attribute -- not `getIconPath()`,
                 // which is declared on IconDriverInterface and has never existed
                 // on Icon. Unreachable until the query above stopped throwing.
-                'icon_path'    => $icon->icon_path,
-                'syntax'       => $this->getIconSyntax($icon->package, $icon->name, $icon->variant),
-                'svg_content'  => null, // Deferred rendering
+                'icon_path'   => $icon->icon_path,
+                'syntax'      => $this->getIconSyntax($icon->package, $icon->name, $icon->variant),
+                'svg_content' => null, // Deferred rendering
             ];
         })->toArray();
 
