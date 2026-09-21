@@ -6,6 +6,53 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **`database refresh` and `database truncate` threw on SQLite.**
+  `dropTables()` and `truncateTables()` suppress foreign keys around a bulk
+  operation, and chose the statement with a two-way branch -- PostgreSQL, or
+  everything else:
+
+  ```php
+  if (Helpers::dbDriverIsPgSql()) {
+      DB::statement('SET session_replication_role = replica');
+  } else {
+      DB::statement('SET FOREIGN_KEY_CHECKS=0');   // <- also SQLite
+  }
+  ```
+
+  This package supports **four** drivers and they do not agree on any one
+  statement. SQLite answers that one with:
+
+  ```
+  SQLSTATE[HY000]: General error: 1 near "SET": syntax error
+  ```
+
+  So `dropTables()`, `freshMigration()` and `truncateTables()` -- all reachable
+  from `DatabaseCommand` -- failed on a documented supported driver, and the one
+  this suite runs by default.
+
+  Now a four-way `match`: `session_replication_role` for pgsql,
+  `FOREIGN_KEY_CHECKS` for mysql and mariadb, `PRAGMA foreign_keys` for sqlite.
+  An unrecognised driver is logged and left alone rather than guessed at --
+  skipping the toggle risks a foreign-key error on a drop, while sending the
+  wrong statement guarantees a syntax error on every one.
+
+  **Why nothing caught it.** None of the three methods had a test. The CI matrix
+  covers pgsql, mysql and mariadb -- every driver for which the `else` branch
+  happened to be correct -- and the SQLite lane never called them. A branch is
+  only as good as the narrowest lane that exercises it.
+
+  `tests/Feature/ForeignKeyToggleTest.php` covers all four: two cases run
+  against whatever `DB_CONNECTION` names, so CI exercises three of them, and a
+  dataset asserts the statement chosen per driver so one machine can check all
+  four without having them installed.
+
+  **Mutation-checked:** routing sqlite back into the MySQL arm fails 5 tests
+  with the original error.
+
+## [Unreleased]
+
+### Fixed
+
 - **`icon-sets.json`'s `_note` told you to do something that breaks the catalog.** It said to
   add a set by appending `key`/`package`/`repository` and letting the nightly sync fill the
   rest. `IconSetCatalogService` rejects any set missing `title`, `icon_count` or `variants`,
