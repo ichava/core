@@ -4,6 +4,31 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Fixed
+
+- **The catalog sync workflow could only succeed on the first run after a merge.** It pushes to
+  a single stable branch, `chore/sync-icon-sets`, so each run updates one pull request instead of
+  opening a new one. `actions/checkout` fetches only the default branch, so there was no
+  `refs/remotes/origin/chore/sync-icon-sets` for `--force-with-lease` to compare against, and git
+  rejected the push with `! [rejected] ... (stale info)`.
+
+  The pattern is the giveaway: it failed on 17, 18, 20 and 21 September and passed on the 19th.
+  Creating a ref needs no lease, so the first run after the branch was merged away succeeded, and
+  every run while the branch existed failed. "Stale info" reads like a race, and this was not one.
+
+  The branch is now fetched into its remote-tracking ref before branching off `main`. The lease
+  is kept rather than swapped for a plain `--force`: it still refuses to clobber a push that
+  arrived after that fetch, which is the case it exists for.
+
+- **The same workflow had stopped opening pull requests, silently.** Its guard was
+  `gh pr view "$BRANCH"`, which resolves a branch to its most recent pull request **whatever its
+  state**. Once the first one was merged, every later run matched that merged PR, printed
+  "Pull request already open", skipped creation and exited 0.
+
+  Worse than the push failure it sat next to: that one at least went red. This reported success
+  while the catalog change stayed on the branch with nothing tracking it. It is now
+  `gh pr list --head "$BRANCH" --state open`, which is the question being asked.
+
 ### Added
 
 - **A carrier-grade NAT guard test at the level the guard actually runs.**
