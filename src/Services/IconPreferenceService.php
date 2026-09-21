@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Simtabi\Laranail\Ichava\Models\Icon;
-use Simtabi\Laranail\Ichava\Support\IchavaSessionManager;
+use Simtabi\Laranail\Ichava\Contracts\PreferenceStore;
 
 /**
  * IconPreferenceService - Self-Contained Preferences Manager
@@ -33,7 +33,7 @@ final class IconPreferenceService
 
     public function __construct(
         private IchavaLogger $logger,
-        private IchavaSessionManager $sessionManager,
+        private PreferenceStore $sessionManager,
     ) {
         // Session manager handles availability detection
     }
@@ -61,19 +61,25 @@ final class IconPreferenceService
     /**
      * Set a specific preference value
      */
-    public function set(string $key, mixed $value): void
+    public function set(string $key, mixed $value): bool
     {
         $preferences = $this->getAll();
         data_set($preferences, $key, $value);
-        $this->sessionManager->put($this->getSessionKey(), $preferences);
 
-        // Log for audit trail
-        $this->logger->debug('⚙️ Preference updated', [
+        // The store's answer is the write's outcome, not a detail. It is
+        // `false` whenever no session is available -- a supported host mode,
+        // not an error -- and this used to discard it and log success anyway.
+        $persisted = $this->sessionManager->put($this->getSessionKey(), $preferences);
+
+        $this->logger->debug($persisted ? '⚙️ Preference updated' : '⚙️ Preference not persisted', [
             'key'        => $key,
+            'persisted'  => $persisted,
             'tier'       => $this->sessionManager->getTier(),
             'ip'         => request()->ip(),
             'user_agent' => request()->userAgent(),
         ]);
+
+        return $persisted;
     }
 
     /**
@@ -82,16 +88,24 @@ final class IconPreferenceService
     public function update(array $data): array
     {
         $preferences = array_merge($this->getAll(), $data);
-        $this->sessionManager->put($this->getSessionKey(), $preferences);
+        $persisted = $this->sessionManager->put($this->getSessionKey(), $preferences);
 
-        // Log for audit trail
-        $this->logger->info('⚙️ Preferences bulk updated', [
-            'keys' => array_keys($data),
-            'tier' => $this->sessionManager->getTier(),
-            'ip'   => request()->ip(),
+        $this->logger->info($persisted ? '⚙️ Preferences bulk updated' : '⚙️ Preferences not persisted', [
+            'keys'      => array_keys($data),
+            'persisted' => $persisted,
+            'tier'      => $this->sessionManager->getTier(),
+            'ip'        => request()->ip(),
         ]);
 
-        return $preferences;
+        // `persisted` travels with the payload rather than replacing the return
+        // type: callers read the merged preferences back, and a bool return
+        // would have been a silent breaking change for every one of them.
+        //
+        // `persisted` is therefore a RESERVED key. array_merge and not `+`, so
+        // the flag wins over a client that sends a preference of that name --
+        // `+` would have kept the client's value and silently dropped the
+        // outcome, which is the failure this whole change is about.
+        return array_merge($preferences, ['persisted' => $persisted]);
     }
 
     /**
