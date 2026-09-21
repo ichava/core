@@ -12,6 +12,15 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   escape character — SQLite has none, so without the clause the escape byte would be matched
   literally and the fix would silently not apply there.
 
+- **The icon watcher rejects symlinks and oversized files.** Extraction read whatever the scan
+  found, with no size cap and following symlinks — so a symlink inside a watched directory
+  pointed the reader anywhere on disk, and an arbitrarily large file was read whole into memory.
+  Both are now refused, using the same `max_file_size` cap as the SVG driver.
+
+  The refusal is per file, not per scan: `extractIconData()` throws, and the loop in
+  `scanPackageIcons()` catches, logs a warning and carries on. One bad file is skipped rather
+  than taking the whole directory's scan down with it.
+
 ## [0.2.7] - 2026-09-21
 
 ### Added
