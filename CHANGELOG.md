@@ -2,6 +2,62 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-09-21
+
+### Removed
+
+- **`ichava::ichava-core.make:icon-package`, the scaffolder, and the `stubs/` tree.**
+  They now live in [`ichava/icon-package-scaffolder`](https://github.com/ichava/icon-package-scaffolder),
+  a dev-only package. The replacement command is:
+
+  ```bash
+  composer require --dev ichava/icon-package-scaffolder
+  php artisan ichava::icon-package-scaffolder.make
+  ```
+
+  **This is the whole reason for the major-series bump.** Removing a registered command is
+  breaking for anything that invoked it, and a `0.x` caret pins the minor, so `^0.2` will not
+  resolve to `0.3.0`: consumers move deliberately rather than by accident. Nothing else about
+  core changed -- the engine, the registry, the Blade base and every other command are as they
+  were in `0.2.7`.
+
+  What core keeps is what packs actually consume. `Support\ServiceProvider`, `IconRegistry`,
+  the seeder and the SVG pipeline are untouched, so an installed pack is unaffected by this
+  release; only the act of *creating* a new pack moved.
+
+  The extraction was gated on generating byte-identical output. Scaffolding from the new
+  package produces the same 24 files (single-set) and 25 files (multi-variant) as this
+  command did, compared with `diff -r`, so a pack scaffolded after the move is indistinguishable
+  from one scaffolded before it.
+
+- **`tests/Feature/MakeIconPackageCommandTest.php` and `tests/Feature/StubEstateParityTest.php`.**
+  The parity guard moved to the new package with the stub tree it guards. It belongs beside the
+  stubs: core no longer has a stub tree to be wrong about, and a guard that outlives the thing
+  it guards is the failure mode that guard exists to prevent.
+
+- **The `flag-icons` sibling clone from `tests.yml`.** It existed only so the parity guard could
+  read a real pack's manifest off disk. That guard is gone from this repo, so the clone is too;
+  it moved to the new package's `tests.yml` unchanged.
+
+### Added
+
+- **A `suggest` entry naming the replacement package and command**, so `composer suggest`
+  answers "where did `make:icon-package` go" without a changelog archaeology trip.
+
+  The matching `require-dev` is deliberately *not* here yet. Nothing in this ecosystem is on
+  Packagist, so it would need a VCS `repositories` entry, and Composer would fail to resolve
+  until `ichava/icon-package-scaffolder` is published -- taking every CI job red and blocking a
+  deletion that is independently verified. `suggest` is inert metadata Composer never resolves,
+  so it ships now; the `require-dev` is a one-line follow-up.
+
+### Changed
+
+- **`CommandNamingTest`'s dataset lost the scaffolder row**, since the command is gone. The
+  `make:` squatting guard is kept rather than deleted with it: it asserts about the live
+  registry rather than about a class this package still ships, so it now also catches a consumer
+  installing a scaffolder that registers the bare name -- the case core can no longer see for
+  itself.
+
 ## [0.2.7] - 2026-09-21
 
 ### Added
