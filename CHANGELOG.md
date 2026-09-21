@@ -4,6 +4,24 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Added
+
+- **`ichava/icon-sets-emoji` in the install catalog.** `icon-sets.json` listed two of the five
+  packs. Two of the missing three are deliberately private -- offering `icon-sets-bundled` or
+  `icon-sets-metronic` would list packs most users cannot install -- but the emoji pack is
+  public, and its 10,567 icons were undiscoverable through
+  `ichava::ichava-core.install`, which reads this file and nothing else.
+
+  Written in the generator's exact encoding (`JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES |
+  JSON_UNESCAPED_UNICODE`, four-space indent) so the nightly sync appends rather than reflows.
+  A first attempt with Python's two-space `json.dumps` produced a 47-insertion, 34-deletion diff
+  for an eleven-line addition; this one is 13 insertions and no deletions.
+
+  The snapshot fields are pinned to what the pack's own `config.json` declares, so the next sync
+  is a no-op rather than an immediate correction.
+
+## [Unreleased]
+
 ### Fixed
 
 - **The docblock examples taught three things that are no longer true**, and one that never was.
