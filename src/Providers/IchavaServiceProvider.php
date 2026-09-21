@@ -231,6 +231,18 @@ class IchavaServiceProvider extends PackageServiceProvider
         // The HTTP layer (routes, middleware, controllers, requests, resources)
         // is owned entirely by IchavaBrowserServiceProvider in ichava/browser ,
         // core ships zero HTTP surface.
+        // DEFERRED, not overlooked: `ichava` is a bare generic slug in a flat
+        // map, the same class of claim `ichava/browser` corrected for view
+        // hints. It is deliberate here -- packs register their own short-name
+        // components under one shared ecosystem prefix -- but the standard's
+        // reasoning about silent replacement applies to it unchanged.
+        //
+        // Left in place because `<x-ichava::icon>` is the ecosystem's
+        // documented public API: ~85 references across source, resources and
+        // docs, plus 24 in `ichava/documentation`. Renaming it to
+        // `ichava-core::` is a breaking change for every consumer and belongs
+        // in its own release with a migration note, not folded into unrelated
+        // work. Revisit at 1.0.
         Blade::componentNamespace('Simtabi\\Laranail\\Ichava\\View\\Components', 'ichava');
 
         // Register core's bundled icon set (test fixtures shipped for the
