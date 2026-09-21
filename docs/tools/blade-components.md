@@ -1,5 +1,3 @@
-[← Docs](../../README.md#documentation)
-
 # Blade Components
 
 *Reference.*
