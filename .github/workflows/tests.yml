@@ -36,6 +36,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Check out flag-icons beside the checkout
+        # tests/Feature/StubEstateParityTest.php measures the scaffolder stubs
+        # against a real pack's manifest read off disk, rather than against
+        # literals that would age silently beside the thing they guard. That
+        # needs a sibling pack, and a runner clones one repository -- without
+        # this the guard skips every case and reports 0 assertions, which is
+        # how the eight stub defects it catalogues accumulated in the first
+        # place. This repo has already paid for that bargain once, with the
+        # react-browser -darwin baselines no CI job compared.
+        #
+        # actions/checkout refuses a path outside the workspace and the
+        # sibling is exactly that, so clone it directly. Failing loudly when
+        # flag-icons is unreachable is deliberate: a guard that cannot run
+        # should say so rather than pass by skipping.
+        run: |
+          git clone --depth 1 --no-tags \
+            https://github.com/ichava/flag-icons.git \
+            "$(dirname "$GITHUB_WORKSPACE")/flag-icons"
+
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
@@ -142,6 +161,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Check out flag-icons beside the checkout
+        # tests/Feature/StubEstateParityTest.php measures the scaffolder stubs
+        # against a real pack's manifest read off disk, rather than against
+        # literals that would age silently beside the thing they guard. That
+        # needs a sibling pack, and a runner clones one repository -- without
+        # this the guard skips every case and reports 0 assertions, which is
+        # how the eight stub defects it catalogues accumulated in the first
+        # place. This repo has already paid for that bargain once, with the
+        # react-browser -darwin baselines no CI job compared.
+        #
+        # actions/checkout refuses a path outside the workspace and the
+        # sibling is exactly that, so clone it directly. Failing loudly when
+        # flag-icons is unreachable is deliberate: a guard that cannot run
+        # should say so rather than pass by skipping.
+        run: |
+          git clone --depth 1 --no-tags \
+            https://github.com/ichava/flag-icons.git \
+            "$(dirname "$GITHUB_WORKSPACE")/flag-icons"
 
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
