@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Facade;
  * ```php
  * use Simtabi\Laranail\Ichava\Facades\IchavaFacade as Ichava;
  *
- * Ichava::render('ichava/tabler-icons::outline/home')->class('w-5 h-5')->render();
+ * Ichava::render('ichava/icon-sets-tabler::outline/home')->class('w-5 h-5')->render();
  * Ichava::packages()->count();          // total registered packages
  * Ichava::search('arrow', 20);           // first 20 icons matching 'arrow'
  * Ichava::clearCache();                  // flush all icon caches

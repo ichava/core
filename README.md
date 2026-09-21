@@ -21,11 +21,11 @@ The engine for the [Ichava Laravel icon ecosystem](https://github.com/ichava/doc
 Zero HTTP surface. No REST endpoints, no middleware, no routes. The HTTP layer (REST API + Vue/Vite SPA) lives in the optional [`ichava/browser`](https://github.com/ichava/browser) package.
 
 Scaffolding a new icon pack is **not** part of core. It lives in
-[`ichava/icon-package-scaffolder`](https://github.com/ichava/icon-package-scaffolder):
+[`ichava/icon-sets-package-scaffolder`](https://github.com/ichava/icon-sets-package-scaffolder):
 
 ```bash
-composer require --dev ichava/icon-package-scaffolder
-php artisan ichava::icon-package-scaffolder.make
+composer require --dev ichava/icon-sets-package-scaffolder
+php artisan ichava::icon-sets-package-scaffolder.make
 ```
 
 It replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0.2.7`.
@@ -52,8 +52,8 @@ php artisan migrate
 Install at least one icon pack (core ships with no icons):
 
 ```bash
-composer require ichava/tabler-icons
-php artisan ichava::ichava-core.database seed --package=ichava/tabler-icons
+composer require ichava/icon-sets-tabler
+php artisan ichava::ichava-core.database seed --package=ichava/icon-sets-tabler
 ```
 
 Add `ichava/browser` if you want the visual icon browser plus REST API:
@@ -68,10 +68,10 @@ A convenience metapackage (`ichava/ichava`) that pulls core + browser + a defaul
 
 ```blade
 {{-- Generic Blade component, works with any installed pack --}}
-<x-ichava::icon name="ichava/tabler-icons::outline/home" class="w-6 h-6" />
+<x-ichava::icon name="ichava/icon-sets-tabler::outline/home" class="w-6 h-6" />
 
 {{-- Fluent helper --}}
-{{ ichava('ichava/tabler-icons::filled/home')->color('#FFD700')->class('w-5 h-5') }}
+{{ ichava('ichava/icon-sets-tabler::filled/home')->color('#FFD700')->class('w-5 h-5') }}
 ```
 
 ## Documentation

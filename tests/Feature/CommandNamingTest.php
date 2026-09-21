@@ -112,7 +112,7 @@ it('registers no bare name at all, not even as an alias', function (): void {
 });
 
 it('no longer squats Laravel\'s make: namespace', function (): void {
-    // Kept after the scaffolder moved to ichava/icon-package-scaffolder, because
+    // Kept after the scaffolder moved to ichava/icon-sets-package-scaffolder, because
     // it asserts about the live registry rather than about a class this package
     // still ships: it now also catches a consumer installing a scaffolder that
     // registers the bare name, which is the case core can no longer see for

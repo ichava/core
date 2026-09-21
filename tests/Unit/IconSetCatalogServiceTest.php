@@ -25,11 +25,11 @@ describe('IconSetCatalogService::load', function () {
         expect($tabler)->not->toBeNull()
             ->and($flags)->not->toBeNull()
             ->and($tabler)->toMatchArray([
-                'package'    => 'ichava/tabler-icons',
-                'repository' => 'ichava/tabler-icons',
+                'package'    => 'ichava/icon-sets-tabler',
+                'repository' => 'ichava/icon-sets-tabler',
             ])->and($flags)->toMatchArray([
-                'package'    => 'ichava/flag-icons',
-                'repository' => 'ichava/flag-icons',
+                'package'    => 'ichava/icon-sets-flag',
+                'repository' => 'ichava/icon-sets-flag',
             ]);
 
         foreach ([$tabler, $flags] as $set) {
@@ -66,8 +66,8 @@ describe('IconSetCatalogService::load', function () {
 
 describe('IconSetCatalogService::find', function () {
     it('finds a set by key or package name', function () {
-        expect($this->service->find('tabler')['package'])->toBe('ichava/tabler-icons')
-            ->and($this->service->find('ichava/flag-icons')['key'])->toBe('flags')
+        expect($this->service->find('tabler')['package'])->toBe('ichava/icon-sets-tabler')
+            ->and($this->service->find('ichava/icon-sets-flag')['key'])->toBe('flags')
             ->and($this->service->find('no-such-set'))->toBeNull();
     });
 });
@@ -81,9 +81,9 @@ describe('IconSetCatalogService::latestTag', function () {
 
         expect($tablerVersion)->not->toBe('')
             ->and($flagsVersion)->not->toBe('')
-            ->and($this->service->latestTag('ichava/tabler-icons'))->toBe($tablerVersion)
-            ->and($this->service->latestTag('ichava/flag-icons'))->toBe($flagsVersion)
-            ->and($this->service->requireTarget('ichava/tabler-icons'))->toBe("ichava/tabler-icons:^{$tablerVersion}");
+            ->and($this->service->latestTag('ichava/icon-sets-tabler'))->toBe($tablerVersion)
+            ->and($this->service->latestTag('ichava/icon-sets-flag'))->toBe($flagsVersion)
+            ->and($this->service->requireTarget('ichava/icon-sets-tabler'))->toBe("ichava/icon-sets-tabler:^{$tablerVersion}");
     });
 
     it('returns null and an unconstrained target for unknown packages', function () {
@@ -103,7 +103,7 @@ describe('IconSetCatalogService::all', function () {
 
     it('reports seeded=true once rows exist for the package', function () {
         Icon::create([
-            'package' => 'ichava/tabler-icons',
+            'package' => 'ichava/icon-sets-tabler',
             'name'    => 'home',
             'path'    => 'outline/home.svg',
         ]);

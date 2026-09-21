@@ -30,33 +30,33 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  *
  * Usage examples (path mirrors the designer's folder structure):
  * ```blade
- * <x-ichava::icon name="ichava/tabler-icons::outline/home" />
- * <x-ichava::icon name="ichava/tabler-icons::filled/home" />
- * <x-ichava::icon name="ichava/metronic-icons::brand-logos/google" />
+ * <x-ichava::icon name="ichava/icon-sets-tabler::outline/home" />
+ * <x-ichava::icon name="ichava/icon-sets-tabler::filled/home" />
+ * <x-ichava::icon name="ichava/icon-sets-metronic::brand-logos/google" />
  * <x-ichava::icon name="vendor/icons::ui/buttons/primary/large" />
  * ```
  *
  * With accessibility:
  * ```blade
- * <x-ichava::icon name="ichava/tabler-icons::outline/home" title="Go Home" aria="Navigate home" />
+ * <x-ichava::icon name="ichava/icon-sets-tabler::outline/home" title="Go Home" aria="Navigate home" />
  * ```
  *
  * With sizing:
  * ```blade
- * <x-ichava::icon name="ichava/tabler-icons::outline/home" size="lg" />
- * <x-ichava::icon name="ichava/tabler-icons::outline/home" width="24" height="24" />
+ * <x-ichava::icon name="ichava/icon-sets-tabler::outline/home" size="lg" />
+ * <x-ichava::icon name="ichava/icon-sets-tabler::outline/home" width="24" height="24" />
  * ```
  *
  * With fallback:
  * ```blade
- * <x-ichava::icon name="ichava/tabler-icons::outline/home" fallback="ichava/tabler-icons::outline/circle-x" />
+ * <x-ichava::icon name="ichava/icon-sets-tabler::outline/home" fallback="ichava/icon-sets-tabler::outline/circle-x" />
  * ```
  *
  * Extend to create package-scoped shorthand components:
  * ```php
  * class TablerIconComponent extends IconComponent
  * {
- *     protected function getVendorPackage(): string { return 'ichava/tabler-icons'; }
+ *     protected function getVendorPackage(): string { return 'ichava/icon-sets-tabler'; }
  * }
  * // Then use: <x-tabler-icons-icon name="outline/home" />
  * ```
@@ -71,7 +71,7 @@ class IconComponent extends Component
     /**
      * Create a new component instance.
      *
-     * @param string $name Full icon path (e.g. 'ichava/tabler-icons::outline/home')
+     * @param string $name Full icon path (e.g. 'ichava/icon-sets-tabler::outline/home')
      *                     or a short name when getVendorPackage() is overridden.
      * @param string|null $set Override the icon set / vendor-package path.
      * @param string|null $variant Optional variant segment prepended to the icon name (e.g. 'outline', 'solid').
@@ -218,7 +218,7 @@ class IconComponent extends Component
      * Override this in child components to provide full vendor/package path.
      * This enables cleaner syntax: <x-metronic name="icon" /> instead of full path.
      *
-     * @return string|null Full vendor/package path (e.g., 'ichava/metronic-icons')
+     * @return string|null Full vendor/package path (e.g., 'ichava/icon-sets-metronic')
      */
     protected function getVendorPackage(): ?string
     {
@@ -241,8 +241,8 @@ class IconComponent extends Component
      * Build the full icon path
      *
      * Handles three scenarios:
-     * 1. Full path already provided (e.g., 'ichava/metronic-icons::brand-logos/facebook')
-     * 2. Vendor/package prefix needed (e.g., 'google' → 'ichava/metronic-icons::google')
+     * 1. Full path already provided (e.g., 'ichava/icon-sets-metronic::brand-logos/facebook')
+     * 2. Vendor/package prefix needed (e.g., 'google' → 'ichava/icon-sets-metronic::google')
      * 3. Fallback to set name only (e.g., 'google' → 'metronic::google')
      *
      * @return string Complete icon path
