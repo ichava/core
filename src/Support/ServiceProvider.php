@@ -6,6 +6,7 @@ namespace Simtabi\Laranail\Ichava\Support;
 
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Blade;
+use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Providers\IchavaServiceProvider;
@@ -31,6 +32,41 @@ abstract class ServiceProvider extends PackageServiceProvider
      * Do not change this value in child packages.
      */
     public const string ICON_ECOSYSTEM_NAME = 'ichava';
+
+    /**
+     * Build the Package, with translations already switched on.
+     *
+     * `package-tools` defaults `hasTranslations` to false, so every pack in this
+     * family shipped `resources/lang` that nothing ever registered -- the keys
+     * were unreachable for the whole life of the files, which is why a pack
+     * could carry another pack's translations, and a wrong licence string,
+     * without anything failing. Defaulting it on here means a pack gets working
+     * translations by existing rather than by remembering a call.
+     *
+     * Three things make this the right hook rather than `packageRegistered()`:
+     *
+     * - It runs before `configurePackage()`, so a pack that genuinely wants to
+     *   opt out can still set `$package->hasTranslations = false` there.
+     * - No pack overrides it, whereas `packageRegistered()` is a documented
+     *   extension point -- a child overriding that without calling `parent::`
+     *   would silently lose its translations, which is the same class of quiet
+     *   failure this change exists to end.
+     * - `getPackageBaseDir()` resolves by reflection on `static::class`, so it
+     *   works here even though `setPathFrom()` has not run yet.
+     *
+     * Conditioned on the directory existing so a pack without translations does
+     * not register a namespace pointing at nothing.
+     */
+    public function newPackage(): Package
+    {
+        $package = parent::newPackage();
+
+        if (is_dir($this->getPackageBaseDir() . '/resources/lang')) {
+            $package->hasTranslations();
+        }
+
+        return $package;
+    }
 
     /**
      * Called before the package's bindings are registered.

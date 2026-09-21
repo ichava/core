@@ -6,6 +6,57 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Added
 
+- **Icon packs now get their translations registered, by existing rather than by
+  asking.** `laranail/package-tools` defaults `hasTranslations` to false, and no
+  pack in this family ever called it -- so every `resources/lang` file shipped
+  unreachable. That is why one pack could carry another pack's translations, and
+  another could state a licence it does not hold, without a test going red.
+
+  `Support\ServiceProvider::newPackage()` now switches it on when the package
+  actually has a `resources/lang` directory. `newPackage()` rather than
+  `packageRegistered()` on purpose: it runs before `configurePackage()`, so a
+  pack can still opt out, and no pack overrides it -- whereas
+  `packageRegistered()` is a documented extension point, and a child overriding
+  it without `parent::` would silently lose its translations. That is the same
+  quiet failure this change exists to end.
+
+- **`IconRegistry` metadata carries localised strings and taxonomy labels.**
+  `config.json` stays canonical; translations are an overlay on top. A pack's
+  `labels` key exposes its `variants` / `categories` / `sets` display names,
+  which `config.json` has no equivalent for, and groups a pack does not define
+  are omitted.
+
+### Fixed
+
+- **The overlay is applied when metadata is read, not when a pack registers.**
+  Resolving it eagerly looked obvious and was wrong twice over:
+
+  `fromDirectory()` runs from a pack's `bootingPackage()`, which `package-tools`
+  fires **before** `bootPackageTranslations()`. A `trans()` call there does not
+  merely miss -- `Translator::load()` caches the empty result under
+  `$loaded[$namespace][$group][$locale]`, `isLoaded()` answers true from then
+  on, and the namespace registered moments later is never consulted again. One
+  premature lookup poisons that key for the rest of the request. The loader
+  itself was fine throughout: `$loader->load('en', 'icons', $ns)` returned the
+  data correctly while `__()` kept handing back the key.
+
+  And the registry is a singleton built once at boot, while locale is
+  per-request -- eager resolution would have served whichever locale was active
+  during boot to every request afterwards.
+
+  `tests/Feature/PackTranslationRegistrationTest.php` covers both. It reads the
+  live translator (`Lang::getLoader()->namespaces()`) and the built `Package`,
+  never provider source: grepping a provider proves how registration was
+  written, not what the framework ended up holding -- and this mechanism turns
+  on a default applied elsewhere, with no call at the call site to grep for.
+
+  **Mutation-checked:** removing the default fails 5 of the 7; returning the
+  overlay to registration time fails 3.
+
+## [Unreleased]
+
+### Added
+
 - **`actionlint` runs on every pull request.** Nothing validated the workflow files at all:
   `release.yml` triggers only on `push: tags`, so a broken workflow was first observed as a
   release that refused to start — after the decision to release had been made.
