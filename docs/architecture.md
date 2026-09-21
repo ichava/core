@@ -6,6 +6,24 @@
 
 Ichava is built on the [Laranail Package Tools](https://github.com/laranail/package-tools) library (a Spatie package-tools fork). The ecosystem is composed of focused, single-responsibility Composer packages that depend on each other through a clean directed graph. Install only what you need.
 
+## What core provides
+
+Relocated from the README, which is now a slim pointer.
+
+| Concern | What core ships |
+|---|---|
+| Security | DOM-based SVG sanitiser with a strict allow-list. XXE-safe (`LIBXML_NONET`, `resolveExternals=false`). Blocks `javascript:`, `vbscript:`, `file:` and every `on*` handler. |
+| Performance | Icon-level cache, SVG optimisation, indexed database lookup, and a pre-built manifest for production. |
+| Blade | The base `<x-ichava::icon>` component every icon pack extends. |
+| Fluent API | `ichava('vendor/pkg::category/name')->color('...')->class('...')`. |
+| Seeder | Queue-backed pipeline with multi-level dedup, change detection, Horizon-aware. |
+| Logging | Three dedicated channels: `ichava`, `ichava-icons`, `ichava-queue`. |
+| Search | Full-text search on PostgreSQL; portable `LIKE` search on SQLite, MySQL and MariaDB. |
+
+**Zero HTTP surface.** No REST endpoints, no middleware, no routes. The HTTP layer -- REST API plus the Vue/Vite SPA -- lives in the optional [`ichava/browser`](https://opensource.simtabi.com/documentation/ichava/browser/installation) package, which is why `composer require ichava/core` alone gives a fully functional headless icon engine.
+
+Scaffolding a new icon pack is **not** part of core either; it lives in [`ichava/icon-sets-package-scaffolder`](https://opensource.simtabi.com/documentation/ichava/icon-sets-package-scaffolder/creating-icon-packages) and replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0.2.7`.
+
 ## Package topology
 
 ```mermaid

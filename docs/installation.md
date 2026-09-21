@@ -4,6 +4,14 @@
 
 *How-to guide.*
 
+## Requirements
+
+Relocated from the README, which is now a slim pointer.
+
+- **PHP** `^8.4.1 || ^8.5`
+- **Laravel** `^13`
+- **A database**: SQLite, PostgreSQL, MySQL 8+ or MariaDB 10.3+ -- all four are supported and tested, and they are not equivalent. Only PostgreSQL gets indexed search; see [Database support](databases.md).
+
 ## 1. Point Composer at the repositories
 
 **Nothing in the Ichava ecosystem is published on Packagist yet.** `composer require ichava/core`
