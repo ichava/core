@@ -56,40 +56,40 @@ describe('Extension Packages -- Icons Bundle Integration', function () {
 describe('Extension Packages -- Tabler Icons Integration', function () {
     it('loads tabler icons package if installed', function () {
         $registry = app(IconRegistry::class);
-        if (! isset($registry->all()['ichava/tabler-icons'])) {
-            test()->markTestSkipped('ichava/tabler-icons not registered');
+        if (! isset($registry->all()['ichava/icon-sets-tabler'])) {
+            test()->markTestSkipped('ichava/icon-sets-tabler not registered');
         }
 
-        expect($registry->get('ichava/tabler-icons'))
+        expect($registry->get('ichava/icon-sets-tabler'))
             ->toBeArray()
             ->toHaveKeys(['base_path', 'browser_metadata']);
     });
 
     it('can retrieve tabler icons via API if seeded', function () {
-        if (Icon::where('package', 'ichava/tabler-icons')->count() === 0) {
+        if (Icon::where('package', 'ichava/icon-sets-tabler')->count() === 0) {
             test()->markTestSkipped('Tabler icons not seeded');
         }
 
         $icons = test()->getJson(route('ichava.api.icons.index', [
-            'packages' => ['ichava/tabler-icons'],
+            'packages' => ['ichava/icon-sets-tabler'],
             'per_page' => 20,
         ]))->assertOk()->json('data');
 
         expect($icons)->not->toBeEmpty();
         foreach ($icons as $icon) {
-            expect($icon['package'])->toBe('ichava/tabler-icons');
+            expect($icon['package'])->toBe('ichava/icon-sets-tabler');
         }
     });
 
     it('filters tabler icons by variant if available', function () {
-        $variants = IconTerm::where('package', 'ichava/tabler-icons')->where('type', 'variant')->pluck('slug')->toArray();
+        $variants = IconTerm::where('package', 'ichava/icon-sets-tabler')->where('type', 'variant')->pluck('slug')->toArray();
         if (empty($variants)) {
             test()->markTestSkipped('No tabler variants seeded');
         }
 
         $variant = $variants[0];
         $icons = test()->getJson(route('ichava.api.icons.index', [
-            'packages' => ['ichava/tabler-icons'],
+            'packages' => ['ichava/icon-sets-tabler'],
             'variants' => [$variant],
             'per_page' => 10,
         ]))->assertOk()->json('data');
@@ -100,54 +100,54 @@ describe('Extension Packages -- Tabler Icons Integration', function () {
     });
 
     it('can fetch tabler package details if installed', function () {
-        if (app(IconRegistry::class)->get('ichava/tabler-icons') === null) {
-            test()->markTestSkipped('ichava/tabler-icons not registered');
+        if (app(IconRegistry::class)->get('ichava/icon-sets-tabler') === null) {
+            test()->markTestSkipped('ichava/icon-sets-tabler not registered');
         }
 
-        test()->getJson(route('ichava.api.packages.show', ['package' => 'ichava/tabler-icons']))
+        test()->getJson(route('ichava.api.packages.show', ['package' => 'ichava/icon-sets-tabler']))
             ->assertOk()
             ->assertJsonStructure(['data' => ['name', 'label', 'icon_count', 'categories', 'variants']])
-            ->assertJsonPath('data.name', 'ichava/tabler-icons');
+            ->assertJsonPath('data.name', 'ichava/icon-sets-tabler');
     });
 });
 
 describe('Extension Packages -- Metronic Icons Integration', function () {
     it('loads metronic icons package if installed', function () {
         $registry = app(IconRegistry::class);
-        if (! isset($registry->all()['ichava/metronic-icons'])) {
-            test()->markTestSkipped('ichava/metronic-icons not registered');
+        if (! isset($registry->all()['ichava/icon-sets-metronic'])) {
+            test()->markTestSkipped('ichava/icon-sets-metronic not registered');
         }
 
-        expect($registry->get('ichava/metronic-icons'))
+        expect($registry->get('ichava/icon-sets-metronic'))
             ->toBeArray()
             ->toHaveKeys(['base_path', 'browser_metadata']);
     });
 
     it('can retrieve metronic icons via API if seeded', function () {
-        if (Icon::where('package', 'ichava/metronic-icons')->count() === 0) {
+        if (Icon::where('package', 'ichava/icon-sets-metronic')->count() === 0) {
             test()->markTestSkipped('Metronic icons not seeded');
         }
 
         $icons = test()->getJson(route('ichava.api.icons.index', [
-            'packages' => ['ichava/metronic-icons'],
+            'packages' => ['ichava/icon-sets-metronic'],
             'per_page' => 20,
         ]))->assertOk()->json('data');
 
         expect($icons)->not->toBeEmpty();
         foreach ($icons as $icon) {
-            expect($icon['package'])->toBe('ichava/metronic-icons');
+            expect($icon['package'])->toBe('ichava/icon-sets-metronic');
         }
     });
 
     it('filters metronic icons by category if available', function () {
-        $categories = IconTerm::where('package', 'ichava/metronic-icons')->where('type', 'category')->pluck('slug')->toArray();
+        $categories = IconTerm::where('package', 'ichava/icon-sets-metronic')->where('type', 'category')->pluck('slug')->toArray();
         if (empty($categories)) {
             test()->markTestSkipped('No metronic categories seeded');
         }
 
         $category = $categories[0];
         $icons = test()->getJson(route('ichava.api.icons.index', [
-            'packages'   => ['ichava/metronic-icons'],
+            'packages'   => ['ichava/icon-sets-metronic'],
             'categories' => [$category],
             'per_page'   => 10,
         ]))->assertOk()->json('data');
@@ -158,14 +158,14 @@ describe('Extension Packages -- Metronic Icons Integration', function () {
     });
 
     it('can fetch metronic package details if installed', function () {
-        if (app(IconRegistry::class)->get('ichava/metronic-icons') === null) {
-            test()->markTestSkipped('ichava/metronic-icons not registered');
+        if (app(IconRegistry::class)->get('ichava/icon-sets-metronic') === null) {
+            test()->markTestSkipped('ichava/icon-sets-metronic not registered');
         }
 
-        test()->getJson(route('ichava.api.packages.show', ['package' => 'ichava/metronic-icons']))
+        test()->getJson(route('ichava.api.packages.show', ['package' => 'ichava/icon-sets-metronic']))
             ->assertOk()
             ->assertJsonStructure(['data' => ['name', 'label', 'icon_count', 'categories', 'variants']])
-            ->assertJsonPath('data.name', 'ichava/metronic-icons');
+            ->assertJsonPath('data.name', 'ichava/icon-sets-metronic');
     });
 });
 

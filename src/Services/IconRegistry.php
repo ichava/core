@@ -200,7 +200,7 @@ final class IconRegistry
      * It handles in-memory deduplication (skips if already registered), metadata
      * validation, conflict detection, log deduplication, and event dispatch.
      *
-     * @param string $name Unique icon set name (e.g. 'ichava/tabler-icons')
+     * @param string $name Unique icon set name (e.g. 'ichava/icon-sets-tabler')
      * @param IconSetInterface $set The icon set object
      * @param array<string, mixed> $metadata Package metadata (package_name, base_path, etc.)
      *
@@ -328,7 +328,7 @@ final class IconRegistry
      * to SvgDriver. If the icon is not found, attempts the set's configured
      * fallback icon before throwing.
      *
-     * @param string $name Icon path (e.g. 'ichava/tabler-icons::outline/home')
+     * @param string $name Icon path (e.g. 'ichava/icon-sets-tabler::outline/home')
      * @param string|null $variant Variant override (e.g. 'outline', 'solid')
      * @param string|null $category Category override
      * @param array<string, mixed> $attributes HTML attributes to inject onto the SVG element
@@ -871,7 +871,7 @@ final class IconRegistry
      *
      * @param array<string, mixed> $config Parsed config.json data
      *
-     * @return string Vendor name (e.g. 'ichava' from 'ichava/tabler-icons')
+     * @return string Vendor name (e.g. 'ichava' from 'ichava/icon-sets-tabler')
      */
     private function getVendor(array $config): string
     {

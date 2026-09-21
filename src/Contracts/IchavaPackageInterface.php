@@ -15,7 +15,7 @@ interface IchavaPackageInterface
     /**
      * Get the composer package name
      *
-     * @return string e.g., 'ichava/tabler-icons'
+     * @return string e.g., 'ichava/icon-sets-tabler'
      */
     public function getPackageName(): string;
 

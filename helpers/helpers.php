@@ -15,7 +15,7 @@ if (! function_exists('ichava')) {
      * icons, search, browser, cache, sets, and so on.
      *
      * ```blade
-     * {!! ichava('ichava/tabler-icons::outline/home')->class('w-6 h-6') !!}
+     * {!! ichava('ichava/icon-sets-tabler::outline/home')->class('w-6 h-6') !!}
      * {!! ichava()->register('ichava/social-icons')->fromDirectory(storage_path('icons/social')) !!}
      * {!! ichava()->defs() !!}
      * ```

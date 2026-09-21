@@ -52,7 +52,7 @@ beforeEach(function () {
 it('returns SUCCESS when every pack is up to date', function () {
     ($this->stubRows)([
         [
-            'package'     => 'ichava/flag-icons',
+            'package'     => 'ichava/icon-sets-flag',
             'source'      => 'primary',
             'status'      => 'up-to-date',
             'current'     => '7.5.0',
@@ -68,7 +68,7 @@ it('returns SUCCESS when every pack is up to date', function () {
 it('emits valid JSON under --format=json', function () {
     ($this->stubRows)([
         [
-            'package'     => 'ichava/tabler-icons',
+            'package'     => 'ichava/icon-sets-tabler',
             'source'      => 'primary',
             'status'      => 'update-available',
             'current'     => '3.0.0',
@@ -86,20 +86,20 @@ it('emits valid JSON under --format=json', function () {
     $output = Artisan::output();
 
     expect($output)
-        ->toContain('"package": "ichava/tabler-icons"')
+        ->toContain('"package": "ichava/icon-sets-tabler"')
         ->and($output)->toContain('"latest": "3.44.0"');
 
     if (preg_match('/(\[\s*\{.*?\}\s*\])/s', $output, $m)) {
         $decoded = json_decode($m[1], true);
         expect($decoded)->toBeArray()->and($decoded)->toHaveCount(1);
-        expect($decoded[0]['package'])->toBe('ichava/tabler-icons');
+        expect($decoded[0]['package'])->toBe('ichava/icon-sets-tabler');
     }
 });
 
 it('exits non-zero with --fail-on-stale when any pack is behind', function () {
     ($this->stubRows)([
         [
-            'package'     => 'ichava/tabler-icons',
+            'package'     => 'ichava/icon-sets-tabler',
             'source'      => 'primary',
             'status'      => 'update-available',
             'current'     => '3.0.0',
@@ -115,7 +115,7 @@ it('exits non-zero with --fail-on-stale when any pack is behind', function () {
 it('exits non-zero with --fail-on-stale when a pack is unreachable', function () {
     ($this->stubRows)([
         [
-            'package'     => 'ichava/flag-icons',
+            'package'     => 'ichava/icon-sets-flag',
             'source'      => 'primary',
             'status'      => 'unreachable',
             'current'     => '7.0.0',
@@ -131,7 +131,7 @@ it('exits non-zero with --fail-on-stale when a pack is unreachable', function ()
 it('forwards --package= to the checker', function () {
     ($this->stubRows)([
         [
-            'package'     => 'ichava/tabler-icons',
+            'package'     => 'ichava/icon-sets-tabler',
             'source'      => 'primary',
             'status'      => 'up-to-date',
             'current'     => '3.44.0',
@@ -140,7 +140,7 @@ it('forwards --package= to the checker', function () {
             'reason'      => null,
         ],
         [
-            'package'     => 'ichava/flag-icons',
+            'package'     => 'ichava/icon-sets-flag',
             'source'      => 'primary',
             'status'      => 'up-to-date',
             'current'     => '7.5.0',
@@ -151,14 +151,14 @@ it('forwards --package= to the checker', function () {
     ]);
 
     Artisan::call('ichava::ichava-core.check-updates', [
-        '--package' => 'ichava/tabler-icons',
+        '--package' => 'ichava/icon-sets-tabler',
         '--format'  => 'json',
     ]);
     $output = Artisan::output();
 
     expect($output)
-        ->toContain('ichava/tabler-icons')
-        ->and($output)->not->toContain('ichava/flag-icons');
+        ->toContain('ichava/icon-sets-tabler')
+        ->and($output)->not->toContain('ichava/icon-sets-flag');
 });
 
 it('soft-succeeds when the registry is empty', function () {

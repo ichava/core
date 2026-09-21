@@ -64,7 +64,7 @@ final class Ichava
      * Returns a RegistrationConfig so you can chain fromDirectory(), prefix(),
      * bladeComponent(), etc. before calling register().
      *
-     * @param string $name Unique package name (e.g. 'ichava/tabler-icons')
+     * @param string $name Unique package name (e.g. 'ichava/icon-sets-tabler')
      */
     public function register(string $name): RegistrationConfig
     {
@@ -103,7 +103,7 @@ final class Ichava
      * Delegates to IconDiscoveryService. Returns an empty collection if the
      * package is not found rather than throwing.
      *
-     * @param string $package Package name (e.g. 'ichava/tabler-icons')
+     * @param string $package Package name (e.g. 'ichava/icon-sets-tabler')
      */
     public function icons(string $package): Collection
     {
@@ -242,7 +242,7 @@ final class Ichava
     /**
      * Get a registered IconSetInterface object by name.
      *
-     * @param string $name Icon set name (e.g. 'ichava/tabler-icons')
+     * @param string $name Icon set name (e.g. 'ichava/icon-sets-tabler')
      *
      * @throws IchavaException if the set is not registered
      */
@@ -267,7 +267,7 @@ final class Ichava
      * Accepts the same path format as render(): `vendor/package::category/name`.
      * Returns false rather than throwing if the set or icon is not found.
      *
-     * @param string $name Icon path (e.g. 'ichava/tabler-icons::outline/home')
+     * @param string $name Icon path (e.g. 'ichava/icon-sets-tabler::outline/home')
      * @param string|null $variant Optional variant override
      * @param string|null $category Optional category override
      */

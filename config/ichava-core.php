@@ -109,7 +109,7 @@ return [
     |--------------------------------------------------------------------------
     | Global fallback icon
     |--------------------------------------------------------------------------
-    | Fully qualified icon path (e.g. 'ichava/tabler-icons::outline/help')
+    | Fully qualified icon path (e.g. 'ichava/icon-sets-tabler::outline/help')
     | rendered when the requested icon cannot be resolved and no per-component
     | fallback is provided. null disables the feature.
     */
