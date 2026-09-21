@@ -50,6 +50,48 @@ describe('IconSetCatalogService::load', function () {
         expect(fn () => $service->load())->toThrow(IchavaException::class);
     });
 
+    it('names every required field the catalog note promises', function () {
+        // The `_note` in icon-sets.json tells the next person which fields an
+        // entry must carry, and it used to be wrong: it said to append
+        // key/package/repository and let the nightly sync fill the rest, which
+        // makes `ichava::ichava-core.install` throw until that sync runs.
+        //
+        // This pins the note to the validator. If the required set changes, the
+        // message changes, this fails, and the note gets corrected with it --
+        // rather than the two drifting apart again in silence.
+        $path = sys_get_temp_dir() . '/ichava-catalog-note-' . bin2hex(random_bytes(4)) . '.json';
+        file_put_contents($path, json_encode([
+            'sets' => [['key' => 'x', 'package' => 'ichava/x', 'repository' => 'ichava/x']],
+        ]), LOCK_EX);
+
+        $service = new IconSetCatalogService(new Filesystem, app(IconRegistry::class), $path);
+
+        try {
+            $message = null;
+
+            try {
+                $service->load();
+            } catch (IchavaException $e) {
+                $message = $e->getMessage();
+            }
+
+            expect($message)->toContain('title')
+                ->toContain('icon_count')
+                ->toContain('variants');
+
+            $note = (string) json_decode(
+                (string) file_get_contents(dirname(__DIR__, 2) . '/icon-sets.json'),
+                true,
+            )['_note'];
+
+            foreach (['key', 'package', 'repository', 'title', 'icon_count', 'variants'] as $field) {
+                expect($note)->toContain($field);
+            }
+        } finally {
+            @unlink($path);
+        }
+    });
+
     it('throws when a set is missing required fields', function () {
         $path = sys_get_temp_dir() . '/ichava-catalog-' . bin2hex(random_bytes(4)) . '.json';
         file_put_contents($path, json_encode(['sets' => [['key' => 'broken']]]), LOCK_EX);
