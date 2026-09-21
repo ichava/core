@@ -208,10 +208,12 @@ final class Icon extends Model
      */
     public function scopeFuzzySearch(Builder $query, string $search): Builder
     {
-        // Escape LIKE wildcards so user input matches literally. The ESCAPE
-        // clause keeps this correct on drivers without a default escape
-        // character (SQLite), not just MySQL and PostgreSQL.
-        $like = '%' . addcslashes($search, '%_\\') . '%';
+        // Escape LIKE wildcards so user input matches literally, with '!' as the
+        // escape character rather than a backslash. A backslash inside a MySQL
+        // string literal is itself an escape, so ESCAPE '\' is an unterminated
+        // string there and every search 1064s. The ESCAPE clause is still needed
+        // because SQLite has no default escape character; '!' satisfies both.
+        $like = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search) . '%';
 
         /*
          * This is the path every non-PostgreSQL driver takes -- `scopeSearch` delegates
@@ -238,26 +240,26 @@ final class Icon extends Model
         $isPostgres = $query->getConnection()->getDriverName() === 'pgsql';
 
         return $query->where(function (Builder $q) use ($like, $isPostgres): void {
-            $q->whereRaw("name LIKE ? ESCAPE '\\'", [$like]);
+            $q->whereRaw("name LIKE ? ESCAPE '!'", [$like]);
 
             if (FtsLanguageHelper::isScopeEnabled('keywords')) {
                 $isPostgres
-                    ? $q->orWhereRaw("EXISTS (SELECT 1 FROM json_array_elements_text(keywords::json) AS kw WHERE kw LIKE ? ESCAPE '\\')", [$like])
-                    : $q->orWhereRaw("keywords LIKE ? ESCAPE '\\'", [$like]);
+                    ? $q->orWhereRaw("EXISTS (SELECT 1 FROM json_array_elements_text(keywords::json) AS kw WHERE kw LIKE ? ESCAPE '!')", [$like])
+                    : $q->orWhereRaw("keywords LIKE ? ESCAPE '!'", [$like]);
             }
 
             if (FtsLanguageHelper::isScopeEnabled('tags')) {
                 $isPostgres
-                    ? $q->orWhereRaw("EXISTS (SELECT 1 FROM json_array_elements_text(tags::json) AS tag WHERE tag LIKE ? ESCAPE '\\')", [$like])
-                    : $q->orWhereRaw("tags LIKE ? ESCAPE '\\'", [$like]);
+                    ? $q->orWhereRaw("EXISTS (SELECT 1 FROM json_array_elements_text(tags::json) AS tag WHERE tag LIKE ? ESCAPE '!')", [$like])
+                    : $q->orWhereRaw("tags LIKE ? ESCAPE '!'", [$like]);
             }
 
             if (FtsLanguageHelper::isScopeEnabled('categories') || FtsLanguageHelper::isScopeEnabled('variants')) {
-                $q->orWhereHas('terms', fn (Builder $termQuery) => $termQuery->whereRaw("name LIKE ? ESCAPE '\\'", [$like]));
+                $q->orWhereHas('terms', fn (Builder $termQuery) => $termQuery->whereRaw("name LIKE ? ESCAPE '!'", [$like]));
             }
 
             if (FtsLanguageHelper::isScopeEnabled('package_name')) {
-                $q->orWhereRaw("package LIKE ? ESCAPE '\\'", [$like]);
+                $q->orWhereRaw("package LIKE ? ESCAPE '!'", [$like]);
             }
         });
     }
