@@ -20,6 +20,15 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   is kept rather than swapped for a plain `--force`: it still refuses to clobber a push that
   arrived after that fetch, which is the case it exists for.
 
+- **The same workflow had stopped opening pull requests, silently.** Its guard was
+  `gh pr view "$BRANCH"`, which resolves a branch to its most recent pull request **whatever its
+  state**. Once the first one was merged, every later run matched that merged PR, printed
+  "Pull request already open", skipped creation and exited 0.
+
+  Worse than the push failure it sat next to: that one at least went red. This reported success
+  while the catalog change stayed on the branch with nothing tracking it. It is now
+  `gh pr list --head "$BRANCH" --state open`, which is the question being asked.
+
 ### Added
 
 - **A carrier-grade NAT guard test at the level the guard actually runs.**
