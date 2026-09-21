@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
+use Simtabi\Laranail\Ichava\Traits\ContainsFilePaths;
 use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Support\IconPathStructureDetector;
@@ -26,6 +27,8 @@ use Simtabi\Laranail\Ichava\Support\IconPathStructureDetector;
  */
 class IconWatcherService
 {
+    use ContainsFilePaths;
+
     private const FINGERPRINT_CACHE_KEY = 'ichava.directory.fingerprints';
 
     private const CHANGE_DETECTOR_KEY = 'ichava.directory_fingerprints';
@@ -542,23 +545,13 @@ class IconWatcherService
             throw IchavaException::securityViolation("Symlinks are not allowed: '{$absolutePath}'");
         }
 
-        // Realpath containment: the resolved file has to stay inside the package's
-        // own base directory. realpath() resolves `..` and any symlinked component,
-        // so a path that leaves the tree fails the prefix test below.
-        //
-        // The scan does not reach such a file today -- File::allFiles() leaves
-        // Symfony Finder's followLinks off, so a symlinked directory is never
-        // descended into. This guards the method itself, which is reachable
-        // independently of scanDiskIcons(), and keeps the rule where the read
-        // happens rather than in the caller that happens to be safe right now.
-        // Same check, same order, as SvgDriver::loadFromLocal().
-        $realPath = realpath($absolutePath);
-        $realBase = realpath($basePath);
-
-        if ($realPath === false || $realBase === false
-            || ! Str::startsWith($realPath, rtrim($realBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
-            throw IchavaException::securityViolation("Path escapes its directory: '{$absolutePath}'");
-        }
+        // Realpath containment, shared with SvgDriver. The scan does not reach
+        // an escaping file today -- File::allFiles() leaves Symfony Finder's
+        // followLinks off, so a symlinked directory is never descended into.
+        // This guards the method itself, which is reachable independently of
+        // scanDiskIcons(), and keeps the rule where the read happens rather
+        // than in the caller that happens to be safe right now.
+        $this->assertPathContained($absolutePath, $basePath);
 
         $maxSize = config('ichava.ichava-core.max_file_size', IchavaConstants::MAX_SVG_FILE_SIZE);
 

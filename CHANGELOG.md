@@ -6,6 +6,53 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **The Blade-component conflict detector had never fired.**
+  `IconRegistry::checkConflicts()` has three detectors; two worked. The third
+  guarded on `$metadata['blade_component'] ?? null`, and **nothing in the
+  codebase ever wrote that key** -- 4 reads, 0 writes -- so the guard read null
+  every time and its whole branch was unreachable.
+
+  That is the collision the global standard calls the headline risk: Blade keeps
+  component aliases in a flat map, so a second package claiming one does not
+  collide loudly, it silently replaces the first. The ecosystem had a detector
+  for exactly that hazard and it had never run.
+
+  `loadBladeComponent()` now reports the alias it registered to
+  `IconRegistry::noteBladeComponent()`, and `fromDirectory()` surfaces it.
+
+  **Recorded rather than derived, deliberately.** The alias comes from the short
+  name a pack passes to `loadBladeComponent()` -- `'tabler-icons'` becomes
+  `tabler-icons-icon` -- and no other piece of metadata carries that string. A
+  derived value would agree with the real registration only by luck.
+
+- **`IconDiscoveryService::getIconSyntax()` emitted a warning on every call.**
+  The same absent key, read without a null-coalesce, so every invocation logged
+  `Undefined array key "blade_component"` and the `component` usage hint was
+  always null -- the discovery output never showed anyone how to use the Blade
+  component it was describing.
+
+- **The destructive default was the undiscoverable one.**
+  `AutoUnseedOnUnregistration` reads
+  `config('ichava.ichava-core.database.auto_unseed', true)`, so unseeding is on
+  by default, but the key appeared nowhere in `config/ichava-core.php`. A
+  consumer publishing the config found a switch for `auto_seed` -- which is off
+  by default -- and none for this. Now shipped, with `ICHAVA_AUTO_UNSEED`.
+
+### Changed
+
+- **One containment implementation instead of two.** `SvgDriver::loadFromLocal()`
+  and `IconWatcherService::extractIconData()` each carried their own
+  `realpath()` boundary check. Two copies of a security check drift, and the one
+  that drifts is the one nobody is looking at. Both now use
+  `Traits\ContainsFilePaths`.
+
+  Behaviour is unchanged. Neutering the shared check fails 5 tests across both
+  consumers, which is what makes the extraction real rather than cosmetic.
+
+## [Unreleased]
+
+### Fixed
+
 - **Package titles and descriptions were read under a key nothing ever wrote.**
   Nine call sites in `IconBrowserService` and `IconDiscoveryService` read
   `$metadata['browser_metadata']['name' | 'description' | 'vendor']`.
