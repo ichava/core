@@ -34,6 +34,9 @@
     "phpstan/phpstan": "^2.1",
     "laravel/pint": "^1.18"
   },
+  "suggest": {
+    "ichava/icon-package-scaffolder": "Scaffold a new Ichava icon package: php artisan ichava::icon-package-scaffolder.make"
+  },
   "autoload": {
     "psr-4": {
       "Simtabi\\Laranail\\Ichava\\": "src/",
@@ -58,7 +61,7 @@
       }
     },
     "branch-alias": {
-      "dev-main": "0.2.x-dev"
+      "dev-main": "0.3.x-dev"
     }
   },
   "scripts": {
