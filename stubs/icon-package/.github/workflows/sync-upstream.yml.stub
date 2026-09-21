@@ -1,0 +1,102 @@
+# .github/workflows/sync-upstream.yml
+#
+# Drop-in template for any Ichava icon pack that wants automated
+# upstream-asset refreshes. Runs the ichava/maintainer-toolkit docker image (which
+# bundles Python + Node + gh + every fetch strategy) and opens a PR
+# when upstream has moved.
+#
+# A human reviews the PR diff and merges; the tag-driven release.yml
+# then ships the bump to Packagist.
+#
+# Required:
+#   GITHUB_TOKEN (automatic) for PR creation.
+
+name: Sync upstream
+
+on:
+  schedule:
+    # Mondays 06:45 UTC. 45-past-the-hour offset borrowed from Homebrew's
+    # autobump cron to dodge GitHub Actions' on-the-hour load spike.
+    - cron: '45 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Refresh even when current == latest (dev / debugging)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-upstream-${{ github.repository }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout pack repo
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Checkout ichava/maintainer-toolkit (the toolkit)
+        uses: actions/checkout@v7
+        with:
+          repository: ichava/maintainer-toolkit
+          path: .ichava-maintainer-toolkit
+          # Pin to a tag in production. Floating on main is fine for
+          # the cron itself -- this is the maintainer's own tooling.
+          ref: main
+
+      - name: Configure git identity (commits go through this name)
+        run: |
+          git config user.name  "ichava-sync-bot"
+          git config user.email "19682005+imanimanyara@users.noreply.github.com"
+
+      - name: Authenticate gh for PR creation
+        run: gh auth setup-git
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build from the toolkit checkout instead of pulling ghcr.io -- the
+      # GHCR package is private and other repos' GITHUB_TOKENs cannot pull
+      # it; the source is already checked out one step above.
+      - name: Build ichava-maintainer-toolkit image
+        run: docker build -t ichava-maintainer-toolkit:local .ichava-maintainer-toolkit
+
+      - name: Run ichava-maintainer-toolkit sync via Docker
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACK_SLUG: ${{ github.event.repository.name }}
+        run: |
+          FLAGS=""
+          if [ "${{ inputs.force }}" = "true" ]; then FLAGS="$FLAGS --force"; fi
+
+          # The push happens INSIDE the container. `gh auth setup-git` ran on
+          # the runner, and actions/checkout leaves its credential in a file
+          # under RUNNER_TEMP that is not mounted here, so the container had no
+          # way to authenticate: `git push` exited 128 at the GitBranch stage,
+          # after a full and successful asset refresh. Hand it the same
+          # Authorization header actions/checkout uses. GH_TOKEN is masked in
+          # logs, and so is anything derived from it.
+          AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          docker run --rm \
+            -v "$PWD/..:/work" \
+            -v "$PWD/.ichava-maintainer-toolkit/config:/app/config" \
+            -e GH_TOKEN \
+            -e GIT_CONFIG_COUNT=2 \
+            -e GIT_CONFIG_KEY_0=safe.directory \
+            -e GIT_CONFIG_VALUE_0='*' \
+            -e GIT_CONFIG_KEY_1='http.https://github.com/.extraheader' \
+            -e GIT_CONFIG_VALUE_1="$AUTH_HEADER" \
+            ichava-maintainer-toolkit:local \
+            sync --pack="$PACK_SLUG" $FLAGS
+
+      - name: Clean up
+        if: always()
+        run: rm -rf .ichava-maintainer-toolkit
