@@ -110,11 +110,11 @@ class IconDiscoveryService
 
                 $packages[$packageName] = array_merge($metadata, [
                     'alias'       => $metadata['icon_set_name'],
-                    'name'        => $metadata['browser_metadata']['name'] ?? $metadata['icon_set_name'],
-                    'vendor'      => $metadata['browser_metadata']['vendor'] ?? 'ichava',
+                    'name'        => $metadata['name'] ?? $metadata['icon_set_name'],
+                    'vendor'      => $metadata['vendor'] ?? 'ichava',
                     'package'     => $packageName,
                     'path'        => $metadata['base_path'],
-                    'description' => $metadata['browser_metadata']['description'] ?? '',
+                    'description' => $metadata['description'] ?? '',
                     'icons'       => [], // Don't load all icons upfront
                     'total'       => $iconCount,
                 ]);
@@ -273,7 +273,7 @@ class IconDiscoveryService
             $totalIcons += $packageTotal;
 
             $byPackage[$packageKey] = [
-                'name'  => $package['browser_metadata']['name'] ?? $packageKey,
+                'name'  => $package['name'] ?? $packageKey,
                 'total' => $packageTotal,
             ];
 

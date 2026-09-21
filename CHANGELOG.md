@@ -4,6 +4,32 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Fixed
+
+- **Package titles and descriptions were read under a key nothing ever wrote.**
+  Nine call sites in `IconBrowserService` and `IconDiscoveryService` read
+  `$metadata['browser_metadata']['name' | 'description' | 'vendor']`.
+  `IconRegistry` has never written a `browser_metadata` key -- 16 reads across
+  this package and `ichava/browser`, **zero writes** -- so every one fell through
+  its `??` default. Consumers got the package slug where a title belonged and an
+  empty string where a description belonged.
+
+  Nothing failed, because every read had a fallback that looked plausible. A
+  fallback is only a safety net if something notices you are standing in it.
+
+  The values were there the whole time, one level up: `IconRegistry` writes
+  `name`, `description` and `vendor` at the top of its metadata array. The reads
+  now use them.
+
+  This is also what makes the translation overlay visible: with the right key
+  read, a locale switch reaches consumers, since the registry applies
+  translations on read.
+
+  **Mutation-checked:** restoring `browser_metadata` fails the discovery
+  assertion, which is the one that would have caught this originally.
+
+  > `ichava/browser` has seven more of these reads and is fixed separately.
+
 ### Added
 
 - **Icon packs now get their translations registered, by existing rather than by
