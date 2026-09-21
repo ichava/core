@@ -7,6 +7,7 @@ namespace Simtabi\Laranail\Ichava\Support;
 use Exception;
 use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Contracts\PreferenceStore;
 
 /**
  * Ichava Session Manager
@@ -22,7 +23,7 @@ use Simtabi\Laranail\Ichava\Services\IchavaLogger;
  * - Log issues but don't throw exceptions
  * - Always return safe defaults
  */
-final class IchavaSessionManager
+final class IchavaSessionManager implements PreferenceStore
 {
     private const SESSION_PREFIX = 'ichava';
 

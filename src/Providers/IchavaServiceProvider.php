@@ -27,11 +27,13 @@ use Simtabi\Laranail\Ichava\Commands\InstallCommand;
 use Simtabi\Laranail\Ichava\Support\ServiceProvider;
 use Simtabi\Laranail\Ichava\Commands\DatabaseCommand;
 use Simtabi\Laranail\Ichava\Commands\JobStatusCommand;
+use Simtabi\Laranail\Ichava\Contracts\PreferenceStore;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Services\IconBrowserService;
 use Simtabi\Laranail\Ichava\Services\IconWatcherService;
 use Simtabi\Laranail\Ichava\Services\InformationService;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
+use Simtabi\Laranail\Ichava\Support\IchavaSessionManager;
 use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
@@ -139,6 +141,12 @@ class IchavaServiceProvider extends PackageServiceProvider
 
         $this->app->singleton(AuditLogger::class);
         $this->app->alias(AuditLogger::class, 'ichava.security.audit');
+
+        // Preferences are written through a contract so the store can be
+        // substituted. Without this the service would depend on a `final`
+        // class that decides its own availability, which is why preference
+        // behaviour could not be tested at all.
+        $this->app->singleton(PreferenceStore::class, IchavaSessionManager::class);
 
         $this->app->singleton(PathResolver::class);
         $this->app->singleton(SvgDriver::class);
