@@ -39,6 +39,51 @@ class IconPackUpdateChecker
     /** Default cache TTL (12 hours). Configurable via constructor. */
     protected const DEFAULT_CACHE_TTL = 43_200;
 
+    /**
+     * No private, reserved, loopback, link-local, multicast or unspecified
+     * addresses. The loopback check is explicit rather than trusting flag
+     * behaviour across PHP builds.
+     */
+    /**
+     * IPv4 blocks that must never be requested. This is the IANA special-purpose
+     * registry (RFC 6890), not PHP's `NO_PRIV_RANGE | NO_RES_RANGE` pair, which
+     * covers only RFC 1918, loopback and link-local and admits everything else --
+     * carrier-grade NAT included.
+     *
+     * @var list<string>
+     */
+    protected const BLOCKED_V4 = [
+        '0.0.0.0/8',          // this network
+        '10.0.0.0/8',         // RFC 1918 private
+        '100.64.0.0/10',      // RFC 6598 carrier-grade NAT
+        '127.0.0.0/8',        // loopback
+        '169.254.0.0/16',     // link-local, incl. 169.254.169.254 cloud metadata
+        '172.16.0.0/12',      // RFC 1918 private
+        '192.0.0.0/24',       // IETF protocol assignments
+        '192.0.2.0/24',       // TEST-NET-1
+        '192.168.0.0/16',     // RFC 1918 private
+        '198.18.0.0/15',      // RFC 2544 benchmarking
+        '198.51.100.0/24',    // TEST-NET-2
+        '203.0.113.0/24',     // TEST-NET-3
+        '224.0.0.0/4',        // multicast
+        '240.0.0.0/4',        // reserved, incl. 255.255.255.255
+    ];
+
+    /**
+     * IPv6 blocks that must never be requested.
+     *
+     * @var list<string>
+     */
+    protected const BLOCKED_V6 = [
+        '::/128',             // unspecified
+        '::1/128',            // loopback
+        '100::/64',           // discard-only
+        '2001:db8::/32',      // documentation
+        'fc00::/7',           // unique-local
+        'fe80::/10',          // link-local
+        'ff00::/8',           // multicast
+    ];
+
     public function __construct(
         protected IconRegistry $registry,
         protected ?IchavaLogger $logger = null,
@@ -534,19 +579,92 @@ class IconPackUpdateChecker
     }
 
     /**
-     * No private, reserved, loopback, link-local, multicast or unspecified
-     * addresses. The loopback check is explicit rather than trusting flag
-     * behaviour across PHP builds.
+     * Whether an address may be requested.
+     *
+     * Three IPv6 forms carry an IPv4 address inside them, and each is a way to
+     * write a blocked IPv4 address that looks like a public IPv6 one:
+     * `::ffff:127.0.0.1` (IPv4-mapped), `64:ff9b::7f00:1` (NAT64) and
+     * `2002:7f00:1::` (6to4) all mean 127.0.0.1. They are unwrapped and judged
+     * as the IPv4 address they carry, so the answer cannot depend on notation.
      */
     protected function isPublicIp(string $ip): bool
     {
-        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        $packed = @inet_pton($ip);
+
+        if ($packed === false) {
             return false;
         }
 
-        $lower = strtolower($ip);
+        if (strlen($packed) === 16) {
+            $embedded = $this->embeddedIpv4($packed);
 
-        return ! str_starts_with($lower, '127.') && $lower !== '::1';
+            if ($embedded !== null) {
+                return $this->isPublicIp($embedded);
+            }
+
+            return ! $this->inAnyBlock($packed, self::BLOCKED_V6);
+        }
+
+        return ! $this->inAnyBlock($packed, self::BLOCKED_V4);
+    }
+
+    /**
+     * The IPv4 address an IPv6 address carries, in dotted form, or null when it
+     * carries none.
+     */
+    protected function embeddedIpv4(string $packed): ?string
+    {
+        // ::ffff:0:0/96 IPv4-mapped, and 64:ff9b::/96 NAT64: last four bytes.
+        $mapped = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff";
+        $nat64 = "\x00\x64\xff\x9b\x00\x00\x00\x00\x00\x00\x00\x00";
+
+        if (str_starts_with($packed, $mapped) || str_starts_with($packed, $nat64)) {
+            return inet_ntop(substr($packed, 12, 4)) ?: null;
+        }
+
+        // 2002::/16 6to4: the IPv4 address is bytes 2-5.
+        if (str_starts_with($packed, "\x20\x02")) {
+            return inet_ntop(substr($packed, 2, 4)) ?: null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether a packed address falls inside any of the given CIDR blocks.
+     *
+     * @param list<string> $blocks
+     */
+    protected function inAnyBlock(string $packed, array $blocks): bool
+    {
+        foreach ($blocks as $block) {
+            [$net, $bits] = explode('/', $block);
+            $packedNet = @inet_pton($net);
+
+            if ($packedNet === false || strlen($packedNet) !== strlen($packed)) {
+                continue;
+            }
+
+            $bits = (int) $bits;
+            $whole = intdiv($bits, 8);
+            $rest = $bits % 8;
+
+            if ($whole > 0 && substr($packed, 0, $whole) !== substr($packedNet, 0, $whole)) {
+                continue;
+            }
+
+            if ($rest > 0) {
+                $mask = ~((1 << (8 - $rest)) - 1) & 0xFF;
+
+                if ((ord($packed[$whole]) & $mask) !== (ord($packedNet[$whole]) & $mask)) {
+                    continue;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**

@@ -4,6 +4,35 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Security
+
+- **The version-check address guard judged addresses by notation, and missed most of the
+  special-purpose registry.** `isPublicIp()` used PHP's
+  `FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE` plus a `127.` prefix check. That pair
+  covers RFC 1918, loopback and link-local — **169.254.169.254 cloud metadata was correctly
+  blocked** — and admits everything else IANA marks special-purpose.
+
+  Measured against the predicate rather than read off the flags, it accepted:
+  `100.64.0.0/10` carrier-grade NAT, `192.0.0.0/24`, `198.18.0.0/15` benchmarking, all three
+  TEST-NET documentation blocks, and `224.0.0.0/4` multicast.
+
+  **Two of the gaps reached loopback.** Three IPv6 forms carry an IPv4 address inside them, and
+  the old check judged the notation rather than the address: `64:ff9b::7f00:1` (NAT64) and
+  `2002:7f00:1::` (6to4) both mean **127.0.0.1** and both passed. `::ffff:127.0.0.1` happened to
+  be caught; that it was, while its two siblings were not, is the sign the check was reading
+  spelling rather than value.
+
+  The predicate is now an explicit IANA special-purpose block list for v4 and v6, and the three
+  IPv4-carrying IPv6 forms are unwrapped and judged as the address they carry, so the answer
+  cannot depend on how an address is written.
+
+  Exploiting it needed a malicious or compromised pack's `version_check_url`, and the
+  loopback-reaching cases additionally needed NAT64 or 6to4 on the host — narrow, but the
+  guard exists precisely because a pack's config is not trusted input.
+
+  `tests/Unit/PublicIpBoundaryTest.php` pins 28 blocked addresses and 5 routable ones.
+  **Mutation-checked:** restoring the previous implementation fails 14 of them.
+
 ### Added
 
 - **`IconPackUpdateChecker` takes an optional host resolver** (constructor argument or
