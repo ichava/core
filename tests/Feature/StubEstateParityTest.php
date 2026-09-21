@@ -174,6 +174,34 @@ it('scaffolds the workflows every real pack ships', function () {
     }
 });
 
+it('scaffolds the docs pages a real pack ships, and no docs index', function () {
+    skipWithoutEstate();
+    scaffoldForParity($this->scaffoldRoot);
+
+    // One README per repo. The index is the package README's own docs section,
+    // and a standalone docs/README.md duplicates it and then drifts -- which is
+    // why no pack in the estate has one. The stub shipped one from `Initial
+    // release`, so every scaffolded pack diverged on its first commit.
+    expect(file_exists($this->scaffoldRoot . '/docs/README.md'))->toBeFalse(
+        'Scaffolded packages must not ship a docs/README.md index; the package README carries it.',
+    );
+
+    // Deleting the index must not take its links with it: the pages it listed
+    // still have to be scaffolded, and the README still has to reach them.
+    foreach (glob(estatePackPath() . '/docs/*.md') ?: [] as $page) {
+        $name = basename($page);
+        expect(file_exists($this->scaffoldRoot . '/docs/' . $name))->toBeTrue(
+            "Scaffolded packages are missing docs/{$name}, which flag-icons ships.",
+        );
+        // toContain() takes variadic needles, not a message, so assert the
+        // predicate instead -- otherwise the message becomes a second needle.
+        $readme = (string) file_get_contents($this->scaffoldRoot . '/README.md');
+        expect(str_contains($readme, 'docs/' . $name))->toBeTrue(
+            "The package README does not link docs/{$name}; nothing else indexes it now.",
+        );
+    }
+});
+
 it('scaffolds workflows that trigger on pull_request, never on a branch push', function () {
     skipWithoutEstate();
     scaffoldForParity($this->scaffoldRoot);

@@ -48,6 +48,26 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
   **Mutation-checked:** removing `'100.64.0.0/10'` from `BLOCKED_V4` fails this test.
 
+### Fixed
+
+- **`make:icon-package` scaffolded a forbidden `docs/README.md` index.** The standard is one
+  README per repo: the index is the package README's own docs section, and a standalone
+  `docs/README.md` duplicates it and then drifts out of step with it. None of the five packs in
+  the estate has one, so every scaffolded pack diverged from the estate on its first commit.
+
+  The stub is deleted and both of its lists are relocated into `README.md.stub` under a
+  `## Pack-specific docs` section, matching the shape `flag-icons` already uses — the three
+  pack pages, and the cross-references into the shared documentation repo. Nothing is lost;
+  deleting the index without moving its links would have left `docs/variants.md`,
+  `docs/customization.md` and `docs/attribution.md` scaffolded but unreachable.
+
+  It dates to `Initial release`, the same commit as the `ichava/core: ^1.0` constraint fixed in
+  0.2.6 — the ninth member of that drift set rather than a regression from it.
+
+  **Mutation-checked, both directions:** restoring the index fails the new parity case, and
+  stripping the README links fails it too. The second is the one that matters, because the
+  obvious fix is a bare deletion that silently orphans three pages.
+
 ## [0.2.6] - 2026-09-21
 
 ### Fixed
