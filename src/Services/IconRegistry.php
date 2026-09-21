@@ -386,7 +386,7 @@ final class IconRegistry
      */
     public function all(): array
     {
-        return $this->packages;
+        return array_map(fn (array $metadata): array => $this->localise($metadata), $this->packages);
     }
 
     /**
@@ -400,7 +400,7 @@ final class IconRegistry
             throw IchavaException::packageNotRegistered($packageName);
         }
 
-        return $this->packages[$packageName];
+        return $this->localise($this->packages[$packageName]);
     }
 
     /**
@@ -540,6 +540,76 @@ final class IconRegistry
     public function driver(): SvgDriver
     {
         return $this->driver;
+    }
+
+    /**
+     * Apply a pack's translations over its stored metadata.
+     *
+     * **Applied on read, never at registration.** Two separate reasons, and the
+     * first one bit during development:
+     *
+     * - `fromDirectory()` runs from a pack's `bootingPackage()`, which
+     *   `package-tools` fires *before* `bootPackageTranslations()`. Calling
+     *   `trans()` there does not merely miss -- `Translator::load()` caches the
+     *   empty result under `$loaded[$namespace][$group][$locale]`, `isLoaded()`
+     *   answers true from then on, and the namespace registered moments later is
+     *   never consulted again. One premature lookup poisons the key for the rest
+     *   of the request.
+     * - The registry is a singleton built once at boot, while locale is a
+     *   per-request thing. Resolving eagerly would serve whichever locale
+     *   happened to be active during boot to every request afterwards.
+     *
+     * `config.json` stays canonical and translations are an overlay on top. That
+     * ordering is why the English files carry no `name` or `description`: every
+     * pack that shipped both had let them drift, because nothing read the
+     * translation and nothing compared the two.
+     *
+     * @param array<string, mixed> $metadata
+     *
+     * @return array<string, mixed>
+     */
+    private function localise(array $metadata): array
+    {
+        $packageName = $metadata['package_name'] ?? null;
+
+        if (! is_string($packageName) || $packageName === '') {
+            return $metadata;
+        }
+
+        foreach (['name', 'description'] as $key) {
+            $translated = $this->line("{$packageName}::icons.{$key}");
+
+            if (is_string($translated)) {
+                $metadata[$key] = $translated;
+            }
+        }
+
+        $labels = [];
+
+        foreach (['variants', 'categories', 'sets'] as $group) {
+            $translated = $this->line("{$packageName}::icons.{$group}");
+
+            if (is_array($translated) && $translated !== []) {
+                $labels[$group] = $translated;
+            }
+        }
+
+        $metadata['labels'] = $labels;
+
+        return $metadata;
+    }
+
+    /**
+     * A translation line, or null when the pack does not define it.
+     *
+     * `trans()` hands back the key it was given on a miss, which is the only
+     * miss signal it offers.
+     */
+    private function line(string $key): string|array|null
+    {
+        $translated = trans($key);
+
+        return $translated === $key ? null : $translated;
     }
 
     /**
