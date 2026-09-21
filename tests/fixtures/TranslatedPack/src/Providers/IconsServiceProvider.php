@@ -7,6 +7,7 @@ namespace Simtabi\Laranail\Ichava\Tests\Fixtures\TranslatedPack\Providers;
 use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\ServiceProvider;
+use Simtabi\Laranail\Ichava\View\Components\IconComponent;
 
 /**
  * A stand-in for a real icon pack.
@@ -32,6 +33,11 @@ class IconsServiceProvider extends ServiceProvider
 
     public function bootingPackage(): void
     {
+        // Register a Blade component before the icon directory, which is the
+        // order every real pack uses and the order the registry depends on to
+        // have an alias recorded by the time metadata is built.
+        $this->loadBladeComponent(componentClass: IconComponent::class, packageName: 'fixture-pack');
+
         $this->app->make(IconRegistry::class)->fromDirectory(
             $this->package->basePath('resources/assets/svg'),
             self::class,

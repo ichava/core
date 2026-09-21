@@ -50,6 +50,13 @@ final class IconRegistry
     private array $sets = [];
 
     /**
+     * Blade component aliases, keyed by the provider class that registered one.
+     *
+     * @var array<class-string, string>
+     */
+    private array $bladeComponents = [];
+
+    /**
      * Package metadata (for browser, stats, etc.)
      *
      * @var array<string, array<string, mixed>>
@@ -173,20 +180,21 @@ final class IconRegistry
 
         // Build metadata
         $metadata = [
-            'package_name'   => $packageName,
-            'name'           => $configData['package']['title'],
-            'description'    => $configData['package']['description'] ?? '',
-            'vendor'         => $this->getVendor($configData),
-            'version'        => $configData['package']['version'],
-            'license'        => $configData['package']['license'] ?? 'Unknown',
-            'homepage'       => $configData['metadata']['homepage'] ?? null,
-            'repository'     => $configData['metadata']['repository'] ?? null,
-            'keywords'       => $configData['package']['keywords'] ?? [],
-            'total'          => $totalIcons,
-            'base_path'      => $path,
-            'icon_set_name'  => $packageName,
-            'provider_class' => $providerClass,
-            'prefix'         => $configData['config']['icon_prefix'],
+            'package_name'    => $packageName,
+            'name'            => $configData['package']['title'],
+            'description'     => $configData['package']['description'] ?? '',
+            'vendor'          => $this->getVendor($configData),
+            'version'         => $configData['package']['version'],
+            'license'         => $configData['package']['license'] ?? 'Unknown',
+            'homepage'        => $configData['metadata']['homepage'] ?? null,
+            'repository'      => $configData['metadata']['repository'] ?? null,
+            'keywords'        => $configData['package']['keywords'] ?? [],
+            'total'           => $totalIcons,
+            'base_path'       => $path,
+            'icon_set_name'   => $packageName,
+            'provider_class'  => $providerClass,
+            'blade_component' => $this->bladeComponents[$providerClass] ?? null,
+            'prefix'          => $configData['config']['icon_prefix'],
         ];
 
         // Register immediately
@@ -483,6 +491,30 @@ final class IconRegistry
         }
 
         return null;
+    }
+
+    /**
+     * Record the Blade component alias a package actually registered.
+     *
+     * `checkConflicts()` has always had a `blade_component` detector, and it
+     * has never fired: nothing wrote the key, so the guard read null every time
+     * and the branch was unreachable. That is the collision the global standard
+     * calls the headline risk -- Blade keeps component aliases in a flat map, so
+     * a second package claiming one silently replaces the first.
+     *
+     * Keyed by provider class rather than package name because that is what
+     * `fromDirectory()` is given, and because a provider registers its component
+     * before it registers its icon directory -- both happen in `bootingPackage()`,
+     * in that order.
+     *
+     * Deriving the alias instead of recording it was the alternative and is
+     * worse: the alias comes from the short name a pack passes to
+     * `loadBladeComponent()`, which nothing else in the metadata carries. A
+     * derived value would agree with the real registration only by luck.
+     */
+    public function noteBladeComponent(string $providerClass, string $alias): void
+    {
+        $this->bladeComponents[$providerClass] = $alias;
     }
 
     /**

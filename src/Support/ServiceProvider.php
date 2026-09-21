@@ -122,7 +122,14 @@ abstract class ServiceProvider extends PackageServiceProvider
 
         // Register as: <x-{package}-icon name="..." />
         // Example: <x-tabler-icons-icon name="home" />
-        Blade::component("{$packageName}-icon", $componentClass);
+        $alias = "{$packageName}-icon";
+
+        Blade::component($alias, $componentClass);
+
+        // Tell the registry what was actually registered, so its conflict
+        // detector has something to compare. It reads `blade_component` from
+        // package metadata, and until now nothing ever put it there.
+        $this->app->make(IconRegistry::class)->noteBladeComponent(static::class, $alias);
     }
 
     /**

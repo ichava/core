@@ -251,7 +251,7 @@ class IconDiscoveryService
         return [
             'helper'    => "ichava('{$iconName}')",
             'directive' => "@ichava('{$iconName}')",
-            'component' => $packageData['blade_component']
+            'component' => ($packageData['blade_component'] ?? null)
                 ? "<x-{$packageData['blade_component']} name=\"{$name}\" />"
                 : null,
         ];
