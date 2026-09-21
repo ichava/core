@@ -105,11 +105,7 @@ class DatabaseOperationsService
         $dropped = [];
 
         // Disable foreign key checks temporarily
-        if (Helpers::dbDriverIsPgSql()) {
-            DB::statement('SET session_replication_role = replica');
-        } else {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        }
+        $this->setForeignKeyChecks(false);
 
         try {
             // Drop FTS triggers and functions first (PostgreSQL)
@@ -127,11 +123,7 @@ class DatabaseOperationsService
             }
         } finally {
             // Re-enable foreign key checks
-            if (Helpers::dbDriverIsPgSql()) {
-                DB::statement('SET session_replication_role = DEFAULT');
-            } else {
-                DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            }
+            $this->setForeignKeyChecks(true);
         }
 
         return $dropped;
@@ -197,11 +189,7 @@ class DatabaseOperationsService
         $truncated = [];
 
         // Disable foreign key checks temporarily
-        if (Helpers::dbDriverIsPgSql()) {
-            DB::statement('SET session_replication_role = replica');
-        } else {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        }
+        $this->setForeignKeyChecks(false);
 
         try {
             foreach (self::TABLES as $table) {
@@ -213,11 +201,7 @@ class DatabaseOperationsService
             }
         } finally {
             // Re-enable foreign key checks
-            if (Helpers::dbDriverIsPgSql()) {
-                DB::statement('SET session_replication_role = DEFAULT');
-            } else {
-                DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            }
+            $this->setForeignKeyChecks(true);
         }
 
         return $truncated;
@@ -479,5 +463,51 @@ class DatabaseOperationsService
         } catch (Exception $e) {
             return null;
         }
+    }
+
+    /**
+     * Turn foreign-key enforcement off around a bulk drop or truncate, and back on.
+     *
+     * Three statements, because this package supports four drivers and they do
+     * not agree on any one of them:
+     *
+     *   pgsql            SET session_replication_role  -- replica suppresses triggers
+     *   mysql / mariadb  SET FOREIGN_KEY_CHECKS
+     *   sqlite           PRAGMA foreign_keys
+     *
+     * This used to be a two-way branch -- pgsql, or everything else -- which
+     * sent SQLite a MySQL statement it answers with
+     * `near "SET": syntax error`. dropTables(), freshMigration() and
+     * truncateTables() therefore all threw on SQLite, and SQLite is the
+     * default test driver.
+     *
+     * Nothing caught it because none of those three methods had a test: the CI
+     * matrix covers pgsql, mysql and mariadb -- every driver for which the
+     * `else` branch happened to be right -- and the SQLite lane never called
+     * them.
+     *
+     * An unrecognised driver is left alone rather than guessed at. Skipping the
+     * toggle risks a foreign-key error on a drop; sending the wrong statement
+     * guarantees a syntax error on every one.
+     */
+    private function setForeignKeyChecks(bool $enabled): void
+    {
+        $driver = DB::connection()->getDriverName();
+
+        match ($driver) {
+            'pgsql' => DB::statement(
+                'SET session_replication_role = ' . ($enabled ? 'DEFAULT' : 'replica'),
+            ),
+            'mysql', 'mariadb' => DB::statement(
+                'SET FOREIGN_KEY_CHECKS=' . ($enabled ? '1' : '0'),
+            ),
+            'sqlite' => DB::statement(
+                'PRAGMA foreign_keys = ' . ($enabled ? 'ON' : 'OFF'),
+            ),
+            default => $this->logger->warning(
+                '⚠️ Unknown database driver; foreign-key checks left as they are',
+                ['driver' => $driver, 'requested' => $enabled ? 'enable' : 'disable'],
+            ),
+        };
     }
 }

@@ -1,6 +1,6 @@
 {
     "schema_version": "3.0",
-    "_note": "Static snapshot refreshed daily by .github/workflows/sync-icon-sets.yml (bin/sync-icon-sets.php). Each set pins key/package/repository; title, description, license, icon_count, variants and latest_version are synced from the pack's config.json at its latest GitHub tag. To add a set, append key/package/repository and let the workflow fill in the snapshot. ichava:install reads this file only — zero runtime network calls.",
+    "_note": "Static snapshot refreshed daily by .github/workflows/sync-icon-sets.yml (bin/sync-icon-sets.php). Each set pins key/package/repository; title, description, license, icon_count, variants and latest_version are synced from the pack’s config.json at its latest GitHub tag. To add a set, append an entry carrying at least key, package, repository, title, icon_count and variants — IconSetCatalogService rejects any set missing one of those six, treating an empty string or empty array as missing, so a set pinned with only the first three makes ichava::ichava-core.install throw until the next nightly sync fills the rest. Take the values from the pack’s own config.json and let the workflow refresh them. Write with JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE, as this file is generated and any other encoding reflows it. ichava::ichava-core.install reads this file only — zero runtime network calls.",
     "config_path": "resources/assets/svg/config.json",
     "sets": [
         {
@@ -30,6 +30,19 @@
                 "1x1"
             ],
             "latest_version": "0.2.4"
+        },
+        {
+            "key": "emoji",
+            "package": "ichava/icon-sets-emoji",
+            "repository": "ichava/icon-sets-emoji",
+            "title": "Emoji Sets",
+            "description": "Multi-source emoji bundle (Twemoji, OpenMoji color, OpenMoji black). Unicode 17 / Emoji 17 spec. Categorised by Unicode CLDR groups.",
+            "license": "MIT (code) / CC-BY 4.0 (Twemoji assets) / CC-BY-SA 4.0 (OpenMoji assets)",
+            "icon_count": 10567,
+            "variants": [
+                "default"
+            ],
+            "latest_version": "0.3.0"
         }
     ],
     "synced_at": "2026-09-21T13:04:46Z"

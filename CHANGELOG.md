@@ -6,6 +6,131 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **Two SVG counters caught an exception they cannot receive.**
+  `countSvgFiles()` and `countDirectSvgFiles()` wrapped their iterator in
+  `catch (IchavaException $e)`. Neither `RecursiveDirectoryIterator` nor
+  `scandir()` throws that -- an unreadable directory produces
+  `UnexpectedValueException`, which extends `RuntimeException` exactly as
+  `IchavaException` does and is therefore its **sibling**, not its subclass.
+
+  The handler could not fire, so the failure it was written for escaped a method
+  whose documented contract is to return `0`.
+
+### Changed
+
+- **`IconDiscoveryService` composes three extracted actions.** Its public
+  surface is unchanged and no caller moves.
+
+  | Action | Was |
+  |---|---|
+  | `Actions\DiscoverInstalledPackages` | `scanComposerLock()` |
+  | `Actions\CountSvgFiles` | `countSvgFiles()` + `countDirectSvgFiles()` |
+  | `Actions\BuildIconUsageSyntax` | `getIconSyntax()` |
+
+  Each injects `Illuminate\Filesystem\Filesystem` rather than reaching for the
+  `File::` facade, which is the part that makes them assertable: 14 new **unit**
+  tests cover behaviour that previously needed the application, a cache and a
+  database standing up to reach.
+
+  That mattered. `getIconSyntax()` carried F-4.2 -- a key read with no
+  null-coalesce, warning on every call -- for the whole life of the method,
+  inside a 653-line class nobody had a reason to open.
+
+  > **Measured honestly:** `(Cache|DB|File|Icon)::` in `src/Services/` went 148
+  > to 144, and 21 to 17 in this class. That is **not** the material drop the
+  > proposal set as its gate, and the remaining 17 sit in the folder-tree and
+  > streaming methods, which this change did not touch. The extraction is real
+  > -- 653 to 587 lines, 14 tests where there were none, one latent bug closed
+  > -- but the coupling argument is not yet proven, and further extraction
+  > should be justified on its own before it proceeds.
+
+## [0.3.2] - 2026-09-21
+
+### Added
+
+- **A test pinning the note to the validator.** It asserts the thrown message names the three
+  fields a three-field set is missing, *and* that `_note` mentions every one of the six. So if
+  the required set changes, the message changes, the test fails, and the note is corrected with
+  it -- rather than prose and behaviour drifting apart again in silence, which is what happened
+  here. Mutation-checked: restoring the old note fails it.
+
+
+- **`ichava/icon-sets-emoji` in the install catalog.** `icon-sets.json` listed two of the five
+  packs. Two of the missing three are deliberately private -- offering `icon-sets-bundled` or
+  `icon-sets-metronic` would list packs most users cannot install -- but the emoji pack is
+  public, and its 10,567 icons were undiscoverable through
+  `ichava::ichava-core.install`, which reads this file and nothing else.
+
+  Written in the generator's exact encoding (`JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES |
+  JSON_UNESCAPED_UNICODE`, four-space indent) so the nightly sync appends rather than reflows.
+  A first attempt with Python's two-space `json.dumps` produced a 47-insertion, 34-deletion diff
+  for an eleven-line addition; this one is 13 insertions and no deletions.
+
+  The snapshot fields are pinned to what the pack's own `config.json` declares, so the next sync
+  is a no-op rather than an immediate correction.
+
+### Fixed
+
+- **`database refresh` and `database truncate` threw on SQLite.**
+  `dropTables()` and `truncateTables()` suppress foreign keys around a bulk
+  operation, and chose the statement with a two-way branch -- PostgreSQL, or
+  everything else:
+
+  ```php
+  if (Helpers::dbDriverIsPgSql()) {
+      DB::statement('SET session_replication_role = replica');
+  } else {
+      DB::statement('SET FOREIGN_KEY_CHECKS=0');   // <- also SQLite
+  }
+  ```
+
+  This package supports **four** drivers and they do not agree on any one
+  statement. SQLite answers that one with:
+
+  ```
+  SQLSTATE[HY000]: General error: 1 near "SET": syntax error
+  ```
+
+  So `dropTables()`, `freshMigration()` and `truncateTables()` -- all reachable
+  from `DatabaseCommand` -- failed on a documented supported driver, and the one
+  this suite runs by default.
+
+  Now a four-way `match`: `session_replication_role` for pgsql,
+  `FOREIGN_KEY_CHECKS` for mysql and mariadb, `PRAGMA foreign_keys` for sqlite.
+  An unrecognised driver is logged and left alone rather than guessed at --
+  skipping the toggle risks a foreign-key error on a drop, while sending the
+  wrong statement guarantees a syntax error on every one.
+
+  **Why nothing caught it.** None of the three methods had a test. The CI matrix
+  covers pgsql, mysql and mariadb -- every driver for which the `else` branch
+  happened to be correct -- and the SQLite lane never called them. A branch is
+  only as good as the narrowest lane that exercises it.
+
+  `tests/Feature/ForeignKeyToggleTest.php` covers all four: two cases run
+  against whatever `DB_CONNECTION` names, so CI exercises three of them, and a
+  dataset asserts the statement chosen per driver so one machine can check all
+  four without having them installed.
+
+  **Mutation-checked:** routing sqlite back into the MySQL arm fails 5 tests
+  with the original error.
+
+
+- **`icon-sets.json`'s `_note` told you to do something that breaks the catalog.** It said to
+  add a set by appending `key`/`package`/`repository` and letting the nightly sync fill the
+  rest. `IconSetCatalogService` rejects any set missing `title`, `icon_count` or `variants`,
+  treating an empty string or empty array as missing, so a set added that way makes
+  `ichava::ichava-core.install` throw until the sync runs -- up to a day.
+
+  Proven rather than reasoned about: a catalog holding one three-field set fails with
+  `Set at index 0 is missing required fields: title, icon_count, variants`.
+
+  The note now names all six required fields, says to take the values from the pack's own
+  `config.json`, and records that the file must be written with `JSON_PRETTY_PRINT |
+  JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE` -- it is generated, and any other encoding
+  reflows the whole thing. It also stops calling the command `ichava:install`, a name `V59`
+  retired.
+
+
 - **The docblock examples taught three things that are no longer true**, and one that never was.
   These are the examples a pack author copies, so they are interface, not commentary.
 
