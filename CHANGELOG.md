@@ -2,7 +2,26 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.7] - 2026-09-21
+
+### Added
+
+- **A carrier-grade NAT guard test at the level the guard actually runs.**
+  `IconPackUpdateCheckerTest` now covers a pack whose `version_check_url` host resolves into
+  `100.64.0.0/10`: the check reports `error` and `Http::assertNothingSent()` holds, so the
+  refusal is pinned at the point a request would otherwise be made.
+
+  `PublicIpBoundaryTest` pins the predicate, and `blocks a host that resolves to a private
+  address` already pins that `checkOne()` consults it: dropping the `isPublicIp()` call from
+  `isAllowedVersionCheckUrl()` fails five tests, that one included. What no test covered is
+  `100.64.0.0/10` specifically at the boundary. It is the entry in `BLOCKED_V4` most likely to
+  be removed by someone reading RFC 6598 space as public, and nothing outside the predicate
+  tests would have noticed.
+
+  The fixture gained `cgnat.test` rather than a literal address, because a literal one
+  short-circuits `resolveHostIps()` before the resolver runs and would exercise a different path.
+
+  **Mutation-checked:** removing `'100.64.0.0/10'` from `BLOCKED_V4` fails this test.
 
 ### Fixed
 
@@ -28,27 +47,6 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   Worse than the push failure it sat next to: that one at least went red. This reported success
   while the catalog change stayed on the branch with nothing tracking it. It is now
   `gh pr list --head "$BRANCH" --state open`, which is the question being asked.
-
-### Added
-
-- **A carrier-grade NAT guard test at the level the guard actually runs.**
-  `IconPackUpdateCheckerTest` now covers a pack whose `version_check_url` host resolves into
-  `100.64.0.0/10`: the check reports `error` and `Http::assertNothingSent()` holds, so the
-  refusal is pinned at the point a request would otherwise be made.
-
-  `PublicIpBoundaryTest` pins the predicate, and `blocks a host that resolves to a private
-  address` already pins that `checkOne()` consults it: dropping the `isPublicIp()` call from
-  `isAllowedVersionCheckUrl()` fails five tests, that one included. What no test covered is
-  `100.64.0.0/10` specifically at the boundary. It is the entry in `BLOCKED_V4` most likely to
-  be removed by someone reading RFC 6598 space as public, and nothing outside the predicate
-  tests would have noticed.
-
-  The fixture gained `cgnat.test` rather than a literal address, because a literal one
-  short-circuits `resolveHostIps()` before the resolver runs and would exercise a different path.
-
-  **Mutation-checked:** removing `'100.64.0.0/10'` from `BLOCKED_V4` fails this test.
-
-### Fixed
 
 - **`make:icon-package` scaffolded a forbidden `docs/README.md` index.** The standard is one
   README per repo: the index is the package README's own docs section, and a standalone
