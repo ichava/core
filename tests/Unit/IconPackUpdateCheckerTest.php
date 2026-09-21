@@ -215,6 +215,52 @@ it('blocks non-https version check urls', function () {
     Http::assertNothingSent();
 });
 
+/*
+ * The three below are why the resolver seam is safe to expose. Making the
+ * guard testable must not make it bypassable, so each pins one way a name
+ * could otherwise be used to reach somewhere it should not.
+ */
+
+it('blocks a host that resolves to a private address', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    // internal.test resolves -- to 10.1.2.3. The injected resolver decides
+    // what the name points at; it does not get to decide that is allowed.
+    $result = build_checker_for('vendor/pack-evil-host', PrivateHostnameConstants::class)
+        ->checkOne('vendor/pack-evil-host');
+
+    expect($result['status'])->toBe('error');
+    expect($result['reason'])->toContain('blocked');
+    Http::assertNothingSent();
+});
+
+it('blocks a host that does not resolve', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    // No records is the offline/NXDOMAIN case, and it must fail closed --
+    // the same behaviour the real resolver gives a host that is not there.
+    $result = build_checker_for('vendor/pack-unresolvable', UnresolvableHostConstants::class)
+        ->checkOne('vendor/pack-unresolvable');
+
+    expect($result['status'])->toBe('error');
+    Http::assertNothingSent();
+});
+
+it('blocks a literal private ip even when the resolver would allow the name', function () {
+    Http::fake(['*' => Http::response(['version' => '9.9.9'], 200)]);
+
+    // A literal address short-circuits before the resolver is consulted, so
+    // a resolver that answered everything with a public IP still could not
+    // open up 127.0.0.1. Proved by handing it exactly that resolver.
+    $registry = mock_registry_with_pack('vendor/pack-evil-loop', LoopbackConstants::class);
+    $checker = new IconPackUpdateChecker($registry, cacheTtl: 0);
+    $checker->setConstantsResolver(fn (string $n): ?string => LoopbackConstants::class);
+    $checker->setHostResolver(static fn (string $host): array => ['192.0.2.99']);
+
+    expect($checker->checkOne('vendor/pack-evil-loop')['status'])->toBe('error');
+    Http::assertNothingSent();
+});
+
 /* -----------------------------------------------------------------------
  *  Fixtures
  * -----------------------------------------------------------------------
@@ -250,8 +296,38 @@ function build_checker_for(string $packageName, string $constantsClass): IconPac
     $checker->setConstantsResolver(
         fn (string $name): ?string => $name === $packageName ? $constantsClass : null,
     );
+    $checker->setHostResolver(fake_host_resolver());
 
     return $checker;
+}
+
+/**
+ * Stands in for DNS so these unit tests resolve nothing. Http::fake()
+ * intercepts the request but not the name lookup the SSRF guard does
+ * first, so without this seam every test here needs a working resolver
+ * and fails closed offline, in a sandbox, or behind a strict resolver.
+ *
+ * Reachable hosts map into 192.0.2.0/24 (TEST-NET-1, RFC 5737):
+ * addresses the guard's filter treats as publicly routable, which are
+ * reserved for documentation and can never be a real destination.
+ *
+ * Two entries are the point of the fixture rather than scaffolding:
+ * `internal.test` maps into a private range, and any host not listed
+ * resolves to nothing. They pin that the seam substitutes what a name
+ * resolves to, never whether an address is allowed.
+ *
+ * @return Closure(string):list<string>
+ */
+function fake_host_resolver(): Closure
+{
+    return static fn (string $host): array => match ($host) {
+        'api.github.com'     => ['192.0.2.10'],
+        'registry.npmjs.org' => ['192.0.2.11'],
+        'repo.packagist.org' => ['192.0.2.12'],
+        'example.com'        => ['192.0.2.13'],
+        'internal.test'      => ['10.1.2.3'],
+        default              => [],
+    };
 }
 
 /**
@@ -290,6 +366,8 @@ final class LoopbackConstants extends _FakeUpstreamConstants {}
 final class PrivateNetConstants extends _FakeUpstreamConstants {}
 final class PlainHttpConstants extends _FakeUpstreamConstants {}
 final class FileSchemeConstants extends _FakeUpstreamConstants {}
+final class PrivateHostnameConstants extends _FakeUpstreamConstants {}
+final class UnresolvableHostConstants extends _FakeUpstreamConstants {}
 
 beforeEach(function () {
     inject_constants_config(GithubUpToDateConstants::class, [
@@ -371,7 +449,7 @@ beforeEach(function () {
         'upstream' => [
             'source'            => ['type' => 'url', 'version_field' => 'version'],
             'current_version'   => '1.0.0',
-            'version_check_url' => 'http://169.254.169.254/latest/meta-data/',
+            'version_check_url' => 'https://169.254.169.254/latest/meta-data/',
         ],
     ]);
     inject_constants_config(LoopbackConstants::class, [
@@ -404,6 +482,22 @@ beforeEach(function () {
             'source'            => ['type' => 'url', 'version_field' => 'version'],
             'current_version'   => '1.0.0',
             'version_check_url' => 'file:///etc/passwd',
+        ],
+    ]);
+    inject_constants_config(PrivateHostnameConstants::class, [
+        'package'  => ['name' => 'vendor/pack-evil-host'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'https://internal.test/latest.json',
+        ],
+    ]);
+    inject_constants_config(UnresolvableHostConstants::class, [
+        'package'  => ['name' => 'vendor/pack-unresolvable'],
+        'upstream' => [
+            'source'            => ['type' => 'url', 'version_field' => 'version'],
+            'current_version'   => '1.0.0',
+            'version_check_url' => 'https://nowhere.invalid/latest.json',
         ],
     ]);
 });
