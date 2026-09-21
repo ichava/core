@@ -2,6 +2,48 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **Two SVG counters caught an exception they cannot receive.**
+  `countSvgFiles()` and `countDirectSvgFiles()` wrapped their iterator in
+  `catch (IchavaException $e)`. Neither `RecursiveDirectoryIterator` nor
+  `scandir()` throws that -- an unreadable directory produces
+  `UnexpectedValueException`, which extends `RuntimeException` exactly as
+  `IchavaException` does and is therefore its **sibling**, not its subclass.
+
+  The handler could not fire, so the failure it was written for escaped a method
+  whose documented contract is to return `0`.
+
+### Changed
+
+- **`IconDiscoveryService` composes three extracted actions.** Its public
+  surface is unchanged and no caller moves.
+
+  | Action | Was |
+  |---|---|
+  | `Actions\DiscoverInstalledPackages` | `scanComposerLock()` |
+  | `Actions\CountSvgFiles` | `countSvgFiles()` + `countDirectSvgFiles()` |
+  | `Actions\BuildIconUsageSyntax` | `getIconSyntax()` |
+
+  Each injects `Illuminate\Filesystem\Filesystem` rather than reaching for the
+  `File::` facade, which is the part that makes them assertable: 14 new **unit**
+  tests cover behaviour that previously needed the application, a cache and a
+  database standing up to reach.
+
+  That mattered. `getIconSyntax()` carried F-4.2 -- a key read with no
+  null-coalesce, warning on every call -- for the whole life of the method,
+  inside a 653-line class nobody had a reason to open.
+
+  > **Measured honestly:** `(Cache|DB|File|Icon)::` in `src/Services/` went 148
+  > to 144, and 21 to 17 in this class. That is **not** the material drop the
+  > proposal set as its gate, and the remaining 17 sit in the folder-tree and
+  > streaming methods, which this change did not touch. The extraction is real
+  > -- 653 to 587 lines, 14 tests where there were none, one latent bug closed
+  > -- but the coupling argument is not yet proven, and further extraction
+  > should be justified on its own before it proceeds.
+
 ## [0.3.2] - 2026-09-21
 
 ### Added

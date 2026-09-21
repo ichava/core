@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Actions\BuildIconUsageSyntax;
+use Simtabi\Laranail\Ichava\Actions\DiscoverInstalledPackages;
 
 /**
  * IconDiscoveryService - Unified Discovery for Icons and Packages
@@ -37,6 +40,9 @@ class IconDiscoveryService
     public function __construct(
         protected IconRegistry $registry,
         protected IconCacheService $cache,
+        protected DiscoverInstalledPackages $discoverInstalled,
+        protected CountSvgFiles $svgCounter,
+        protected BuildIconUsageSyntax $buildUsageSyntax,
     ) {}
 
     /**
@@ -240,21 +246,7 @@ class IconDiscoveryService
      */
     public function getIconSyntax(string $package, string $name, ?string $variant = null): array
     {
-        $packageData = $this->getPackage($package);
-        $prefix = $packageData['prefix'] ?? $package;
-        $iconName = $prefix . ':' . $name;
-
-        if ($variant) {
-            $iconName .= ':' . $variant;
-        }
-
-        return [
-            'helper'    => "ichava('{$iconName}')",
-            'directive' => "@ichava('{$iconName}')",
-            'component' => ($packageData['blade_component'] ?? null)
-                ? "<x-{$packageData['blade_component']} name=\"{$name}\" />"
-                : null,
-        ];
+        return ($this->buildUsageSyntax)($package, $this->getPackage($package) ?? [], $name, $variant);
     }
 
     /**
@@ -349,39 +341,7 @@ class IconDiscoveryService
      */
     protected function scanComposerLock(): array
     {
-        $composerLockPath = base_path('composer.lock');
-
-        if (! File::exists($composerLockPath)) {
-            return [];
-        }
-
-        $lockData = json_decode(File::get($composerLockPath), true);
-
-        if (! isset($lockData['packages'])) {
-            return [];
-        }
-
-        $ichavaPackages = [];
-
-        foreach ($lockData['packages'] as $package) {
-            $name = $package['name'] ?? '';
-
-            // Check if it's an Ichava package (vendor prefix or extra.laravel.providers contains Ichava)
-            if (! Str::startsWith($name, 'ichava/')) {
-                continue;
-            }
-
-            $ichavaPackages[] = [
-                'name'        => $name,
-                'version'     => $package['version'] ?? 'unknown',
-                'description' => $package['description'] ?? '',
-                'homepage'    => $package['homepage'] ?? null,
-                'type'        => $package['type'] ?? 'library',
-                'time'        => $package['time'] ?? null,
-            ];
-        }
-
-        return $ichavaPackages;
+        return ($this->discoverInstalled)(base_path('composer.lock'));
     }
 
     /**
@@ -417,27 +377,7 @@ class IconDiscoveryService
      */
     protected function countSvgFiles(string $basePath): int
     {
-        if (! File::isDirectory($basePath)) {
-            return 0;
-        }
-
-        try {
-            $iterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($basePath, RecursiveDirectoryIterator::SKIP_DOTS),
-                RecursiveIteratorIterator::SELF_FIRST,
-            );
-
-            $count = 0;
-            foreach ($iterator as $file) {
-                if ($file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
-                    $count++;
-                }
-            }
-
-            return $count;
-        } catch (IchavaException $e) {
-            return 0;
-        }
+        return $this->svgCounter->recursively($basePath);
     }
 
     /**
@@ -847,33 +787,7 @@ class IconDiscoveryService
      */
     protected function countDirectSvgFiles(string $directory): int
     {
-        if (! File::isDirectory($directory)) {
-            return 0;
-        }
-
-        try {
-            $items = @scandir($directory);
-
-            if ($items === false) {
-                return 0;
-            }
-
-            $count = 0;
-            foreach ($items as $item) {
-                if (Str::endsWith($item, '.svg')) {
-                    $count++;
-
-                    // Stop counting after 100 for performance
-                    if ($count >= 100) {
-                        return 100;
-                    }
-                }
-            }
-
-            return $count;
-        } catch (IchavaException $e) {
-            return 0;
-        }
+        return $this->svgCounter->directly($directory);
     }
 
     /**
