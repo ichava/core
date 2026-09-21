@@ -53,10 +53,19 @@ return [
     | is recommended (full-text search); MySQL 8+ is supported.
     */
     'database' => [
-        'enabled'               => env('ICHAVA_DATABASE_ENABLED', true),
-        'auto_sync'             => env('ICHAVA_AUTO_SYNC', true),
-        'sync_interval'         => env('ICHAVA_SYNC_INTERVAL', IchavaConstants::DB_SYNC_INTERVAL),
-        'auto_seed'             => env('ICHAVA_AUTO_SEED', false),
+        'enabled'       => env('ICHAVA_DATABASE_ENABLED', true),
+        'auto_sync'     => env('ICHAVA_AUTO_SYNC', true),
+        'sync_interval' => env('ICHAVA_SYNC_INTERVAL', IchavaConstants::DB_SYNC_INTERVAL),
+        'auto_seed'     => env('ICHAVA_AUTO_SEED', false),
+
+        /*
+         | Delete a package's seeded rows when it unregisters. This is the
+         | destructive counterpart to auto_seed and, unlike it, defaults to ON
+         | -- the listener has always read it with a default of true. It was
+         | never declared here, so a consumer publishing this file found a
+         | switch for the additive behaviour and none for this one.
+         */
+        'auto_unseed'           => env('ICHAVA_AUTO_UNSEED', true),
         'use_queue'             => env('ICHAVA_USE_QUEUE', true),
         'queue_connection'      => env('ICHAVA_QUEUE_CONNECTION'),
         'batch_size'            => env('ICHAVA_BATCH_SIZE', 1000),

@@ -8,6 +8,7 @@ use Exception;
 use Illuminate\Support\Str;
 use Illuminate\Filesystem\Filesystem;
 use Simtabi\Laranail\Ichava\Data\IconData;
+use Simtabi\Laranail\Ichava\Traits\ContainsFilePaths;
 use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -37,6 +38,8 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  */
 class SvgDriver
 {
+    use ContainsFilePaths;
+
     /**
      * Create a new SVG driver instance.
      */
@@ -156,15 +159,10 @@ class SvgDriver
             throw IchavaException::securityViolation("Symlinks are not allowed: '{$path}'");
         }
 
-        // Realpath containment: ensure the resolved path stays within the base
-        // directory. realpath() resolves traversal and symlinked components, so
-        // an escape fails the prefix check below.
-        $realPath = realpath($path);
-        $realBase = $baseDir !== null && $baseDir !== '' ? realpath($baseDir) : realpath(dirname($path));
-
-        if ($realPath === false || $realBase === false || ! Str::startsWith($realPath, rtrim($realBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
-            throw IchavaException::securityViolation("Path escapes its directory: '{$path}'");
-        }
+        // Realpath containment: the resolved path must stay within the base
+        // directory. Shared with IconWatcherService, which reads from the same
+        // trees and needs the same boundary.
+        $this->assertPathContained($path, $baseDir);
 
         if (! $this->files->isReadable($path)) {
             throw IchavaException::filesystemFailure('read', $path);
