@@ -42,6 +42,58 @@ describe('Watcher file guards', function () {
         expect(fn () => ($this->extract)('big.svg'))->toThrow(IchavaException::class);
     });
 
+    it('rejects a file reached through a symlinked directory', function () {
+        // The symlink is on a *directory*, so the file itself is not a link and
+        // isLink() says nothing. realpath() resolves the link and the resolved
+        // path lands outside the base, which is what refuses it.
+        $outside = $this->dir . '-outside';
+        File::makeDirectory($outside, 0755, true);
+        File::put($outside . '/secret.svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><path d="M0 0h1"/></svg>');
+        symlink($outside, $this->dir . '/escape');
+
+        try {
+            expect(fn () => ($this->extract)('escape/secret.svg'))
+                ->toThrow(IchavaException::class, 'Path escapes its directory');
+        } finally {
+            File::deleteDirectory($outside);
+        }
+    });
+
+    it('rejects a path that traverses out of the base directory', function () {
+        $sibling = $this->dir . '-sibling';
+        File::makeDirectory($sibling, 0755, true);
+        File::put($sibling . '/elsewhere.svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><path d="M0 0h1"/></svg>');
+
+        try {
+            expect(fn () => ($this->extract)('../' . basename($sibling) . '/elsewhere.svg'))
+                ->toThrow(IchavaException::class, 'Path escapes its directory');
+        } finally {
+            File::deleteDirectory($sibling);
+        }
+    });
+
+    it('does not descend a symlinked directory during a scan', function () {
+        // Containment is defence in depth rather than a fix for a live escape:
+        // Finder's followLinks is off, so the scan never yields the file above.
+        // If someone turns it on, this test changes and the guard starts earning
+        // its keep -- which is the point of having both.
+        $outside = $this->dir . '-scan-outside';
+        File::makeDirectory($outside, 0755, true);
+        File::put($outside . '/secret.svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><path d="M0 0h1"/></svg>');
+        symlink($outside, $this->dir . '/escape-scan');
+
+        try {
+            $found = array_map(
+                fn ($f) => $f->getPathname(),
+                File::allFiles($this->dir),
+            );
+
+            expect($found)->not->toContain($outside . '/secret.svg');
+        } finally {
+            File::deleteDirectory($outside);
+        }
+    });
+
     it('extracts normal files', function () {
         $data = ($this->extract)('ok.svg');
 

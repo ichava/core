@@ -24,6 +24,25 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   `fail_on_unmatched_files: false` is now stated on the publish step. It is already the action's
   default, but the point of this change is that a missing SBOM must not fail the publish, so it
   should not rest on a default a future reader has to know.
+### Security
+
+- **The icon watcher now enforces realpath containment, matching `SvgDriver`.**
+  `IconWatcherService::extractIconData()` already refused a symlinked file and an oversized
+  one, but nothing checked that the resolved path stayed inside the package's own base
+  directory. `SvgDriver::loadFromLocal()` has done that all along, so the read path and the
+  watch path disagreed about what "inside the package" meant.
+
+  **This closes a gap in the method, not a live escape.** `File::allFiles()` leaves Symfony
+  Finder's `followLinks` off, so a symlinked directory is never descended into and the scan
+  cannot presently hand `extractIconData()` a file from outside the tree. The guard earns its
+  place because the method is reachable independently of `scanDiskIcons()`, and because the
+  rule now sits where the read happens rather than resting on a caller that is safe by
+  default. A test pins Finder's behaviour, so enabling `followLinks` later changes that
+  pairing deliberately instead of silently.
+
+  **Mutation-checked:** removing the containment block fails exactly the two new rejection
+  tests -- a file reached through a symlinked directory, and a `..` traversal -- and leaves
+  the other four green.
 
 ## [0.3.0] - 2026-09-21
 
