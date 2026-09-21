@@ -5,8 +5,8 @@
     "sets": [
         {
             "key": "tabler",
-            "package": "ichava/tabler-icons",
-            "repository": "ichava/tabler-icons",
+            "package": "ichava/icon-sets-tabler",
+            "repository": "ichava/icon-sets-tabler",
             "title": "Tabler Icons",
             "description": "Over 5,200 pixel-perfect icons for web apps. Free and open source icons designed with attention to detail to make your design stand out.",
             "license": "MIT",
@@ -19,8 +19,8 @@
         },
         {
             "key": "flags",
-            "package": "ichava/flag-icons",
-            "repository": "ichava/flag-icons",
+            "package": "ichava/icon-sets-flag",
+            "repository": "ichava/icon-sets-flag",
             "title": "Flag Icons",
             "description": "271 country flag SVGs sourced from lipis/flag-icons, available in 4x3 and 1x1 aspect ratios. Replaces the flag half of the deprecated simtabi/laflamoji.",
             "license": "MIT",

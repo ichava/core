@@ -37,7 +37,7 @@ beforeEach(function () {
 });
 
 it('runs a search on the configured driver and returns the match', function () {
-    ($this->makeIcon)('ichava/tabler-icons', 'arrow-left', ['direction'], ['nav']);
+    ($this->makeIcon)('ichava/icon-sets-tabler', 'arrow-left', ['direction'], ['nav']);
 
     // Executes the query and checks the result rather than wrapping it in a
     // does-not-throw. The first version of this test asserted only that no exception
@@ -51,7 +51,7 @@ it('runs a search on the configured driver and returns the match', function () {
 });
 
 it('matches on keywords and tags on a non-PostgreSQL driver', function () {
-    ($this->makeIcon)('ichava/tabler-icons', 'chevron', ['navigation'], ['ui']);
+    ($this->makeIcon)('ichava/icon-sets-tabler', 'chevron', ['navigation'], ['ui']);
 
     // Not just "does not throw" -- the scopes must actually search, or the portable path
     // could satisfy the previous test by quietly matching nothing.
@@ -61,39 +61,39 @@ it('matches on keywords and tags on a non-PostgreSQL driver', function () {
 });
 
 it('keeps the package filter applied while searching', function () {
-    ($this->makeIcon)('ichava/tabler-icons', 'arrow-left');
-    ($this->makeIcon)('ichava/metronic-icons', 'arrow-right');
+    ($this->makeIcon)('ichava/icon-sets-tabler', 'arrow-left');
+    ($this->makeIcon)('ichava/icon-sets-metronic', 'arrow-right');
 
     $service = app(IconBrowserService::class);
 
     // Without a search term the filter works, which is what made this easy to miss.
-    $filteredOnly = $service->getIcons(['packages' => ['ichava/tabler-icons']]);
+    $filteredOnly = $service->getIcons(['packages' => ['ichava/icon-sets-tabler']]);
     expect($filteredOnly->total())->toBe(1);
 
     // With one, it must still apply. Previously this returned both icons.
     $searched = $service->getIcons([
-        'packages' => ['ichava/tabler-icons'],
+        'packages' => ['ichava/icon-sets-tabler'],
         'search'   => 'arrow',
     ]);
     expect($searched->total())->toBe(1);
-    expect($searched->first()->package)->toBe('ichava/tabler-icons');
+    expect($searched->first()->package)->toBe('ichava/icon-sets-tabler');
 });
 
 it('narrows rather than widens when a search is combined with a filter', function () {
-    ($this->makeIcon)('ichava/tabler-icons', 'arrow-left');
-    ($this->makeIcon)('ichava/tabler-icons', 'circle');
-    ($this->makeIcon)('ichava/metronic-icons', 'arrow-right');
+    ($this->makeIcon)('ichava/icon-sets-tabler', 'arrow-left');
+    ($this->makeIcon)('ichava/icon-sets-tabler', 'circle');
+    ($this->makeIcon)('ichava/icon-sets-metronic', 'arrow-right');
 
     $service = app(IconBrowserService::class);
 
     // Three icons; one matches both the package filter and the term.
-    expect($service->getIcons(['packages' => ['ichava/tabler-icons'], 'search' => 'arrow'])->total())
+    expect($service->getIcons(['packages' => ['ichava/icon-sets-tabler'], 'search' => 'arrow'])->total())
         ->toBe(1);
 });
 
 it('treats percent and underscore as literal characters, not wildcards', function () {
-    ($this->makeIcon)('ichava/tabler-icons', 'home');
-    ($this->makeIcon)('ichava/tabler-icons', 'settings');
+    ($this->makeIcon)('ichava/icon-sets-tabler', 'home');
+    ($this->makeIcon)('ichava/icon-sets-tabler', 'settings');
 
     expect(Icon::fuzzySearch('%')->count())->toBe(0);
     expect(Icon::fuzzySearch('h_me')->count())->toBe(0);
