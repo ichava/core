@@ -1,5 +1,3 @@
-[← Docs](../../README.md#documentation)
-
 # Seeding pack icons
 
 *How-to guide.*

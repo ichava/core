@@ -1,5 +1,3 @@
-[← Docs](../../README.md#documentation)
-
 # Icon Path Format
 
 *Reference.*

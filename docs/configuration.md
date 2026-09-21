@@ -1,5 +1,3 @@
-[← Docs](../README.md#documentation)
-
 # Configuration
 
 *Reference.*

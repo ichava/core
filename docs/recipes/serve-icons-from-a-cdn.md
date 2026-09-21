@@ -1,5 +1,3 @@
-[← Docs](../../README.md#documentation)
-
 # Serve icons from a CDN
 
 *How-to guide.* Skip vendoring a pack's SVGs and serve them from a public CDN instead.

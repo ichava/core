@@ -1,5 +1,3 @@
-[← Docs](../README.md#documentation)
-
 # Installation
 
 *How-to guide.*
