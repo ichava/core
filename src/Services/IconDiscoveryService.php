@@ -16,6 +16,8 @@ use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Actions\BuildIconUsageSyntax;
+use Simtabi\Laranail\Ichava\Actions\ClearDiscoveryCaches;
+use Simtabi\Laranail\Ichava\Actions\SearchIconsInDatabase;
 use Simtabi\Laranail\Ichava\Actions\DiscoverInstalledPackages;
 
 /**
@@ -43,6 +45,8 @@ class IconDiscoveryService
         protected DiscoverInstalledPackages $discoverInstalled,
         protected CountSvgFiles $svgCounter,
         protected BuildIconUsageSyntax $buildUsageSyntax,
+        protected SearchIconsInDatabase $searchDatabase,
+        protected ClearDiscoveryCaches $clearCaches,
     ) {}
 
     /**
@@ -290,28 +294,11 @@ class IconDiscoveryService
      */
     public function clearCache(): void
     {
-        // Every key this class writes, in the store each one actually lives in.
-        //
-        // This used to forget two of six, and could not have reached two of the
-        // rest: `.packages`, `.categories` and `.search` are written through
-        // `remember()` to the FILE store, and the database search path writes
-        // through IconCacheService under its own `icons.search.db.` prefix,
-        // while this method called `Cache::forget()` on the DEFAULT store with
-        // hand-built keys. Seeding icons cleared nothing a reader would notice.
-        //
-        // The md5-suffixed keys cannot be enumerated, so invalidation goes
-        // through a generation counter: bump it and every key this class builds
-        // changes shape at once. That is the mechanism `cache.version` already
-        // uses ecosystem-wide, applied locally rather than reinvented.
-        Cache::forget(self::CACHE_PREFIX . '.installed');
-        Cache::increment(self::CACHE_PREFIX . '.generation');
-
-        // No call to IconCacheService::flushPrefix() here, deliberately. The
-        // generation above already changes the database search key, and a
-        // mutation check confirmed the test passes without the flush -- so it
-        // was code no assertion covered. It also reached too far: flushPrefix()
-        // clears that service's ENTIRE prefix, including icon SVG caches and
-        // directory fingerprints this method has no business discarding.
+        // Delegated. Invalidation is the half of this class that got it wrong
+        // -- it forgot two keys of six and could not reach two of the rest --
+        // and the keys and the clear now live in one object that owns the
+        // question "what did we write?".
+        ($this->clearCaches)();
     }
 
     /**
@@ -353,7 +340,8 @@ class IconDiscoveryService
      */
     protected function generation(): int
     {
-        return (int) Cache::get(self::CACHE_PREFIX . '.generation', 0);
+        // One definition, on the action that owns invalidation.
+        return ClearDiscoveryCaches::generation();
     }
 
     /**
@@ -423,6 +411,12 @@ class IconDiscoveryService
     /**
      * Search icons from database (300x faster!) with Redis caching
      */
+    /**
+     * @param list<string> $packages
+     * @param list<string> $categories
+     *
+     * @return array<string, mixed>
+     */
     protected function searchIconsFromDatabase(
         string $query,
         array $packages,
@@ -432,94 +426,24 @@ class IconDiscoveryService
         string $sortBy,
         string $sortDirection,
     ): array {
-        // Use Redis cache for super-fast repeated searches
-        $cacheKey = 'icons.search.db.' . $this->generation() . '.' . md5(serialize(func_get_args()));
-
-        return $this->cache->remember($cacheKey, function () use ($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection) {
-            return $this->executeSearchQuery($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection);
-        });
-    }
-
-    /**
-     * Execute the actual database search query
-     */
-    protected function executeSearchQuery(
-        string $query,
-        array $packages,
-        array $categories,
-        int $page,
-        int $perPage,
-        string $sortBy,
-        string $sortDirection,
-    ): array {
-        // Build query
-        $queryBuilder = Icon::query();
-
-        // Apply search.
+        // Delegated to SearchIconsInDatabase. The query, its caching and the
+        // result shape left together, because splitting them is what let the
+        // driver branch go missing in one copy and not the other.
         //
-        // Delegated to the model rather than built here. This used to inline
-        // `to_tsvector(…) @@ plainto_tsquery(…)` with no driver branch, so the
-        // method threw on SQLite, MySQL and MariaDB the moment the icons table
-        // existed -- while `Icon::scopeSearch()` had carried the driver
-        // decision, and the portable LIKE fallback, all along.
-        //
-        // The rule this restores: one query builder to be wrong in. A second
-        // copy of a query is a second place for a driver to be forgotten.
-        if (! empty($query)) {
-            $queryBuilder->search($query);
-        }
-
-        // Filter by packages
-        if (! empty($packages)) {
-            $queryBuilder->whereIn('package', $packages);
-        }
-
-        // Filter by categories
-        if (! empty($categories)) {
-            $queryBuilder->whereIn('category', $categories);
-        }
-
-        // Get total count
-        $total = $queryBuilder->count();
-
-        // Apply sorting
-        $queryBuilder->orderBy($sortBy, $sortDirection);
-
-        // Paginate
-        $icons = $queryBuilder
-            ->skip(($page - 1) * $perPage)
-            ->take($perPage)
-            ->get();
-
-        // Transform to expected format
-        $allPackages = $this->getPackages();
-        $items = $icons->map(function ($icon) use ($allPackages) {
-            $packageData = $allPackages[$icon->package] ?? [];
-
-            return [
-                'package'      => $icon->package,
-                'package_name' => $packageData['name'] ?? $icon->package,
-                'set'          => $icon->package,
-                'name'         => $icon->name,
-                'category'     => $icon->category,
-                'variant'      => $icon->variant,
-                'path'         => $icon->path,
-                // `icon_path`, the model's own attribute -- not `getIconPath()`,
-                // which is declared on IconDriverInterface and has never existed
-                // on Icon. Unreachable until the query above stopped throwing.
-                'icon_path'   => $icon->icon_path,
-                'syntax'      => $this->getIconSyntax($icon->package, $icon->name, $icon->variant),
-                'svg_content' => null, // Deferred rendering
-            ];
-        })->toArray();
-
-        return [
-            'items'     => $items,
-            'total'     => $total,
-            'page'      => $page,
-            'per_page'  => $perPage,
-            'last_page' => (int) ceil($total / $perPage),
-        ];
+        // Enrichment passes as closures rather than handing the action this
+        // service: package metadata and usage syntax live here, and injecting
+        // the service into its own collaborator would be a cycle.
+        return ($this->searchDatabase)(
+            query: $query,
+            packages: $packages,
+            categories: $categories,
+            page: $page,
+            perPage: $perPage,
+            sortBy: $sortBy,
+            sortDirection: $sortDirection,
+            packageMetadata: fn (): array => $this->getPackages(),
+            usageSyntax: fn (string $pkg, string $name, ?string $variant): array => $this->getIconSyntax($pkg, $name, $variant),
+        );
     }
 
     /**
