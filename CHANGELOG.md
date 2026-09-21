@@ -6,6 +6,12 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **Search terms match literally.** `%`, `_` and `\` in a query acted as `LIKE` wildcards,
+  widening results and forcing full-table scans. Both search scopes now escape them with an
+  explicit `ESCAPE` clause, which also keeps the fix correct on drivers without a default
+  escape character — SQLite has none, so without the clause the escape byte would be matched
+  literally and the fix would silently not apply there.
+
 - **The icon watcher rejects symlinks and oversized files.** Extraction read whatever the scan
   found, with no size cap and following symlinks — so a symlink inside a watched directory
   pointed the reader anywhere on disk, and an arbitrarily large file was read whole into memory.
