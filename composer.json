@@ -50,7 +50,7 @@
     "autoload-dev": {
         "psr-4": {
             "Simtabi\\Laranail\\Ichava\\Tests\\": "tests/",
-            "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\TranslatedPack\\": "tests/Fixtures/TranslatedPack/src/"
+            "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\TranslatedPack\\": "tests/fixtures/TranslatedPack/src/"
         }
     },
     "extra": {
