@@ -2,7 +2,30 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.2] - 2026-09-21
+
+### Added
+
+- **A test pinning the note to the validator.** It asserts the thrown message names the three
+  fields a three-field set is missing, *and* that `_note` mentions every one of the six. So if
+  the required set changes, the message changes, the test fails, and the note is corrected with
+  it -- rather than prose and behaviour drifting apart again in silence, which is what happened
+  here. Mutation-checked: restoring the old note fails it.
+
+
+- **`ichava/icon-sets-emoji` in the install catalog.** `icon-sets.json` listed two of the five
+  packs. Two of the missing three are deliberately private -- offering `icon-sets-bundled` or
+  `icon-sets-metronic` would list packs most users cannot install -- but the emoji pack is
+  public, and its 10,567 icons were undiscoverable through
+  `ichava::ichava-core.install`, which reads this file and nothing else.
+
+  Written in the generator's exact encoding (`JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES |
+  JSON_UNESCAPED_UNICODE`, four-space indent) so the nightly sync appends rather than reflows.
+  A first attempt with Python's two-space `json.dumps` produced a 47-insertion, 34-deletion diff
+  for an eleven-line addition; this one is 13 insertions and no deletions.
+
+  The snapshot fields are pinned to what the pack's own `config.json` declares, so the next sync
+  is a no-op rather than an immediate correction.
 
 ### Fixed
 
@@ -49,9 +72,6 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   **Mutation-checked:** routing sqlite back into the MySQL arm fails 5 tests
   with the original error.
 
-## [Unreleased]
-
-### Fixed
 
 - **`icon-sets.json`'s `_note` told you to do something that breaks the catalog.** It said to
   add a set by appending `key`/`package`/`repository` and letting the nightly sync fill the
@@ -68,35 +88,6 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   reflows the whole thing. It also stops calling the command `ichava:install`, a name `V59`
   retired.
 
-### Added
-
-- **A test pinning the note to the validator.** It asserts the thrown message names the three
-  fields a three-field set is missing, *and* that `_note` mentions every one of the six. So if
-  the required set changes, the message changes, the test fails, and the note is corrected with
-  it -- rather than prose and behaviour drifting apart again in silence, which is what happened
-  here. Mutation-checked: restoring the old note fails it.
-
-## [Unreleased]
-
-### Added
-
-- **`ichava/icon-sets-emoji` in the install catalog.** `icon-sets.json` listed two of the five
-  packs. Two of the missing three are deliberately private -- offering `icon-sets-bundled` or
-  `icon-sets-metronic` would list packs most users cannot install -- but the emoji pack is
-  public, and its 10,567 icons were undiscoverable through
-  `ichava::ichava-core.install`, which reads this file and nothing else.
-
-  Written in the generator's exact encoding (`JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES |
-  JSON_UNESCAPED_UNICODE`, four-space indent) so the nightly sync appends rather than reflows.
-  A first attempt with Python's two-space `json.dumps` produced a 47-insertion, 34-deletion diff
-  for an eleven-line addition; this one is 13 insertions and no deletions.
-
-  The snapshot fields are pinned to what the pack's own `config.json` declares, so the next sync
-  is a no-op rather than an immediate correction.
-
-## [Unreleased]
-
-### Fixed
 
 - **The docblock examples taught three things that are no longer true**, and one that never was.
   These are the examples a pack author copies, so they are interface, not commentary.
