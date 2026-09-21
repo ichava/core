@@ -219,10 +219,10 @@ final class IconBrowserService
             $transformedPackages = collect($packages)->map(function ($pkg, $key) {
                 return [
                     'name'        => $key,
-                    'label'       => $pkg['browser_metadata']['name'] ?? $key,
+                    'label'       => $pkg['name'] ?? $key,
                     'count'       => $pkg['total'] ?? 0,
-                    'description' => $pkg['browser_metadata']['description'] ?? '',
-                    'vendor'      => $pkg['browser_metadata']['vendor'] ?? '',
+                    'description' => $pkg['description'] ?? '',
+                    'vendor'      => $pkg['vendor'] ?? '',
                 ];
             })->values();
 
@@ -443,8 +443,8 @@ final class IconBrowserService
 
         return [
             'name'        => $packageKey,
-            'title'       => $packageData['browser_metadata']['name'] ?? $packageKey,
-            'description' => $packageData['browser_metadata']['description'] ?? '',
+            'title'       => $packageData['name'] ?? $packageKey,
+            'description' => $packageData['description'] ?? '',
         ];
     }
 
