@@ -2,6 +2,16 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **Search terms match literally.** `%`, `_` and `\` in a query acted as `LIKE` wildcards,
+  widening results and forcing full-table scans. Both search scopes now escape them with an
+  explicit `ESCAPE` clause, which also keeps the fix correct on drivers without a default
+  escape character — SQLite has none, so without the clause the escape byte would be matched
+  literally and the fix would silently not apply there.
+
 ## [0.2.7] - 2026-09-21
 
 ### Added
