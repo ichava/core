@@ -30,7 +30,14 @@ it('resolves every translation key core references', function () {
     $src = dirname(__DIR__, 2) . '/src';
 
     $keys = [];
-    $rx = '/__\(\s*[\'"]' . preg_quote($ns, '/') . '::([A-Za-z0-9_.\-]+)[\'"]/';
+
+    // All four call forms, not just __(). Today core uses only __() with this
+    // namespace -- measured -- so widening changes nothing now. That is the
+    // point: the sweep is this phase's central gate, and it would go silent the
+    // first time somebody reached for trans() or Lang::get() instead.
+    // trans_choice() is included for the same reason, though core has none yet.
+    $call = '(?:__|trans|trans_choice|Lang::get|Lang::choice)';
+    $rx = '/' . $call . '\(\s*[\'"]' . preg_quote($ns, '/') . '::([A-Za-z0-9_.\-]+)[\'"]/';
 
     $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS));
     foreach ($files as $file) {
@@ -64,15 +71,110 @@ it('has no hardcoded user-facing literal left in the migrated command', function
     // are BaseCommand's own helpers -- an earlier version of this test listed
     // only Laravel's `line`/`info`/`error` and so matched nothing at all,
     // passing before the migration had happened.
-    $helpers = 'success|failure|tip|line|info|error|warn|comment|question';
+    //
+    // `table`, `confirm`, `ask` and `choice` are here because they are also
+    // user-facing English -- a table's headers and a confirmation's prompt are
+    // read by a person exactly like a `line()` is.
+    $helpers = 'success|failure|tip|line|info|error|warn|comment|question'
+        . '|table|confirm|ask|choice';
 
     // Non-vacuous guard: the command must actually call some of them.
     preg_match_all('/\$this->(' . $helpers . ')\(/', $body, $all);
     expect($all[0])->not->toBeEmpty('the helper list matches nothing in ' . basename($file));
 
     // ...and none may be handed a bare string literal.
-    preg_match_all('/\$this->(' . $helpers . ')\(\s*[\'"]/', $body, $bare);
+    // `table()` takes its headers as an array, so the literal sits one bracket
+    // in: table(['Name', ...]). Allow an optional opening bracket.
+    preg_match_all('/\$this->(' . $helpers . ')\(\s*\[?\s*[\'"]/', $body, $bare);
     expect($bare[0])->toBe([], 'bare string passed to an output helper in ' . basename($file));
+
+    // ---------------------------------------------------------------------
+    // Laravel Prompts are free functions, not $this-> helpers, and they are
+    // how this command does most of its talking: intro(), outro(), note(),
+    // table(), warning(). A guard that only watches `$this->` sees none of
+    // them and reports a file clean while its table headers, its intro and
+    // its closing line are still English.
+    //
+    // The guarded list is read from the file's OWN `use function
+    // Laravel\Prompts\x` imports rather than hardcoded, so importing a new
+    // prompt brings it under the guard automatically instead of opening a
+    // hole nobody notices.
+    // ---------------------------------------------------------------------
+    preg_match_all('/use function Laravel\\\\Prompts\\\\(\w+);/', $body, $imported);
+
+    expect($imported[1])->not->toBeEmpty('no Laravel\Prompts imports found -- has the file changed shape?');
+
+    $prompts = implode('|', $imported[1]);
+
+    // Not preceded by -> or $ or a word character, so `$this->info(` and
+    // `formatTable(` do not match; only the bare free-function call does.
+    preg_match_all(
+        '/(?<![>$\w])(' . $prompts . ')\(\s*(?:[a-z]+:\s*)?\[?\s*[\'"]/',
+        $body,
+        $barePrompts,
+    );
+
+    expect($barePrompts[0])->toBe(
+        [],
+        'bare string passed to a Laravel Prompts call in ' . basename($file) . ":\n  "
+        . implode("\n  ", array_unique($barePrompts[0])),
+    );
+});
+
+it('does not add hardcoded English to the commands still awaiting migration', function () {
+    // One command of nine is migrated, deliberately -- the mechanism is the
+    // deliverable, the remaining strings are mechanical follow-up. But that
+    // deferral lives in a pull-request body, which nobody reads again after the
+    // merge, and prose does not fail a build.
+    //
+    // So: a ratchet, in the same spirit as this repository's coverage floor.
+    // It does not demand the migration finish. It pins the debt at today's size
+    // so it can only shrink, and it turns red the moment a new hardcoded string
+    // is added to a command.
+    //
+    // Re-derive the number before changing it:
+    //
+    //   for f in src/Commands/*.php; do
+    //     grep -cE '\$this->(success|failure|tip|line|info|error|warn|comment|question|table|confirm|ask|choice)\(\s*\[?\s*['"'"'"]' "$f"
+    //   done | paste -sd+ - | bc
+    //
+    // Measured 2026-09-21: 38, spread over BaseCommand (11), InstallCommand
+    // (14), JobStatusCommand (6), InfoCommand (5) and DatabaseCommand (2).
+    // CleanupIchavaLogsCommand is 0 -- it is the migrated one.
+    //
+    // **Lower this number when you migrate a command. Never raise it.**
+    $helpers = 'success|failure|tip|line|info|error|warn|comment|question'
+        . '|table|confirm|ask|choice';
+
+    $remaining = 0;
+    $perFile = [];
+
+    foreach (glob(dirname(__DIR__, 2) . '/src/Commands/*.php') as $file) {
+        preg_match_all(
+            '/\$this->(' . $helpers . ')\(\s*\[?\s*[\'"]/',
+            (string) file_get_contents($file),
+            $m,
+        );
+        $count = count($m[0]);
+        $remaining += $count;
+        $perFile[basename($file)] = $count;
+    }
+
+    // Non-vacuous: if the sweep ever matches nothing at all, it is broken
+    // rather than finished -- the migration is one command of nine.
+    expect($remaining)->toBeGreaterThan(0, 'the literal sweep matched nothing; it is broken, not done');
+
+    expect($remaining)->toBeLessThanOrEqual(
+        38,
+        "hardcoded user-facing strings in src/Commands/ grew to {$remaining}:\n  "
+        . implode("\n  ", array_map(
+            fn ($f, $n) => "{$f}: {$n}",
+            array_keys($perFile),
+            $perFile,
+        )),
+    );
+
+    expect($perFile['CleanupIchavaLogsCommand.php'])->toBe(0, 'the migrated command regressed');
 });
 
 it('ships no views, and registers no view namespace', function () {

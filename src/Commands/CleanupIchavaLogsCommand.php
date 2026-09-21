@@ -37,7 +37,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
         $retentionDays = $this->getRetentionDays();
         $dryRun = $this->option('dry-run');
 
-        intro("🧹 Cleaning up Ichava logs older than {$retentionDays} days");
+        intro(__('ichava/ichava-core::commands.cleanup_logs.intro', ['days' => $retentionDays]));
 
         if ($dryRun) {
             warning(__('ichava/ichava-core::commands.cleanup_logs.dry_run'));
@@ -175,12 +175,12 @@ class CleanupIchavaLogsCommand extends BaseCommand
     {
         // Summary table
         table(
-            headers: ['Metric', 'Count'],
+            headers: [__('ichava/ichava-core::commands.cleanup_logs.table.metric'), __('ichava/ichava-core::commands.cleanup_logs.table.count')],
             rows: [
                 [__('ichava/ichava-core::commands.cleanup_logs.total_files'), (string) $stats['total']],
                 [$dryRun ? __('ichava/ichava-core::commands.cleanup_logs.would_delete') : __('ichava/ichava-core::commands.cleanup_logs.deleted'), (string) $stats['deleted']],
-                ['Kept', (string) $stats['kept']],
-                ['Failed', (string) $stats['failed']],
+                [__('ichava/ichava-core::commands.cleanup_logs.table.kept'), (string) $stats['kept']],
+                [__('ichava/ichava-core::commands.cleanup_logs.table.failed'), (string) $stats['failed']],
             ],
         );
 
@@ -188,32 +188,32 @@ class CleanupIchavaLogsCommand extends BaseCommand
         if ($this->isVerbose() && ! empty($stats['files'])) {
             $rows = array_map(fn ($file) => [
                 $file['file'],
-                "{$file['age']} days",
+                __('ichava/ichava-core::commands.cleanup_logs.table.days', ['days' => $file['age']]),
                 match ($file['action']) {
-                    'deleted'      => '✅ Deleted',
-                    'would_delete' => '🔍 Would delete',
-                    'failed'       => '❌ Failed',
-                    default        => '⏭️ Kept',
+                    'deleted'      => __('ichava/ichava-core::commands.cleanup_logs.action.deleted'),
+                    'would_delete' => __('ichava/ichava-core::commands.cleanup_logs.action.would_delete'),
+                    'failed'       => __('ichava/ichava-core::commands.cleanup_logs.action.failed'),
+                    default        => __('ichava/ichava-core::commands.cleanup_logs.action.kept'),
                 },
             ], $stats['files']);
 
             table(
-                headers: ['File', 'Age', 'Action'],
+                headers: [__('ichava/ichava-core::commands.cleanup_logs.table.file'), __('ichava/ichava-core::commands.cleanup_logs.table.age'), __('ichava/ichava-core::commands.cleanup_logs.table.action')],
                 rows: $rows,
             );
         }
 
         // Final message
         if (! $dryRun && $stats['deleted'] > 0) {
-            outro("✅ Cleaned up {$stats['deleted']} old log file(s)");
+            outro(__('ichava/ichava-core::commands.cleanup_logs.cleaned_up', ['count' => $stats['deleted']]));
         } elseif ($dryRun && $stats['deleted'] > 0) {
-            note("Would delete {$stats['deleted']} file(s). Run without --dry-run to actually delete.");
+            note(__('ichava/ichava-core::commands.cleanup_logs.would_delete_note', ['count' => $stats['deleted']]));
         } elseif ($stats['deleted'] === 0) {
             info(__('ichava/ichava-core::commands.cleanup_logs.nothing_to_do'));
         }
 
         if ($stats['failed'] > 0) {
-            warning("{$stats['failed']} file(s) failed to delete. Check permissions.");
+            warning(__('ichava/ichava-core::commands.cleanup_logs.delete_failed', ['count' => $stats['failed']]));
         }
     }
 }

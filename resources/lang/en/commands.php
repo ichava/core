@@ -32,6 +32,33 @@ return [
         'total_files'       => 'Total log files',
         'would_delete'      => 'Would delete',
         'deleted'           => 'Deleted',
+
+        // Laravel Prompts surfaces: intro/outro/note/warning and the two
+        // summary tables. These reach the user exactly like the strings above;
+        // they were missed on the first pass because the guard only watched
+        // `$this->` helpers and these are free functions.
+        'intro'             => '🧹 Cleaning up Ichava logs older than :days days',
+        'cleaned_up'        => '✅ Cleaned up :count old log file(s)',
+        'would_delete_note' => 'Would delete :count file(s). Run without --dry-run to actually delete.',
+        'delete_failed'     => ':count file(s) failed to delete. Check permissions.',
+
+        'table' => [
+            'metric' => 'Metric',
+            'count'  => 'Count',
+            'kept'   => 'Kept',
+            'failed' => 'Failed',
+            'file'   => 'File',
+            'age'    => 'Age',
+            'action' => 'Action',
+            'days'   => ':days days',
+        ],
+
+        'action' => [
+            'deleted'      => '✅ Deleted',
+            'would_delete' => '🔍 Would delete',
+            'failed'       => '❌ Failed',
+            'kept'         => '⏭️ Kept',
+        ],
     ],
 
 ];
