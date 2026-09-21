@@ -39,3 +39,30 @@ it('expands keywords and tags when those scopes are enabled', function (): void 
         ->and(FtsLanguageHelper::isScopeEnabled('tags'))->toBeTrue()
         ->and(substr_count($sql, 'json_array_elements_text'))->toBeGreaterThanOrEqual(2);
 });
+
+it('qualifies every column with a table that exists in the query', function () {
+    // The clause referenced a bare `i` alias that nothing provided:
+    // `Icon::query()` emits `from "ichava_icons"`, so this was invalid SQL on
+    // the one driver it was written for. It survived because scopeSearch() had
+    // no caller in src/ -- the discovery service hand-wrote its own query --
+    // so the branch was never reached until that duplication was removed.
+    //
+    // Asserted on the generated SQL, which needs no PostgreSQL to check.
+    $sql = FtsLanguageHelper::buildComprehensiveSearchQuery(
+        'Simtabi\Laranail\Ichava\Models\Icon',
+        'ichava_icons',
+    );
+
+    expect($sql)->toContain('ichava_icons.name')
+        ->and($sql)->not->toMatch('/(?<![a-z_.])i\.(name|id|package|keywords|tags|metadata)\b/');
+});
+
+it('honours a non-default table name', function () {
+    $sql = FtsLanguageHelper::buildComprehensiveSearchQuery(
+        'Simtabi\Laranail\Ichava\Models\Icon',
+        'prefixed_icons',
+    );
+
+    expect($sql)->toContain('prefixed_icons.name')
+        ->and($sql)->not->toContain('ichava_icons.name');
+});

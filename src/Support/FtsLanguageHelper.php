@@ -156,23 +156,33 @@ final class FtsLanguageHelper
      * - Variant names
      * - Icon metadata
      */
-    public static function buildComprehensiveSearchQuery(string $iconMorphType): string
+    public static function buildComprehensiveSearchQuery(string $iconMorphType, string $table = 'ichava_icons'): string
     {
+        // Qualify with the real table, not a bare `i` alias.
+        //
+        // Every column reference here used to read `i.name`, `i.id`, and so on,
+        // but nothing ever aliased the table to `i`: `Icon::query()` emits
+        // `from "ichava_icons"`. The clause was therefore invalid SQL on the
+        // one driver it was written for. It went unnoticed because
+        // `scopeSearch()` had no caller in src/ -- the service that should have
+        // used it hand-wrote its own query instead, so this branch was never
+        // reached until that duplication was removed.
+        $i = $table;
         $languages = self::getLanguages();
         $scope = self::getSearchScope();
 
         $searchComponents = [];
 
         // Icon name is always searched
-        $searchComponents[] = 'i.name';
+        $searchComponents[] = "{$i}.name";
 
         // Keywords and tags (JSON arrays)
         if ($scope['keywords']) {
-            $searchComponents[] = "COALESCE(array_to_string(ARRAY(SELECT json_array_elements_text(i.keywords::json)), ' '), '')";
+            $searchComponents[] = "COALESCE(array_to_string(ARRAY(SELECT json_array_elements_text({$i}.keywords::json)), ' '), '')";
         }
 
         if ($scope['tags']) {
-            $searchComponents[] = "COALESCE(array_to_string(ARRAY(SELECT json_array_elements_text(i.tags::json)), ' '), '')";
+            $searchComponents[] = "COALESCE(array_to_string(ARRAY(SELECT json_array_elements_text({$i}.tags::json)), ' '), '')";
         }
 
         // Categories (including parent hierarchy)
@@ -183,7 +193,7 @@ final class FtsLanguageHelper
                     FROM ichava_icon_termables it
                     JOIN ichava_icon_terms t ON t.id = it.term_id
                     WHERE it.termable_type = '{$iconMorphType}'
-                      AND it.termable_id = i.id
+                      AND it.termable_id = {$i}.id
                       AND t.type = 'category'
                     UNION ALL
                     SELECT parent.id, parent.name, parent.parent_id
@@ -202,19 +212,19 @@ final class FtsLanguageHelper
                 FROM ichava_icon_termables it
                 JOIN ichava_icon_terms t ON t.id = it.term_id
                 WHERE it.termable_type = '{$iconMorphType}'
-                  AND it.termable_id = i.id
+                  AND it.termable_id = {$i}.id
                   AND t.type = 'variant'
             ), '')";
         }
 
         // Package name
         if ($scope['package_name']) {
-            $searchComponents[] = 'i.package';
+            $searchComponents[] = "{$i}.package";
         }
 
         // Metadata (JSON object)
         if ($scope['metadata']) {
-            $searchComponents[] = "COALESCE(i.metadata::text, '')";
+            $searchComponents[] = "COALESCE({$i}.metadata::text, '')";
         }
 
         $combinedText = implode(" || ' ' || ", $searchComponents);
