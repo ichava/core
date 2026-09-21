@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Tests\Fixtures\ViewfulPack\Providers;
 
 use Simtabi\Laranail\Package\Tools\Package;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\ServiceProvider;
 
 /**
@@ -25,5 +26,15 @@ class IconsServiceProvider extends ServiceProvider
         $package
             ->setName('ichava/viewful-pack')
             ->setPathFrom(source: $this, levelsUp: 2);
+    }
+
+    public function bootingPackage(): void
+    {
+        // Registers its icons like a real pack, so the `about` section has
+        // metadata to report rather than "not registered".
+        $this->app->make(IconRegistry::class)->fromDirectory(
+            $this->package->basePath('resources/assets/svg'),
+            self::class,
+        );
     }
 }
