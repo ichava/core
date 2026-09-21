@@ -1,3 +1,5 @@
+[← Docs index](../../README.md#documentation)
+
 # Registering Custom Icon Sets
 
 *How-to guide.*
