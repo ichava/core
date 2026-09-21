@@ -44,6 +44,8 @@ Full documentation is at **[opensource.simtabi.com/documentation/ichava/core](ht
 - [Add a custom icon set](docs/recipes/add-a-custom-icon-set.md)
 - [Use an icon pack](docs/recipes/use-an-icon-pack.md)
 - [Seed pack icons](docs/recipes/seed-pack-icons.md)
+- [Check pack updates](docs/recipes/check-pack-updates.md)
+- [Serve icons from a CDN](docs/recipes/serve-icons-from-a-cdn.md)
 
 ## Contributing & security
 
