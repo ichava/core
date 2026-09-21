@@ -306,10 +306,12 @@ class IconDiscoveryService
         Cache::forget(self::CACHE_PREFIX . '.installed');
         Cache::increment(self::CACHE_PREFIX . '.generation');
 
-        // The database search path is IconCacheService's, so it clears it.
-        // A second implementation of prefix-flushing here is how the two
-        // halves drifted apart in the first place.
-        $this->cache->flushPrefix();
+        // No call to IconCacheService::flushPrefix() here, deliberately. The
+        // generation above already changes the database search key, and a
+        // mutation check confirmed the test passes without the flush -- so it
+        // was code no assertion covered. It also reached too far: flushPrefix()
+        // clears that service's ENTIRE prefix, including icon SVG caches and
+        // directory fingerprints this method has no business discarding.
     }
 
     /**
