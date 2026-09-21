@@ -2,6 +2,36 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **The docblock examples taught three things that are no longer true**, and one that never was.
+  These are the examples a pack author copies, so they are interface, not commentary.
+
+  | Was | Is |
+  |---|---|
+  | `<x-tabler-icons-icon …>` | `<x-icon-sets-tabler-icon …>` |
+  | `loadBladeComponent(TablerIconComponent::class, 'tabler-icons')` | `loadBladeComponent(IconComponent::class, 'icon-sets-tabler')` |
+  | `class TablerIconComponent extends IconComponent` | `class IconComponent extends BaseIconComponent` |
+
+  The class name is the one that was never right. **Class short names in this ecosystem are
+  constants** — every pack ships `IconComponent`, `IconsServiceProvider`, `IconsConstants`, and
+  only the namespace varies — so an example naming a class `TablerIconComponent` taught a pack
+  author to break the convention the whole family relies on, before and after the rebrand.
+
+- **`CONTRIBUTING.md`'s local-override snippet pointed at three paths that no longer exist.**
+  `../../laranail/packager` is two renames stale (`packager` became `package-tools`, and the tree
+  gained a `packages/` level), and `../ichava` was this package before it was `core`. Verified by
+  resolving each path from a pack directory rather than by reading them:
+
+  ```
+  ../../laranail/packager                   missing
+  ../../../laranail/packages/package-tools  exists
+  ../ichava                                 missing
+  ../core                                   exists
+  ```
+
 ## [0.3.1] - 2026-09-21
 
 ### Added
