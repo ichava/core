@@ -29,10 +29,14 @@
     "laranail/package-tools": "^0.1.0"
   },
   "require-dev": {
+    "ichava/icon-package-scaffolder": "^0.1.0",
     "orchestra/testbench": "^11.0",
     "pestphp/pest": "^5.0",
     "phpstan/phpstan": "^2.1",
     "laravel/pint": "^1.18"
+  },
+  "suggest": {
+    "ichava/icon-package-scaffolder": "Scaffold a new Ichava icon package: php artisan ichava::icon-package-scaffolder.make"
   },
   "autoload": {
     "psr-4": {
@@ -58,7 +62,7 @@
       }
     },
     "branch-alias": {
-      "dev-main": "0.2.x-dev"
+      "dev-main": "0.3.x-dev"
     }
   },
   "scripts": {
@@ -84,6 +88,10 @@
     "docs": "https://opensource.simtabi.com/documentation/ichava/core/"
   },
   "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/ichava/icon-package-scaffolder.git"
+    },
     {
       "type": "vcs",
       "url": "https://github.com/laranail/package-tools.git"

@@ -41,7 +41,6 @@ use Simtabi\Laranail\Ichava\Commands\WatchIconFilesCommand;
 use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
 use Simtabi\Laranail\Ichava\Services\IconPreferenceService;
 use Simtabi\Laranail\Ichava\Services\IconSetCatalogService;
-use Simtabi\Laranail\Ichava\Commands\MakeIconPackageCommand;
 use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
 use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
 use Simtabi\Laranail\Ichava\Commands\CheckIconUpdatesCommand;
@@ -92,7 +91,6 @@ class IchavaServiceProvider extends PackageServiceProvider
                 JobStatusCommand::class,
                 WatchIconFilesCommand::class,
                 CleanupIchavaLogsCommand::class,
-                MakeIconPackageCommand::class,
                 CheckIconUpdatesCommand::class,
             ]);
     }
