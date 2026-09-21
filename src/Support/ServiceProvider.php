@@ -61,6 +61,15 @@ abstract class ServiceProvider extends PackageServiceProvider
      *   failure this exists to end.
      * - `getPackageBaseDir()` resolves by reflection on `static::class`, so it
      *   works here even though the framework's own `setPathFrom()` has not run.
+     *
+     * **This covers the packs, and not `ichava/core` itself.** Core's
+     * `IchavaServiceProvider` extends `PackageServiceProvider` directly rather
+     * than this class, so it inherits none of the above and must declare each
+     * resource explicitly in its own `configurePackage()`. The asymmetry is
+     * deliberate -- core is not an icon pack -- but it means "a pack gets its
+     * resources by existing" is true of packs only. Anything added here has to
+     * be applied to core separately, and that gap has already produced one
+     * defect class in this family.
      */
     public function newPackage(): Package
     {
@@ -76,6 +85,18 @@ abstract class ServiceProvider extends PackageServiceProvider
         $package->setPathFrom($base);
 
         $package->loadAllResources(['configs', 'translations']);
+
+        // The packs still call `hasConfigFile('icon-sets-<vendor>')` in their own
+        // configurePackage(). That is now redundant -- autoLoadConfigs() globs
+        // `config/*.php` and calls the same method -- and it is deliberately
+        // kept. Upstream de-duplicates by name (`in_array` before append), so
+        // the second call is a true no-op rather than a double merge; checked,
+        // not assumed. Keeping it means a pack's manifest still states its
+        // config file where a reader looks for it, and a pack that renames the
+        // file gets a loud mismatch instead of silently following the rename.
+        // Removing them across six repos to save a no-op is churn with a
+        // failure mode; if they ever go, they go in one pass with a test that
+        // the key still resolves.
 
         // Views are deliberately NOT left to loadAllResources(). Upstream's
         // autoLoadViews() registers on directory presence, and every pack in
