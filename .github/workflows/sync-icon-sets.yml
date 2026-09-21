@@ -48,11 +48,27 @@ jobs:
             echo 'icon-sets.json unchanged; nothing to do.'
             exit 0
           fi
+          # Fetch the stable branch before branching off main, so --force-with-lease
+          # has a remote-tracking ref to compare against. `actions/checkout` fetches
+          # only the default branch, so without this there is no
+          # refs/remotes/origin/$BRANCH, the lease has no basis, and git rejects the
+          # push with "stale info" -- which reads like a race and is not one. It only
+          # bit on days the branch already existed: creating a ref needs no lease, so
+          # the first run after a merge passed and every run after it failed.
+          git fetch origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" || true
           git checkout -B "$BRANCH"
           git add icon-sets.json
           git commit -m 'docs: sync icon-sets catalog' || true
+          # Lease kept rather than dropped for --force: it still refuses to clobber a
+          # push that arrived after the fetch above, which is the case it exists for.
           git push --force-with-lease origin "$BRANCH"
-          if gh pr view "$BRANCH" --json number --jq .number >/dev/null 2>&1; then
+          # `gh pr view <branch>` resolves to that branch's most recent pull request
+          # whatever its state, so once one was merged this reported "already open"
+          # and stopped creating them -- while still exiting 0. The catalog change
+          # would sit on the branch indefinitely with the run reporting success.
+          # `gh pr list --state open` is the question actually being asked.
+          OPEN=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+          if [ "$OPEN" -gt 0 ]; then
             echo "Pull request already open for $BRANCH; updated in place."
           else
             gh pr create --base main --head "$BRANCH" --title 'docs: sync icon-sets catalog' --body 'Automated refresh of icon-sets.json.'

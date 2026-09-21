@@ -163,6 +163,21 @@ final class SvgPolicy
         return '/' . $raw . '/';
     }
 
+    public static function stripDoctype(): bool
+    {
+        return (bool) (self::all()['stripDoctype'] ?? true);
+    }
+
+    public static function stripEntities(): bool
+    {
+        return (bool) (self::all()['stripEntities'] ?? true);
+    }
+
+    public static function stripComments(): bool
+    {
+        return (bool) (self::all()['stripComments'] ?? true);
+    }
+
     /**
      * Only for tests that mutate the file on disk. Nothing in the request path
      * should need it.

@@ -11,10 +11,6 @@
         "ichava"
     ],
     "homepage": "https://github.com/{{packageName}}",
-    "support": {
-        "source": "https://github.com/{{packageName}}",
-        "issues": "https://github.com/{{packageName}}/issues"
-    },
     "license": "MIT",
     "authors": [
         {
@@ -23,14 +19,34 @@
         }
     ],
     "require": {
-        "php": "^8.3",
-        "ichava/core": "^1.0",
-        "illuminate/support": "^10.0|^12.0|^13.0"
+        "php": "^8.4.1 || ^8.5",
+        "illuminate/support": "^13.0",
+        "ichava/core": "^0.2.5",
+        "laranail/package-tools": "^0.1.0"
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/ichava/core"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/laranail/package-tools.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/laranail/console.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/laranail/enumerator.git"
+        }
+    ],
     "require-dev": {
-        "orchestra/testbench": "^8.0|^10.0|^11.0",
-        "pestphp/pest": "^2.0|^3.0",
-        "phpunit/phpunit": "^10.0|^11.0"
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^4.6 || ^5.0",
+        "phpstan/phpstan": "^2.1",
+        "laravel/pint": "^1.18"
     },
     "autoload": {
         "psr-4": {
@@ -47,7 +63,18 @@
             "providers": [
                 "{{namespaceEscaped}}\\Providers\\IconsServiceProvider"
             ]
+        },
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
         }
+    },
+    "scripts": {
+        "pint": "@php vendor/bin/laranail-pint --test",
+        "pint-fix": "@php vendor/bin/laranail-pint --parallel",
+        "lint": "@pint",
+        "format": "@pint-fix",
+        "test": "vendor/bin/pest --parallel",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=2G"
     },
     "config": {
         "sort-packages": true,
@@ -56,5 +83,10 @@
         }
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "support": {
+        "source": "https://github.com/{{packageName}}",
+        "issues": "https://github.com/{{packageName}}/issues",
+        "security": "https://github.com/{{packageName}}/security/policy"
+    }
 }
