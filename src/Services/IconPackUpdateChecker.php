@@ -45,6 +45,7 @@ class IconPackUpdateChecker
         protected int $cacheTtl = self::DEFAULT_CACHE_TTL,
         protected int $httpTimeout = 15,
         protected ?Closure $constantsResolver = null,
+        protected ?Closure $hostResolver = null,
     ) {}
 
     /**
@@ -57,6 +58,23 @@ class IconPackUpdateChecker
     public function setConstantsResolver(Closure $resolver): void
     {
         $this->constantsResolver = $resolver;
+    }
+
+    /**
+     * Override how a hostname is turned into addresses. Tests use this so a
+     * unit test never touches the network; production code never calls it.
+     *
+     * The seam substitutes *what a name resolves to*, never *whether an
+     * address is allowed*: literal IPs short-circuit before the resolver is
+     * consulted, and every address it returns still has to clear
+     * isPublicIp(). A resolver therefore cannot be used to reach a private
+     * host -- pointing a name at 127.0.0.1 is still refused.
+     *
+     * @param Closure(string):list<string> $resolver
+     */
+    public function setHostResolver(Closure $resolver): void
+    {
+        $this->hostResolver = $resolver;
     }
 
     /**
@@ -450,9 +468,14 @@ class IconPackUpdateChecker
     }
 
     /**
-     * All addresses a host resolves to, literal or via DNS. Numeric
-     * obfuscations (decimal, hex, octal) are normalised through the system
-     * resolver so they cannot dodge the public-IP check.
+     * All addresses a host resolves to, literal or by name lookup. Numeric
+     * obfuscations (decimal, hex, octal) are normalised through the resolver
+     * so they cannot dodge the public-IP check.
+     *
+     * A literal address is answered here and never reaches $hostResolver, so
+     * an injected resolver cannot make 127.0.0.1 look routable. Whatever the
+     * lookup returns is validated as an address and still has to clear
+     * isPublicIp() in the caller.
      *
      * @return list<string>
      */
@@ -464,6 +487,31 @@ class IconPackUpdateChecker
             return [$host];
         }
 
+        $ips = $this->hostResolver !== null
+            ? ($this->hostResolver)($host)
+            : $this->resolveHostIpsViaSystem($host);
+
+        $valid = [];
+        foreach ($ips as $ip) {
+            if (is_string($ip) && filter_var($ip, FILTER_VALIDATE_IP) !== false) {
+                $valid[] = $ip;
+            }
+        }
+
+        return array_values(array_unique($valid));
+    }
+
+    /**
+     * The real name lookup: DNS A + AAAA, plus gethostbynamel() to pick up
+     * anything the resolver knows that DNS alone does not (hosts file, mDNS).
+     *
+     * Returning [] -- no records, or no resolver at all -- fails the caller
+     * closed, which is why an offline process refuses every named host.
+     *
+     * @return list<string>
+     */
+    protected function resolveHostIpsViaSystem(string $host): array
+    {
         $ips = [];
 
         foreach (@dns_get_record($host, DNS_A) ?: [] as $record) {

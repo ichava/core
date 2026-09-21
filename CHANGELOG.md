@@ -2,6 +2,38 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **`IconPackUpdateChecker` takes an optional host resolver** (constructor argument or
+  `setHostResolver()`), so a test can say what a name resolves to without a working
+  DNS server. Production leaves it unset and the system resolver is used exactly as
+  before.
+
+  The seam substitutes *what a name resolves to*, never *whether an address is
+  allowed*. A literal address short-circuits before the resolver is consulted, and
+  every address the resolver returns is still validated and still has to clear the
+  public-IP check — so it cannot be used to reach a private host. Three tests pin
+  that: a name resolving into a private range, a name resolving to nothing, and a
+  literal `127.0.0.1` handed a resolver that answers everything with a public
+  address. Each fails if the guard, the short-circuit, or the public-IP check is
+  removed.
+
+### Fixed
+
+- **Eight unit tests no longer depend on live DNS.** The SSRF guard added in 0.2.4
+  resolves `version_check_url` before any request is made, and `Http::fake()` does not
+  intercept name resolution — so the guard failed closed and the tests failed with
+  `null` versions for any contributor offline, in a sandbox, or behind a restrictive
+  resolver. CI resolves fine, so nothing flagged it. The tests now inject a resolver
+  and touch the network nowhere.
+
+- **The cloud-metadata test now exercises the check it is named for.** Its fixture URL
+  was `http://169.254.169.254/…`, so the scheme check rejected it and the address check
+  never ran. It is `https://` now; the plain-`http` case is still covered by the
+  non-https test.
+
 ## [0.2.4] - 2026-09-21
 
 ### Added
