@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
 
