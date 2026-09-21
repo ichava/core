@@ -34,7 +34,7 @@ It replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0
 
 - PHP 8.4.1+ (8.5 supported)
 - Laravel 13+
-- SQLite, PostgreSQL, MySQL 8+ or MariaDB 10.3+ — see [Database support](https://github.com/ichava/documentation/blob/main/core/databases.md)
+- SQLite, PostgreSQL, MySQL 8+ or MariaDB 10.3+ — see [Database support](docs/databases.md)
 
 ## Install
 
@@ -74,28 +74,28 @@ A convenience metapackage (`ichava/ichava`) that pulls core + browser + a defaul
 {{ ichava('ichava/icon-sets-tabler::filled/home')->color('#FFD700')->class('w-5 h-5') }}
 ```
 
-## Documentation
+## <a name="documentation"></a>Documentation
 
 Full documentation lives in a dedicated repo: [`ichava/documentation`](https://github.com/ichava/documentation).
 
 Per-topic shortcuts:
 
-- [Installation](https://github.com/ichava/documentation/blob/main/core/installation.md)
-- [Configuration](https://github.com/ichava/documentation/blob/main/core/configuration.md)
-- [Environment variables](https://github.com/ichava/documentation/blob/main/core/environment.md)
-- [Icon path format](https://github.com/ichava/documentation/blob/main/core/icon-path-format.md)
-- [Blade components](https://github.com/ichava/documentation/blob/main/core/blade-components.md)
-- [Global helper](https://github.com/ichava/documentation/blob/main/core/global-helper.md)
-- [Artisan commands](https://github.com/ichava/documentation/blob/main/core/artisan-commands.md)
-- [Database seeding](https://github.com/ichava/documentation/blob/main/core/database-seeding.md)
-- [Custom icon sets](https://github.com/ichava/documentation/blob/main/core/custom-icon-sets.md)
-- [Creating icon packages](https://github.com/ichava/documentation/blob/main/core/creating-icon-packages.md)
+- [Installation](docs/installation.md)
+- [Configuration](docs/configuration.md)
+- [Environment variables](docs/environment.md)
+- [Icon path format](docs/tools/icon-path-format.md)
+- [Blade components](docs/tools/blade-components.md)
+- [Global helper](docs/tools/global-helper.md)
+- [Artisan commands](docs/tools/artisan-commands.md)
+- [Database seeding](docs/recipes/seed-the-database.md)
+- [Custom icon sets](docs/recipes/add-a-custom-icon-set.md)
+- [Creating icon packages](https://opensource.simtabi.com/documentation/ichava/icon-sets-package-scaffolder/creating-icon-packages)
 
 Cross-cutting:
 
-- [Architecture](https://github.com/ichava/documentation/blob/main/architecture.md)
+- [Architecture](docs/architecture.md)
 - [Security model](https://github.com/ichava/documentation/blob/main/security-model.md)
-- [Troubleshooting](https://github.com/ichava/documentation/blob/main/troubleshooting.md)
+- [Troubleshooting](docs/troubleshooting.md)
 
 ## Contributing
 
