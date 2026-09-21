@@ -59,6 +59,10 @@ dataset('blocked addresses', [
     'NAT64 loopback'            => ['64:ff9b::7f00:1'],
     '6to4 loopback'             => ['2002:7f00:1::'],
     '6to4 private'              => ['2002:0a00:0001::'],
+    'IPv4-compatible loopback'  => ['::7f00:1'],
+    'IPv4-compatible private'   => ['::a00:1'],
+    'IPv4-compatible metadata'  => ['::a9fe:a9fe'],
+    'IPv4-compatible CGNAT'     => ['::6440:1'],
 ]);
 
 dataset('routable addresses', [
@@ -86,11 +90,13 @@ it('refuses anything that is not an address at all', function () {
 });
 
 it('judges an address by its value, not its notation', function () {
-    // Every spelling of loopback must answer the same way. The old predicate
-    // said false for 127.0.0.1 and true for all three IPv6 wrappings of it.
+    // Every spelling of loopback must answer the same way. There are five, and
+    // the count is the point: the first version of this fix unwrapped three of
+    // them and left `::7f00:1` accepted, which made "by value, not notation"
+    // false as stated while reading as though it were true.
     $probe = ipProbe();
 
-    foreach (['127.0.0.1', '::ffff:127.0.0.1', '64:ff9b::7f00:1', '2002:7f00:1::'] as $spelling) {
+    foreach (['127.0.0.1', '::ffff:127.0.0.1', '64:ff9b::7f00:1', '2002:7f00:1::', '::7f00:1'] as $spelling) {
         expect($probe->allows($spelling))->toBeFalse();
     }
 });
