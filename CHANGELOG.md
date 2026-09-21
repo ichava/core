@@ -2,6 +2,20 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **`branch-alias` named the 0.3 series while `main` was already on 0.4.**
+  `extra.branch-alias.dev-main` read `0.3.x-dev`. The convention is that it moves in the change
+  that *starts* a series rather than when the release ships, so closing `0.4.0` left it a
+  version behind.
+
+  It resolved either way, which is exactly the problem. Every consumer now allows `^0.4` **and**
+  `^0.3`, so a path or VCS consumer tracking `dev-main` was handed 0.4-series code wearing a 0.3
+  label and nothing objected. The first consumer to drop its `^0.3` arm would have met it as a
+  resolution failure naming `ichava/core`, which is the wrong package to go looking at.
+
 ## [0.4.0] - 2026-09-21
 
 ### Added
