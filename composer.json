@@ -29,6 +29,7 @@
     "laranail/package-tools": "^0.1.0"
   },
   "require-dev": {
+    "ichava/icon-package-scaffolder": "^0.1.0",
     "orchestra/testbench": "^11.0",
     "pestphp/pest": "^5.0",
     "phpstan/phpstan": "^2.1",
@@ -87,6 +88,10 @@
     "docs": "https://opensource.simtabi.com/documentation/ichava/core/"
   },
   "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/ichava/icon-package-scaffolder.git"
+    },
     {
       "type": "vcs",
       "url": "https://github.com/laranail/package-tools.git"

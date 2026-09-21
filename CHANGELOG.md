@@ -44,11 +44,14 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 - **A `suggest` entry naming the replacement package and command**, so `composer suggest`
   answers "where did `make:icon-package` go" without a changelog archaeology trip.
 
-  The matching `require-dev` is deliberately *not* here yet. Nothing in this ecosystem is on
-  Packagist, so it would need a VCS `repositories` entry, and Composer would fail to resolve
-  until `ichava/icon-package-scaffolder` is published -- taking every CI job red and blocking a
-  deletion that is independently verified. `suggest` is inert metadata Composer never resolves,
-  so it ships now; the `require-dev` is a one-line follow-up.
+- **`ichava/icon-package-scaffolder: ^0.1.0` as a `require-dev`**, with the VCS `repositories`
+  entry it needs. Nothing in this ecosystem is on Packagist, so the constraint alone would be
+  inert -- Composer would consult Packagist, get a 404, and fail to resolve.
+
+  This landed after the package was published and tagged, not with the removal. A `require-dev`
+  on a package that does not exist yet is not a dependency, it is a red build, and it would have
+  blocked a deletion that was independently verified. Verified by resolving it for real against
+  the VCS repositories before adding the line, rather than by assuming a tag is enough.
 
 ### Changed
 
