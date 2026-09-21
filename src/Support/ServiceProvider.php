@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use FilesystemIterator;
 use Illuminate\Support\Str;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
 use Illuminate\Support\Facades\Blade;
 use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
@@ -34,35 +37,55 @@ abstract class ServiceProvider extends PackageServiceProvider
     public const string ICON_ECOSYSTEM_NAME = 'ichava';
 
     /**
-     * Build the Package, with translations already switched on.
+     * Build the Package with every resource type it ships already switched on.
      *
-     * `package-tools` defaults `hasTranslations` to false, so every pack in this
-     * family shipped `resources/lang` that nothing ever registered -- the keys
-     * were unreachable for the whole life of the files, which is why a pack
-     * could carry another pack's translations, and a wrong licence string,
-     * without anything failing. Defaulting it on here means a pack gets working
-     * translations by existing rather than by remembering a call.
+     * `package-tools` defaults all of them to false, so a pack got nothing
+     * unless it remembered a call. That is how every pack in this family
+     * shipped `resources/lang` nothing ever registered -- the keys were
+     * unreachable for the whole life of the files, which is why one pack could
+     * carry another pack's translations, and a wrong licence string, without
+     * anything failing. A pack should get its resources by existing.
+     *
+     * This used to hand-roll the directory check for translations alone, which
+     * is exactly why views and configs were never covered: written as a special
+     * case, it did not generalise. `loadAllResources()` is the upstream API for
+     * this and covers six resource types; ichava does not re-implement it.
      *
      * Three things make this the right hook rather than `packageRegistered()`:
      *
      * - It runs before `configurePackage()`, so a pack that genuinely wants to
-     *   opt out can still set `$package->hasTranslations = false` there.
+     *   opt out can still unset a flag there.
      * - No pack overrides it, whereas `packageRegistered()` is a documented
      *   extension point -- a child overriding that without calling `parent::`
-     *   would silently lose its translations, which is the same class of quiet
-     *   failure this change exists to end.
+     *   would silently lose its resources, which is the same class of quiet
+     *   failure this exists to end.
      * - `getPackageBaseDir()` resolves by reflection on `static::class`, so it
-     *   works here even though `setPathFrom()` has not run yet.
-     *
-     * Conditioned on the directory existing so a pack without translations does
-     * not register a namespace pointing at nothing.
+     *   works here even though the framework's own `setPathFrom()` has not run.
      */
     public function newPackage(): Package
     {
         $package = parent::newPackage();
+        $base = $this->getPackageBaseDir();
 
-        if (is_dir($this->getPackageBaseDir() . '/resources/lang')) {
-            $package->hasTranslations();
+        // Prime the path. `registerPackage()` sets it on the very next line,
+        // but `loadAllResources()` resolves paths NOW and `Package::$basePath`
+        // is '' until then -- so every check would test "/resources/..." from
+        // the filesystem root, find nothing, register nothing, and return
+        // fluently. No exception and no warning: a green build over a feature
+        // that does not exist. Idempotent; the framework's own call repeats it.
+        $package->setPathFrom($base);
+
+        $package->loadAllResources(['configs', 'translations']);
+
+        // Views are deliberately NOT left to loadAllResources(). Upstream's
+        // autoLoadViews() registers on directory presence, and every pack in
+        // this family ships `resources/views/components/.gitkeep` with no
+        // templates at all -- a placeholder kept by an explicit decision. On
+        // presence alone that registers a namespace which resolves nothing,
+        // which is how a later reader concludes views are broken. Require a
+        // template. Proposed upstream; diverging here until it lands.
+        if (self::shipsABladeTemplate($base . '/resources/views')) {
+            $package->hasViews();
         }
 
         return $package;
@@ -206,5 +229,30 @@ abstract class ServiceProvider extends PackageServiceProvider
         return $subPath
             ? rtrim($base, '/\\') . DIRECTORY_SEPARATOR . ltrim($subPath, '/\\')
             : $base;
+    }
+
+    /**
+     * Whether a views directory contains at least one Blade template.
+     *
+     * Recursive, because a pack's templates live under `components/` rather
+     * than at the root of `resources/views`.
+     */
+    private static function shipsABladeTemplate(string $viewsPath): bool
+    {
+        if (! is_dir($viewsPath)) {
+            return false;
+        }
+
+        $files = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($viewsPath, FilesystemIterator::SKIP_DOTS),
+        );
+
+        foreach ($files as $file) {
+            if (str_ends_with($file->getFilename(), '.blade.php')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
