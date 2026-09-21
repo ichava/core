@@ -4,6 +4,199 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Fixed
+
+- **Search terms match literally.** `%`, `_` and `\` in a query acted as `LIKE` wildcards,
+  widening results and forcing full-table scans. Both search scopes now escape them with an
+  explicit `ESCAPE` clause, which also keeps the fix correct on drivers without a default
+  escape character — SQLite has none, so without the clause the escape byte would be matched
+  literally and the fix would silently not apply there.
+
+## [0.2.7] - 2026-09-21
+
+### Added
+
+- **A carrier-grade NAT guard test at the level the guard actually runs.**
+  `IconPackUpdateCheckerTest` now covers a pack whose `version_check_url` host resolves into
+  `100.64.0.0/10`: the check reports `error` and `Http::assertNothingSent()` holds, so the
+  refusal is pinned at the point a request would otherwise be made.
+
+  `PublicIpBoundaryTest` pins the predicate, and `blocks a host that resolves to a private
+  address` already pins that `checkOne()` consults it: dropping the `isPublicIp()` call from
+  `isAllowedVersionCheckUrl()` fails five tests, that one included. What no test covered is
+  `100.64.0.0/10` specifically at the boundary. It is the entry in `BLOCKED_V4` most likely to
+  be removed by someone reading RFC 6598 space as public, and nothing outside the predicate
+  tests would have noticed.
+
+  The fixture gained `cgnat.test` rather than a literal address, because a literal one
+  short-circuits `resolveHostIps()` before the resolver runs and would exercise a different path.
+
+  **Mutation-checked:** removing `'100.64.0.0/10'` from `BLOCKED_V4` fails this test.
+
+### Fixed
+
+- **The catalog sync workflow could only succeed on the first run after a merge.** It pushes to
+  a single stable branch, `chore/sync-icon-sets`, so each run updates one pull request instead of
+  opening a new one. `actions/checkout` fetches only the default branch, so there was no
+  `refs/remotes/origin/chore/sync-icon-sets` for `--force-with-lease` to compare against, and git
+  rejected the push with `! [rejected] ... (stale info)`.
+
+  The pattern is the giveaway: it failed on 17, 18, 20 and 21 September and passed on the 19th.
+  Creating a ref needs no lease, so the first run after the branch was merged away succeeded, and
+  every run while the branch existed failed. "Stale info" reads like a race, and this was not one.
+
+  The branch is now fetched into its remote-tracking ref before branching off `main`. The lease
+  is kept rather than swapped for a plain `--force`: it still refuses to clobber a push that
+  arrived after that fetch, which is the case it exists for.
+
+- **The same workflow had stopped opening pull requests, silently.** Its guard was
+  `gh pr view "$BRANCH"`, which resolves a branch to its most recent pull request **whatever its
+  state**. Once the first one was merged, every later run matched that merged PR, printed
+  "Pull request already open", skipped creation and exited 0.
+
+  Worse than the push failure it sat next to: that one at least went red. This reported success
+  while the catalog change stayed on the branch with nothing tracking it. It is now
+  `gh pr list --head "$BRANCH" --state open`, which is the question being asked.
+
+- **`make:icon-package` scaffolded a forbidden `docs/README.md` index.** The standard is one
+  README per repo: the index is the package README's own docs section, and a standalone
+  `docs/README.md` duplicates it and then drifts out of step with it. None of the five packs in
+  the estate has one, so every scaffolded pack diverged from the estate on its first commit.
+
+  The stub is deleted and both of its lists are relocated into `README.md.stub` under a
+  `## Pack-specific docs` section, matching the shape `flag-icons` already uses — the three
+  pack pages, and the cross-references into the shared documentation repo. Nothing is lost;
+  deleting the index without moving its links would have left `docs/variants.md`,
+  `docs/customization.md` and `docs/attribution.md` scaffolded but unreachable.
+
+  It dates to `Initial release`, the same commit as the `ichava/core: ^1.0` constraint fixed in
+  0.2.6 — the ninth member of that drift set rather than a regression from it.
+
+  **Mutation-checked, both directions:** restoring the index fails the new parity case, and
+  stripping the README links fails it too. The second is the one that matters, because the
+  obvious fix is a bare deletion that silently orphans three pages.
+
+## [0.2.6] - 2026-09-21
+
+### Fixed
+
+- **`make:icon-package` generated a package that could not be installed.** Eight values in
+  `stubs/icon-package/` had drifted from the five real packs, and nothing compared the two, so
+  every scaffold since the drift began was born broken. The decisive one: the stub required
+  `ichava/core: ^1.0`, a version that has never existed, and shipped no `repositories` block --
+  so Composer consulted only Packagist, which answers 404 for every `ichava/*`. Resolution was
+  impossible, not merely wrong.
+
+  | Was | Now |
+  |---|---|
+  | `ichava/core: ^1.0` | `^0.2.5`, plus the four VCS `repositories` a pack needs |
+  | `php: ^8.3` | `^8.4.1 \|\| ^8.5` |
+  | `illuminate/support: ^10.0\|^12.0\|^13.0` | `^13.0` |
+  | `laranail/package-tools` absent | required, since the generated provider imports it |
+  | `Simtabi\Laranail\PackageTools\*` | `Simtabi\Laranail\Package\Tools\*` |
+  | `ichava:update-<pack>-icons` | `ichava::<pack>-icons.update` |
+  | `orchestra/testbench: ^8.0\|^10.0\|^11.0` | `^11.0` |
+  | `pestphp/pest: ^2.0\|^3.0` | `^4.6 \|\| ^5.0` |
+
+  The namespace and command-name entries are the instructive ones: both were fixed in the five
+  real packs and never propagated here, so the scaffolder kept emitting conventions the estate
+  had already retired. The bare `ichava:update-…` name in particular is exactly the flat-map
+  collision the namespaced scheme exists to prevent.
+
+### Added
+
+- **Scaffolded packages now ship the four workflows every real pack has** -- `tests`,
+  `code-quality`, `release` and `sync-upstream`. A pack generated before this had no CI at all,
+  so its tests never ran anywhere.
+
+- **`StubEstateParityTest` compares the stub against a real pack, not against literals.** It
+  reads `flag-icons/composer.json` and its provider off disk and asserts the scaffolded output
+  agrees. Hardcoded expectations are how all eight defects survived: a literal encodes the
+  estate as it was the day it was written, then ages silently beside the thing it guards. The
+  test skips when the sibling is absent, since CI clones one repo and a false red there would
+  train people to ignore it.
+
+## [0.2.5] - 2026-09-21
+
+### Security
+
+- **The version-check address guard judged addresses by notation, and missed most of the
+  special-purpose registry.** `isPublicIp()` used PHP's
+  `FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE` plus a `127.` prefix check. That pair
+  covers RFC 1918, loopback and link-local — **169.254.169.254 cloud metadata was correctly
+  blocked** — and admits everything else IANA marks special-purpose.
+
+  Measured against the predicate rather than read off the flags, it accepted:
+  `100.64.0.0/10` carrier-grade NAT, `192.0.0.0/24`, `198.18.0.0/15` benchmarking, all three
+  TEST-NET documentation blocks, and `224.0.0.0/4` multicast.
+
+  **Some of the gaps reached loopback.** Four IPv6 forms carry an IPv4 address inside them, and
+  the old check judged the notation rather than the address: `64:ff9b::7f00:1` (NAT64),
+  `2002:7f00:1::` (6to4) and `::7f00:1` (IPv4-compatible, RFC 4291 2.5.5.1) all mean
+  **127.0.0.1** and all passed. `::ffff:127.0.0.1` happened to be caught; that it was, while
+  its three siblings were not, is the sign the check was reading spelling rather than value.
+
+  The IPv4-compatible form is the weakest of the four — deprecated since 2006, and most stacks
+  will not route it — but `::a9fe:a9fe` is cloud metadata written in it, and a notation that
+  carries a blocked value and is accepted anyway is the exact defect this change exists to
+  remove.
+
+  The predicate is now an explicit IANA special-purpose block list for v4 and v6, and the three
+  IPv4-carrying IPv6 forms are unwrapped and judged as the address they carry, so the answer
+  cannot depend on how an address is written.
+
+  Exploiting it needed a malicious or compromised pack's `version_check_url`, and the
+  loopback-reaching cases additionally needed NAT64 or 6to4 on the host — narrow, but the
+  guard exists precisely because a pack's config is not trusted input.
+
+  `tests/Unit/PublicIpBoundaryTest.php` pins 32 blocked addresses and 5 routable ones, and
+  asserts that all **five** spellings of loopback answer identically. **Mutation-checked:**
+  restoring the previous implementation fails 14 of them.
+
+  > The count in that last assertion is load-bearing. The first version of this fix unwrapped
+  > three notations and left `::7f00:1` accepted — which made "by value, not notation" false as
+  > stated, while reading as though it were true. A claim about notation is only worth as much
+  > as the enumeration behind it.
+
+  > `fake_host_resolver()` in `IconPackUpdateCheckerTest` had to move off `192.0.2.0/24`. It
+  > chose TEST-NET-1 deliberately, because the guard treated documentation space as routable
+  > while it could never be a real destination — a neat trick that depended on this gap. With
+  > the registry blocked, no address is both allowed and guaranteed-unroutable, so the fixture
+  > now uses real public addresses and takes its inertness from the stub resolver and
+  > `Http::fake()` instead of from the range.
+
+### Added
+
+- **`IconPackUpdateChecker` takes an optional host resolver** (constructor argument or
+  `setHostResolver()`), so a test can say what a name resolves to without a working
+  DNS server. Production leaves it unset and the system resolver is used exactly as
+  before.
+
+  The seam substitutes *what a name resolves to*, never *whether an address is
+  allowed*. A literal address short-circuits before the resolver is consulted, and
+  every address the resolver returns is still validated and still has to clear the
+  public-IP check — so it cannot be used to reach a private host. Three tests pin
+  that: a name resolving into a private range, a name resolving to nothing, and a
+  literal `127.0.0.1` handed a resolver that answers everything with a public
+  address. Each fails if the guard, the short-circuit, or the public-IP check is
+  removed.
+
+### Fixed
+
+- **Eight unit tests no longer depend on live DNS.** The SSRF guard added in 0.2.4
+  resolves `version_check_url` before any request is made, and `Http::fake()` does not
+  intercept name resolution — so the guard failed closed and the tests failed with
+  `null` versions for any contributor offline, in a sandbox, or behind a restrictive
+  resolver. CI resolves fine, so nothing flagged it. The tests now inject a resolver
+  and touch the network nowhere.
+
+- **The cloud-metadata test now exercises the check it is named for.** Its fixture URL
+  was `http://169.254.169.254/…`, so the scheme check rejected it and the address check
+  never ran. It is `https://` now; the plain-`http` case is still covered by the
+  non-https test.
+
+## [0.2.4] - 2026-09-21
+
 ### Added
 
 - **`release.yml`** — tag-driven, so a `v*.*.*` push publishes a release whose body is that
@@ -27,10 +220,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   now checks the stable pins (`key`/`package`/`repository`) and only the shape of the
   synced fields, deriving expected versions from the loaded catalog.
 
-- **Search terms match literally.** `%`, `_` and `\` in a query acted as `LIKE`
-  wildcards, widening results and forcing full-table scans. Both search scopes now
-  escape them with an explicit `ESCAPE` clause, which also keeps the fix correct on
-  drivers without a default escape character.
+- **Workflow tokens scoped to least privilege.** `tests.yml` and `code-quality.yml`
+  ran with the repository default token; both now declare `permissions:
+  contents: read`.
 
 ### Security
 
@@ -54,6 +246,27 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   viewers fetch an attacker URL. The fragment-only rule now applies to every
   attribute value, in file content as well as applied attributes; plain paint values
   and `url(#fragment)` references are unaffected.
+
+- **Sanitizer policy flags are enforced, not just declared.** `stripComments`,
+  `stripDoctype` and `stripEntities` existed in `svg-policy.json` with no PHP
+  reader, so comments survived the main read path and entity references lingered.
+  The sanitizer now honors all three, and the blocked-protocol list gains `blob:`,
+  `filesystem:`, `jar:` and `data:text/plain`.
+
+- **SVG driver loads are contained to the package directory.** `load()` only checked
+  the path against its own directory, so any absolute path passed. Callers can now
+  pin loads to a base directory — the registry passes each set's own — and escapes
+  are rejected instead of read.
+
+- **Debug render errors no longer leak paths.** The `app.debug` fallback embedded
+  the exception message — including absolute filesystem paths — in an HTML comment.
+  It now carries only the exception class.
+
+- **Pack update checks no longer request arbitrary URLs.** The `version_check_url`
+  from a pack's config was fetched with no validation, so a malicious pack could
+  aim it at the local network. Only `https` URLs with publicly routable hosts are
+  requested now, redirects are not followed, and anything else reports an error
+  without sending.
 
 ## [0.2.3] - 2026-09-16
 

@@ -1,0 +1,66 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [8.4, 8.5]
+        laravel: [13.*]
+        stability: [prefer-stable]
+        include:
+          - laravel: 13.*
+            testbench: ^11.0
+
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, intl
+          coverage: pcov
+
+      - name: Setup problem matchers
+        run: |
+          echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+          echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      - name: Authenticate Composer for private GitHub deps
+        env:
+          GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
+        # ichava/core (and laranail/package-tools while still private) live
+        # in private repos. Composer's git clone has no auth on a fresh runner
+        # without this. Provision a PAT with `repo:read` scope and store it
+        # as the GH_PACKAGES_PAT secret on each consuming repo. The step
+        # short-circuits cleanly when the secret is absent, so public
+        # forks aren't blocked.
+        if: env.GH_PACKAGES_PAT != ''
+        run: |
+          composer config --global --auth github-oauth.github.com "$GH_PACKAGES_PAT"
+
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Execute tests
+        run: vendor/bin/pest --coverage

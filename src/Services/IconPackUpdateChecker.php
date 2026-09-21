@@ -39,12 +39,61 @@ class IconPackUpdateChecker
     /** Default cache TTL (12 hours). Configurable via constructor. */
     protected const DEFAULT_CACHE_TTL = 43_200;
 
+    /**
+     * No private, reserved, loopback, link-local, multicast or unspecified
+     * addresses. The loopback check is explicit rather than trusting flag
+     * behaviour across PHP builds.
+     */
+    /**
+     * IPv4 blocks that must never be requested. This is the IANA special-purpose
+     * registry (RFC 6890), not PHP's `NO_PRIV_RANGE | NO_RES_RANGE` pair, which
+     * covers only RFC 1918, loopback and link-local and admits everything else --
+     * carrier-grade NAT included.
+     *
+     * @var list<string>
+     */
+    protected const BLOCKED_V4 = [
+        '0.0.0.0/8',          // this network
+        '10.0.0.0/8',         // RFC 1918 private
+        '100.64.0.0/10',      // RFC 6598 carrier-grade NAT
+        '127.0.0.0/8',        // loopback
+        '169.254.0.0/16',     // link-local, incl. 169.254.169.254 cloud metadata
+        '172.16.0.0/12',      // RFC 1918 private
+        '192.0.0.0/24',       // IETF protocol assignments
+        '192.0.2.0/24',       // TEST-NET-1
+        '192.168.0.0/16',     // RFC 1918 private
+        '198.18.0.0/15',      // RFC 2544 benchmarking
+        '198.51.100.0/24',    // TEST-NET-2
+        '203.0.113.0/24',     // TEST-NET-3
+        '224.0.0.0/4',        // multicast
+        '240.0.0.0/4',        // reserved, incl. 255.255.255.255
+    ];
+
+    /**
+     * IPv6 blocks that must never be requested.
+     *
+     * @var list<string>
+     */
+    protected const BLOCKED_V6 = [
+        '::/96',              // IPv4-compatible (RFC 4291 2.5.5.1), deprecated; also covers
+        // :: and ::1 below, which stay listed because a reader scanning
+        // for "is loopback blocked" should find it by name
+        '::/128',             // unspecified
+        '::1/128',            // loopback
+        '100::/64',           // discard-only
+        '2001:db8::/32',      // documentation
+        'fc00::/7',           // unique-local
+        'fe80::/10',          // link-local
+        'ff00::/8',           // multicast
+    ];
+
     public function __construct(
         protected IconRegistry $registry,
         protected ?IchavaLogger $logger = null,
         protected int $cacheTtl = self::DEFAULT_CACHE_TTL,
         protected int $httpTimeout = 15,
         protected ?Closure $constantsResolver = null,
+        protected ?Closure $hostResolver = null,
     ) {}
 
     /**
@@ -57,6 +106,23 @@ class IconPackUpdateChecker
     public function setConstantsResolver(Closure $resolver): void
     {
         $this->constantsResolver = $resolver;
+    }
+
+    /**
+     * Override how a hostname is turned into addresses. Tests use this so a
+     * unit test never touches the network; production code never calls it.
+     *
+     * The seam substitutes *what a name resolves to*, never *whether an
+     * address is allowed*: literal IPs short-circuit before the resolver is
+     * consulted, and every address it returns still has to clear
+     * isPublicIp(). A resolver therefore cannot be used to reach a private
+     * host -- pointing a name at 127.0.0.1 is still refused.
+     *
+     * @param Closure(string):list<string> $resolver
+     */
+    public function setHostResolver(Closure $resolver): void
+    {
+        $this->hostResolver = $resolver;
     }
 
     /**
@@ -209,6 +275,18 @@ class IconPackUpdateChecker
                 'latest'      => null,
                 'release_url' => null,
                 'reason'      => 'upstream.version_check_url is missing',
+            ];
+        }
+
+        if (! $this->isAllowedVersionCheckUrl((string) $url)) {
+            return [
+                'package'     => $packageName,
+                'source'      => $sourceName,
+                'status'      => 'error',
+                'current'     => $current,
+                'latest'      => null,
+                'release_url' => null,
+                'reason'      => 'upstream.version_check_url is blocked: https with a publicly routable host is required',
             ];
         }
 
@@ -403,8 +481,206 @@ class IconPackUpdateChecker
     }
 
     /**
+     * Whether a version-check URL may be requested. The URL comes from the
+     * pack's own config, so a malicious pack must not be able to aim it at
+     * the local network: https scheme only, and every resolved address must
+     * be publicly routable. Unresolvable hosts fail closed.
+     */
+    protected function isAllowedVersionCheckUrl(string $url): bool
+    {
+        $parts = parse_url($url);
+
+        if (! is_array($parts) || ($parts['scheme'] ?? null) !== 'https') {
+            return false;
+        }
+
+        $host = $parts['host'] ?? '';
+
+        if ($host === '') {
+            return false;
+        }
+
+        $ips = $this->resolveHostIps($host);
+
+        if ($ips === []) {
+            return false;
+        }
+
+        foreach ($ips as $ip) {
+            if (! $this->isPublicIp($ip)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * All addresses a host resolves to, literal or by name lookup. Numeric
+     * obfuscations (decimal, hex, octal) are normalised through the resolver
+     * so they cannot dodge the public-IP check.
+     *
+     * A literal address is answered here and never reaches $hostResolver, so
+     * an injected resolver cannot make 127.0.0.1 look routable. Whatever the
+     * lookup returns is validated as an address and still has to clear
+     * isPublicIp() in the caller.
+     *
+     * @return list<string>
+     */
+    protected function resolveHostIps(string $host): array
+    {
+        $host = trim($host, '[]');
+
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return [$host];
+        }
+
+        $ips = $this->hostResolver !== null
+            ? ($this->hostResolver)($host)
+            : $this->resolveHostIpsViaSystem($host);
+
+        $valid = [];
+        foreach ($ips as $ip) {
+            if (is_string($ip) && filter_var($ip, FILTER_VALIDATE_IP) !== false) {
+                $valid[] = $ip;
+            }
+        }
+
+        return array_values(array_unique($valid));
+    }
+
+    /**
+     * The real name lookup: DNS A + AAAA, plus gethostbynamel() to pick up
+     * anything the resolver knows that DNS alone does not (hosts file, mDNS).
+     *
+     * Returning [] -- no records, or no resolver at all -- fails the caller
+     * closed, which is why an offline process refuses every named host.
+     *
+     * @return list<string>
+     */
+    protected function resolveHostIpsViaSystem(string $host): array
+    {
+        $ips = [];
+
+        foreach (@dns_get_record($host, DNS_A) ?: [] as $record) {
+            if (isset($record['ip'])) {
+                $ips[] = $record['ip'];
+            }
+        }
+
+        foreach (@dns_get_record($host, DNS_AAAA) ?: [] as $record) {
+            if (isset($record['ipv6'])) {
+                $ips[] = $record['ipv6'];
+            }
+        }
+
+        foreach (gethostbynamel($host) ?: [] as $ip) {
+            $ips[] = $ip;
+        }
+
+        return array_values(array_unique($ips));
+    }
+
+    /**
+     * Whether an address may be requested.
+     *
+     * Four IPv6 forms carry an IPv4 address inside them, and each is a way to
+     * write a blocked IPv4 address that looks like a public IPv6 one.
+     * `::ffff:127.0.0.1` (IPv4-mapped), `64:ff9b::7f00:1` (NAT64) and
+     * `2002:7f00:1::` (6to4) all mean 127.0.0.1 and are unwrapped here.
+     *
+     * The fourth, `::7f00:1` (IPv4-compatible, RFC 4291 2.5.5.1), is blocked by
+     * range instead: the whole of `::/96` is listed, because nothing legitimate
+     * lives there. It is deprecated and most stacks will not route it, so it is
+     * weaker than the other three -- but a notation that carries a blocked value
+     * and is accepted anyway is the exact defect this method exists to remove.
+     */
+    protected function isPublicIp(string $ip): bool
+    {
+        $packed = @inet_pton($ip);
+
+        if ($packed === false) {
+            return false;
+        }
+
+        if (strlen($packed) === 16) {
+            $embedded = $this->embeddedIpv4($packed);
+
+            if ($embedded !== null) {
+                return $this->isPublicIp($embedded);
+            }
+
+            return ! $this->inAnyBlock($packed, self::BLOCKED_V6);
+        }
+
+        return ! $this->inAnyBlock($packed, self::BLOCKED_V4);
+    }
+
+    /**
+     * The IPv4 address an IPv6 address carries, in dotted form, or null when it
+     * carries none.
+     */
+    protected function embeddedIpv4(string $packed): ?string
+    {
+        // ::ffff:0:0/96 IPv4-mapped, and 64:ff9b::/96 NAT64: last four bytes.
+        $mapped = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff";
+        $nat64 = "\x00\x64\xff\x9b\x00\x00\x00\x00\x00\x00\x00\x00";
+
+        if (str_starts_with($packed, $mapped) || str_starts_with($packed, $nat64)) {
+            return inet_ntop(substr($packed, 12, 4)) ?: null;
+        }
+
+        // 2002::/16 6to4: the IPv4 address is bytes 2-5.
+        if (str_starts_with($packed, "\x20\x02")) {
+            return inet_ntop(substr($packed, 2, 4)) ?: null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether a packed address falls inside any of the given CIDR blocks.
+     *
+     * @param list<string> $blocks
+     */
+    protected function inAnyBlock(string $packed, array $blocks): bool
+    {
+        foreach ($blocks as $block) {
+            [$net, $bits] = explode('/', $block);
+            $packedNet = @inet_pton($net);
+
+            if ($packedNet === false || strlen($packedNet) !== strlen($packed)) {
+                continue;
+            }
+
+            $bits = (int) $bits;
+            $whole = intdiv($bits, 8);
+            $rest = $bits % 8;
+
+            if ($whole > 0 && substr($packed, 0, $whole) !== substr($packedNet, 0, $whole)) {
+                continue;
+            }
+
+            if ($rest > 0) {
+                $mask = ~((1 << (8 - $rest)) - 1) & 0xFF;
+
+                if ((ord($packed[$whole]) & $mask) !== (ord($packedNet[$whole]) & $mask)) {
+                    continue;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * GET the version-check URL with caching. Cache TTL defaults to 12
      * hours; pass a lower value to the constructor for tighter polling.
+     *
+     * Redirects are not followed: the URL above was validated, its redirect
+     * target would not be.
      */
     protected function fetch(string $url): array
     {
@@ -413,6 +689,7 @@ class IconPackUpdateChecker
         return Cache::remember($cacheKey, $this->cacheTtl, function () use ($url): array {
             $response = Http::timeout($this->httpTimeout)
                 ->acceptJson()
+                ->withoutRedirecting()
                 ->withUserAgent('ichava-icon-pack-update-checker (https://github.com/ichava/core)')
                 ->get($url);
             $response->throw();
