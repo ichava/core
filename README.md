@@ -49,7 +49,7 @@ Full documentation is at **[opensource.simtabi.com/documentation/ichava/core](ht
 
 ## Contributing & security
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately through [SECURITY.md](SECURITY.md) — never in a public issue.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately through [security policy](https://github.com/ichava/core/security/policy) — never in a public issue.
 
 ## License
 
