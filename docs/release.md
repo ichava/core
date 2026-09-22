@@ -1,5 +1,3 @@
-[← Docs index](../README.md#documentation)
-
 # Release
 
 *Reference.* How a version of `ichava/core` is cut, what the tag triggers, and what the published release carries.
