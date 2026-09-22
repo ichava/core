@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Support;
 
 use Illuminate\Contracts\Foundation\Application;
-use Simtabi\Laranail\Ichava\Browser\Http\Middleware\IchavaApiSecurity;
+use Simtabi\Laranail\Ichava\IconBrowser\Http\Middleware\IchavaApiSecurity;
 
 /**
  * Request-scoped CSP nonce.

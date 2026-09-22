@@ -46,10 +46,10 @@ ichava('ichava/icon-sets-tabler::outline.home');   // dot form
 Core has no HTTP surface at all — no routes, no middleware, no REST endpoints. The icon browser at `/ichava/icons` and the JSON API live in a separate package:
 
 ```bash
-composer require ichava/browser
+composer require ichava/icon-browser
 ```
 
-See [`ichava/browser`](https://opensource.simtabi.com/documentation/ichava/browser/installation) for its installation and configuration.
+See [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) for its installation and configuration.
 
 ## Scaffold your own pack
 
