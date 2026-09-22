@@ -1,5 +1,3 @@
-[← Docs index](../../README.md#documentation)
-
 # Global Helper Function
 
 *Reference.*

@@ -1,5 +1,3 @@
-[← Docs index](../README.md#documentation)
-
 # Troubleshooting
 
 *How-to guide.*
