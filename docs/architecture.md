@@ -20,7 +20,7 @@ Relocated from the README, which is now a slim pointer.
 | Logging | Three dedicated channels: `ichava`, `ichava-icons`, `ichava-queue`. |
 | Search | Full-text search on PostgreSQL; portable `LIKE` search on SQLite, MySQL and MariaDB. |
 
-**Zero HTTP surface.** No REST endpoints, no middleware, no routes. The HTTP layer -- REST API plus the Vue/Vite SPA -- lives in the optional [`ichava/browser`](https://opensource.simtabi.com/documentation/ichava/browser/installation) package, which is why `composer require ichava/core` alone gives a fully functional headless icon engine.
+**Zero HTTP surface.** No REST endpoints, no middleware, no routes. The HTTP layer -- REST API plus the Vue/Vite SPA -- lives in the optional [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) package, which is why `composer require ichava/core` alone gives a fully functional headless icon engine.
 
 Scaffolding a new icon pack is **not** part of core either; it lives in [`ichava/icon-sets-package-scaffolder`](https://opensource.simtabi.com/documentation/ichava/icon-sets-package-scaffolder/creating-icon-packages) and replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0.2.7`.
 
@@ -29,7 +29,7 @@ Scaffolding a new icon pack is **not** part of core either; it lives in [`ichava
 ```mermaid
 flowchart TB
     core["<b>ichava/core</b><br/>services, registry, seeder, Blade base,<br/>scaffolder, migrations, log channels<br/>(no HTTP surface, headless-friendly)"]
-    browser["<b>ichava/browser</b><br/>REST API + Vue/Vite SPA<br/>middleware + browser views"]
+    browser["<b>ichava/icon-browser</b><br/>REST API + Vue/Vite SPA<br/>middleware + browser views"]
     tabler["<b>ichava/icon-sets-tabler</b><br/>6,184 icons"]
     bundled["<b>ichava/icon-sets-bundled</b><br/>121,314 icons / 72 sets<br/>PRIVATE"]
     metronic["<b>ichava/icon-sets-metronic</b><br/>501 icons<br/>PRIVATE"]
@@ -69,16 +69,16 @@ flowchart TB
     class toolkit tooling
 ```
 
-The `ichava/browser` package owns the *entire HTTP layer* (REST API, SPA, middleware). Core ships zero HTTP surface, so `composer require ichava/core` alone gives a fully functional headless icon engine. Icon packs depend only on core, so a CLI-only deployment can install `core` + a pack with no Node, Vite, or browser dependencies.
+The `ichava/icon-browser` package owns the *entire HTTP layer* (REST API, SPA, middleware). Core ships zero HTTP surface, so `composer require ichava/core` alone gives a fully functional headless icon engine. Icon packs depend only on core, so a CLI-only deployment can install `core` + a pack with no Node, Vite, or browser dependencies.
 
 ## Dependency rules
 
 | Rule | Rationale |
 |---|---|
 | `ichava/core` depends only on `laranail/package-tools` and Laravel framework | Headless server installs (no JS toolchain) work cleanly. |
-| `ichava/browser` depends on `ichava/core` | Browser is a UI consumer, not an icon source. |
-| Icon packs depend on `ichava/core` (never on `ichava/browser`) | Decouples icon distribution from UI. Install core + a pack and have CLI / Blade access with no Vue, Vite, or Node.js. |
-| `ichava/browser` does not depend on icon packs | The browser discovers them at runtime via `IconRegistry`. Install any combination. |
+| `ichava/icon-browser` depends on `ichava/core` | Browser is a UI consumer, not an icon source. |
+| Icon packs depend on `ichava/core` (never on `ichava/icon-browser`) | Decouples icon distribution from UI. Install core + a pack and have CLI / Blade access with no Vue, Vite, or Node.js. |
+| `ichava/icon-browser` does not depend on icon packs | The browser discovers them at runtime via `IconRegistry`. Install any combination. |
 | Cross-package class names follow constants (`IconsServiceProvider`, `IconsConstants`, `IconComponent`, `Variant` / `Category`) | Disambiguated by namespace. No double-suffix bugs and easy ecosystem-wide grep. |
 
 ## Service-provider hierarchy
@@ -99,8 +99,8 @@ classDiagram
         bootingPackage()
         registerIconDirectory()
     }
-    class IchavaBrowserServiceProvider {
-        <<ichava/browser>>
+    class IconBrowserServiceProvider {
+        <<ichava/icon-browser>>
         routes, views, middleware,
         SPA assets, browser components
     }
@@ -121,7 +121,7 @@ classDiagram
     }
     PackageServiceProvider <|-- IchavaServiceProvider
     PackageServiceProvider <|-- SupportServiceProvider
-    PackageServiceProvider <|-- IchavaBrowserServiceProvider
+    PackageServiceProvider <|-- IconBrowserServiceProvider
     SupportServiceProvider <|-- TablerIcons_IconsServiceProvider
     SupportServiceProvider <|-- BundledIcons_IconsServiceProvider
     SupportServiceProvider <|-- MetronicIcons_IconsServiceProvider
@@ -134,7 +134,7 @@ ecosystem and only the namespace varies, so a contributor can `grep "class Icons
 and find all five. A `<Pack>IconsServiceProvider` name is the thing this convention exists to
 prevent; the same holds for `IconsConstants` and `IconComponent`.
 
-> **Rule for icon packs:** extend `Simtabi\Laranail\Ichava\Support\ServiceProvider` (lives in `ichava/core`). Never extend `IchavaServiceProvider`, `IchavaBrowserServiceProvider`, or `PackageServiceProvider` directly.
+> **Rule for icon packs:** extend `Simtabi\Laranail\Ichava\Support\ServiceProvider` (lives in `ichava/core`). Never extend `IchavaServiceProvider`, `IconBrowserServiceProvider`, or `PackageServiceProvider` directly.
 
 > **Rule for the browser package:** extends `laranail/package-tools`' `PackageServiceProvider` directly. Boots its routes, views, and Vite assets in `bootingPackage()` so core's services are guaranteed to be bound first.
 
@@ -175,7 +175,7 @@ Artisan commands:
 | `ichava::ichava-core.cleanup-logs` | - |
 | `ichava::ichava-core.check-updates` | --package, --format=table\|json, --fail-on-stale |
 
-`InjectNpmScriptsCommand` lives in `ichava/browser`, not core.
+`InjectNpmScriptsCommand` lives in `ichava/icon-browser`, not core.
 
 Blade components and directives (registered by core):
 
@@ -193,7 +193,7 @@ Log channels (registered before any service that logs):
 | `ichava-icons` | `storage/logs/ichava-icons.log` | `ICHAVA_SEEDING_LOG_LEVEL` |
 | `ichava-queue` | `storage/logs/ichava-queue.log` | `ICHAVA_QUEUE_LOG_LEVEL` |
 
-## What `IchavaBrowserServiceProvider` registers
+## What `IconBrowserServiceProvider` registers
 
 Routes:
 
@@ -211,11 +211,11 @@ Middleware groups:
 
 Per-middleware aliases: `ichava.guard`, `ichava.session`, `ichava.security`, `ichava.json`, `ichava.log`, `ichava.validate`. Plus the legacy `ichava.api.security` alias.
 
-The middleware stack uses **hybrid detection** via `HostCapabilities`. Adds the `web` middleware only when Laravel Sanctum + sessions are available; otherwise falls back to a minimal stateless stack. This means `ichava/browser` works in any Laravel application without configuration.
+The middleware stack uses **hybrid detection** via `HostCapabilities`. Adds the `web` middleware only when Laravel Sanctum + sessions are available; otherwise falls back to a minimal stateless stack. This means `ichava/icon-browser` works in any Laravel application without configuration.
 
 Browser provider also publishes:
 
-- Browser config: `config/ichava/browser.php` (`--tag=ichava::browser-config`)
+- Browser config: `config/ichava/icon-browser.php` (`--tag=ichava::icon-browser-config`)
 - SPA dist assets: `public/vendor/ichava/` (`--tag=ichava-assets`)
 - Browser-only Blade components: `<x-ichava::layouts.app>`, `<x-ichava::layouts.browser>`, `<x-ichava::ichava-test-icons>`, `<x-ichava::ichava-ui-icons>`
 - Anonymous Blade component path under the `ichava::` namespace
@@ -229,7 +229,7 @@ sequenceDiagram
     participant App as Laravel app
     participant Core as IchavaServiceProvider
     participant Pack as Pack provider
-    participant Browser as IchavaBrowserServiceProvider
+    participant Browser as IconBrowserServiceProvider
 
     App->>Core: register()
     Note over Core: log channels created<br/>core singletons bound<br/>Horizon supervisor configured
@@ -256,7 +256,7 @@ Common bug: logging in `registeringPackage()` throws `Log [ichava] not defined` 
 
 Migrations are auto-discovered through `discoversMigrations()`, which uses the smart default `database/migrations` resolved from the package's calculated `basePath`. `runsMigrations()` ensures they run on `migrate` without an explicit publish step.
 
-Public asset publishing for the SPA happens in `IchavaBrowserServiceProvider::bootingPackage()`, not core. The browser package's `public/` directory is copied to `public/vendor/ichava/` under the `ichava-assets` tag.
+Public asset publishing for the SPA happens in `IconBrowserServiceProvider::bootingPackage()`, not core. The browser package's `public/` directory is copied to `public/vendor/ichava/` under the `ichava-assets` tag.
 
 ## RuntimeConfigurator (PHP runtime tuning)
 

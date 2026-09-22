@@ -10,7 +10,7 @@ Publish `config/ichava/core.php` once after install:
 php artisan vendor:publish --tag=ichava::core-config
 ```
 
-The published file is the engine's single source of truth. Browser-specific keys live in [`config/ichava/browser.php`](https://opensource.simtabi.com/documentation/ichava/browser/configuration), published separately.
+The published file is the engine's single source of truth. Browser-specific keys live in [`config/ichava/icon-browser.php`](https://opensource.simtabi.com/documentation/ichava/icon-browser/configuration), published separately.
 
 ## Top-level keys
 
@@ -110,7 +110,7 @@ return [
 ## See also
 
 - [Environment variables](environment.md), every `ICHAVA_*` env var
-- [Browser configuration](https://opensource.simtabi.com/documentation/ichava/browser/configuration), HTTP-layer keys
+- [Browser configuration](https://opensource.simtabi.com/documentation/ichava/icon-browser/configuration), HTTP-layer keys
 - [Database seeding](recipes/seed-the-database.md)
 - [Architecture](architecture.md)
 

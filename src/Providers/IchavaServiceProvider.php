@@ -231,7 +231,7 @@ class IchavaServiceProvider extends PackageServiceProvider
      * Boot the Ichava ecosystem once all providers are registered.
      *
      * Execution sequence:
-     * 1. Blade::componentNamespace()    , 'ichava' component namespace (the entire HTTP layer, routes, middleware, controllers, layouts, lives in IchavaBrowserServiceProvider in ichava/browser)
+     * 1. Blade::componentNamespace()    , 'ichava' component namespace (the entire HTTP layer, routes, middleware, controllers, layouts, lives in IconBrowserServiceProvider in ichava/icon-browser)
      * 2. IconRegistry::fromDirectory() , register bundled test-icons set (core test fixtures)
      * 3. registerCustomIconSets()      , user-defined sets from ichava.custom-icons.sets
      * 4. registerCoreIconComponent()   , register the generic <x-ichava::icon> Blade component
@@ -244,10 +244,10 @@ class IchavaServiceProvider extends PackageServiceProvider
         // packages registering their own short-name components (e.g. browser's
         // <x-ichava::ichava-test-icons>) can do so via Blade::component(...).
         // The HTTP layer (routes, middleware, controllers, requests, resources)
-        // is owned entirely by IchavaBrowserServiceProvider in ichava/browser ,
+        // is owned entirely by IconBrowserServiceProvider in ichava/icon-browser ,
         // core ships zero HTTP surface.
         // DEFERRED, not overlooked: `ichava` is a bare generic slug in a flat
-        // map, the same class of claim `ichava/browser` corrected for view
+        // map, the same class of claim `ichava/icon-browser` corrected for view
         // hints. It is deliberate here -- packs register their own short-name
         // components under one shared ecosystem prefix -- but the standard's
         // reasoning about silent replacement applies to it unchanged.
@@ -281,7 +281,7 @@ class IchavaServiceProvider extends PackageServiceProvider
         //   3. browser's `Blade::anonymousComponentPath(..., 'ichava')`, which
         //      Laravel stores as addNamespace(hash('xxh128', $prefix), $path)
         //      -- so the slug still determines a key in the *view-hint* map
-        //      that ichava/browser#33 otherwise cleared of it.
+        //      that ichava/icon-browser#33 otherwise cleared of it.
         //
         // The fourth, the view hints themselves, is the one already corrected.
         Blade::componentNamespace('Simtabi\\Laranail\\Ichava\\View\\Components', 'ichava');
@@ -289,7 +289,7 @@ class IchavaServiceProvider extends PackageServiceProvider
         // Register core's bundled icon set (test fixtures shipped for the
         // API/test suite; multi-set structure: svg/{set-name}/config.json +
         // files/{set-name}/*.svg). The browser package's `ui-icons` set is
-        // registered by IchavaBrowserServiceProvider when installed.
+        // registered by IconBrowserServiceProvider when installed.
         $registry = $this->app->make(IconRegistry::class);
         $registry->fromDirectory(
             $this->package->basePath('resources/assets/svg/test-icons'),
@@ -449,7 +449,7 @@ class IchavaServiceProvider extends PackageServiceProvider
      *
      * Browser-only demo components (`<x-ichava::ichava-test-icons>`,
      * `<x-ichava::ichava-ui-icons>`) are registered by
-     * `IchavaBrowserServiceProvider` in the `ichava/browser` package.
+     * `IconBrowserServiceProvider` in the `ichava/icon-browser` package.
      */
     protected function registerCoreIconComponent(): void
     {

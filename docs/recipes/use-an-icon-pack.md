@@ -37,9 +37,9 @@ The `name` follows the [icon path format](../tools/icon-path-format.md): `vendor
 
 See [global helper](../tools/global-helper.md) for the full fluent API.
 
-## 4. Search visually with `ichava/browser`
+## 4. Search visually with `ichava/icon-browser`
 
-If you also have `ichava/browser` installed, the visual browser renders every icon from every installed pack:
+If you also have `ichava/icon-browser` installed, the visual browser renders every icon from every installed pack:
 
 ```
 http://example.com/ichava/icons
