@@ -2,6 +2,24 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **`SECURITY.md` removed; the organization policy serves this repository now.**
+  The file was byte-identical across six ichava repositories and held nothing
+  specific to any of them. It was promoted into `ichava/.github` first, so the
+  policy improved before any copy was removed rather than after, and GitHub
+  serves that default on `/security/policy` for every repository without its
+  own. The two channels and the 48-hour acknowledgement are unchanged.
+
+- **The README's security link moved with it.** A relative
+  `[SECURITY.md](SECURITY.md)` is a path into this repository's file tree, and
+  the cascade does not put a file there -- it answers the policy page and
+  nothing else. Left alone the link would have become a 404 the moment the file
+  went, so it now points at `/security/policy` directly. `composer.json` and the
+  issue-template link already did.
+
 ## [0.4.1] - 2026-09-22
 
 ### Changed
