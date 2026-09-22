@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/ichava/core/security/policy
     about: Report security issues privately per SECURITY.md. Do not open a public issue.
   - name: Documentation
-    url: https://github.com/ichava/documentation
+    url: https://github.com/ichava/core/tree/main/docs
     about: Read the org docs before filing — your question may already be answered.

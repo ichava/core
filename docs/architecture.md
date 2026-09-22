@@ -36,7 +36,6 @@ flowchart TB
     flag["<b>ichava/icon-sets-flag</b><br/>542 flags, 1x1 + 4x3"]
     emoji["<b>ichava/icon-sets-emoji</b><br/>wiring only, no assets yet"]
     third["<b>3rd-party packs</b><br/>via ichava::icon-sets-package-scaffolder.make"]
-    docs["<i>ichava/documentation</i><br/>markdown only"]
     meta["<i>ichava/ichava (planned)</i><br/>metapackage + landing"]
     toolkit["<b>ichava/maintainer-toolkit</b><br/>Docker-first Python tool<br/>refreshes vendored SVGs via PR<br/>(not installed by users)"]
     motion["<i>@ichava/motion</i><br/>SVG animation engine<br/>~205 presets, no runtime deps<br/>(outside the Composer graph)"]
@@ -343,8 +342,6 @@ Three built-in listeners react to these events:
 
 ## See also
 
-- [Security model](https://github.com/ichava/documentation/blob/main/security-model.md)
-- [Security threat model](https://github.com/ichava/documentation/blob/main/security-threat-model.md)
 - [Troubleshooting](troubleshooting.md)
 - [Documentation index](../README.md#documentation)
 
