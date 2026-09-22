@@ -148,7 +148,6 @@ Confirm three things:
 ## See also
 
 - [Architecture](architecture.md)
-- [Security model](https://github.com/ichava/documentation/blob/main/security-model.md)
 - [Core artisan commands](tools/artisan-commands.md)
 - [Seeding pack icons](recipes/seed-pack-icons.md)
 
