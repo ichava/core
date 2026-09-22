@@ -245,7 +245,17 @@ abstract class JsonConfigConstants
     }
 
     /**
-     * Get package homepage URL from metadata.homepage
+     * Get the UPSTREAM project's home page from metadata.homepage
+     *
+     * Not this package's own URL. `composer.json`'s `homepage` is this
+     * package's landing page and `metadata.repository` is its repository; this
+     * is the site of the project whose icons the pack vendors, and it is the
+     * only place that fact is recorded in a human-facing form.
+     *
+     * Returns '' when the pack has no single upstream -- `icon-sets-emoji`
+     * vendors two projects across three sets and omits the key deliberately.
+     *
+     * Example: https://tabler-icons.io/
      */
     public static function getHomepage(): string
     {
@@ -253,7 +263,13 @@ abstract class JsonConfigConstants
     }
 
     /**
-     * Get package repository URL from metadata.repository
+     * Get THIS package's repository URL from metadata.repository
+     *
+     * Ours, never the upstream's. `latestTag()` resolves it against our own
+     * tags, and the browser API groups it with package_name, vendor, version
+     * and license -- package metadata, not provenance.
+     *
+     * Example: https://github.com/ichava/icon-sets-tabler
      */
     public static function getRepository(): string
     {
@@ -261,10 +277,10 @@ abstract class JsonConfigConstants
     }
 
     /**
-     * Get GitHub repository in vendor/repo format from metadata.repository
+     * Get THIS package's GitHub repository in vendor/repo format
      *
      * Extracts the vendor/repo portion from a full GitHub URL.
-     * Example: https://github.com/tabler/tabler-icons → tabler/tabler-icons
+     * Example: https://github.com/ichava/icon-sets-tabler → ichava/icon-sets-tabler
      */
     public static function getGitHubRepo(): string
     {
