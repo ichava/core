@@ -112,7 +112,7 @@ Or with the helper:
 - The icon registry, scaffolder, seeder
 - No HTTP routes, no Vue, no Vite
 
-For the visual icon browser at `/ichava/icons` and the REST API, install [`ichava/browser`](https://opensource.simtabi.com/documentation/ichava/browser/installation) on top.
+For the visual icon browser at `/ichava/icons` and the REST API, install [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) on top.
 
 ## See also
 
@@ -120,7 +120,7 @@ For the visual icon browser at `/ichava/icons` and the REST API, install [`ichav
 - [Environment variables](environment.md)
 - [Database support](databases.md)
 - [Database seeding](recipes/seed-the-database.md)
-- [Browser package installation](https://opensource.simtabi.com/documentation/ichava/browser/installation)
+- [Browser package installation](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation)
 - [Troubleshooting](troubleshooting.md)
 
 ---
