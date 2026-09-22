@@ -28,13 +28,13 @@ Scaffolding a new icon pack is **not** part of core either; it lives in [`ichava
 flowchart TB
     core["<b>ichava/core</b><br/>services, registry, seeder, Blade base,<br/>scaffolder, migrations, log channels<br/>(no HTTP surface, headless-friendly)"]
     browser["<b>ichava/icon-browser</b><br/>REST API + Vue/Vite SPA<br/>middleware + browser views"]
-    tabler["<b>ichava/icon-sets-tabler</b><br/>6,184 icons"]
+    tabler["<b>ichava/icon-sets-tabler</b><br/>6,202 icons"]
     bundled["<b>ichava/icon-sets-bundled</b><br/>121,314 icons / 72 sets<br/>PRIVATE"]
     metronic["<b>ichava/icon-sets-metronic</b><br/>501 icons<br/>PRIVATE"]
     flag["<b>ichava/icon-sets-flag</b><br/>542 flags, 1x1 + 4x3"]
-    emoji["<b>ichava/icon-sets-emoji</b><br/>wiring only, no assets yet"]
+    emoji["<b>ichava/icon-sets-emoji</b><br/>10,567 icons / 3 sets<br/>twemoji, openmoji-color, openmoji-black"]
     third["<b>3rd-party packs</b><br/>via ichava::icon-sets-package-scaffolder.make"]
-    meta["<i>ichava/ichava (planned)</i><br/>metapackage + landing"]
+    meta["<i>ichava/ichava</i><br/>pre-split monolith, superseded by core<br/>ARCHIVED 2026-09-22, read-only"]
     toolkit["<b>ichava/maintainer-toolkit</b><br/>Docker-first Python tool<br/>refreshes vendored SVGs via PR<br/>(not installed by users)"]
     motion["<i>@ichava/motion</i><br/>SVG animation engine<br/>~205 presets, no runtime deps<br/>(outside the Composer graph)"]
     react["<i>@ichava/react-browser</i><br/>React 19 rebuild of the front end<br/>PRIVATE, not on npm"]
@@ -46,8 +46,6 @@ flowchart TB
     flag -- depends on --> core
     emoji -- depends on --> core
     third -- depends on --> core
-    meta -.-> core
-    meta -.-> browser
     toolkit -. CI refreshes .-> tabler
     toolkit -. CI refreshes .-> bundled
     toolkit -. CI refreshes .-> metronic
@@ -63,7 +61,7 @@ flowchart TB
     class core engine
     class browser http
     class tabler,bundled,metronic,flag,emoji,third pack
-    class docs,meta,motion,react other
+    class meta,motion,react other
     class toolkit tooling
 ```
 

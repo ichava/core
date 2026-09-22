@@ -78,7 +78,7 @@ vendor/bin/pint
 
 ### Local monorepo development
 
-If you're working on `ichava/ichava` and one or more sibling icon packages (`ichava/icon-sets-tabler`, `ichava/icon-sets-bundled`, `ichava/icon-sets-metronic`), or on `laranail/packager`, at the same time, the published `composer.json` references the upstream git URLs (`github.com/laranail/packager`, `github.com/ichava/ichava`). For a checked-out monorepo layout you'll want each consumer to read from your local copy instead of the network.
+If you're working on `ichava/core` and one or more sibling icon packages (`ichava/icon-sets-tabler`, `ichava/icon-sets-bundled`, `ichava/icon-sets-metronic`), or on `laranail/package-tools`, at the same time, the published `composer.json` references the upstream git URLs (`github.com/laranail/package-tools`, `github.com/ichava/core`). For a checked-out monorepo layout you'll want each consumer to read from your local copy instead of the network.
 
 **Per-developer override (not committed):**
 
