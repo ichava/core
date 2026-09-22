@@ -11,7 +11,7 @@ declare(strict_types=1);
  * They are strings, so nothing type-checks them, and the paths that reach them
  * -- a scheduled task, the installer, a cache rebuild triggered from the browser
  * package -- are not exercised by this suite. The first report came from
- * ichava/browser, against a released tag.
+ * ichava/icon-browser, against a released tag.
  *
  * This reads the source rather than the container on purpose: the defect is a
  * string literal that is never evaluated until that code path runs, so there is

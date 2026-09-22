@@ -4,7 +4,7 @@
 
 *Reference.*
 
-Every `ICHAVA_*` env var that the **engine** (`ichava/core`) reads at runtime, with default, effect, and the `config('ichava.core.*')` path it drives. HTTP-layer variables (`ICHAVA_API_*`, `ICHAVA_BROWSER_*`, `ICHAVA_DOMAINS`, `ICHAVA_RATE_LIMITING_*`, `ICHAVA_VITE_DEV`) live in [browser/environment.md](https://opensource.simtabi.com/documentation/ichava/browser/environment).
+Every `ICHAVA_*` env var that the **engine** (`ichava/core`) reads at runtime, with default, effect, and the `config('ichava.core.*')` path it drives. HTTP-layer variables (`ICHAVA_API_*`, `ICHAVA_BROWSER_*`, `ICHAVA_DOMAINS`, `ICHAVA_RATE_LIMITING_*`, `ICHAVA_VITE_DEV`) live in [browser/environment.md](https://opensource.simtabi.com/documentation/ichava/icon-browser/environment).
 
 Copy what you need from [`.env.example`](https://github.com/ichava/core/blob/main/.env.example) into your application's `.env`.
 
@@ -137,7 +137,7 @@ The engine auto-registers a Horizon supervisor for the `ichava-icons` queue when
 ## See also
 
 - [Configuration reference](configuration.md)
-- [Browser environment variables](https://opensource.simtabi.com/documentation/ichava/browser/environment)
+- [Browser environment variables](https://opensource.simtabi.com/documentation/ichava/icon-browser/environment)
 - [Database seeding](recipes/seed-the-database.md)
 
 ---
