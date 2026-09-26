@@ -21,13 +21,6 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
  */
 class Helpers
 {
-    public const ICHAVA_PGSQL_LANGUAGES = [
-        'english' => 'english',
-        'simple'  => 'simple',
-    ];
-
-    public const ICHAVA_PGSQL_DEFAULT_LANGUAGE = self::ICHAVA_PGSQL_LANGUAGES['simple'];
-
     /**
      * Check if database driver is PostgreSQL
      */
@@ -103,18 +96,6 @@ class Helpers
     public static function getPackageFromIdentifier(string $packageName): string
     {
         return Str::after($packageName, '/');
-    }
-
-    /**
-     * Sanitize path by removing leading/trailing slashes
-     *
-     * @param string $path Path to sanitize
-     *
-     * @return string Sanitized path
-     */
-    public static function sanitizePath(string $path): string
-    {
-        return trim($path, '/\\');
     }
 
     /**

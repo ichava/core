@@ -36,33 +36,6 @@ class PathResolver
     }
 
     /**
-     * Resolve config value or build default path from class file
-     *
-     * @param mixed $configValue Config value (if set)
-     * @param string $classFile __FILE__ from calling class
-     * @param string $defaultRelativePath Default path relative to package root
-     * @param int $levelsUp How many levels to go up from class file to package root
-     *
-     * @return string Resolved absolute path
-     */
-    public static function resolveConfigOrDefault(
-        mixed $configValue,
-        string $classFile,
-        string $defaultRelativePath,
-        int $levelsUp = 3,
-    ): string {
-        // If config value is set, use it
-        if ($configValue) {
-            return app(self::class)->normalize($configValue);
-        }
-
-        // Build default path from class file location
-        $packageRoot = dirname($classFile, $levelsUp);
-
-        return app(self::class)->join($packageRoot, ltrim($defaultRelativePath, '/'));
-    }
-
-    /**
      * Resolve package path using reflection
      *
      * @param string|object $caller The calling class name or instance
@@ -444,22 +417,6 @@ class PathResolver
 
         if (! File::isDirectory($path)) {
             throw IchavaException::invalidConfiguration("{$context} is not a directory: {$path}");
-        }
-
-        return $path;
-    }
-
-    /**
-     * Validate that a path is a file
-     *
-     * @throws IchavaException
-     */
-    public function ensureFile(string $path, string $context = 'File'): string
-    {
-        $this->ensureExists($path, $context);
-
-        if (! File::isFile($path)) {
-            throw IchavaException::invalidConfiguration("{$context} is not a file: {$path}");
         }
 
         return $path;
