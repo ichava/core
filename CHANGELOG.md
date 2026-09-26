@@ -33,6 +33,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   disk by absolute path and icons in the database by their stored, relative path, so none ever
   matched: every scan after the first re-inserted every icon. Disk icons are keyed by the stored
   path now, so an unchanged tree reports no changes and a changed file is updated in place.
+- **Declining to overwrite a stale manifest exits 0.** `cache manifest` returned `FAILURE` when
+  the overwrite prompt was declined, unlike every other cancellation, which a script or CI step
+  read as an error.
 
 ### Tests
 
