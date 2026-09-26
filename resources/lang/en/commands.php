@@ -536,6 +536,17 @@ return [
         'queue_manual'       => 'Run manually: php artisan queue:work --queue=:queue --stop-when-empty',
         'no_packages'        => '⚠️  No icon packages registered!',
         'no_packages_hint'   => '💡 Register packages using IconRegistry::fromDirectory()',
+        // Support\Seeder\IconTermsSeeder
+        'terms' => [
+            'scanning'          => '🔍 Scanning registered packages for categories and variants...',
+            'no_packages'       => 'No icon packages registered. Please register packages first.',
+            'seeded'            => '✅ Icon terms seeded successfully!',
+            'processing'        => 'Processing: :package',
+            'base_path_missing' => 'Base path not found: :path',
+            'no_categories'     => 'No categories found',
+            'categories_seeded' => 'Seeded :count categories',
+            'variants_seeded'   => 'Seeded :count variants',
+        ],
     ],
 
 ];

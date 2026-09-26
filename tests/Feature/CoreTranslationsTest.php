@@ -167,7 +167,7 @@ it('does not add hardcoded English to the commands still awaiting migration', fu
         'src/Support/Seeder' => [
             'IchavaSeeder.php'      => 0,
             'IconSeederHelpers.php' => 0,
-            'IconTermsSeeder.php'   => 8,
+            'IconTermsSeeder.php'   => 0,
         ],
     ];
 
