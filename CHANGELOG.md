@@ -61,6 +61,20 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **Two packs with the same relative icon path no longer overwrite each other.**
+  `ichava_icons.path` is stored relative to each pack's base directory, so every
+  pack laid out as `files/<category>/<name>.svg` produces the same strings. The
+  table was unique on `path` alone and `SeedIconsJob` upserted on it with
+  `package` in the update list. Seeding a second pack with a shared path
+  therefore did not insert a row: it rewrote the first pack's row to belong to
+  the second, and the first pack lost that icon with nothing reported.
+
+  A new migration replaces `unique_icon_path` with `uniq_icons_package_path` on
+  `(package, path)`, and the upsert now uses that pair as its conflict key and
+  no longer updates `package`. At `utf8mb4` the composite key is 2800 bytes,
+  inside InnoDB's 3072-byte limit. Rolling the migration back fails if two
+  packages already share a path, because that is the data it exists to allow.
+
 - **`job-status` shows seeding progress.** It read `JobProgressTracker`, whose writers were never
   called, so it reported "no progress" for every seed. Seeding now writes package-tools'
   `SeederRunTracker` under `IchavaSeeder::trackingKey()`, counted in icons, and `job-status` reads
