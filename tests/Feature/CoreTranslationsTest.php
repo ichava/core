@@ -122,59 +122,81 @@ it('has no hardcoded user-facing literal left in the migrated command', function
 });
 
 it('does not add hardcoded English to the commands still awaiting migration', function () {
-    // One command of nine is migrated, deliberately -- the mechanism is the
-    // deliverable, the remaining strings are mechanical follow-up. But that
-    // deferral lives in a pull-request body, which nobody reads again after the
-    // merge, and prose does not fail a build.
+    // A ratchet, in the same spirit as this repository's coverage floor. It
+    // does not demand the migration finish; it pins the debt per file so it can
+    // only shrink, and turns red the moment a new hardcoded string is added.
     //
-    // So: a ratchet, in the same spirit as this repository's coverage floor.
-    // It does not demand the migration finish. It pins the debt at today's size
-    // so it can only shrink, and it turns red the moment a new hardcoded string
-    // is added to a command.
+    // It counts three surfaces, because each of them reaches the user and the
+    // first version of this guard watched only one:
     //
-    // Re-derive the number before changing it:
+    //   (a) `$this->helper('literal'` -- BaseCommand's and Laravel's output
+    //       helpers, the only surface the guard originally watched;
+    //   (b) Laravel Prompts free functions -- intro(), outro(), note(), table()
+    //       and friends -- called with a literal first argument. The guarded
+    //       list is each file's OWN `use function Laravel\Prompts\x` imports, so
+    //       importing a new prompt brings it under the guard automatically;
+    //   (c) the named arguments a prompt shows to a person: `label:`, `hint:`,
+    //       `placeholder:`, `yes:` and `no:`.
     //
-    //   for f in src/Commands/*.php; do
-    //     grep -cE '\$this->(success|failure|tip|line|info|error|warn|comment|question|table|confirm|ask|choice)\(\s*\[?\s*['"'"'"]' "$f"
-    //   done | paste -sd+ - | bc
+    // A literal matched by more than one pattern -- `select(label: '...')` is
+    // both (b) and (c) -- is counted once, by the offset of its opening quote.
     //
-    // Measured 2026-09-21: 38, spread over BaseCommand (11), InstallCommand
-    // (14), JobStatusCommand (6), InfoCommand (5) and DatabaseCommand (2).
-    // CleanupIchavaLogsCommand is 0 -- it is the migrated one.
+    // Measured 2026-09-26 with `hardcodedLiteralOffsets()` below. The total
+    // before this extension was 38 under (a) alone; (b) and (c) are what the
+    // old guard could not see. CleanupIchavaLogsCommand, "the migrated one",
+    // still carried a `hint:` literal nobody had noticed.
     //
-    // **Lower this number when you migrate a command. Never raise it.**
-    $helpers = 'success|failure|tip|line|info|error|warn|comment|question'
-        . '|table|confirm|ask|choice';
+    // **Lower a number when you migrate a file. Never raise one.**
+    $ceilings = [
+        'src/Commands' => [
+            'BaseCommand.php'              => 28,
+            'CacheCommand.php'             => 27,
+            'CheckIconUpdatesCommand.php'  => 5,
+            'CleanupIchavaLogsCommand.php' => 1,
+            'DatabaseCommand.php'          => 63,
+            'InfoCommand.php'              => 37,
+            'InstallCommand.php'           => 34,
+            'JobStatusCommand.php'         => 25,
+            'WatchIconFilesCommand.php'    => 5,
+        ],
+        // The seeder is a later phase; pinned separately so its debt is not
+        // hidden inside the commands' number, or the commands' inside its.
+        'src/Support/Seeder' => [
+            'IchavaSeeder.php'      => 12,
+            'IconSeederHelpers.php' => 0,
+            'IconTermsSeeder.php'   => 0,
+        ],
+    ];
 
-    $remaining = 0;
-    $perFile = [];
+    $root = dirname(__DIR__, 2);
+    $inspected = 0;
+    $over = [];
 
-    foreach (glob(dirname(__DIR__, 2) . '/src/Commands/*.php') as $file) {
-        preg_match_all(
-            '/\$this->(' . $helpers . ')\(\s*\[?\s*[\'"]/',
-            (string) file_get_contents($file),
-            $m,
-        );
-        $count = count($m[0]);
-        $remaining += $count;
-        $perFile[basename($file)] = $count;
+    foreach ($ceilings as $dir => $files) {
+        $found = glob("{$root}/{$dir}/*.php");
+
+        // Non-vacuous: a glob that matches nothing would report a clean tree.
+        expect($found)->not->toBeEmpty("the literal sweep found no files in {$dir}; it is broken, not done");
+
+        foreach ($found as $file) {
+            $name = basename($file);
+            $count = count(hardcodedLiteralOffsets((string) file_get_contents($file)));
+            $inspected++;
+
+            // A new file starts at zero: it must be written translated.
+            $ceiling = $files[$name] ?? 0;
+
+            if ($count > $ceiling) {
+                $over[] = "{$dir}/{$name}: {$count} (ceiling {$ceiling})";
+            }
+        }
     }
 
-    // Non-vacuous: if the sweep ever matches nothing at all, it is broken
-    // rather than finished -- the migration is one command of nine.
-    expect($remaining)->toBeGreaterThan(0, 'the literal sweep matched nothing; it is broken, not done');
+    // The ceilings above name 12 files; if the sweep saw fewer, it is not
+    // looking where it thinks it is.
+    expect($inspected)->toBeGreaterThanOrEqual(12, "the literal sweep inspected only {$inspected} files");
 
-    expect($remaining)->toBeLessThanOrEqual(
-        38,
-        "hardcoded user-facing strings in src/Commands/ grew to {$remaining}:\n  "
-        . implode("\n  ", array_map(
-            fn ($f, $n) => "{$f}: {$n}",
-            array_keys($perFile),
-            $perFile,
-        )),
-    );
-
-    expect($perFile['CleanupIchavaLogsCommand.php'])->toBe(0, 'the migrated command regressed');
+    expect($over)->toBe([], "hardcoded user-facing strings grew:\n  " . implode("\n  ", $over));
 });
 
 it('ships no views, and registers no view namespace', function () {
@@ -194,4 +216,49 @@ function coreTransNamespace(): string
     $package = (new ReflectionProperty($provider, 'package'))->getValue($provider);
 
     return $package->translationNamespace();
+}
+
+/**
+ * Offsets of every hardcoded user-facing string literal in a PHP source body,
+ * keyed by the offset of the literal's opening quote so a literal matched by
+ * two patterns counts once.
+ *
+ * @return array<int, string> offset => which pattern found it
+ */
+function hardcodedLiteralOffsets(string $body): array
+{
+    $offsets = [];
+
+    // (a) $this->helper('literal' -- `table()` takes its headers as an array,
+    // so the literal may sit one bracket in.
+    $helpers = 'success|failure|tip|line|info|error|warn|comment|question'
+        . '|table|confirm|ask|choice';
+    preg_match_all('/\$this->(?:' . $helpers . ')\(\s*\[?\s*([\'"])/', $body, $m, PREG_OFFSET_CAPTURE);
+    foreach ($m[1] as [, $offset]) {
+        $offsets[$offset] = 'helper';
+    }
+
+    // (b) Laravel Prompts free functions, read from the file's own imports.
+    // Not preceded by -> or $ or a word character or a backslash, so
+    // `$this->info(` and `formatTable(` do not match.
+    preg_match_all('/use function Laravel\\\\Prompts\\\\(\w+);/', $body, $imported);
+    if ($imported[1] !== []) {
+        preg_match_all(
+            '/(?<![>$\w\\\\])(?:' . implode('|', $imported[1]) . ')\(\s*(?:[a-z]+:\s*)?\[?\s*([\'"])/',
+            $body,
+            $m,
+            PREG_OFFSET_CAPTURE,
+        );
+        foreach ($m[1] as [, $offset]) {
+            $offsets[$offset] = 'prompt';
+        }
+    }
+
+    // (c) the named arguments a prompt shows to a person.
+    preg_match_all('/\b(?:label|hint|placeholder|yes|no):\s*([\'"])/', $body, $m, PREG_OFFSET_CAPTURE);
+    foreach ($m[1] as [, $offset]) {
+        $offsets[$offset] = 'named';
+    }
+
+    return $offsets;
 }
