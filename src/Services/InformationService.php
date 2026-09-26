@@ -136,7 +136,6 @@ class InformationService
     {
         $stats = $this->databaseService->getStatistics();
 
-        $stats['database_size'] = $this->getDatabaseSize();
         $stats['cache_driver'] = config('cache.default');
 
         return $stats;
@@ -259,21 +258,6 @@ class InformationService
     }
 
     /**
-     * Format file size
-     */
-    public function formatFileSize(int $bytes): string
-    {
-        if ($bytes === 0) {
-            return '0 B';
-        }
-
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $i = floor(log($bytes, 1024));
-
-        return round($bytes / pow(1024, $i), 2) . ' ' . $units[$i];
-    }
-
-    /**
      * Filter items by search term
      */
     public function filterBySearch(array $items, string $search, array $searchFields = ['name']): array
@@ -292,25 +276,5 @@ class InformationService
 
             return false;
         });
-    }
-
-    /**
-     * Get database size (PostgreSQL)
-     */
-    protected function getDatabaseSize(): string
-    {
-        try {
-            $size = DB::select("
-                SELECT pg_size_pretty(
-                    pg_total_relation_size('ichava_icons') +
-                    pg_total_relation_size('ichava_icon_terms') +
-                    pg_total_relation_size('ichava_icon_termables')
-                ) as size
-            ")[0]->size ?? '0 bytes';
-
-            return $size;
-        } catch (Exception $e) {
-            return 'N/A';
-        }
     }
 }

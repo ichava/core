@@ -7,14 +7,13 @@ namespace Simtabi\Laranail\Ichava\Services;
 use Exception;
 use Throwable;
 use Illuminate\Support\Str;
-use RecursiveIteratorIterator;
-use RecursiveDirectoryIterator;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Illuminate\Contracts\Foundation\Application;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
+use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
 use Simtabi\Laranail\Ichava\Support\IchavaRegistrar;
 use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -539,31 +538,10 @@ final class IconRegistry
      */
     public function countIconsInDirectory(string $path): int
     {
-        if (! File::isDirectory($path)) {
-            return 0;
-        }
-
-        $count = 0;
-        try {
-            $iterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS),
-            );
-
-            foreach ($iterator as $file) {
-                if ($file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
-                    $count++;
-                }
-            }
-        } catch (Exception $e) {
-            // Non-fatal: return 0 so callers (statistics / diagnostics) keep working.
-            // Log at debug level so issues with unreadable paths are discoverable.
-            $this->logger->debug('⚠️ countSvgFiles failed', [
-                'path'  => $path,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return $count;
+        // One counter for the whole package. This method used to carry its own
+        // copy, catching Exception where CountSvgFiles learned to catch
+        // Throwable -- so the failure that action was fixed for still escaped here.
+        return app(CountSvgFiles::class)->recursively($path);
     }
 
     /**

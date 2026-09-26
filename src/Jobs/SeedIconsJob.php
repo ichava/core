@@ -10,19 +10,22 @@ use RuntimeException;
 use Illuminate\Support\Arr;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Simtabi\Laranail\DbTools\DbTools;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
+use Simtabi\Laranail\DbTools\Query\ChunkedWriter;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconSeederHelpers;
 use Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator;
+use Simtabi\Laranail\Package\Tools\Services\Database\SeederRunTracker;
 
 /**
  * Seed Icons Job
@@ -46,6 +49,9 @@ class SeedIconsJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use IconSeederHelpers;
+
+    /** The per-row trigger that maintains ichava_icons.search_text (PostgreSQL). */
+    public const string SEARCH_TRIGGER = 'trg_ichava_icons_search_text';
 
     public int $tries;
 
@@ -100,6 +106,13 @@ class SeedIconsJob implements ShouldQueue
         try {
             $result = $this->processFiles($logger);
 
+            // Inside a queued batch the job is the only thing that knows its chunk
+            // is done, so it reports progress. An inline run is counted by the
+            // ChunkedBatchDispatcher driving it; reporting here too would double it.
+            if ($this->batchId !== null) {
+                app(SeederRunTracker::class)->advance(IchavaSeeder::trackingKey($this->packageName), by: $fileCount);
+            }
+
             $logger->info("Job {$this->jobIndex} completed", [
                 'package'         => $this->packageName,
                 'files_received'  => $fileCount,
@@ -109,6 +122,10 @@ class SeedIconsJob implements ShouldQueue
                 'files_updated'   => $result['updated'],
             ]);
         } catch (Throwable $e) {
+            if ($this->batchId !== null) {
+                app(SeederRunTracker::class)->advance(IchavaSeeder::trackingKey($this->packageName), failed: true, by: $fileCount);
+            }
+
             $logger->error("Job {$this->jobIndex} failed: {$e->getMessage()}", $e, [
                 'package' => $this->packageName,
             ]);
@@ -214,53 +231,53 @@ class SeedIconsJob implements ShouldQueue
             return $stats;
         }
 
-        DB::beginTransaction();
-
-        try {
-            // Disable trigger for bulk operations (PostgreSQL)
-            $triggerDisabled = $this->disableSearchTrigger();
-
-            // Build icon data for upsert (tags/keywords already extracted above)
-            $iconData = [];
-            foreach ($toProcess as $relativePath => $data) {
-                $iconData[] = [
-                    'package'          => $this->packageName,
-                    'name'             => $data['name'],
-                    'path'             => $relativePath,
-                    'file_hash'        => $data['file_hash'],
-                    'file_modified_at' => $data['file_modified_at'],
-                    'tags'             => Icon::prepareAttributeForDatabase('tags', $data['tags']),
-                    'keywords'         => Icon::prepareAttributeForDatabase('keywords', $data['keywords']),
-                    'created_at'       => now(),
-                    'updated_at'       => now(),
-                ];
-            }
-
-            // DEDUPLICATION LEVEL 1: Upsert with unique key constraint
-            // This handles any race conditions where multiple jobs might process same files
-            Icon::upsert(
-                $iconData,
-                ['path'], // Unique key
-                ['package', 'name', 'file_hash', 'file_modified_at', 'tags', 'keywords', 'updated_at'],
-            );
-
-            // DEDUPLICATION LEVEL 4: Bulk attach categories with conflict handling
-            $this->bulkAttachCategories($iconData);
-
-            DB::commit();
-
-            // Re-enable trigger and refresh search text
-            $this->enableSearchTriggerAndRefresh($triggerDisabled, $iconData);
-
-            // Cleanup
-            unset($iconData, $toProcess, $fileDataMap);
-            gc_collect_cycles();
-
-        } catch (Throwable $e) {
-            $this->enableSearchTrigger();
-            DB::rollBack();
-            throw $e;
+        // Build icon data for upsert (tags/keywords already extracted above)
+        $iconData = [];
+        foreach ($toProcess as $relativePath => $data) {
+            $iconData[] = [
+                'package'          => $this->packageName,
+                'name'             => $data['name'],
+                'path'             => $relativePath,
+                'file_hash'        => $data['file_hash'],
+                'file_modified_at' => $data['file_modified_at'],
+                'tags'             => Icon::prepareAttributeForDatabase('tags', $data['tags']),
+                'keywords'         => Icon::prepareAttributeForDatabase('keywords', $data['keywords']),
+                'created_at'       => now(),
+                'updated_at'       => now(),
+            ];
         }
+
+        // The per-row search trigger is suspended around the bulk write and the
+        // search text rebuilt once afterwards. Suspension happens OUTSIDE the
+        // transaction: on PostgreSQL a failed ALTER TABLE (not the table owner,
+        // trigger missing) aborts the transaction it runs in, and every statement
+        // after it fails -- which is how the old in-transaction version would
+        // have lost the whole chunk. withoutTriggers() restores the trigger in
+        // `finally`, and says whether it actually suspended it.
+        $suspended = DbTools::withoutTriggers('ichava_icons', [self::SEARCH_TRIGGER], function (bool $suspended) use ($iconData): bool {
+            DB::transaction(function () use ($iconData): void {
+                // DEDUPLICATION LEVEL 1: Upsert with unique key constraint
+                // This handles any race conditions where multiple jobs might process same files
+                Icon::upsert(
+                    $iconData,
+                    ['path'], // Unique key
+                    ['package', 'name', 'file_hash', 'file_modified_at', 'tags', 'keywords', 'updated_at'],
+                );
+
+                // DEDUPLICATION LEVEL 4: Bulk attach categories with conflict handling
+                $this->bulkAttachCategories($iconData);
+            });
+
+            return $suspended;
+        });
+
+        if ($suspended) {
+            $this->refreshSearchText($iconData);
+        }
+
+        // Cleanup
+        unset($iconData, $toProcess, $fileDataMap);
+        gc_collect_cycles();
 
         return $stats;
     }
@@ -268,8 +285,8 @@ class SeedIconsJob implements ShouldQueue
     /**
      * Bulk attach categories to icons with deduplication.
      *
-     * Uses INSERT ... ON CONFLICT DO NOTHING for PostgreSQL
-     * or INSERT IGNORE for MySQL to prevent duplicate term attachments.
+     * Duplicate attachments are ignored by the (term_id, termable_id,
+     * termable_type) unique key.
      */
     protected function bulkAttachCategories(array $iconData): void
     {
@@ -326,95 +343,16 @@ class SeedIconsJob implements ShouldQueue
             return;
         }
 
-        // Bulk insert with conflict handling
-        $driver = DB::getDriverName();
-
-        if ($driver === 'pgsql') {
-            // PostgreSQL: Use ON CONFLICT DO NOTHING
-            $this->bulkInsertTermablesPostgres($termablesData);
-        } else {
-            // MySQL/SQLite: Use insertOrIgnore
-            DB::table('ichava_icon_termables')->insertOrIgnore($termablesData);
-        }
+        // insertOrIgnore() already emits ON CONFLICT DO NOTHING on PostgreSQL and
+        // SQLite and INSERT IGNORE on MySQL; chunked to stay under the bind cap.
+        ChunkedWriter::for('ichava_icon_termables')->chunk(500)->insertOrIgnore($termablesData);
     }
 
     /**
-     * Bulk insert termables for PostgreSQL with ON CONFLICT DO NOTHING.
+     * Rebuild the search text the suspended trigger did not maintain.
      */
-    protected function bulkInsertTermablesPostgres(array $data): void
+    protected function refreshSearchText(array $iconData): void
     {
-        if (empty($data)) {
-            return;
-        }
-
-        // Process in chunks to avoid parameter limits
-        collect($data)->chunk(500)->each(function (Collection $chunk) {
-            $values = [];
-            $bindings = [];
-
-            foreach ($chunk as $row) {
-                $values[] = '(?, ?, ?, ?, ?)';
-                $bindings[] = $row['term_id'];
-                $bindings[] = $row['termable_id'];
-                $bindings[] = $row['termable_type'];
-                $bindings[] = $row['created_at'];
-                $bindings[] = $row['updated_at'];
-            }
-
-            $sql = 'INSERT INTO ichava_icon_termables (term_id, termable_id, termable_type, created_at, updated_at) VALUES '
-                . implode(', ', $values)
-                . ' ON CONFLICT (term_id, termable_id, termable_type) DO NOTHING';
-
-            DB::statement($sql, $bindings);
-        });
-    }
-
-    /**
-     * Disable PostgreSQL search trigger for bulk operations.
-     */
-    protected function disableSearchTrigger(): bool
-    {
-        if (DB::getDriverName() !== 'pgsql') {
-            return false;
-        }
-
-        try {
-            DB::statement('ALTER TABLE ichava_icons DISABLE TRIGGER trg_ichava_icons_search_text');
-
-            return true;
-        } catch (Exception $e) {
-            // Trigger might not exist
-            return false;
-        }
-    }
-
-    /**
-     * Re-enable PostgreSQL search trigger.
-     */
-    protected function enableSearchTrigger(): void
-    {
-        if (DB::getDriverName() !== 'pgsql') {
-            return;
-        }
-
-        try {
-            DB::statement('ALTER TABLE ichava_icons ENABLE TRIGGER trg_ichava_icons_search_text');
-        } catch (Exception $e) {
-            // Ignore
-        }
-    }
-
-    /**
-     * Re-enable trigger and refresh search text for affected icons.
-     */
-    protected function enableSearchTriggerAndRefresh(bool $triggerDisabled, array $iconData): void
-    {
-        if (! $triggerDisabled) {
-            return;
-        }
-
-        $this->enableSearchTrigger();
-
         // Bulk refresh search text for processed icons
         $paths = Arr::pluck($iconData, 'path');
         $iconIds = Icon::where('package', $this->packageName)

@@ -19,12 +19,28 @@ use Illuminate\Support\Facades\File;
 use function Laravel\Prompts\warning;
 use function Laravel\Prompts\progress;
 
+use Simtabi\Laranail\Console\Tools\Support\Status;
+use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
+use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
+
 /**
  * Removes Ichava log files older than the configured retention period.
  * Runs daily via the scheduler or on demand.
  */
 class CleanupIchavaLogsCommand extends BaseCommand
 {
+    /**
+     * What happened to each file, on the shared status vocabulary.
+     *
+     * @var array<string, Status>
+     */
+    private const array ACTION_MAP = [
+        'deleted'      => Status::Success,
+        'would_delete' => Status::Pending,
+        'failed'       => Status::Failed,
+        'kept'         => Status::Skipped,
+    ];
+
     protected $signature = 'ichava::ichava-core.cleanup-logs
                             {--days= : Number of days to retain logs (default: from config)}
                             {--dry-run : Show what would be deleted without actually deleting}
@@ -162,7 +178,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
 
                 return $result;
             },
-            hint: 'This may take a moment for large log directories',
+            hint: __('ichava/ichava-core::commands.cleanup_logs.processing_hint'),
         );
 
         return $stats;
@@ -174,27 +190,29 @@ class CleanupIchavaLogsCommand extends BaseCommand
     protected function displaySummary(array $stats, bool $dryRun): void
     {
         // Summary table
-        table(
-            headers: [__('ichava/ichava-core::commands.cleanup_logs.table.metric'), __('ichava/ichava-core::commands.cleanup_logs.table.count')],
-            rows: [
-                [__('ichava/ichava-core::commands.cleanup_logs.total_files'), (string) $stats['total']],
-                [$dryRun ? __('ichava/ichava-core::commands.cleanup_logs.would_delete') : __('ichava/ichava-core::commands.cleanup_logs.deleted'), (string) $stats['deleted']],
-                [__('ichava/ichava-core::commands.cleanup_logs.table.kept'), (string) $stats['kept']],
-                [__('ichava/ichava-core::commands.cleanup_logs.table.failed'), (string) $stats['failed']],
-            ],
-        );
+        MetricTable::make()
+            ->headers(__('ichava/ichava-core::commands.cleanup_logs.table.metric'), __('ichava/ichava-core::commands.cleanup_logs.table.count'))
+            ->metrics([
+                __('ichava/ichava-core::commands.cleanup_logs.total_files')                                                                        => $stats['total'],
+                ($dryRun ? __('ichava/ichava-core::commands.cleanup_logs.would_delete') : __('ichava/ichava-core::commands.cleanup_logs.deleted')) => $stats['deleted'],
+                __('ichava/ichava-core::commands.cleanup_logs.table.kept')                                                                         => $stats['kept'],
+                __('ichava/ichava-core::commands.cleanup_logs.table.failed')                                                                       => $stats['failed'],
+            ])
+            ->render($this->output);
 
         // Show verbose details if requested
         if ($this->isVerbose() && ! empty($stats['files'])) {
             $rows = array_map(fn ($file) => [
                 $file['file'],
                 __('ichava/ichava-core::commands.cleanup_logs.table.days', ['days' => $file['age']]),
-                match ($file['action']) {
-                    'deleted'      => __('ichava/ichava-core::commands.cleanup_logs.action.deleted'),
-                    'would_delete' => __('ichava/ichava-core::commands.cleanup_logs.action.would_delete'),
-                    'failed'       => __('ichava/ichava-core::commands.cleanup_logs.action.failed'),
-                    default        => __('ichava/ichava-core::commands.cleanup_logs.action.kept'),
-                },
+                StatusBadge::fromMap(self::ACTION_MAP, $file['action'])
+                    ->label(match ($file['action']) {
+                        'deleted'      => __('ichava/ichava-core::commands.cleanup_logs.action.deleted'),
+                        'would_delete' => __('ichava/ichava-core::commands.cleanup_logs.action.would_delete'),
+                        'failed'       => __('ichava/ichava-core::commands.cleanup_logs.action.failed'),
+                        default        => __('ichava/ichava-core::commands.cleanup_logs.action.kept'),
+                    })
+                    ->render(),
             ], $stats['files']);
 
             table(

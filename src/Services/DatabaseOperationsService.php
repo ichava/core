@@ -6,16 +6,15 @@ namespace Simtabi\Laranail\Ichava\Services;
 
 use Exception;
 use Throwable;
-use Illuminate\Support\Str;
-use RecursiveIteratorIterator;
-use RecursiveDirectoryIterator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Simtabi\Laranail\DbTools\DbTools;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Artisan;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Console\Tools\Support\FileSize;
 
 /**
  * DatabaseOperationsService
@@ -146,9 +145,9 @@ class DatabaseOperationsService
          * application, for the whole life of the package. Nothing caught it because
          * the suite runs migrations through Testbench, which never calls this.
          */
-        $migrations = realpath(__DIR__ . '/../../database/migrations');
+        $migrations = $this->migrationPath();
 
-        if ($migrations === false) {
+        if ($migrations === null) {
             $this->logger->error('🗄️ Ichava migration directory is missing', [
                 'looked_in' => __DIR__ . '/../../database/migrations',
             ]);
@@ -172,12 +171,19 @@ class DatabaseOperationsService
 
         $dropped = $this->dropTables();
 
+        // Dropping the tables leaves their rows in the migrations table, and
+        // `migrate` reads those rows as "already ran" -- so the re-run below
+        // reported "Nothing to migrate" and the tables stayed dropped while
+        // the command reported success. Forget our rows first.
+        $forgotten = $this->forgetMigrationRecords();
+
         $exitCode = $this->runMigrations();
 
         return [
             'dropped_tables'      => $dropped,
+            'forgotten'           => $forgotten,
             'migration_exit_code' => $exitCode,
-            'success'             => $exitCode === 0,
+            'success'             => $exitCode === 0 && $this->tablesExist(),
         ];
     }
 
@@ -332,34 +338,6 @@ class DatabaseOperationsService
     }
 
     /**
-     * Count icons in a directory
-     */
-    public function countIconsInDirectory(string $path): int
-    {
-        if (empty($path) || ! File::isDirectory($path)) {
-            return 0;
-        }
-
-        $count = 0;
-
-        try {
-            $iterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS),
-            );
-
-            foreach ($iterator as $file) {
-                if ($file->isFile() && Str::lower($file->getExtension()) === 'svg') {
-                    $count++;
-                }
-            }
-        } catch (Exception $e) {
-            $this->logger->warning("Failed to count icons in: {$path}", ['error' => $e->getMessage()]);
-        }
-
-        return $count;
-    }
-
-    /**
      * Get database statistics
      */
     public function getStatistics(): array
@@ -380,10 +358,7 @@ class DatabaseOperationsService
             $stats['variants'] = IconTerm::where('type', IconTerm::TYPE_VARIANT)->count();
             $stats['term_relationships'] = DB::table('ichava_icon_termables')->count();
 
-            // Get database size (PostgreSQL)
-            if (Helpers::dbDriverIsPgSql()) {
-                $stats['database_size'] = $this->getPostgresqlDatabaseSize();
-            }
+            $stats['database_size'] = $this->databaseSize();
         } catch (Exception $e) {
             $this->logger->warning('⚠️ Failed to get database statistics', ['error' => $e->getMessage()]);
         }
@@ -421,6 +396,44 @@ class DatabaseOperationsService
     }
 
     /**
+     * Remove this package's rows from the host's migrations table, so its
+     * migrations run again. Only our own files are touched; the host's
+     * migration history is not.
+     *
+     * @return list<string> the migration names forgotten
+     */
+    protected function forgetMigrationRecords(): array
+    {
+        $path = $this->migrationPath();
+        $repository = app('migration.repository');
+
+        if ($path === null || ! $repository->repositoryExists()) {
+            return [];
+        }
+
+        $forgotten = [];
+
+        foreach (File::glob($path . '/*.php') as $file) {
+            $migration = basename($file, '.php');
+            $repository->delete((object) ['migration' => $migration]);
+            $forgotten[] = $migration;
+        }
+
+        return $forgotten;
+    }
+
+    /**
+     * The package's migration directory, resolved from this file rather than
+     * written down, or null when it is missing on disk.
+     */
+    protected function migrationPath(): ?string
+    {
+        $path = realpath(__DIR__ . '/../../database/migrations');
+
+        return $path === false ? null : $path;
+    }
+
+    /**
      * Drop PostgreSQL FTS objects (triggers, functions, indexes)
      */
     protected function dropPostgresqlFtsObjects(): void
@@ -446,23 +459,15 @@ class DatabaseOperationsService
     }
 
     /**
-     * Get PostgreSQL database size for Ichava tables
+     * Storage used by the Ichava tables, human-readable; null when no driver
+     * can say. This was `pg_total_relation_size()` hard-wired, so every other
+     * driver reported "N/A" -- laranail/db-tools answers per driver.
      */
-    protected function getPostgresqlDatabaseSize(): ?string
+    protected function databaseSize(): ?string
     {
-        try {
-            $result = DB::select("
-                SELECT pg_size_pretty(
-                    pg_total_relation_size('ichava_icons') +
-                    pg_total_relation_size('ichava_icon_terms') +
-                    pg_total_relation_size('ichava_icon_termables')
-                ) as size
-            ");
+        $sizes = array_filter(DbTools::tableSizes(self::TABLES), is_int(...));
 
-            return $result[0]->size ?? null;
-        } catch (Exception $e) {
-            return null;
-        }
+        return $sizes === [] ? null : FileSize::format(array_sum($sizes));
     }
 
     /**

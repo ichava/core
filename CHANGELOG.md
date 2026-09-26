@@ -2,6 +2,148 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **Requires `laranail/db-tools ^0.1.1` and `laranail/package-tools ^0.1.1`.** Nothing in the
+  estate is on Packagist, so every consumer lists both as VCS repositories. Composer reads
+  `repositories` from the root package only, so without them core does not resolve.
+- **Fuzzy search is built on db-tools' portable LIKE macros** (`whereLiteralLike`,
+  `whereJsonArrayLiteralLike`). The `!` escape and the `json` vs `jsonb` rule are now owned there and
+  tested against PostgreSQL, MySQL, MariaDB and SQLite. Core registers the macros itself too, so a
+  host with package discovery turned off keeps search working.
+- **Seeding runs through package-tools' `ChunkedBatchDispatcher`.** Chunking, the batch and its
+  serialization-safe callbacks, the synchronous fallback and draining the queue are no longer
+  hand-rolled. `seed()` and `seedSync()` keep their signatures and return shapes.
+- **The seeder's console output is translated** (`commands.seeder.*`). Its settings table is a
+  `MetricTable`, and per-package statuses are `StatusBadge`s.
+
+- **The Artisan commands' output is built on laranail/console's status vocabulary.** Status
+  cells, checklists and statistics tables come from its `Status` enum, `StatusBadge`, `CheckList`
+  and `MetricTable` instead of hand-written `<fg=...>` markup and emoji strings, so glyphs,
+  colours and labels are defined once for the family. Visible differences: success and failure
+  lines read `✓` / `✗` rather than `✅` / `❌`; job states read `◉ Processing` / `✗ Failed`;
+  `info status` prints a checklist (`✓ Migrations: OK`) rather than a Check/Status table, and
+  `System Ready: Yes`/`No` rather than `YES`/`NO`; `cache stats` reads `✗ No` / `⚠ Yes`.
+  Byte sizes and durations go through `FileSize` and `TimeFormat`, and progress through `Gauge`.
+- **Every user-facing string the commands print or ask is translated**, under
+  `ichava/ichava-core::commands.*` -- including Laravel Prompts' intros, outros, notes, table
+  headers and the `label:`, `hint:`, `placeholder:`, `yes:` and `no:` of every prompt. Command
+  `$description`s stay English, as before.
+- **Hints that name another command derive the name from its registration.** A new
+  `Support\CommandName::of(DatabaseCommand::class)` returns the name Artisan holds the command
+  under, so a rename can no longer leave a hint -- or `install`'s nested calls -- pointing at a
+  name that does not exist.
+- **`database stats` and `info stats` share one statistics table**, so `info stats` now also
+  shows Term Relationships, which its service already returned.
+
+### Removed
+
+- **Parked, not deleted:** `JobProgressTracker`, the `CacheDriver` enum,
+  `IchavaSeeder::getStatus()`, `cancel()` and `displayJobInstructions()`, `Helpers::sanitizePath()`
+  and the `ICHAVA_PGSQL_*` constants, `PathResolver::resolveConfigOrDefault()` and `ensureFile()`,
+  `InformationService::formatFileSize()`, and `DatabaseOperationsService::countIconsInDirectory()`.
+  Each had no caller in core or in any other ichava package. They moved verbatim to `.parked/`, with
+  the tests that covered only them, and `.parked/README.md` records the measurements.
+
+- **Fifteen protected `BaseCommand` helpers nothing called were parked**, moved verbatim to
+  `.parked/Commands/BaseCommandHelpers.php` (not autoloaded, not shipped): `displayBoxedHeader`,
+  `displayWarning`, `displayOutro`, `displayTable`, `displayKeyValue(s)`, `displayStatusRow`,
+  `confirmDestructive`, `confirmOperation`, `withSpinner`, `withProgress`, `displayDivider`,
+  `outputIfNotQuiet`, `outputIfVerbose` and `tryWithSpinner`. `.parked/README.md` records the
+  caller count behind each. `confirmDestructive()` is now laranail/console's, with a different
+  signature (`string $question, ?string $hint`).
+- **`BaseCommand::formatBytes()`, `formatDuration()`, `formatMs()`, `createProgressBar()`,
+  `askSelect()`, `displayHeader()`, `getRelativePath()` and its duplicate `isVerbose()` are
+  gone**; use laranail/console's `FileSize`, `TimeFormat` and `Gauge` for the first four. A
+  command extending `BaseCommand` outside this package that called one of them must switch.
+
+### Fixed
+
+- **`job-status` shows seeding progress.** It read `JobProgressTracker`, whose writers were never
+  called, so it reported "no progress" for every seed. Seeding now writes package-tools'
+  `SeederRunTracker` under `IchavaSeeder::trackingKey()`, counted in icons, and `job-status` reads
+  that.
+- **The database size is reported on every driver.** It was `pg_total_relation_size()` hard-wired,
+  and it was written twice, with the second copy overwriting the first. So MySQL, MariaDB and SQLite
+  always showed `N/A`. db-tools' `TableStatistics` now answers for each driver.
+- **The seeding job suspends the search trigger outside its write transaction.** On PostgreSQL, a
+  failed `ALTER TABLE` (not the table owner, or a missing trigger) aborts the transaction it runs in,
+  and that would have lost the whole chunk. The trigger is restored in `finally`, and search text is
+  rebuilt only when the trigger was actually suspended. The hand-written `ON CONFLICT` branch is gone,
+  because `insertOrIgnore()` already emits it, chunked under the bind-parameter cap.
+- **The registry's SVG count uses `CountSvgFiles`.** `IconRegistry` kept its own copy, which caught
+  `Exception` where the action had been fixed to catch `Throwable`.
+
+- **`--force` now skips destructive confirmations instead of prompting and then ignoring the
+  answer.** `database migrate --fresh`, `seed --fresh`, `unseed`, `unseed --package`, `refresh`
+  and `job-status --clear` asked their confirmation even under `--force`, and then proceeded
+  when the answer was "no", because the guard read `! $confirmed && ! force`. All six, and
+  `truncate`, now go through laranail/console's `confirmDestructive()`: `--force` answers yes
+  without prompting, and a declined prompt cancels with exit code 0.
+- **A caught failure no longer prints its stack trace at `-v`.** `tryExecute()` printed the
+  whole trace at `-v`; traces can carry call arguments such as credentials or tokens. It now
+  renders through laranail/console's `ExceptionRenderer`: the message always, the file and line
+  from `-v`, the trace only from `-vvv`.
+- **`cache clear`, `clear --package`, `refresh` and `generate` work.** All four called
+  `IconCacheService` methods that never existed (`forgetPattern()`, `generateProductionCache()`)
+  and failed on every run. `clear` now retires the discovery caches through their generation
+  counter, clears each registered pack's SVG-count cache and the watcher fingerprints, and lists
+  what it cleared at `-v`; `clear --package` does the same for one pack and fails on an
+  unregistered one; `generate` warms the discovery caches and writes the icon manifest, and
+  honours `--path`. Rendered-SVG caches are not flushed -- that would empty the host's whole
+  store -- and are abandoned by bumping `ichava.core.cache.version`, as before.
+- **`database migrate --fresh` recreates the tables it drops.** The drop left this package's
+  rows in the host's `migrations` table, so the re-run reported "Nothing to migrate", the
+  tables stayed gone and the command still reported success. The package's own rows are now
+  forgotten between the drop and the re-run (the host's migration history is untouched), and
+  success requires the tables to exist afterwards.
+- **A second `watch` run no longer fails on the unique index.** The watcher keyed icons found on
+  disk by absolute path and icons in the database by their stored, relative path, so none ever
+  matched: every scan after the first re-inserted every icon. Disk icons are keyed by the stored
+  path now, so an unchanged tree reports no changes and a changed file is updated in place.
+- **Declining to overwrite a stale manifest exits 0.** `cache manifest` returned `FAILURE` when
+  the overwrite prompt was declined, unlike every other cancellation, which a script or CI step
+  read as an error.
+- **`check-updates --format=json` prints only JSON.** The intro and outro framed the document, so
+  stdout could not be handed to a JSON parser as-is. Under `--format=json` the command now
+  prints the array and nothing else -- `[]` when no pack is registered -- and `--fail-on-stale`
+  still sets the exit code.
+- **`database migrate` shows its own result again.** Running migrations goes through
+  `Artisan::call('migrate')`, and the nested command re-pointed Laravel Prompts at its own
+  buffered output without restoring it, so the success outro -- and, for `--fresh`, the dropped
+  tables -- were printed into a buffer nobody read. The command now takes Prompts back after the
+  nested call; `install` does the same around the commands it calls.
+
+### Tests
+
+- **`SeedIconsJobDatabaseTest`** checks what seeding leaves in the database. Category attachments
+  are created, a re-seed does not duplicate them, progress is recorded, and on PostgreSQL the search
+  trigger is live again and every icon has search text. Nothing tested this job's database effects
+  before.
+
+- **Characterization tests for all eight Artisan commands** (97 tests, `tests/Feature/Commands/`)
+  pin today's output, prompts and exit codes before the console refactor, so every intended
+  wording or behaviour change shows up as a test diff. They run through Symfony's `CommandTester`
+  (`tests/Support/RunsCommandsForCharacterization.php`), because `expectsOutputToContain()` matches
+  one write at a time and Laravel Prompts renders a whole table in one write.
+
+  They also pinned defects, marked `characterization:` in the tests, for the refactor to fix --
+  all fixed above:
+  - Five `database` actions and `job-status --clear` prompt even under `--force`, and then
+    proceed when the answer is "no".
+  - `tryExecute` prints stack traces at `-v`.
+  - `cache clear`, `clear --package`, `refresh` and `generate` call methods that do not exist on
+    `IconCacheService`.
+  - `database migrate --fresh` drops the tables and does not recreate them.
+  - A second `watch` run fails on the unique index.
+- **The hardcoded-English ratchet sees Laravel Prompts.** `CoreTranslationsTest` counted only
+  `$this->helper('literal')`, and so reported 38 literals in `src/Commands` while the real count
+  was 225. It now also counts literal first arguments to imported Prompts functions and literal
+  `label:`/`hint:`/`placeholder:`/`yes:`/`no:` arguments, per file, across `src/Commands` and
+  `src/Support/Seeder`. `src/Commands` is at 0; the seeder is pinned at 12 for a later pass.
+
 ## [0.4.2] - 2026-09-26
 
 ### Changed
