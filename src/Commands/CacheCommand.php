@@ -212,7 +212,7 @@ final class CacheCommand extends BaseCommand
 
         // Skip rebuild if a fresh manifest already exists and --force was not passed.
         if (
-            ! $this->option('force')
+            ! $this->forced()
             && $this->cacheService->manifestExists($path)
             && ! $this->cacheService->manifestIsStale($path)
         ) {
@@ -221,7 +221,7 @@ final class CacheCommand extends BaseCommand
             return self::SUCCESS;
         }
 
-        if ($this->cacheService->manifestExists($path) && ! $this->option('force')) {
+        if ($this->cacheService->manifestExists($path) && ! $this->forced()) {
             $overwrite = confirm(
                 label: __('ichava/ichava-core::commands.cache.manifest.overwrite'),
                 default: true,

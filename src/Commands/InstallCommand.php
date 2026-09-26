@@ -91,13 +91,8 @@ final class InstallCommand extends BaseCommand
                 : __('ichava/ichava-core::commands.install.already_installed', ['title' => $set['title']]));
             note(__('ichava/ichava-core::commands.install.reinstall_note'));
 
-            if (! $this->option('force') && ! confirm(
-                label: __('ichava/ichava-core::commands.install.reinstall_confirm'),
-                default: false,
-            )) {
-                warning(__('ichava/ichava-core::commands.common.cancelled'));
-
-                return self::SUCCESS;
+            if (! $this->confirmDestructive(__('ichava/ichava-core::commands.install.reinstall_confirm'))) {
+                return $this->cancelled(__('ichava/ichava-core::commands.common.cancelled'));
             }
         }
 
@@ -113,13 +108,12 @@ final class InstallCommand extends BaseCommand
 
         $target = $this->catalog->requireTarget($package);
 
-        if (! $this->option('force') && ! confirm(
+        // Not destructive, so it defaults to yes; --force still skips it.
+        if (! $this->forced() && ! confirm(
             label: __('ichava/ichava-core::commands.install.require_confirm', ['target' => $target]),
             default: true,
         )) {
-            warning(__('ichava/ichava-core::commands.common.cancelled'));
-
-            return self::SUCCESS;
+            return $this->cancelled(__('ichava/ichava-core::commands.common.cancelled'));
         }
 
         if ($this->runComposerRequire($target) !== self::SUCCESS) {
@@ -229,7 +223,7 @@ final class InstallCommand extends BaseCommand
         warning(__('ichava/ichava-core::commands.install.tables_missing'));
         note(__('ichava/ichava-core::commands.install.missing_tables', ['tables' => implode(', ', $this->database->getMissingTables())]));
 
-        $runNow = $this->option('force') || confirm(
+        $runNow = $this->forced() || confirm(
             label: __('ichava/ichava-core::commands.install.migrate_confirm'),
             default: true,
         );

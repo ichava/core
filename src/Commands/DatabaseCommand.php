@@ -298,7 +298,7 @@ final class DatabaseCommand extends BaseCommand
         }
 
         // If no package specified, ask what to unseed
-        if (! $this->option('force')) {
+        if (! $this->forced()) {
             $choice = select(
                 label: __('ichava/ichava-core::commands.database.unseed.select'),
                 options: [
