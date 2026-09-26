@@ -6,6 +6,16 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Changed
 
+- **The last hand-rolled console output moved onto the shared builders.**
+  - Every `--force` check reads `forced()` from laranail/console's `ConfirmsDestructiveActions`. So
+    does install's reinstall prompt, which is now `confirmDestructive()`. The two install prompts
+    that are not destructive keep their default of yes.
+  - `IconTermsSeeder`'s eight English lines are translated (`commands.seeder.terms.*`), and its
+    per-package status lines render through `StatusLine`.
+  - Badges that show a domain value use `StatusBadge::fromMap(..., valueAsLabel: true)`.
+  - `job-status` colours its progress `Gauge` by the run's status, using console `^0.1.3`'s
+    `Gauge::status()`.
+
 - **Requires `laranail/db-tools ^0.1.1` and `laranail/package-tools ^0.1.1`.** Nothing in the
   estate is on Packagist, so every consumer lists both as VCS repositories. Composer reads
   `repositories` from the root package only, so without them core does not resolve.
@@ -131,6 +141,11 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   nested call; `install` does the same around the commands it calls.
 
 ### Tests
+
+- **The English ratchet sees seeder output.** It matched `$this->helper('literal'` only, so
+  `$this->command->helper(` and `IconTermsSeeder`'s own `$this->output(` went uncounted. That is how
+  eight English lines sat under a ceiling of 0. A literal now counts only when it reads as English
+  once markup and interpolations are stripped.
 
 - **`SeedIconsJobDatabaseTest`** checks what seeding leaves in the database. Category attachments
   are created, a re-seed does not duplicate them, progress is recorded, and on PostgreSQL the search
