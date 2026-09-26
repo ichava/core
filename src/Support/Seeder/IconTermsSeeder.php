@@ -9,6 +9,8 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Console\Tools\Widgets\StatusLine;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 
 /**
  * Icon Terms Seeder
@@ -41,13 +43,13 @@ class IconTermsSeeder extends Seeder
 
     public function run(): void
     {
-        $this->output('🔍 Scanning registered packages for categories and variants...', 'info');
+        $this->output(__('ichava/ichava-core::commands.seeder.terms.scanning'), 'info');
         $this->output('', 'newLine');
 
         $packages = $this->packageRegistry->all();
 
         if (empty($packages)) {
-            $this->output('No icon packages registered. Please register packages first.', 'warn');
+            $this->output(__('ichava/ichava-core::commands.seeder.terms.no_packages'), 'warn');
 
             return;
         }
@@ -57,7 +59,7 @@ class IconTermsSeeder extends Seeder
         }
 
         $this->output('', 'newLine');
-        $this->output('✅ Icon terms seeded successfully!', 'info');
+        $this->output(__('ichava/ichava-core::commands.seeder.terms.seeded'), 'info');
     }
 
     /**
@@ -65,7 +67,7 @@ class IconTermsSeeder extends Seeder
      */
     public function seedSinglePackage(string $packageName, array $packageData): void
     {
-        $this->output("  Processing: <fg=cyan>{$packageName}</fg=cyan>");
+        $this->output('  ' . __('ichava/ichava-core::commands.seeder.terms.processing', ['package' => '<fg=cyan>' . OutputFormatter::escape($packageName) . '</>']));
 
         // Seed categories from filesystem
         $this->seedPackageCategories($packageName, $packageData);
@@ -83,10 +85,15 @@ class IconTermsSeeder extends Seeder
             return;
         }
 
+        // success/warning are indented status lines under the package heading,
+        // rendered by laranail/console's StatusLine so the glyph and colour are
+        // the shared ones (and ASCII-safe) rather than hand-written markup.
         match ($type) {
             'info'    => $this->command->info($message),
             'warn'    => $this->command->warn($message),
             'error'   => $this->command->error($message),
+            'success' => $this->command->line('    ' . StatusLine::make()->success($message)),
+            'warning' => $this->command->line('    ' . StatusLine::make()->warning($message)),
             'newLine' => $this->command->newLine(),
             default   => $this->command->line($message),
         };
@@ -100,7 +107,7 @@ class IconTermsSeeder extends Seeder
         $basePath = $packageData['base_path'] ?? $packageData['path'] ?? null;
 
         if (! $basePath || ! File::isDirectory($basePath)) {
-            $this->output("    ⚠ Base path not found: {$basePath}", 'warn');
+            $this->output(__('ichava/ichava-core::commands.seeder.terms.base_path_missing', ['path' => $basePath]), 'warning');
 
             return;
         }
@@ -115,7 +122,7 @@ class IconTermsSeeder extends Seeder
         $categories = $this->scanFolderStructure($filesPath, $packageName);
 
         if (empty($categories)) {
-            $this->output('    <fg=yellow>⚠</fg=yellow> No categories found');
+            $this->output(__('ichava/ichava-core::commands.seeder.terms.no_categories'), 'warning');
 
             return;
         }
@@ -124,7 +131,7 @@ class IconTermsSeeder extends Seeder
         $this->insertTerms(IconTerm::TYPE_CATEGORY, $categories, null, $packageName);
 
         $count = $this->countCategories($categories);
-        $this->output("    <fg=green>✓</fg=green> Seeded {$count} categories");
+        $this->output(__('ichava/ichava-core::commands.seeder.terms.categories_seeded', ['count' => $count]), 'success');
     }
 
     /**
@@ -163,7 +170,7 @@ class IconTermsSeeder extends Seeder
 
         $this->insertTerms(IconTerm::TYPE_VARIANT, $variantTerms, null, $packageName);
 
-        $this->output('    <fg=green>✓</fg=green> Seeded ' . count($variantTerms) . ' variants');
+        $this->output(__('ichava/ichava-core::commands.seeder.terms.variants_seeded', ['count' => count($variantTerms)]), 'success');
     }
 
     /**
