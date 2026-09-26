@@ -6,6 +6,19 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Changed
 
+- **Requires `laranail/db-tools ^0.1.1` and `laranail/package-tools ^0.1.1`.** Nothing in the
+  estate is on Packagist, so every consumer lists both as VCS repositories. Composer reads
+  `repositories` from the root package only, so without them core does not resolve.
+- **Fuzzy search is built on db-tools' portable LIKE macros** (`whereLiteralLike`,
+  `whereJsonArrayLiteralLike`). The `!` escape and the `json` vs `jsonb` rule are now owned there and
+  tested against PostgreSQL, MySQL, MariaDB and SQLite. Core registers the macros itself too, so a
+  host with package discovery turned off keeps search working.
+- **Seeding runs through package-tools' `ChunkedBatchDispatcher`.** Chunking, the batch and its
+  serialization-safe callbacks, the synchronous fallback and draining the queue are no longer
+  hand-rolled. `seed()` and `seedSync()` keep their signatures and return shapes.
+- **The seeder's console output is translated** (`commands.seeder.*`). Its settings table is a
+  `MetricTable`, and per-package statuses are `StatusBadge`s.
+
 - **The Artisan commands' output is built on laranail/console's status vocabulary.** Status
   cells, checklists and statistics tables come from its `Status` enum, `StatusBadge`, `CheckList`
   and `MetricTable` instead of hand-written `<fg=...>` markup and emoji strings, so glyphs,
@@ -27,6 +40,13 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Removed
 
+- **Parked, not deleted:** `JobProgressTracker`, the `CacheDriver` enum,
+  `IchavaSeeder::getStatus()`, `cancel()` and `displayJobInstructions()`, `Helpers::sanitizePath()`
+  and the `ICHAVA_PGSQL_*` constants, `PathResolver::resolveConfigOrDefault()` and `ensureFile()`,
+  `InformationService::formatFileSize()`, and `DatabaseOperationsService::countIconsInDirectory()`.
+  Each had no caller in core or in any other ichava package. They moved verbatim to `.parked/`, with
+  the tests that covered only them, and `.parked/README.md` records the measurements.
+
 - **Fifteen protected `BaseCommand` helpers nothing called were parked**, moved verbatim to
   `.parked/Commands/BaseCommandHelpers.php` (not autoloaded, not shipped): `displayBoxedHeader`,
   `displayWarning`, `displayOutro`, `displayTable`, `displayKeyValue(s)`, `displayStatusRow`,
@@ -40,6 +60,21 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   command extending `BaseCommand` outside this package that called one of them must switch.
 
 ### Fixed
+
+- **`job-status` shows seeding progress.** It read `JobProgressTracker`, whose writers were never
+  called, so it reported "no progress" for every seed. Seeding now writes package-tools'
+  `SeederRunTracker` under `IchavaSeeder::trackingKey()`, counted in icons, and `job-status` reads
+  that.
+- **The database size is reported on every driver.** It was `pg_total_relation_size()` hard-wired,
+  and it was written twice, with the second copy overwriting the first. So MySQL, MariaDB and SQLite
+  always showed `N/A`. db-tools' `TableStatistics` now answers for each driver.
+- **The seeding job suspends the search trigger outside its write transaction.** On PostgreSQL, a
+  failed `ALTER TABLE` (not the table owner, or a missing trigger) aborts the transaction it runs in,
+  and that would have lost the whole chunk. The trigger is restored in `finally`, and search text is
+  rebuilt only when the trigger was actually suspended. The hand-written `ON CONFLICT` branch is gone,
+  because `insertOrIgnore()` already emits it, chunked under the bind-parameter cap.
+- **The registry's SVG count uses `CountSvgFiles`.** `IconRegistry` kept its own copy, which caught
+  `Exception` where the action had been fixed to catch `Throwable`.
 
 - **`--force` now skips destructive confirmations instead of prompting and then ignoring the
   answer.** `database migrate --fresh`, `seed --fresh`, `unseed`, `unseed --package`, `refresh`
@@ -82,6 +117,11 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   nested call; `install` does the same around the commands it calls.
 
 ### Tests
+
+- **`SeedIconsJobDatabaseTest`** checks what seeding leaves in the database. Category attachments
+  are created, a re-seed does not duplicate them, progress is recorded, and on PostgreSQL the search
+  trigger is live again and every icon has search text. Nothing tested this job's database effects
+  before.
 
 - **Characterization tests for all eight Artisan commands** (97 tests, `tests/Feature/Commands/`)
   pin today's output, prompts and exit codes before the console refactor, so every intended
