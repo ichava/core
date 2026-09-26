@@ -27,7 +27,7 @@
         "laranail/console": "^0.1.0",
         "laranail/db-tools": "^0.1.1",
         "laranail/enumerator": "^0.1.0",
-        "laranail/package-tools": "^0.1.0"
+        "laranail/package-tools": "^0.1.1"
     },
     "require-dev": {
         "ichava/icon-sets-package-scaffolder": "^0.1.0",
