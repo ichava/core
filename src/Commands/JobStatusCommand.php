@@ -274,12 +274,4 @@ class JobStatusCommand extends BaseCommand
     {
         return Icon::where('package', $packageName)->count();
     }
-
-    /**
-     * One indented detail line under the progress heading.
-     */
-    private function detail(string $text): void
-    {
-        $this->line(str_repeat(' ', 2) . $text);
-    }
 }
