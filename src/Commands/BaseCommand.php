@@ -22,6 +22,7 @@ use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Console\Tools\Commands\Command;
 use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
+use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
 use Simtabi\Laranail\Console\Tools\Commands\Concerns\SupportsNamespacedNames;
 use Simtabi\Laranail\Console\Tools\Commands\Concerns\ConfirmsDestructiveActions;
@@ -148,11 +149,58 @@ abstract class BaseCommand extends Command
     }
 
     /**
+     * One indented detail line under a heading.
+     */
+    protected function detail(string $text): void
+    {
+        $this->line(str_repeat(' ', 2) . $text);
+    }
+
+    /**
      * A coloured status label for a job or package state.
      */
     protected function formatStatus(string $status): string
     {
         return StatusBadge::fromMap(self::STATUS_MAP, Str::lower($status))->render();
+    }
+
+    /**
+     * The icon-database statistics table `database stats` and `info stats`
+     * both print, built in one place so the two cannot drift apart. A row is
+     * shown when its statistic is present in `$stats`; the database size is
+     * PostgreSQL-only and reads N/A elsewhere.
+     *
+     * @param array<string, mixed> $stats
+     */
+    protected function statisticsTable(array $stats): MetricTable
+    {
+        $rows = [
+            'icons'              => __('ichava/ichava-core::commands.common.stats.icons'),
+            'packages'           => __('ichava/ichava-core::commands.common.stats.packages'),
+            'categories'         => __('ichava/ichava-core::commands.common.stats.categories'),
+            'variants'           => __('ichava/ichava-core::commands.common.stats.variants'),
+            'term_relationships' => __('ichava/ichava-core::commands.common.stats.term_relationships'),
+            'database_size'      => __('ichava/ichava-core::commands.common.stats.database_size'),
+            'cache_driver'       => __('ichava/ichava-core::commands.common.stats.cache_driver'),
+        ];
+
+        $table = MetricTable::make();
+
+        foreach ($rows as $key => $label) {
+            if (! array_key_exists($key, $stats)) {
+                continue;
+            }
+
+            $value = $stats[$key];
+
+            $table->metric($label, match (true) {
+                is_int($value)  => $value,
+                $value === null => __('ichava/ichava-core::commands.common.not_available'),
+                default         => (string) $value,
+            });
+        }
+
+        return $table;
     }
 
     /**
