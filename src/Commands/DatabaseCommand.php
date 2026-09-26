@@ -14,7 +14,9 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
 
+use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconTermsSeeder;
 use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
@@ -70,19 +72,19 @@ final class DatabaseCommand extends BaseCommand
         // If no action provided, prompt user to select
         if (empty($action)) {
             $action = select(
-                label: 'What database operation would you like to perform?',
+                label: __('ichava/ichava-core::commands.database.select'),
                 options: [
-                    'seed'       => 'Seed - Populate database with icons and terms',
-                    'seed:icons' => 'Seed Icons - Seed icons only',
-                    'seed:terms' => 'Seed Terms - Seed terms only',
-                    'migrate'    => 'Migrate - Run Ichava migrations',
-                    'unseed'     => 'Unseed - Remove icon data from database',
-                    'refresh'    => 'Refresh - Truncate and re-seed',
-                    'truncate'   => 'Truncate - Clear all tables',
-                    'stats'      => 'Stats - Show database statistics',
+                    'seed'       => __('ichava/ichava-core::commands.database.options.seed'),
+                    'seed:icons' => __('ichava/ichava-core::commands.database.options.seed_icons'),
+                    'seed:terms' => __('ichava/ichava-core::commands.database.options.seed_terms'),
+                    'migrate'    => __('ichava/ichava-core::commands.database.options.migrate'),
+                    'unseed'     => __('ichava/ichava-core::commands.database.options.unseed'),
+                    'refresh'    => __('ichava/ichava-core::commands.database.options.refresh'),
+                    'truncate'   => __('ichava/ichava-core::commands.database.options.truncate'),
+                    'stats'      => __('ichava/ichava-core::commands.database.options.stats'),
                 ],
                 default: 'stats',
-                hint: 'Select an action to perform',
+                hint: __('ichava/ichava-core::commands.database.select_hint'),
             );
         }
 
@@ -117,60 +119,60 @@ final class DatabaseCommand extends BaseCommand
 
         if ($fresh) {
             $confirmed = confirm(
-                label: 'This will DROP all Ichava tables and re-run migrations. Continue?',
+                label: __('ichava/ichava-core::commands.database.migrate.fresh_confirm'),
                 default: false,
-                yes: 'Yes, drop and recreate',
-                no: 'No, cancel',
-                hint: '⚠️ All existing Ichava data will be permanently deleted!',
+                yes: __('ichava/ichava-core::commands.database.migrate.fresh_yes'),
+                no: __('ichava/ichava-core::commands.database.no_cancel'),
+                hint: __('ichava/ichava-core::commands.database.migrate.fresh_hint'),
             );
 
             if (! $confirmed && ! $this->option('force')) {
-                warning('Operation cancelled.');
+                warning(__('ichava/ichava-core::commands.common.cancelled'));
 
                 return self::SUCCESS;
             }
 
-            intro('🔄 Running fresh Ichava migration');
+            intro(__('ichava/ichava-core::commands.database.migrate.fresh_intro'));
 
             return $this->tryExecute(function () {
                 $result = spin(
                     callback: fn () => $this->databaseService->freshMigration(),
-                    message: 'Dropping and recreating tables...',
+                    message: __('ichava/ichava-core::commands.database.migrate.fresh_running'),
                 );
 
                 if (! empty($result['dropped_tables'])) {
                     table(
-                        headers: ['Dropped Tables'],
+                        headers: [__('ichava/ichava-core::commands.database.migrate.dropped_tables')],
                         rows: array_map(fn ($t) => [$t], $result['dropped_tables']),
                     );
                 }
 
                 if ($result['success']) {
-                    outro('✅ Fresh migration completed successfully');
+                    outro(__('ichava/ichava-core::commands.database.migrate.fresh_done'));
 
                     return self::SUCCESS;
                 } else {
-                    $this->failure('Migration failed');
+                    $this->failure(__('ichava/ichava-core::commands.database.migrate.failed'));
 
                     return self::FAILURE;
                 }
-            }, 'Migration failed');
+            }, __('ichava/ichava-core::commands.database.migrate.failed'));
         }
 
         // Regular migration
-        intro('🔄 Running Ichava migrations');
+        intro(__('ichava/ichava-core::commands.database.migrate.intro'));
 
         $exitCode = spin(
             callback: fn () => $this->databaseService->runMigrations(),
-            message: 'Running migrations...',
+            message: __('ichava/ichava-core::commands.database.migrate.running'),
         );
 
         if ($exitCode === 0) {
-            outro('✅ Migrations completed successfully');
+            outro(__('ichava/ichava-core::commands.database.migrate.done'));
 
             return self::SUCCESS;
         } else {
-            $this->failure('Migration failed');
+            $this->failure(__('ichava/ichava-core::commands.database.migrate.failed'));
 
             return self::FAILURE;
         }
@@ -181,22 +183,22 @@ final class DatabaseCommand extends BaseCommand
      */
     protected function handleSeed(): int
     {
-        intro('🌱 Seeding Ichava database');
+        intro(__('ichava/ichava-core::commands.database.seed.intro'));
 
         $this->startTiming();
 
         // Handle --fresh flag
         if ($this->option('fresh')) {
             $confirmed = confirm(
-                label: 'This will delete all existing data before seeding. Continue?',
+                label: __('ichava/ichava-core::commands.database.seed.fresh_confirm'),
                 default: false,
-                yes: 'Yes, clear and seed',
-                no: 'No, cancel',
-                hint: '⚠️ Existing icons and terms will be deleted!',
+                yes: __('ichava/ichava-core::commands.database.seed.fresh_yes'),
+                no: __('ichava/ichava-core::commands.database.no_cancel'),
+                hint: __('ichava/ichava-core::commands.database.seed.fresh_hint'),
             );
 
             if (! $confirmed && ! $this->option('force')) {
-                warning('Operation cancelled.');
+                warning(__('ichava/ichava-core::commands.common.cancelled'));
 
                 return self::SUCCESS;
             }
@@ -224,14 +226,14 @@ final class DatabaseCommand extends BaseCommand
             return $iconResult;
         }
 
-        outro('✅ Database seeded successfully');
+        outro(__('ichava/ichava-core::commands.database.seed.done'));
         $this->displayElapsedTime();
 
         // Show queue instructions if using queue
         if (! $this->option('sync') && config('ichava.ichava-core.database.use_queue', true)) {
-            warning('Icon seeding jobs are queued. Stats will be accurate after jobs complete.');
-            note('Monitor jobs: php artisan ichava::ichava-core.job-status');
-            note('View stats: php artisan ichava::ichava-core.database stats');
+            warning(__('ichava/ichava-core::commands.database.seed.queued'));
+            note(__('ichava/ichava-core::commands.database.seed.monitor', ['command' => CommandName::of(JobStatusCommand::class)]));
+            note(__('ichava/ichava-core::commands.database.seed.view_stats', ['command' => $this->getName()]));
         } else {
             $this->displayDatabaseStats();
         }
@@ -246,7 +248,7 @@ final class DatabaseCommand extends BaseCommand
     {
         $forceUpdate = (bool) $this->option('update');
 
-        info('📦 Seeding icons...' . ($forceUpdate ? ' (force update mode)' : ''));
+        info($forceUpdate ? __('ichava/ichava-core::commands.database.seed.icons_force') : __('ichava/ichava-core::commands.database.seed.icons'));
 
         return $this->tryExecute(function () use ($forceUpdate) {
             if ($this->option('sync')) {
@@ -263,7 +265,7 @@ final class DatabaseCommand extends BaseCommand
                     $this->ichavaSeeder->setContainer(app());
                     $this->ichavaSeeder->run();
                 },
-                message: 'Seeding icons...',
+                message: __('ichava/ichava-core::commands.database.seed.icons_spinner'),
             );
 
             $this->logOperation('Icons seeded', [
@@ -273,7 +275,7 @@ final class DatabaseCommand extends BaseCommand
             ]);
 
             return self::SUCCESS;
-        }, 'Failed to seed icons');
+        }, __('ichava/ichava-core::commands.database.seed.icons_failed'));
     }
 
     /**
@@ -281,7 +283,7 @@ final class DatabaseCommand extends BaseCommand
      */
     protected function handleSeedTerms(): int
     {
-        info('🏷️  Seeding terms...');
+        info(__('ichava/ichava-core::commands.database.seed.terms'));
 
         return $this->tryExecute(function () {
             spin(
@@ -290,13 +292,13 @@ final class DatabaseCommand extends BaseCommand
                     $this->termSeeder->setContainer(app());
                     $this->termSeeder->run();
                 },
-                message: 'Seeding terms...',
+                message: __('ichava/ichava-core::commands.database.seed.terms_spinner'),
             );
 
             $this->logOperation('Terms seeded');
 
             return self::SUCCESS;
-        }, 'Failed to seed terms');
+        }, __('ichava/ichava-core::commands.database.seed.terms_failed'));
     }
 
     /**
@@ -313,18 +315,18 @@ final class DatabaseCommand extends BaseCommand
         // If no package specified, ask what to unseed
         if (! $this->option('force')) {
             $choice = select(
-                label: 'What would you like to unseed?',
+                label: __('ichava/ichava-core::commands.database.unseed.select'),
                 options: [
-                    'all'     => 'All packages - Remove all Ichava data',
-                    'package' => 'Specific package - Choose a package to unseed',
-                    'cancel'  => 'Cancel - Do nothing',
+                    'all'     => __('ichava/ichava-core::commands.database.unseed.options.all'),
+                    'package' => __('ichava/ichava-core::commands.database.unseed.options.package'),
+                    'cancel'  => __('ichava/ichava-core::commands.database.unseed.options.cancel'),
                 ],
                 default: 'cancel',
-                hint: 'Select what to unseed',
+                hint: __('ichava/ichava-core::commands.database.unseed.select_hint'),
             );
 
             if ($choice === 'cancel') {
-                warning('Operation cancelled.');
+                warning(__('ichava/ichava-core::commands.common.cancelled'));
 
                 return self::SUCCESS;
             }
@@ -333,10 +335,10 @@ final class DatabaseCommand extends BaseCommand
                 // Get available packages
                 $stats = $this->databaseService->getStatistics();
                 $packageName = $this->askText(
-                    label: 'Enter the package name to unseed',
-                    placeholder: 'e.g., ichava/icons-bundle',
+                    label: __('ichava/ichava-core::commands.database.unseed.package_ask'),
+                    placeholder: __('ichava/ichava-core::commands.database.unseed.package_placeholder'),
                     required: true,
-                    hint: 'Enter the full package name (vendor/package)',
+                    hint: __('ichava/ichava-core::commands.database.unseed.package_hint'),
                 );
 
                 return $this->unseedPackage($packageName);
@@ -352,40 +354,40 @@ final class DatabaseCommand extends BaseCommand
     protected function unseedPackage(string $packageName): int
     {
         $confirmed = confirm(
-            label: "This will remove all data for package '{$packageName}'. Continue?",
+            label: __('ichava/ichava-core::commands.database.unseed.package_confirm', ['package' => $packageName]),
             default: false,
-            yes: 'Yes, unseed package',
-            no: 'No, cancel',
-            hint: '⚠️ Icons and term relationships for this package will be deleted!',
+            yes: __('ichava/ichava-core::commands.database.unseed.package_yes'),
+            no: __('ichava/ichava-core::commands.database.no_cancel'),
+            hint: __('ichava/ichava-core::commands.database.unseed.package_confirm_hint'),
         );
 
         if (! $confirmed && ! $this->option('force')) {
-            warning('Operation cancelled.');
+            warning(__('ichava/ichava-core::commands.common.cancelled'));
 
             return self::SUCCESS;
         }
 
-        intro("🗑️  Unseeding package: {$packageName}");
+        intro(__('ichava/ichava-core::commands.database.unseed.package_intro', ['package' => $packageName]));
 
         return $this->tryExecute(function () use ($packageName) {
             $stats = spin(
                 callback: fn () => $this->databaseService->unseedPackage($packageName),
-                message: 'Removing package data...',
+                message: __('ichava/ichava-core::commands.database.unseed.package_removing'),
             );
 
-            table(
-                headers: ['Metric', 'Count'],
-                rows: [
-                    ['Icons deleted', $this->formatNumber($stats['icons_deleted'])],
-                    ['Term relations deleted', $this->formatNumber($stats['term_relations_deleted'])],
-                    ['Orphaned terms deleted', $this->formatNumber($stats['orphaned_terms_deleted'])],
-                ],
-            );
+            MetricTable::make()
+                ->headers(value: __('ichava/ichava-core::commands.database.unseed.count'))
+                ->metrics([
+                    __('ichava/ichava-core::commands.database.unseed.icons_deleted')          => (int) $stats['icons_deleted'],
+                    __('ichava/ichava-core::commands.database.unseed.term_relations_deleted') => (int) $stats['term_relations_deleted'],
+                    __('ichava/ichava-core::commands.database.unseed.orphaned_terms_deleted') => (int) $stats['orphaned_terms_deleted'],
+                ])
+                ->render($this->output);
 
-            outro('✅ Package unseeded successfully');
+            outro(__('ichava/ichava-core::commands.database.unseed.package_done'));
 
             return self::SUCCESS;
-        }, 'Failed to unseed package');
+        }, __('ichava/ichava-core::commands.database.unseed.package_failed'));
     }
 
     /**
@@ -394,40 +396,40 @@ final class DatabaseCommand extends BaseCommand
     protected function unseedAll(): int
     {
         $confirmed = confirm(
-            label: 'This will remove ALL Ichava data. Continue?',
+            label: __('ichava/ichava-core::commands.database.unseed.all_confirm'),
             default: false,
-            yes: 'Yes, remove all data',
-            no: 'No, cancel',
-            hint: '⚠️ ALL icons, terms, and relationships will be permanently deleted!',
+            yes: __('ichava/ichava-core::commands.database.unseed.all_yes'),
+            no: __('ichava/ichava-core::commands.database.no_cancel'),
+            hint: __('ichava/ichava-core::commands.database.unseed.all_confirm_hint'),
         );
 
         if (! $confirmed && ! $this->option('force')) {
-            warning('Operation cancelled.');
+            warning(__('ichava/ichava-core::commands.common.cancelled'));
 
             return self::SUCCESS;
         }
 
-        intro('🗑️  Unseeding all packages');
+        intro(__('ichava/ichava-core::commands.database.unseed.all_intro'));
 
         return $this->tryExecute(function () {
             $stats = spin(
                 callback: fn () => $this->databaseService->unseedAll(),
-                message: 'Removing all data...',
+                message: __('ichava/ichava-core::commands.database.unseed.all_removing'),
             );
 
-            table(
-                headers: ['Metric', 'Count'],
-                rows: [
-                    ['Icons deleted', $this->formatNumber($stats['icons_deleted'])],
-                    ['Term relations deleted', $this->formatNumber($stats['term_relations_deleted'])],
-                    ['Terms deleted', $this->formatNumber($stats['terms_deleted'])],
-                ],
-            );
+            MetricTable::make()
+                ->headers(value: __('ichava/ichava-core::commands.database.unseed.count'))
+                ->metrics([
+                    __('ichava/ichava-core::commands.database.unseed.icons_deleted')          => (int) $stats['icons_deleted'],
+                    __('ichava/ichava-core::commands.database.unseed.term_relations_deleted') => (int) $stats['term_relations_deleted'],
+                    __('ichava/ichava-core::commands.database.unseed.terms_deleted')          => (int) $stats['terms_deleted'],
+                ])
+                ->render($this->output);
 
-            outro('✅ All packages unseeded successfully');
+            outro(__('ichava/ichava-core::commands.database.unseed.all_done'));
 
             return self::SUCCESS;
-        }, 'Failed to unseed');
+        }, __('ichava/ichava-core::commands.database.unseed.all_failed'));
     }
 
     /**
@@ -436,20 +438,20 @@ final class DatabaseCommand extends BaseCommand
     protected function handleRefresh(): int
     {
         $confirmed = confirm(
-            label: 'This will delete all existing data and re-seed. Continue?',
+            label: __('ichava/ichava-core::commands.database.refresh.confirm'),
             default: false,
-            yes: 'Yes, refresh database',
-            no: 'No, cancel',
-            hint: '⚠️ All existing icons and terms will be replaced!',
+            yes: __('ichava/ichava-core::commands.database.refresh.yes'),
+            no: __('ichava/ichava-core::commands.database.no_cancel'),
+            hint: __('ichava/ichava-core::commands.database.refresh.hint'),
         );
 
         if (! $confirmed && ! $this->option('force')) {
-            warning('Operation cancelled.');
+            warning(__('ichava/ichava-core::commands.common.cancelled'));
 
             return self::SUCCESS;
         }
 
-        intro('🔄 Refreshing database');
+        intro(__('ichava/ichava-core::commands.database.refresh.intro'));
 
         // Truncate
         $truncateResult = $this->handleTruncate();
@@ -468,33 +470,33 @@ final class DatabaseCommand extends BaseCommand
     {
         if (! $this->option('force')) {
             $confirmed = confirm(
-                label: 'This will delete all icons and terms. Continue?',
+                label: __('ichava/ichava-core::commands.database.truncate.confirm'),
                 default: false,
-                yes: 'Yes, truncate tables',
-                no: 'No, cancel',
-                hint: '⚠️ All data will be permanently deleted!',
+                yes: __('ichava/ichava-core::commands.database.truncate.yes'),
+                no: __('ichava/ichava-core::commands.database.no_cancel'),
+                hint: __('ichava/ichava-core::commands.database.truncate.hint'),
             );
 
             if (! $confirmed) {
-                warning('Operation cancelled.');
+                warning(__('ichava/ichava-core::commands.common.cancelled'));
 
                 return self::SUCCESS;
             }
         }
 
-        info('🗑️  Truncating tables...');
+        info(__('ichava/ichava-core::commands.database.truncate.intro'));
 
         return $this->tryExecute(function () {
             $truncated = spin(
                 callback: fn () => $this->databaseService->truncateTables(),
-                message: 'Truncating tables...',
+                message: __('ichava/ichava-core::commands.database.truncate.running'),
             );
 
-            info('Tables truncated: ' . implode(', ', $truncated));
+            info(__('ichava/ichava-core::commands.database.truncate.done', ['tables' => implode(', ', $truncated)]));
             $this->logOperation('Tables truncated');
 
             return self::SUCCESS;
-        }, 'Failed to truncate');
+        }, __('ichava/ichava-core::commands.database.truncate.failed'));
     }
 
     /**
@@ -502,7 +504,7 @@ final class DatabaseCommand extends BaseCommand
      */
     protected function handleStats(): int
     {
-        intro('📊 Ichava Database Statistics');
+        intro(__('ichava/ichava-core::commands.database.stats.intro'));
 
         $this->displayDatabaseStats();
 
@@ -516,20 +518,10 @@ final class DatabaseCommand extends BaseCommand
     {
         $stats = spin(
             callback: fn () => $this->databaseService->getStatistics(),
-            message: 'Gathering statistics...',
+            message: __('ichava/ichava-core::commands.database.stats.gathering'),
         );
 
-        table(
-            headers: ['Metric', 'Value'],
-            rows: [
-                ['Total Icons', $this->formatNumber($stats['icons'])],
-                ['Total Packages', $this->formatNumber($stats['packages'])],
-                ['Categories', $this->formatNumber($stats['categories'])],
-                ['Variants', $this->formatNumber($stats['variants'])],
-                ['Term Relationships', $this->formatNumber($stats['term_relationships'])],
-                ['Database Size', $stats['database_size'] ?? 'N/A'],
-            ],
-        );
+        $this->statisticsTable($stats)->render($this->output);
     }
 
     /**

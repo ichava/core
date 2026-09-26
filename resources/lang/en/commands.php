@@ -390,4 +390,109 @@ return [
         ],
     ],
 
+    'database' => [
+        'select'      => 'What database operation would you like to perform?',
+        'select_hint' => 'Select an action to perform',
+        'no_cancel'   => 'No, cancel',
+
+        'options' => [
+            'seed'       => 'Seed - Populate database with icons and terms',
+            'seed_icons' => 'Seed Icons - Seed icons only',
+            'seed_terms' => 'Seed Terms - Seed terms only',
+            'migrate'    => 'Migrate - Run Ichava migrations',
+            'unseed'     => 'Unseed - Remove icon data from database',
+            'refresh'    => 'Refresh - Truncate and re-seed',
+            'truncate'   => 'Truncate - Clear all tables',
+            'stats'      => 'Stats - Show database statistics',
+        ],
+
+        'migrate' => [
+            'intro'          => '🔄 Running Ichava migrations',
+            'running'        => 'Running migrations...',
+            'done'           => '✅ Migrations completed successfully',
+            'failed'         => 'Migration failed',
+            'fresh_confirm'  => 'This will DROP all Ichava tables and re-run migrations. Continue?',
+            'fresh_yes'      => 'Yes, drop and recreate',
+            'fresh_hint'     => '⚠️ All existing Ichava data will be permanently deleted!',
+            'fresh_intro'    => '🔄 Running fresh Ichava migration',
+            'fresh_running'  => 'Dropping and recreating tables...',
+            'dropped_tables' => 'Dropped Tables',
+            'fresh_done'     => '✅ Fresh migration completed successfully',
+        ],
+
+        'seed' => [
+            'intro'         => '🌱 Seeding Ichava database',
+            'fresh_confirm' => 'This will delete all existing data before seeding. Continue?',
+            'fresh_yes'     => 'Yes, clear and seed',
+            'fresh_hint'    => '⚠️ Existing icons and terms will be deleted!',
+            'done'          => '✅ Database seeded successfully',
+            'queued'        => 'Icon seeding jobs are queued. Stats will be accurate after jobs complete.',
+            'monitor'       => 'Monitor jobs: php artisan :command',
+            'view_stats'    => 'View stats: php artisan :command stats',
+            'icons'         => '📦 Seeding icons...',
+            'icons_force'   => '📦 Seeding icons... (force update mode)',
+            'icons_spinner' => 'Seeding icons...',
+            'icons_failed'  => 'Failed to seed icons',
+            'terms'         => '🏷️  Seeding terms...',
+            'terms_spinner' => 'Seeding terms...',
+            'terms_failed'  => 'Failed to seed terms',
+        ],
+
+        'unseed' => [
+            'select'      => 'What would you like to unseed?',
+            'select_hint' => 'Select what to unseed',
+
+            'options' => [
+                'all'     => 'All packages - Remove all Ichava data',
+                'package' => 'Specific package - Choose a package to unseed',
+                'cancel'  => 'Cancel - Do nothing',
+            ],
+
+            'package_ask'            => 'Enter the package name to unseed',
+            'package_placeholder'    => 'e.g., ichava/icons-bundle',
+            'package_hint'           => 'Enter the full package name (vendor/package)',
+            'package_confirm'        => "This will remove all data for package ':package'. Continue?",
+            'package_yes'            => 'Yes, unseed package',
+            'package_confirm_hint'   => '⚠️ Icons and term relationships for this package will be deleted!',
+            'package_intro'          => '🗑️  Unseeding package: :package',
+            'package_removing'       => 'Removing package data...',
+            'package_done'           => '✅ Package unseeded successfully',
+            'package_failed'         => 'Failed to unseed package',
+            'all_confirm'            => 'This will remove ALL Ichava data. Continue?',
+            'all_yes'                => 'Yes, remove all data',
+            'all_confirm_hint'       => '⚠️ ALL icons, terms, and relationships will be permanently deleted!',
+            'all_intro'              => '🗑️  Unseeding all packages',
+            'all_removing'           => 'Removing all data...',
+            'all_done'               => '✅ All packages unseeded successfully',
+            'all_failed'             => 'Failed to unseed',
+            'count'                  => 'Count',
+            'icons_deleted'          => 'Icons deleted',
+            'term_relations_deleted' => 'Term relations deleted',
+            'orphaned_terms_deleted' => 'Orphaned terms deleted',
+            'terms_deleted'          => 'Terms deleted',
+        ],
+
+        'refresh' => [
+            'confirm' => 'This will delete all existing data and re-seed. Continue?',
+            'yes'     => 'Yes, refresh database',
+            'hint'    => '⚠️ All existing icons and terms will be replaced!',
+            'intro'   => '🔄 Refreshing database',
+        ],
+
+        'truncate' => [
+            'confirm' => 'This will delete all icons and terms. Continue?',
+            'yes'     => 'Yes, truncate tables',
+            'hint'    => '⚠️ All data will be permanently deleted!',
+            'intro'   => '🗑️  Truncating tables...',
+            'running' => 'Truncating tables...',
+            'done'    => 'Tables truncated: :tables',
+            'failed'  => 'Failed to truncate',
+        ],
+
+        'stats' => [
+            'intro'     => '📊 Ichava Database Statistics',
+            'gathering' => 'Gathering statistics...',
+        ],
+    ],
+
 ];
