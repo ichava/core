@@ -143,18 +143,17 @@ it('cancels migrate --fresh when the drop is declined', function (): void {
     $this->assertDisplayLacks($display, ['🔄 Running fresh Ichava migration']);
 });
 
-it('still prompts for migrate --fresh under --force, and proceeds even when declined', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
-    // The answer is then ignored: `! $confirmed && ! force` lets a "no" through.
+it('runs migrate --fresh under --force without asking', function (): void {
+    // --force answers the drop confirmation; it used to prompt anyway and then
+    // ignore the answer, so a "no" still dropped every table.
     [$exit, $display] = $this->runCommand(
         DATABASE_COMMAND,
         ['action' => 'migrate', '--fresh' => true, '--force' => true],
-        ['no'],
     );
 
     $this->assertSame(0, $exit);
+    $this->assertDisplayLacks($display, ['This will DROP all Ichava tables and re-run migrations. Continue?']);
     $this->assertDisplayContains($display, [
-        'This will DROP all Ichava tables and re-run migrations. Continue?',
         '🔄 Running fresh Ichava migration',
         'Dropping and recreating tables...',
     ]);
@@ -213,7 +212,7 @@ it('truncates on yes', function (): void {
 });
 
 it('truncates without asking under --force', function (): void {
-    // truncate is the one destructive action in this command that honours --force.
+    // truncate honoured --force before the other five destructive actions did.
     [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'truncate', '--force' => true]);
 
     $this->assertSame(0, $exit);
@@ -289,29 +288,31 @@ it('asks for a package name after choosing package, then confirms', function ():
     ]);
 });
 
-it('skips the unseed choice under --force but still confirms, and proceeds even when declined', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
-    [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'unseed', '--force' => true], ['no']);
+it('unseeds everything under --force without the choice or the confirmation', function (): void {
+    [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'unseed', '--force' => true]);
 
     $this->assertSame(0, $exit);
-    $this->assertDisplayLacks($display, ['What would you like to unseed?']);
-    $this->assertDisplayContains($display, [
-        'This will remove ALL Ichava data. Continue?',
-        '✅ All packages unseeded successfully',
-    ]);
+    $this->assertDisplayLacks($display, ['What would you like to unseed?', 'This will remove ALL Ichava data. Continue?']);
+    $this->assertDisplayContains($display, ['✅ All packages unseeded successfully']);
 });
 
-it('still confirms unseed --package under --force, and proceeds even when declined', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
+it('cancels unseeding everything when the confirmation is declined', function (): void {
+    [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'unseed'], ['all', 'no']);
+
+    $this->assertSame(0, $exit);
+    $this->assertDisplayContains($display, ['This will remove ALL Ichava data. Continue?', 'Operation cancelled.']);
+    $this->assertDisplayLacks($display, ['🗑️  Unseeding all packages']);
+});
+
+it('unseeds a package under --force without asking', function (): void {
     [$exit, $display] = $this->runCommand(
         DATABASE_COMMAND,
         ['action' => 'unseed', '--package' => 'ichava/test-icons', '--force' => true],
-        ['no'],
     );
 
     $this->assertSame(0, $exit);
+    $this->assertDisplayLacks($display, ["This will remove all data for package 'ichava/test-icons'. Continue?"]);
     $this->assertDisplayContains($display, [
-        "This will remove all data for package 'ichava/test-icons'. Continue?",
         '🗑️  Unseeding package: ichava/test-icons',
         'Icons deleted',
         'Term relations deleted',
@@ -342,17 +343,15 @@ it('asks twice for refresh without --force: once to refresh, once to truncate', 
     ]);
 });
 
-it('still confirms refresh under --force, then truncates and seeds', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
+it('refreshes under --force without asking, then truncates and seeds', function (): void {
     [$exit, $display] = $this->runCommand(
         DATABASE_COMMAND,
         ['action' => 'refresh', '--force' => true, '--sync' => true],
-        ['no'],
     );
 
     $this->assertSame(0, $exit);
+    $this->assertDisplayLacks($display, ['This will delete all existing data and re-seed. Continue?']);
     $this->assertDisplayContains($display, [
-        'This will delete all existing data and re-seed. Continue?',
         '🔄 Refreshing database',
         'Tables truncated:',
         '🌱 Seeding Ichava database',
@@ -407,17 +406,18 @@ it('cancels seed --fresh when declined', function (): void {
     $this->assertDisplayLacks($display, ['🏷️  Seeding terms...']);
 });
 
-it('still confirms seed --fresh under --force, and proceeds even when declined', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
+it('seeds --fresh under --force without asking', function (): void {
     [$exit, $display] = $this->runCommand(
         DATABASE_COMMAND,
         ['action' => 'seed', '--fresh' => true, '--force' => true, '--sync' => true],
-        ['no'],
     );
 
     $this->assertSame(0, $exit);
-    $this->assertDisplayContains($display, [
+    $this->assertDisplayLacks($display, [
         'This will delete all existing data before seeding. Continue?',
+        'This will delete all icons and terms. Continue?',
+    ]);
+    $this->assertDisplayContains($display, [
         'Tables truncated:',
         '✅ Database seeded successfully',
     ]);

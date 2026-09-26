@@ -146,20 +146,16 @@ it('keeps progress when clearing is declined', function (): void {
     $this->assertDisplayContains($display, ['Operation cancelled.']);
 });
 
-it('still asks under --force, and clears even when declined', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
+it('clears under --force without asking', function (): void {
     JobProgressTracker::start(JOB_STATUS_PACK, 10, 'job-1');
 
     [$exit, $display] = $this->runCommand(
         JOB_STATUS_COMMAND,
         ['--clear' => JOB_STATUS_PACK, '--force' => true],
-        ['no'],
     );
 
     $this->assertSame(0, $exit);
     $this->assertNull(JobProgressTracker::get(JOB_STATUS_PACK));
-    $this->assertDisplayContains($display, [
-        "Clear progress data for 'ichava/test-icons'?",
-        '✅ Progress cleared for: ichava/test-icons',
-    ]);
+    $this->assertDisplayLacks($display, ["Clear progress data for 'ichava/test-icons'?"]);
+    $this->assertDisplayContains($display, ['✅ Progress cleared for: ichava/test-icons']);
 });
