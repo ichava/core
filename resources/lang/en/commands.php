@@ -18,6 +18,26 @@ declare(strict_types=1);
 
 return [
 
+    // Shared by every command through BaseCommand.
+    'common' => [
+        'completed_in'       => '⏱️  Completed in :time',
+        'tip'                => '💡 :message',
+        'invalid_action'     => 'Invalid action: :action',
+        'valid_actions'      => 'Valid actions: :actions',
+        'select_action'      => 'Would you like to select a valid action?',
+        'select_action_hint' => 'Select an action or cancel',
+        'invalid_type'       => 'Invalid type: :type',
+        'valid_types'        => 'Valid types: :types',
+        'select_type'        => 'Would you like to select a valid type?',
+        'select_type_hint'   => 'Select a type or cancel',
+        'cancel_option'      => 'Cancel operation',
+        'exported'           => 'Exported to: :path',
+        'export_failed'      => 'Failed to export: :error',
+        'tables_missing'     => 'Required tables do not exist: :tables',
+        'run_migrations'     => 'Run migrations first: php artisan :command migrate',
+        'operation_failed'   => 'Operation failed',
+    ],
+
     'cleanup_logs' => [
         'analyzing'         => 'Analyzing log files...',
         'processing'        => 'Processing log files...',

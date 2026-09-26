@@ -18,6 +18,7 @@ use function Laravel\Prompts\select;
 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Console\Tools\Commands\Command;
 use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
@@ -111,7 +112,7 @@ abstract class BaseCommand extends Command
      */
     protected function displayElapsedTime(): void
     {
-        info('⏱️  Completed in ' . TimeFormat::fromMillis($this->getElapsedMs()));
+        info(__('ichava/ichava-core::commands.common.completed_in', ['time' => TimeFormat::fromMillis($this->getElapsedMs())]));
     }
 
     /**
@@ -143,7 +144,7 @@ abstract class BaseCommand extends Command
      */
     protected function tip(string $message): void
     {
-        note("💡 {$message}");
+        note(__('ichava/ichava-core::commands.common.tip', ['message' => $message]));
     }
 
     /**
@@ -180,14 +181,14 @@ abstract class BaseCommand extends Command
      */
     protected function handleInvalidAction(string $action, array $validActions): int
     {
-        error("Invalid action: {$action}");
-        note('Valid actions: ' . implode(', ', $validActions));
+        error(__('ichava/ichava-core::commands.common.invalid_action', ['action' => $action]));
+        note(__('ichava/ichava-core::commands.common.valid_actions', ['actions' => implode(', ', $validActions)]));
 
         return $this->offerValidArgument(
             'action',
             $validActions,
-            'Would you like to select a valid action?',
-            'Select an action or cancel',
+            __('ichava/ichava-core::commands.common.select_action'),
+            __('ichava/ichava-core::commands.common.select_action_hint'),
         );
     }
 
@@ -196,14 +197,14 @@ abstract class BaseCommand extends Command
      */
     protected function handleInvalidType(string $type, array $validTypes): int
     {
-        error("Invalid type: {$type}");
-        note('Valid types: ' . implode(', ', $validTypes));
+        error(__('ichava/ichava-core::commands.common.invalid_type', ['type' => $type]));
+        note(__('ichava/ichava-core::commands.common.valid_types', ['types' => implode(', ', $validTypes)]));
 
         return $this->offerValidArgument(
             'type',
             $validTypes,
-            'Would you like to select a valid type?',
-            'Select a type or cancel',
+            __('ichava/ichava-core::commands.common.select_type'),
+            __('ichava/ichava-core::commands.common.select_type_hint'),
         );
     }
 
@@ -215,11 +216,11 @@ abstract class BaseCommand extends Command
         try {
             $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             File::put($filename, $json);
-            $this->success("Exported to: {$filename}");
+            $this->success(__('ichava/ichava-core::commands.common.exported', ['path' => $filename]));
 
             return true;
         } catch (Exception $e) {
-            $this->failure("Failed to export: {$e->getMessage()}");
+            $this->failure(__('ichava/ichava-core::commands.common.export_failed', ['error' => $e->getMessage()]));
 
             return false;
         }
@@ -250,11 +251,11 @@ abstract class BaseCommand extends Command
             }
 
             fclose($handle);
-            $this->success("Exported to: {$filename}");
+            $this->success(__('ichava/ichava-core::commands.common.exported', ['path' => $filename]));
 
             return true;
         } catch (Exception $e) {
-            $this->failure("Failed to export: {$e->getMessage()}");
+            $this->failure(__('ichava/ichava-core::commands.common.export_failed', ['error' => $e->getMessage()]));
 
             return false;
         }
@@ -289,8 +290,8 @@ abstract class BaseCommand extends Command
     {
         if (! $this->ichavaTablesExist()) {
             $missing = $this->getMissingIchavaTables();
-            $this->failure('Required tables do not exist: ' . implode(', ', $missing));
-            $this->tip('Run migrations first: php artisan ichava::ichava-core.database migrate');
+            $this->failure(__('ichava/ichava-core::commands.common.tables_missing', ['tables' => implode(', ', $missing)]));
+            $this->tip(__('ichava/ichava-core::commands.common.run_migrations', ['command' => CommandName::of(DatabaseCommand::class)]));
 
             return false;
         }
@@ -322,12 +323,12 @@ abstract class BaseCommand extends Command
     /**
      * Execute a callback with error handling
      */
-    protected function tryExecute(callable $callback, string $failureMessage = 'Operation failed'): int
+    protected function tryExecute(callable $callback, ?string $failureMessage = null): int
     {
         try {
             return $callback();
         } catch (Exception $e) {
-            $this->failure("{$failureMessage}: {$e->getMessage()}");
+            $this->failure(($failureMessage ?? __('ichava/ichava-core::commands.common.operation_failed')) . ": {$e->getMessage()}");
 
             if ($this->isVerbose()) {
                 $this->line("<fg=gray>{$e->getTraceAsString()}</>");
@@ -351,7 +352,7 @@ abstract class BaseCommand extends Command
 
         $selected = select(
             label: $label,
-            options: array_merge(['cancel' => 'Cancel operation'], array_combine($valid, $valid)),
+            options: array_merge(['cancel' => __('ichava/ichava-core::commands.common.cancel_option')], array_combine($valid, $valid)),
             default: 'cancel',
             hint: $hint,
         );
