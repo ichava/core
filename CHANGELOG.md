@@ -29,6 +29,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   tables stayed gone and the command still reported success. The package's own rows are now
   forgotten between the drop and the re-run (the host's migration history is untouched), and
   success requires the tables to exist afterwards.
+- **A second `watch` run no longer fails on the unique index.** The watcher keyed icons found on
+  disk by absolute path and icons in the database by their stored, relative path, so none ever
+  matched: every scan after the first re-inserted every icon. Disk icons are keyed by the stored
+  path now, so an unchanged tree reports no changes and a changed file is updated in place.
 
 ### Tests
 
