@@ -165,7 +165,7 @@ it('does not add hardcoded English to the commands still awaiting migration', fu
         // The seeder is a later phase; pinned separately so its debt is not
         // hidden inside the commands' number, or the commands' inside its.
         'src/Support/Seeder' => [
-            'IchavaSeeder.php'      => 12,
+            'IchavaSeeder.php'      => 0,
             'IconSeederHelpers.php' => 0,
             'IconTermsSeeder.php'   => 0,
         ],
