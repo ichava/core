@@ -96,4 +96,22 @@ return [
         'no_changes'       => '✨ No changes detected, database up to date.',
     ],
 
+    'check_updates' => [
+        'intro'       => '🔍 Checking icon-pack upstream sources',
+        'polling'     => 'Polling upstream sources (12h cache on hit)…',
+        'none'        => 'No registered packs to check.',
+        'behind'      => '⚠️  :count pack(s) behind upstream',
+        'unreachable' => '⚠️  :count pack(s) unreachable; rest up to date',
+        'up_to_date'  => '✅ All packs up to date',
+
+        'table' => [
+            'package' => 'Package',
+            'source'  => 'Source',
+            'status'  => 'Status',
+            'current' => 'Current',
+            'latest'  => 'Latest',
+            'notes'   => 'Notes',
+        ],
+    ],
+
 ];
