@@ -2,6 +2,25 @@
 
 All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Tests
+
+- **Characterization tests for all eight Artisan commands** (97 tests, `tests/Feature/Commands/`)
+  pin today's output, prompts and exit codes before the console refactor, so every intended
+  wording or behaviour change shows up as a test diff. They run through Symfony's `CommandTester`
+  (`tests/Support/RunsCommandsForCharacterization.php`), because `expectsOutputToContain()` matches
+  one write at a time and Laravel Prompts renders a whole table in one write.
+
+  They also pin defects, marked `characterization:` in the tests, for the refactor to fix:
+  - Five `database` actions and `job-status --clear` prompt even under `--force`, and then
+    proceed when the answer is "no".
+  - `tryExecute` prints stack traces at `-v`.
+  - `cache clear`, `clear --package`, `refresh` and `generate` call methods that do not exist on
+    `IconCacheService`.
+  - `database migrate --fresh` drops the tables and does not recreate them.
+  - A second `watch` run fails on the unique index.
+
 ## [0.4.2] - 2026-09-26
 
 ### Changed
