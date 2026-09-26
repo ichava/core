@@ -16,6 +16,14 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   whole trace at `-v`; traces can carry call arguments such as credentials or tokens. It now
   renders through laranail/console's `ExceptionRenderer`: the message always, the file and line
   from `-v`, the trace only from `-vvv`.
+- **`cache clear`, `clear --package`, `refresh` and `generate` work.** All four called
+  `IconCacheService` methods that never existed (`forgetPattern()`, `generateProductionCache()`)
+  and failed on every run. `clear` now retires the discovery caches through their generation
+  counter, clears each registered pack's SVG-count cache and the watcher fingerprints, and lists
+  what it cleared at `-v`; `clear --package` does the same for one pack and fails on an
+  unregistered one; `generate` warms the discovery caches and writes the icon manifest, and
+  honours `--path`. Rendered-SVG caches are not flushed -- that would empty the host's whole
+  store -- and are abandoned by bumping `ichava.core.cache.version`, as before.
 
 ### Tests
 
