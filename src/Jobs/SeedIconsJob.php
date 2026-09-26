@@ -22,8 +22,10 @@ use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\DbTools\Query\ChunkedWriter;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconSeederHelpers;
 use Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator;
+use Simtabi\Laranail\Package\Tools\Services\Database\SeederRunTracker;
 
 /**
  * Seed Icons Job
@@ -104,6 +106,13 @@ class SeedIconsJob implements ShouldQueue
         try {
             $result = $this->processFiles($logger);
 
+            // Inside a queued batch the job is the only thing that knows its chunk
+            // is done, so it reports progress. An inline run is counted by the
+            // ChunkedBatchDispatcher driving it; reporting here too would double it.
+            if ($this->batchId !== null) {
+                app(SeederRunTracker::class)->advance(IchavaSeeder::trackingKey($this->packageName), by: $fileCount);
+            }
+
             $logger->info("Job {$this->jobIndex} completed", [
                 'package'         => $this->packageName,
                 'files_received'  => $fileCount,
@@ -113,6 +122,10 @@ class SeedIconsJob implements ShouldQueue
                 'files_updated'   => $result['updated'],
             ]);
         } catch (Throwable $e) {
+            if ($this->batchId !== null) {
+                app(SeederRunTracker::class)->advance(IchavaSeeder::trackingKey($this->packageName), failed: true, by: $fileCount);
+            }
+
             $logger->error("Job {$this->jobIndex} failed: {$e->getMessage()}", $e, [
                 'package' => $this->packageName,
             ]);
