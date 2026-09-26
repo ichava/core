@@ -166,6 +166,15 @@ abstract class BaseCommand extends Command
     }
 
     /**
+     * The shared Status a job or package state reads as -- so a progress gauge
+     * can take the same colour as the badge beside it.
+     */
+    protected function statusOf(string $status): Status
+    {
+        return self::STATUS_MAP[Str::lower($status)] ?? Status::Unknown;
+    }
+
+    /**
      * The icon-database statistics table `database stats` and `info stats`
      * both print, built in one place so the two cannot drift apart. A row is
      * shown when its statistic is present in `$stats`; the database size is
