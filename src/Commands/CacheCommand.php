@@ -15,6 +15,8 @@ use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
 
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Console\Tools\Support\FileSize;
+use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
 use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
 
 /**
@@ -114,7 +116,7 @@ final class CacheCommand extends BaseCommand
                 );
             }
 
-            outro('⏱️  Completed in ' . $this->formatMs($this->getElapsedMs()));
+            outro('⏱️  Completed in ' . TimeFormat::fromMillis($this->getElapsedMs()));
 
             return self::SUCCESS;
         }, 'Failed to clear cache');
@@ -246,7 +248,7 @@ final class CacheCommand extends BaseCommand
                 rows: [
                     ['Packages', (string) $result['packages']],
                     ['Total Icons', $this->formatNumber($result['total_icons'])],
-                    ['File Size', $this->formatBytes($result['file_size'])],
+                    ['File Size', FileSize::format($result['file_size'])],
                     ['Build Time', $result['build_time_ms'] . 'ms'],
                 ],
             );

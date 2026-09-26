@@ -108,7 +108,7 @@ it('reports the tryExecute failure message when rebuild throws', function (): vo
     [$exit, $display] = $this->runCommand(CACHE_COMMAND, ['action' => 'rebuild']);
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['❌ Failed to rebuild cache: store unreachable']);
+    $this->assertDisplayContains($display, ['✗ Failed to rebuild cache: store unreachable']);
     $this->assertDisplayLacks($display, ['#0 ', '✅ Cache rebuilt successfully']);
 });
 
@@ -124,7 +124,7 @@ it('prints the full stack trace at -v when tryExecute catches', function (): voi
     );
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['❌ Failed to rebuild cache: store unreachable', '#0 ']);
+    $this->assertDisplayContains($display, ['✗ Failed to rebuild cache: store unreachable', '#0 ']);
 });
 
 it('fails clear on a method the cache service does not have', function (): void {
@@ -141,7 +141,7 @@ it('fails clear on a method the cache service does not have', function (): void 
         'Clearing all caches...',
         'Command failed: Call to undefined method Simtabi\Laranail\Ichava\Services\IconCacheService::forgetPattern()',
     ]);
-    $this->assertDisplayLacks($display, ['❌ Failed to clear cache']);
+    $this->assertDisplayLacks($display, ['✗ Failed to clear cache']);
 });
 
 it('fails clear --package the same way', function (): void {

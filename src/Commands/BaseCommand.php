@@ -18,29 +18,33 @@ use function Laravel\Prompts\select;
 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Console\Tools\Commands\Command;
+use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
+use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
 use Simtabi\Laranail\Console\Tools\Commands\Concerns\SupportsNamespacedNames;
+use Simtabi\Laranail\Console\Tools\Commands\Concerns\ConfirmsDestructiveActions;
 
 /**
- * Base command for all Ichava Artisan commands
+ * Base command for all Ichava Artisan commands.
  *
- * Provides shared functionality using Laravel Prompts:
- * - Timing/performance tracking
- * - Formatting helpers (bytes, duration, progress bars)
- * - Confirmation dialogs (using Prompts)
- * - Invalid action/type handling
- * - Display helpers (headers, status rows, tables)
- * - Export functionality
- * - Table existence checks
+ * A thin adapter over the laranail/console command base. Presentation --
+ * status labels, byte and time formatting, checklists, metric tables, error
+ * rendering, destructive-action confirmation -- lives in that package's
+ * widgets and support classes, so it is defined once for every command in the
+ * family. What stays here is what is specific to Ichava: its tables, its
+ * invalid-argument recovery and the handful of helpers the commands share.
  *
- * Extends the laranail/console command base, which unlocks the
- * namespaced `laranail::<slug>.<command>` naming, capability-aware
- * console services, and short-alias support for every Ichava command.
- *
- * @see https://laravel.com/docs/12.x/prompts
+ * Helpers nothing called were parked in `.parked/Commands/` on 2026-09-26.
  */
 abstract class BaseCommand extends Command
 {
+    /*
+     * `--force` answers yes without prompting; declining returns SUCCESS
+     * through cancelled(). One implementation for every destructive action.
+     */
+    use ConfirmsDestructiveActions;
+
     /*
      * Symfony's validateName() rejects the empty segment in `::`, so a command
      * named `ichava::ichava-core.cache` cannot be registered through the normal
@@ -49,6 +53,28 @@ abstract class BaseCommand extends Command
      * lookup. Same mechanism `laranail/db-console` uses.
      */
     use SupportsNamespacedNames;
+
+    /**
+     * Job and package states, mapped onto the shared status vocabulary. The
+     * domain strings stay here; the glyph, colour and label come from Status.
+     *
+     * @var array<string, Status>
+     */
+    protected const array STATUS_MAP = [
+        'processing'  => Status::Running,
+        'running'     => Status::Running,
+        'in_progress' => Status::Running,
+        'completed'   => Status::Success,
+        'done'        => Status::Success,
+        'success'     => Status::Success,
+        'failed'      => Status::Failed,
+        'error'       => Status::Failed,
+        'pending'     => Status::Pending,
+        'queued'      => Status::Pending,
+        'skipped'     => Status::Skipped,
+        'active'      => Status::Active,
+        'inactive'    => Status::Inactive,
+    ];
 
     /**
      * Start time for performance tracking
@@ -63,11 +89,6 @@ abstract class BaseCommand extends Command
         'ichava_icon_terms',
         'ichava_icon_termables',
     ];
-
-    public function __construct()
-    {
-        parent::__construct();
-    }
 
     /**
      * Start timing for performance tracking
@@ -90,66 +111,7 @@ abstract class BaseCommand extends Command
      */
     protected function displayElapsedTime(): void
     {
-        $elapsed = $this->getElapsedMs();
-        info('⏱️  Completed in ' . round($elapsed, 2) . 'ms');
-    }
-
-    /**
-     * Format bytes to human-readable size
-     */
-    protected function formatBytes(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $power = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
-        $power = min($power, count($units) - 1);
-
-        return number_format($bytes / (1024 ** $power), 2) . ' ' . $units[$power];
-    }
-
-    /**
-     * Format duration in seconds to human-readable format
-     */
-    protected function formatDuration(int $seconds): string
-    {
-        if ($seconds < 60) {
-            return "{$seconds}s";
-        }
-
-        $minutes = floor($seconds / 60);
-        $remainingSeconds = $seconds % 60;
-
-        if ($minutes < 60) {
-            return "{$minutes}m {$remainingSeconds}s";
-        }
-
-        $hours = floor($minutes / 60);
-        $remainingMinutes = $minutes % 60;
-
-        return "{$hours}h {$remainingMinutes}m {$remainingSeconds}s";
-    }
-
-    /**
-     * Format milliseconds to human-readable format
-     */
-    protected function formatMs(float $ms): string
-    {
-        if ($ms < 1000) {
-            return round($ms, 2) . 'ms';
-        }
-
-        return $this->formatDuration((int) ($ms / 1000));
-    }
-
-    /**
-     * Create a visual progress bar
-     */
-    protected function createProgressBar(float $percent, int $width = 10): string
-    {
-        $filled = (int) round($percent / (100 / $width));
-        $empty = $width - $filled;
-
-        return '<fg=green>' . str_repeat('█', $filled) . '</>' .
-               '<fg=gray>' . str_repeat('░', $empty) . '</>';
+        info('⏱️  Completed in ' . TimeFormat::fromMillis($this->getElapsedMs()));
     }
 
     /**
@@ -165,7 +127,7 @@ abstract class BaseCommand extends Command
      */
     protected function success(string $message): void
     {
-        info("✅ {$message}");
+        info(Status::Success->symbol() . " {$message}");
     }
 
     /**
@@ -173,7 +135,7 @@ abstract class BaseCommand extends Command
      */
     protected function failure(string $message): void
     {
-        error("❌ {$message}");
+        error(Status::Failed->symbol() . " {$message}");
     }
 
     /**
@@ -185,20 +147,11 @@ abstract class BaseCommand extends Command
     }
 
     /**
-     * Format status with color coding
+     * A coloured status label for a job or package state.
      */
     protected function formatStatus(string $status): string
     {
-        return match (Str::lower($status)) {
-            'processing', 'running', 'in_progress' => '<fg=yellow>⏳ Processing</>',
-            'completed', 'done', 'success'         => '<fg=green>✅ Completed</>',
-            'failed', 'error'                      => '<fg=red>❌ Failed</>',
-            'pending', 'queued'                    => '<fg=blue>⏸️  Pending</>',
-            'skipped'                              => '<fg=gray>⏭️  Skipped</>',
-            'active'                               => '<fg=green>● Active</>',
-            'inactive'                             => '<fg=gray>○ Inactive</>',
-            default                                => '<fg=gray>Unknown</>',
-        };
+        return StatusBadge::fromMap(self::STATUS_MAP, Str::lower($status))->render();
     }
 
     /**
@@ -223,25 +176,6 @@ abstract class BaseCommand extends Command
     }
 
     /**
-     * Ask for selection from options using Laravel Prompts
-     */
-    protected function askSelect(
-        string $label,
-        array $options,
-        ?string $default = null,
-        int $scroll = 5,
-        ?string $hint = null,
-    ): string {
-        return select(
-            label: $label,
-            options: $options,
-            default: $default,
-            scroll: $scroll,
-            hint: $hint,
-        );
-    }
-
-    /**
      * Handle invalid action argument using Laravel Prompts
      */
     protected function handleInvalidAction(string $action, array $validActions): int
@@ -249,24 +183,12 @@ abstract class BaseCommand extends Command
         error("Invalid action: {$action}");
         note('Valid actions: ' . implode(', ', $validActions));
 
-        // Offer to select a valid action
-        if (! $this->isQuiet()) {
-            $selectedAction = $this->askSelect(
-                label: 'Would you like to select a valid action?',
-                options: array_merge(['cancel' => 'Cancel operation'], array_combine($validActions, $validActions)),
-                default: 'cancel',
-                hint: 'Select an action or cancel',
-            );
-
-            if ($selectedAction !== 'cancel') {
-                // Re-run with the selected action
-                $this->input->setArgument('action', $selectedAction);
-
-                return $this->handle();
-            }
-        }
-
-        return self::INVALID;
+        return $this->offerValidArgument(
+            'action',
+            $validActions,
+            'Would you like to select a valid action?',
+            'Select an action or cancel',
+        );
     }
 
     /**
@@ -277,24 +199,12 @@ abstract class BaseCommand extends Command
         error("Invalid type: {$type}");
         note('Valid types: ' . implode(', ', $validTypes));
 
-        // Offer to select a valid type
-        if (! $this->isQuiet()) {
-            $selectedType = $this->askSelect(
-                label: 'Would you like to select a valid type?',
-                options: array_merge(['cancel' => 'Cancel operation'], array_combine($validTypes, $validTypes)),
-                default: 'cancel',
-                hint: 'Select a type or cancel',
-            );
-
-            if ($selectedType !== 'cancel') {
-                // Re-run with the selected type
-                $this->input->setArgument('type', $selectedType);
-
-                return $this->handle();
-            }
-        }
-
-        return self::INVALID;
+        return $this->offerValidArgument(
+            'type',
+            $validTypes,
+            'Would you like to select a valid type?',
+            'Select a type or cancel',
+        );
     }
 
     /**
@@ -425,5 +335,33 @@ abstract class BaseCommand extends Command
 
             return self::FAILURE;
         }
+    }
+
+    /**
+     * Offer the valid values for an argument, and re-run with the one chosen.
+     * Quiet runs cannot answer, so they return INVALID without asking.
+     *
+     * @param list<string> $valid
+     */
+    private function offerValidArgument(string $argument, array $valid, string $label, string $hint): int
+    {
+        if ($this->isQuiet()) {
+            return self::INVALID;
+        }
+
+        $selected = select(
+            label: $label,
+            options: array_merge(['cancel' => 'Cancel operation'], array_combine($valid, $valid)),
+            default: 'cancel',
+            hint: $hint,
+        );
+
+        if ($selected === 'cancel') {
+            return self::INVALID;
+        }
+
+        $this->input->setArgument($argument, $selected);
+
+        return $this->handle();
     }
 }
