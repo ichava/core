@@ -11,7 +11,6 @@ use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\select;
-use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
 
 use Simtabi\Laranail\Ichava\Support\CommandName;
@@ -118,18 +117,11 @@ final class DatabaseCommand extends BaseCommand
         $fresh = $this->option('fresh');
 
         if ($fresh) {
-            $confirmed = confirm(
-                label: __('ichava/ichava-core::commands.database.migrate.fresh_confirm'),
-                default: false,
-                yes: __('ichava/ichava-core::commands.database.migrate.fresh_yes'),
-                no: __('ichava/ichava-core::commands.database.no_cancel'),
-                hint: __('ichava/ichava-core::commands.database.migrate.fresh_hint'),
-            );
-
-            if (! $confirmed && ! $this->option('force')) {
-                warning(__('ichava/ichava-core::commands.common.cancelled'));
-
-                return self::SUCCESS;
+            if (! $this->confirmDestructive(
+                __('ichava/ichava-core::commands.database.migrate.fresh_confirm'),
+                __('ichava/ichava-core::commands.database.migrate.fresh_hint'),
+            )) {
+                return $this->cancelled(__('ichava/ichava-core::commands.common.cancelled'));
             }
 
             intro(__('ichava/ichava-core::commands.database.migrate.fresh_intro'));
@@ -189,18 +181,11 @@ final class DatabaseCommand extends BaseCommand
 
         // Handle --fresh flag
         if ($this->option('fresh')) {
-            $confirmed = confirm(
-                label: __('ichava/ichava-core::commands.database.seed.fresh_confirm'),
-                default: false,
-                yes: __('ichava/ichava-core::commands.database.seed.fresh_yes'),
-                no: __('ichava/ichava-core::commands.database.no_cancel'),
-                hint: __('ichava/ichava-core::commands.database.seed.fresh_hint'),
-            );
-
-            if (! $confirmed && ! $this->option('force')) {
-                warning(__('ichava/ichava-core::commands.common.cancelled'));
-
-                return self::SUCCESS;
+            if (! $this->confirmDestructive(
+                __('ichava/ichava-core::commands.database.seed.fresh_confirm'),
+                __('ichava/ichava-core::commands.database.seed.fresh_hint'),
+            )) {
+                return $this->cancelled(__('ichava/ichava-core::commands.common.cancelled'));
             }
 
             $truncateResult = $this->handleTruncate();
@@ -326,9 +311,7 @@ final class DatabaseCommand extends BaseCommand
             );
 
             if ($choice === 'cancel') {
-                warning(__('ichava/ichava-core::commands.common.cancelled'));
-
-                return self::SUCCESS;
+                return $this->cancelled(__('ichava/ichava-core::commands.common.cancelled'));
             }
 
             if ($choice === 'package') {
@@ -353,18 +336,11 @@ final class DatabaseCommand extends BaseCommand
      */
     protected function unseedPackage(string $packageName): int
     {
-        $confirmed = confirm(
-            label: __('ichava/ichava-core::commands.database.unseed.package_confirm', ['package' => $packageName]),
-            default: false,
-            yes: __('ichava/ichava-core::commands.database.unseed.package_yes'),
-            no: __('ichava/ichava-core::commands.database.no_cancel'),
-            hint: __('ichava/ichava-core::commands.database.unseed.package_confirm_hint'),
-        );
-
-        if (! $confirmed && ! $this->option('force')) {
-            warning(__('ichava/ichava-core::commands.common.cancelled'));
-
-            return self::SUCCESS;
+        if (! $this->confirmDestructive(
+            __('ichava/ichava-core::commands.database.unseed.package_confirm', ['package' => $packageName]),
+            __('ichava/ichava-core::commands.database.unseed.package_confirm_hint'),
+        )) {
+            return $this->cancelled(__('ichava/ichava-core::commands.common.cancelled'));
         }
 
         intro(__('ichava/ichava-core::commands.database.unseed.package_intro', ['package' => $packageName]));
@@ -395,18 +371,11 @@ final class DatabaseCommand extends BaseCommand
      */
     protected function unseedAll(): int
     {
-        $confirmed = confirm(
-            label: __('ichava/ichava-core::commands.database.unseed.all_confirm'),
-            default: false,
-            yes: __('ichava/ichava-core::commands.database.unseed.all_yes'),
-            no: __('ichava/ichava-core::commands.database.no_cancel'),
-            hint: __('ichava/ichava-core::commands.database.unseed.all_confirm_hint'),
-        );
-
-        if (! $confirmed && ! $this->option('force')) {
-            warning(__('ichava/ichava-core::commands.common.cancelled'));
-
-            return self::SUCCESS;
+        if (! $this->confirmDestructive(
+            __('ichava/ichava-core::commands.database.unseed.all_confirm'),
+            __('ichava/ichava-core::commands.database.unseed.all_confirm_hint'),
+        )) {
+            return $this->cancelled(__('ichava/ichava-core::commands.common.cancelled'));
         }
 
         intro(__('ichava/ichava-core::commands.database.unseed.all_intro'));
@@ -437,18 +406,11 @@ final class DatabaseCommand extends BaseCommand
      */
     protected function handleRefresh(): int
     {
-        $confirmed = confirm(
-            label: __('ichava/ichava-core::commands.database.refresh.confirm'),
-            default: false,
-            yes: __('ichava/ichava-core::commands.database.refresh.yes'),
-            no: __('ichava/ichava-core::commands.database.no_cancel'),
-            hint: __('ichava/ichava-core::commands.database.refresh.hint'),
-        );
-
-        if (! $confirmed && ! $this->option('force')) {
-            warning(__('ichava/ichava-core::commands.common.cancelled'));
-
-            return self::SUCCESS;
+        if (! $this->confirmDestructive(
+            __('ichava/ichava-core::commands.database.refresh.confirm'),
+            __('ichava/ichava-core::commands.database.refresh.hint'),
+        )) {
+            return $this->cancelled(__('ichava/ichava-core::commands.common.cancelled'));
         }
 
         intro(__('ichava/ichava-core::commands.database.refresh.intro'));
@@ -468,20 +430,11 @@ final class DatabaseCommand extends BaseCommand
      */
     protected function handleTruncate(): int
     {
-        if (! $this->option('force')) {
-            $confirmed = confirm(
-                label: __('ichava/ichava-core::commands.database.truncate.confirm'),
-                default: false,
-                yes: __('ichava/ichava-core::commands.database.truncate.yes'),
-                no: __('ichava/ichava-core::commands.database.no_cancel'),
-                hint: __('ichava/ichava-core::commands.database.truncate.hint'),
-            );
-
-            if (! $confirmed) {
-                warning(__('ichava/ichava-core::commands.common.cancelled'));
-
-                return self::SUCCESS;
-            }
+        if (! $this->confirmDestructive(
+            __('ichava/ichava-core::commands.database.truncate.confirm'),
+            __('ichava/ichava-core::commands.database.truncate.hint'),
+        )) {
+            return $this->cancelled(__('ichava/ichava-core::commands.common.cancelled'));
         }
 
         info(__('ichava/ichava-core::commands.database.truncate.intro'));

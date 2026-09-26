@@ -247,8 +247,6 @@ return [
 
         'clear' => [
             'confirm'  => "Clear progress data for ':package'?",
-            'yes'      => 'Yes, clear it',
-            'no'       => 'No, cancel',
             'hint'     => 'This will remove the cached progress tracking data',
             'clearing' => 'Clearing progress...',
             'done'     => '✅ Progress cleared for: :package',
@@ -393,7 +391,6 @@ return [
     'database' => [
         'select'      => 'What database operation would you like to perform?',
         'select_hint' => 'Select an action to perform',
-        'no_cancel'   => 'No, cancel',
 
         'options' => [
             'seed'       => 'Seed - Populate database with icons and terms',
@@ -412,7 +409,6 @@ return [
             'done'           => '✅ Migrations completed successfully',
             'failed'         => 'Migration failed',
             'fresh_confirm'  => 'This will DROP all Ichava tables and re-run migrations. Continue?',
-            'fresh_yes'      => 'Yes, drop and recreate',
             'fresh_hint'     => '⚠️ All existing Ichava data will be permanently deleted!',
             'fresh_intro'    => '🔄 Running fresh Ichava migration',
             'fresh_running'  => 'Dropping and recreating tables...',
@@ -423,7 +419,6 @@ return [
         'seed' => [
             'intro'         => '🌱 Seeding Ichava database',
             'fresh_confirm' => 'This will delete all existing data before seeding. Continue?',
-            'fresh_yes'     => 'Yes, clear and seed',
             'fresh_hint'    => '⚠️ Existing icons and terms will be deleted!',
             'done'          => '✅ Database seeded successfully',
             'queued'        => 'Icon seeding jobs are queued. Stats will be accurate after jobs complete.',
@@ -452,14 +447,12 @@ return [
             'package_placeholder'    => 'e.g., ichava/icons-bundle',
             'package_hint'           => 'Enter the full package name (vendor/package)',
             'package_confirm'        => "This will remove all data for package ':package'. Continue?",
-            'package_yes'            => 'Yes, unseed package',
             'package_confirm_hint'   => '⚠️ Icons and term relationships for this package will be deleted!',
             'package_intro'          => '🗑️  Unseeding package: :package',
             'package_removing'       => 'Removing package data...',
             'package_done'           => '✅ Package unseeded successfully',
             'package_failed'         => 'Failed to unseed package',
             'all_confirm'            => 'This will remove ALL Ichava data. Continue?',
-            'all_yes'                => 'Yes, remove all data',
             'all_confirm_hint'       => '⚠️ ALL icons, terms, and relationships will be permanently deleted!',
             'all_intro'              => '🗑️  Unseeding all packages',
             'all_removing'           => 'Removing all data...',
@@ -474,14 +467,12 @@ return [
 
         'refresh' => [
             'confirm' => 'This will delete all existing data and re-seed. Continue?',
-            'yes'     => 'Yes, refresh database',
             'hint'    => '⚠️ All existing icons and terms will be replaced!',
             'intro'   => '🔄 Refreshing database',
         ],
 
         'truncate' => [
             'confirm' => 'This will delete all icons and terms. Continue?',
-            'yes'     => 'Yes, truncate tables',
             'hint'    => '⚠️ All data will be permanently deleted!',
             'intro'   => '🗑️  Truncating tables...',
             'running' => 'Truncating tables...',

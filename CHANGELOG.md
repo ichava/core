@@ -4,6 +4,15 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Fixed
+
+- **`--force` now skips destructive confirmations instead of prompting and then ignoring the
+  answer.** `database migrate --fresh`, `seed --fresh`, `unseed`, `unseed --package`, `refresh`
+  and `job-status --clear` asked their confirmation even under `--force`, and then proceeded
+  when the answer was "no", because the guard read `! $confirmed && ! force`. All six, and
+  `truncate`, now go through laranail/console's `confirmDestructive()`: `--force` answers yes
+  without prompting, and a declined prompt cancels with exit code 0.
+
 ### Tests
 
 - **Characterization tests for all eight Artisan commands** (97 tests, `tests/Feature/Commands/`)

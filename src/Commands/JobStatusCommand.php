@@ -11,7 +11,6 @@ use function Laravel\Prompts\spin;
 use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
 use function Laravel\Prompts\table;
-use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
 
 use Simtabi\Laranail\Ichava\Models\Icon;
@@ -243,18 +242,11 @@ class JobStatusCommand extends BaseCommand
      */
     protected function clearProgress(string $packageName): int
     {
-        $confirmed = confirm(
-            label: __('ichava/ichava-core::commands.job_status.clear.confirm', ['package' => $packageName]),
-            default: false,
-            yes: __('ichava/ichava-core::commands.job_status.clear.yes'),
-            no: __('ichava/ichava-core::commands.job_status.clear.no'),
-            hint: __('ichava/ichava-core::commands.job_status.clear.hint'),
-        );
-
-        if (! $confirmed && ! $this->option('force')) {
-            warning(__('ichava/ichava-core::commands.common.cancelled'));
-
-            return self::SUCCESS;
+        if (! $this->confirmDestructive(
+            __('ichava/ichava-core::commands.job_status.clear.confirm', ['package' => $packageName]),
+            __('ichava/ichava-core::commands.job_status.clear.hint'),
+        )) {
+            return $this->cancelled(__('ichava/ichava-core::commands.common.cancelled'));
         }
 
         spin(
