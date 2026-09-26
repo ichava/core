@@ -21,7 +21,8 @@ use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
-use Simtabi\Laranail\Ichava\Support\JobProgressTracker;
+use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
+use Simtabi\Laranail\Package\Tools\Services\Database\SeederRunTracker;
 
 /**
  * Display icon seeding job status
@@ -56,13 +57,46 @@ class JobStatusCommand extends BaseCommand
     }
 
     /**
+     * A package's seeding progress, from package-tools' SeederRunTracker, in the
+     * shape this command renders. Seeding writes there under
+     * IchavaSeeder::trackingKey(); the JobProgressTracker this used to read was
+     * never written by anything.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function progressFor(string $packageName): ?array
+    {
+        $state = app(SeederRunTracker::class)->get(IchavaSeeder::trackingKey($packageName));
+
+        if ($state === null) {
+            return null;
+        }
+
+        $finished = $state['finished_at'] !== null;
+
+        return [
+            'status'           => $state['status']->value,
+            'total'            => $state['total'],
+            'processed'        => $state['processed'],
+            'progress_percent' => $state['total'] > 0 ? round(min(100, $state['processed'] / $state['total'] * 100), 1) : 0,
+            'started_at'       => $state['started_at'],
+            'updated_at'       => $state['finished_at'] ?? $state['started_at'],
+            'completed_at'     => $finished && $state['status']->value === 'completed' ? $state['finished_at'] : null,
+            'duration_seconds' => $finished && $state['started_at'] !== null
+                ? Carbon::parse($state['started_at'])->diffInSeconds(Carbon::parse($state['finished_at']))
+                : null,
+            'error' => $state['status']->value === 'failed' ? $state['message'] : null,
+        ];
+    }
+
+    /**
      * Display status for a single package
      */
     protected function displaySinglePackage(string $packageName): int
     {
         intro(__('ichava/ichava-core::commands.job_status.intro_package', ['package' => $packageName]));
 
-        $progress = JobProgressTracker::get($packageName);
+        $progress = $this->progressFor($packageName);
 
         if (! $progress) {
             warning(__('ichava/ichava-core::commands.job_status.no_progress_for', ['package' => $packageName]));
@@ -97,7 +131,7 @@ class JobStatusCommand extends BaseCommand
         $failedJobs = 0;
 
         $rows = collect($packages)->map(function ($packageData, $packageName) use (&$activeJobs, &$completedJobs, &$failedJobs) {
-            $progress = JobProgressTracker::get($packageName);
+            $progress = $this->progressFor($packageName);
 
             if (! $progress) {
                 if ($this->option('all')) {
@@ -189,7 +223,6 @@ class JobStatusCommand extends BaseCommand
             ->metrics([
                 __('ichava/ichava-core::commands.job_status.table.package') => $packageName,
                 __('ichava/ichava-core::commands.job_status.table.status')  => $this->formatStatus($status),
-                __('ichava/ichava-core::commands.job_status.table.job_id')  => (string) ($progress['job_id'] ?? '-'),
             ])
             ->render($this->output);
 
@@ -210,7 +243,7 @@ class JobStatusCommand extends BaseCommand
             ]));
         }
 
-        if (isset($progress['completed_at'])) {
+        if (($progress['completed_at'] ?? null) !== null) {
             $completedAt = Carbon::parse($progress['completed_at']);
             $this->detail(__('ichava/ichava-core::commands.job_status.completed', [
                 'at'  => $completedAt->format('Y-m-d H:i:s'),
@@ -250,7 +283,7 @@ class JobStatusCommand extends BaseCommand
         }
 
         spin(
-            callback: fn () => JobProgressTracker::clear($packageName),
+            callback: fn () => app(SeederRunTracker::class)->clear(IchavaSeeder::trackingKey($packageName)),
             message: __('ichava/ichava-core::commands.job_status.clear.clearing'),
         );
 

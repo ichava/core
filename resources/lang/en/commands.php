@@ -235,7 +235,6 @@ return [
             'updated'  => 'Updated',
             'count'    => 'Count',
             'property' => 'Property',
-            'job_id'   => 'Job ID',
         ],
 
         'metric' => [
