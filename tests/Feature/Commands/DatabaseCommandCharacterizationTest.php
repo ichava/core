@@ -226,13 +226,12 @@ it('reports the tryExecute failure message when truncation throws', function ():
     [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'truncate', '--force' => true]);
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['✗ Failed to truncate: disk on fire']);
-    $this->assertDisplayLacks($display, ['#0 ']);
+    $this->assertDisplayContains($display, ['Failed to truncate: disk on fire']);
+    $this->assertDisplayLacks($display, ['File: ', '#0 ']);
 });
 
-it('prints the full stack trace at -v when tryExecute catches', function (): void {
-    // characterization: tryExecute prints the whole trace at -v, where the
-    // laranail/console base holds traces back to -vvv; changes in the refactor.
+it('adds the file and line at -v, but no stack trace', function (): void {
+    // Traces are held back to -vvv; tryExecute used to print them at -v.
     bindThrowingDatabaseOperations();
 
     [$exit, $display] = $this->runCommand(
@@ -242,7 +241,8 @@ it('prints the full stack trace at -v when tryExecute catches', function (): voi
     );
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['✗ Failed to truncate: disk on fire', '#0 ']);
+    $this->assertDisplayContains($display, ['Failed to truncate: disk on fire', 'File: ']);
+    $this->assertDisplayLacks($display, ['#0 ']);
 });
 
 it('offers a choice for unseed without --package and cancels', function (): void {
