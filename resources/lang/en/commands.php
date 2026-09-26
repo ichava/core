@@ -36,6 +36,9 @@ return [
         'tables_missing'     => 'Required tables do not exist: :tables',
         'run_migrations'     => 'Run migrations first: php artisan :command migrate',
         'operation_failed'   => 'Operation failed',
+        'yes'                => 'Yes',
+        'no'                 => 'No',
+        'cancelled'          => 'Operation cancelled.',
     ],
 
     'cleanup_logs' => [
@@ -112,6 +115,85 @@ return [
             'current' => 'Current',
             'latest'  => 'Latest',
             'notes'   => 'Notes',
+        ],
+    ],
+
+    'cache' => [
+        'select'      => 'What cache operation would you like to perform?',
+        'select_hint' => 'Select an action to perform',
+
+        'options' => [
+            'clear'    => 'Clear - Remove all cached data',
+            'rebuild'  => 'Rebuild - Regenerate all caches',
+            'refresh'  => 'Refresh - Clear and rebuild caches',
+            'generate' => 'Generate - Create production-optimized cache',
+            'manifest' => 'Manifest - Generate icon manifest file',
+            'stats'    => 'Stats - Show cache statistics',
+        ],
+
+        'clear' => [
+            'intro'            => '🧹 Clearing icon caches',
+            'clearing_all'     => 'Clearing all caches...',
+            'clearing_package' => 'Clearing cache for package: :package...',
+            'cleared'          => 'Cleared :count cache key(s)',
+            'cleared_keys'     => 'Cleared Cache Keys',
+            'failed'           => 'Failed to clear cache',
+        ],
+
+        'rebuild' => [
+            'intro'      => '🔨 Rebuilding icon caches',
+            'rebuilding' => 'Rebuilding caches...',
+            'done'       => '✅ Cache rebuilt successfully',
+            'failed'     => 'Failed to rebuild cache',
+        ],
+
+        'refresh' => [
+            'intro'      => '🔄 Refreshing icon caches',
+            'refreshing' => 'Clearing and rebuilding caches...',
+            'done'       => '✅ Cache refreshed successfully',
+            'failed'     => 'Failed to refresh cache',
+        ],
+
+        'generate' => [
+            'intro'      => '⚡ Generating production cache',
+            'generating' => 'Generating optimized production cache...',
+            'done'       => '✅ Production cache generated',
+            'failed'     => 'Failed to generate cache',
+        ],
+
+        'manifest' => [
+            'intro'          => '🎨 Generating Ichava icon manifest',
+            'fresh'          => '🟢 Manifest is fresh; skipping. Use --force to rebuild.',
+            'overwrite'      => 'Manifest exists and is stale. Overwrite?',
+            'overwrite_yes'  => 'Yes, rebuild',
+            'overwrite_no'   => 'No, cancel',
+            'overwrite_hint' => 'The existing manifest will be replaced',
+            'cancelled'      => 'Manifest generation cancelled.',
+            'generating'     => 'Generating manifest file...',
+            'saved'          => '📁 Manifest saved to: :path',
+            'deploy_tip'     => '💡 Add this command to your deployment process: php artisan :command manifest --force',
+            'done'           => '✅ Manifest generation complete!',
+            'failed'         => 'Failed to generate manifest',
+        ],
+
+        'stats' => [
+            'intro'     => '📊 Ichava Cache Statistics',
+            'gathering' => 'Gathering cache statistics...',
+        ],
+
+        'metric' => [
+            'categories'        => 'Categories',
+            'packages'          => 'Packages',
+            'total_icons'       => 'Total Icons',
+            'build_time'        => 'Build Time',
+            'keys_cleared'      => 'Keys Cleared',
+            'file_size'         => 'File Size',
+            'driver'            => 'Cache Driver',
+            'cached_packages'   => 'Cached Packages',
+            'cached_categories' => 'Cached Categories',
+            'total_keys'        => 'Total Cache Keys',
+            'manifest_exists'   => 'Manifest Exists',
+            'manifest_stale'    => 'Manifest Stale',
         ],
     ],
 

@@ -71,9 +71,9 @@ it('prints the cache statistics table for stats', function (): void {
         'Cached Categories',
         'Total Cache Keys',
         'Manifest Exists',
-        '❌ No',
+        '✗ No',
         'Manifest Stale',
-        '⚠️  Yes',
+        '⚠ Yes',
     ]);
 });
 
