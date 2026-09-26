@@ -208,58 +208,36 @@ final class Icon extends Model
      */
     public function scopeFuzzySearch(Builder $query, string $search): Builder
     {
-        // Escape LIKE wildcards so user input matches literally, with '!' as the
-        // escape character rather than a backslash. A backslash inside a MySQL
-        // string literal is itself an escape, so ESCAPE '\' is an unterminated
-        // string there and every search 1064s. The ESCAPE clause is still needed
-        // because SQLite has no default escape character; '!' satisfies both.
-        $like = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search) . '%';
-
         /*
          * This is the path every non-PostgreSQL driver takes -- `scopeSearch` delegates
-         * here whenever the driver is not pgsql -- yet it was written entirely in
-         * PostgreSQL-only SQL. `jsonb_array_elements_text()` does not exist on SQLite or
-         * MySQL, and the `keywords` and `tags` scopes default to enabled, so any search on
-         * those drivers failed with "no such table: jsonb_array_elements_text".
+         * here whenever the driver is not pgsql. It has been broken twice by the same
+         * two portability traps, both now owned by laranail/db-tools' PortableQuery
+         * and pinned there against PostgreSQL, MySQL, MariaDB and SQLite:
          *
-         * The bug was invisible to whoever wrote it, because on PostgreSQL this function is
-         * never reached.
-         *
-         * The PostgreSQL branch was wrong in its own way: these columns are `json`, not
-         * `jsonb` -- Laravel's `$table->json()` emits `json` on PostgreSQL -- and PostgreSQL
-         * registers no implicit cast from `json` to `jsonb`, so
-         * `jsonb_array_elements_text(keywords)` resolves to no function at all. The
-         * migration's own trigger already had this right
-         * (`json_array_elements_text(i.keywords::json)`); the query code did not.
-         *
-         * Elsewhere the jsonb form is kept: it matches array ELEMENTS, so searching "nav"
-         * cannot match the literal characters of a different key. The portable branch is a
-         * LIKE over the encoded JSON, which is looser but is what these drivers can express
-         * without a query per element.
+         * - the LIKE escape character is `!`, because a backslash is itself an escape
+         *   inside a MySQL string literal and SQLite has no default one;
+         * - these columns are `json`, not `jsonb` (`$table->json()` emits `json` on
+         *   PostgreSQL, with no implicit cast), so array elements are matched with
+         *   `json_array_elements_text(col::json)`. The other drivers match a LIKE over
+         *   the encoded JSON -- looser, but no query per element.
          */
-        $isPostgres = $query->getConnection()->getDriverName() === 'pgsql';
-
-        return $query->where(function (Builder $q) use ($like, $isPostgres): void {
-            $q->whereRaw("name LIKE ? ESCAPE '!'", [$like]);
+        return $query->where(function (Builder $q) use ($search): void {
+            $q->whereLiteralLike('name', $search);
 
             if (FtsLanguageHelper::isScopeEnabled('keywords')) {
-                $isPostgres
-                    ? $q->orWhereRaw("EXISTS (SELECT 1 FROM json_array_elements_text(keywords::json) AS kw WHERE kw LIKE ? ESCAPE '!')", [$like])
-                    : $q->orWhereRaw("keywords LIKE ? ESCAPE '!'", [$like]);
+                $q->orWhereJsonArrayLiteralLike('keywords', $search);
             }
 
             if (FtsLanguageHelper::isScopeEnabled('tags')) {
-                $isPostgres
-                    ? $q->orWhereRaw("EXISTS (SELECT 1 FROM json_array_elements_text(tags::json) AS tag WHERE tag LIKE ? ESCAPE '!')", [$like])
-                    : $q->orWhereRaw("tags LIKE ? ESCAPE '!'", [$like]);
+                $q->orWhereJsonArrayLiteralLike('tags', $search);
             }
 
             if (FtsLanguageHelper::isScopeEnabled('categories') || FtsLanguageHelper::isScopeEnabled('variants')) {
-                $q->orWhereHas('terms', fn (Builder $termQuery) => $termQuery->whereRaw("name LIKE ? ESCAPE '!'", [$like]));
+                $q->orWhereHas('terms', fn (Builder $termQuery) => $termQuery->whereLiteralLike('name', $search));
             }
 
             if (FtsLanguageHelper::isScopeEnabled('package_name')) {
-                $q->orWhereRaw("package LIKE ? ESCAPE '!'", [$like]);
+                $q->orWhereLiteralLike('package', $search);
             }
         });
     }
