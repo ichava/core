@@ -155,7 +155,7 @@ it('does not add hardcoded English to the commands still awaiting migration', fu
             'CleanupIchavaLogsCommand.php' => 0,
             'DatabaseCommand.php'          => 63,
             'InfoCommand.php'              => 0,
-            'InstallCommand.php'           => 34,
+            'InstallCommand.php'           => 0,
             'JobStatusCommand.php'         => 0,
             'WatchIconFilesCommand.php'    => 0,
         ],

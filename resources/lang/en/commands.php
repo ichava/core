@@ -341,4 +341,53 @@ return [
         ],
     ],
 
+    'install' => [
+        'intro'                     => '🧩 Install Ichava Icon Set',
+        'catalog_failed'            => 'Could not load icon set catalog: :error',
+        'catalog_empty'             => 'No icon sets declared in icon-sets.json.',
+        'select'                    => 'Which icon set would you like to install?',
+        'select_hint'               => 'Pick a set to require via Composer and seed',
+        'option'                    => ':title (:count icons, :variants) — :installed · :seeded',
+        'unknown_set'               => "Unknown icon set ':set'.",
+        'available'                 => 'Available: :sets',
+        'already_installed'         => "':title' looks already installed.",
+        'already_installed_version' => "':title' looks already installed. (version :version)",
+        'reinstall_note'            => 'Re-running will require the latest release and re-seed its icons.',
+        'reinstall_confirm'         => 'Continue with reinstall?',
+        'latest'                    => 'Latest release: :version',
+        'latest_unknown'            => 'Could not resolve the latest release tag; composer will install the newest stable release.',
+        'require_confirm'           => "Require ':target' via Composer?",
+        'seed_skipped'              => 'Skipped seeding. Seed later with: php artisan :command seed --package=:package',
+        'required'                  => '✅ :title required successfully',
+        'seeding'                   => 'Seeding icons for :package...',
+        'seed_failed'               => "Composer require succeeded but seeding ':package' failed.",
+        'seed_retry'                => 'Retry seeding with: php artisan :command seed --package=:package',
+        'installed'                 => '✅ :title installed and seeded successfully',
+        'tables_missing'            => 'Core database tables are missing. Icons cannot be seeded until core migrations have run.',
+        'missing_tables'            => 'Missing tables: :tables',
+        'migrate_confirm'           => 'Run core migrations now?',
+        'rerun'                     => 'Re-run this command once migration is done: php artisan :command',
+        'migrate_failed'            => 'Core migrations did not complete.',
+        'migrated'                  => 'Core migrations completed.',
+
+        // The glyph in front of each comes from the shared status vocabulary.
+        'state' => [
+            'installed'         => 'installed',
+            'installed_version' => 'installed (:version)',
+            'not_installed'     => 'not installed',
+            'seeded'            => 'seeded',
+            'seeded_count'      => 'seeded (:count)',
+            'not_seeded'        => 'not seeded',
+        ],
+
+        'composer' => [
+            'refused'       => "Refusing to run composer with unexpected target ':target'.",
+            'running'       => 'Running composer require :target...',
+            'failed_manual' => 'Composer require failed. Run it manually to see full output:',
+            'manual'        => ':composer require :target',
+            'done'          => 'Composer require completed: :target',
+            'failed'        => 'Composer require failed: :error',
+        ],
+    ],
+
 ];
