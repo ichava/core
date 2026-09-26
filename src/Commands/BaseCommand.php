@@ -24,6 +24,7 @@ use Simtabi\Laranail\Console\Tools\Commands\Command;
 use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
+use Simtabi\Laranail\Console\Tools\Support\ExceptionRenderer;
 use Simtabi\Laranail\Console\Tools\Commands\Concerns\SupportsNamespacedNames;
 use Simtabi\Laranail\Console\Tools\Commands\Concerns\ConfirmsDestructiveActions;
 
@@ -369,18 +370,21 @@ abstract class BaseCommand extends Command
     }
 
     /**
-     * Execute a callback with error handling
+     * Execute a callback, reporting a failure under the action's own prefix.
+     *
+     * The message always prints; the file and line from -v, the stack trace
+     * only from -vvv. Traces can carry call arguments -- credentials handed to
+     * a connector, tokens in a URL -- so ExceptionRenderer holds them back
+     * below debug verbosity.
      */
     protected function tryExecute(callable $callback, ?string $failureMessage = null): int
     {
         try {
             return $callback();
         } catch (Exception $e) {
-            $this->failure(($failureMessage ?? __('ichava/ichava-core::commands.common.operation_failed')) . ": {$e->getMessage()}");
-
-            if ($this->isVerbose()) {
-                $this->line("<fg=gray>{$e->getTraceAsString()}</>");
-            }
+            ExceptionRenderer::make($this->output)
+                ->context($failureMessage ?? __('ichava/ichava-core::commands.common.operation_failed'))
+                ->render($e);
 
             return self::FAILURE;
         }

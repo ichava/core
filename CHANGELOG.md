@@ -12,6 +12,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   when the answer was "no", because the guard read `! $confirmed && ! force`. All six, and
   `truncate`, now go through laranail/console's `confirmDestructive()`: `--force` answers yes
   without prompting, and a declined prompt cancels with exit code 0.
+- **A caught failure no longer prints its stack trace at `-v`.** `tryExecute()` printed the
+  whole trace at `-v`; traces can carry call arguments such as credentials or tokens. It now
+  renders through laranail/console's `ExceptionRenderer`: the message always, the file and line
+  from `-v`, the trace only from `-vvv`.
 
 ### Tests
 

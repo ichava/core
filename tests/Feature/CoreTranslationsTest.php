@@ -149,7 +149,7 @@ it('does not add hardcoded English to the commands still awaiting migration', fu
     // **Lower a number when you migrate a file. Never raise one.**
     $ceilings = [
         'src/Commands' => [
-            'BaseCommand.php'              => 1,
+            'BaseCommand.php'              => 0,
             'CacheCommand.php'             => 0,
             'CheckIconUpdatesCommand.php'  => 0,
             'CleanupIchavaLogsCommand.php' => 0,

@@ -108,13 +108,14 @@ it('reports the tryExecute failure message when rebuild throws', function (): vo
     [$exit, $display] = $this->runCommand(CACHE_COMMAND, ['action' => 'rebuild']);
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['✗ Failed to rebuild cache: store unreachable']);
-    $this->assertDisplayLacks($display, ['#0 ', '✅ Cache rebuilt successfully']);
+    $this->assertDisplayContains($display, ['Failed to rebuild cache: store unreachable']);
+    $this->assertDisplayLacks($display, ['File: ', '#0 ', '✅ Cache rebuilt successfully']);
 });
 
-it('prints the full stack trace at -v when tryExecute catches', function (): void {
-    // characterization: tryExecute prints the whole trace at -v, where the
-    // laranail/console base holds traces back to -vvv; changes in the refactor.
+it('adds the file and line at -v, but no stack trace', function (): void {
+    // Traces can carry call arguments, so tryExecute holds them back to -vvv,
+    // the policy laranail/console's ExceptionRenderer applies everywhere. It
+    // used to print the whole trace at -v.
     bindThrowingCacheOperations();
 
     [$exit, $display] = $this->runCommand(
@@ -124,7 +125,21 @@ it('prints the full stack trace at -v when tryExecute catches', function (): voi
     );
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['✗ Failed to rebuild cache: store unreachable', '#0 ']);
+    $this->assertDisplayContains($display, ['Failed to rebuild cache: store unreachable', 'File: ']);
+    $this->assertDisplayLacks($display, ['#0 ']);
+});
+
+it('prints the stack trace at -vvv', function (): void {
+    bindThrowingCacheOperations();
+
+    [$exit, $display] = $this->runCommand(
+        CACHE_COMMAND,
+        ['action' => 'rebuild'],
+        verbosity: OutputInterface::VERBOSITY_DEBUG,
+    );
+
+    $this->assertSame(1, $exit);
+    $this->assertDisplayContains($display, ['Failed to rebuild cache: store unreachable', 'File: ', 'Trace: ', '#0 ']);
 });
 
 it('fails clear on a method the cache service does not have', function (): void {
