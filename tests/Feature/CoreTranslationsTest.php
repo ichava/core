@@ -146,6 +146,9 @@ it('does not add hardcoded English to the commands still awaiting migration', fu
     // old guard could not see. CleanupIchavaLogsCommand, "the migrated one",
     // still carried a `hint:` literal nobody had noticed.
     //
+    // src/Commands reached 0 in every file on 2026-09-26; a literal added
+    // there now fails immediately. The seeder is the remaining debt.
+    //
     // **Lower a number when you migrate a file. Never raise one.**
     $ceilings = [
         'src/Commands' => [
