@@ -31,7 +31,7 @@ use Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator;
  * Dispatched by IchavaSeeder via Laravel's job batching.
  *
  * Multi-level deduplication:
- * 1. DB Level: UNIQUE constraint on `path` column
+ * 1. DB Level: UNIQUE constraint on (`package`, `path`)
  * 2. Hash Level: Skip files with unchanged file_hash
  * 3. Job Level: Filter out already-processed files before insert
  * 4. Category Level: Bulk upsert with conflict handling
@@ -240,8 +240,8 @@ class SeedIconsJob implements ShouldQueue
             // This handles any race conditions where multiple jobs might process same files
             Icon::upsert(
                 $iconData,
-                ['path'], // Unique key
-                ['package', 'name', 'file_hash', 'file_modified_at', 'tags', 'keywords', 'updated_at'],
+                ['package', 'path'], // Unique key: a relative path is only unique within its pack
+                ['name', 'file_hash', 'file_modified_at', 'tags', 'keywords', 'updated_at'],
             );
 
             // DEDUPLICATION LEVEL 4: Bulk attach categories with conflict handling
