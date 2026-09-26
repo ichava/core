@@ -79,12 +79,19 @@ it('prints the statistics table for stats', function (): void {
         'Database Size',
     ]);
 
-    // characterization: the size query is pg_total_relation_size() on every
-    // driver, so only PostgreSQL reports a size; the rest print N/A.
-    if (DB::connection()->getDriverName() === 'pgsql') {
-        $this->assertMatchesRegularExpression('/Database Size\s*│?\s*[\d.]+ (bytes|kB|MB|GB)/u', $display);
+    // The size comes from laranail/db-tools' per-driver TableStatistics. It used
+    // to be pg_total_relation_size() on every driver, so everything but
+    // PostgreSQL printed N/A. Server drivers always report a size now; SQLite
+    // does when it was compiled with the dbstat table.
+    $size = '/Database Size\s*│?\s*[\d.,]+ ?(B|KB|MB|GB|TB)\b/u';
+
+    if (DB::connection()->getDriverName() === 'sqlite') {
+        $this->assertTrue(
+            preg_match($size, $display) === 1 || str_contains($display, 'N/A'),
+            'SQLite must report either a size or N/A',
+        );
     } else {
-        $this->assertDisplayContains($display, ['N/A']);
+        $this->assertMatchesRegularExpression($size, $display);
     }
 });
 
