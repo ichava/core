@@ -77,8 +77,15 @@ it('prints the statistics table for stats', function (): void {
         'Variants',
         'Term Relationships',
         'Database Size',
-        'N/A',
     ]);
+
+    // characterization: the size query is pg_total_relation_size() on every
+    // driver, so only PostgreSQL reports a size; the rest print N/A.
+    if (DB::connection()->getDriverName() === 'pgsql') {
+        $this->assertMatchesRegularExpression('/Database Size\s*│?\s*[\d.]+ (bytes|kB|MB|GB)/u', $display);
+    } else {
+        $this->assertDisplayContains($display, ['N/A']);
+    }
 });
 
 it('reports an invalid action and returns INVALID when the offered select is cancelled', function (): void {
