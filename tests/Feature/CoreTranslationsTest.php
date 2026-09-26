@@ -156,7 +156,7 @@ it('does not add hardcoded English to the commands still awaiting migration', fu
             'DatabaseCommand.php'          => 63,
             'InfoCommand.php'              => 37,
             'InstallCommand.php'           => 34,
-            'JobStatusCommand.php'         => 25,
+            'JobStatusCommand.php'         => 0,
             'WatchIconFilesCommand.php'    => 0,
         ],
         // The seeder is a later phase; pinned separately so its debt is not
