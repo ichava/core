@@ -73,11 +73,12 @@ return [
             'days'   => ':days days',
         ],
 
+        // The glyph comes from the shared status vocabulary, not the string.
         'action' => [
-            'deleted'      => '✅ Deleted',
-            'would_delete' => '🔍 Would delete',
-            'failed'       => '❌ Failed',
-            'kept'         => '⏭️ Kept',
+            'deleted'      => 'Deleted',
+            'would_delete' => 'Would delete',
+            'failed'       => 'Failed',
+            'kept'         => 'Kept',
         ],
     ],
 

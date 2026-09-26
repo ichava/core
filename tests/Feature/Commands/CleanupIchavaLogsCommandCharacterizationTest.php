@@ -118,8 +118,8 @@ it('lists every file with its action at -v', function (): void {
         'Age',
         'Action',
         'ichava-icons-2026-01-01.log',
-        '✅ Deleted',
-        '⏭️ Kept',
+        '✓ Deleted',
+        '⊘ Kept',
         ' days',
     ]);
 });
