@@ -33,7 +33,7 @@ class WatchIconFilesCommand extends BaseCommand
         intro(__('ichava/ichava-core::commands.watch.intro'));
 
         $stats = spin(
-            callback: fn () => $this->option('force')
+            callback: fn () => $this->forced()
                 ? $watcher->forceScan()
                 : $watcher->watch(),
             message: __('ichava/ichava-core::commands.watch.scanning'),
