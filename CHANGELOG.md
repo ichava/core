@@ -36,6 +36,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 - **Declining to overwrite a stale manifest exits 0.** `cache manifest` returned `FAILURE` when
   the overwrite prompt was declined, unlike every other cancellation, which a script or CI step
   read as an error.
+- **`check-updates --format=json` prints only JSON.** The intro and outro framed the document, so
+  stdout could not be handed to a JSON parser as-is. Under `--format=json` the command now
+  prints the array and nothing else -- `[]` when no pack is registered -- and `--fail-on-stale`
+  still sets the exit code.
 
 ### Tests
 
