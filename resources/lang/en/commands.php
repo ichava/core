@@ -81,4 +81,19 @@ return [
         ],
     ],
 
+    'watch' => [
+        'intro'            => '👁️ Watching icon files for changes',
+        'scanning'         => 'Scanning for changes...',
+        'already_running'  => 'File watcher already running, skipped.',
+        'count'            => 'Count',
+        'packages_scanned' => 'Packages Scanned',
+        'new_icons'        => 'New Icons',
+        'updated_icons'    => 'Updated Icons',
+        'deleted_icons'    => 'Deleted Icons',
+        'total_changes'    => 'Total Changes',
+        'duration'         => 'Duration',
+        'synchronized'     => '✅ Database synchronized with file system!',
+        'no_changes'       => '✨ No changes detected, database up to date.',
+    ],
+
 ];
