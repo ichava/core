@@ -15,6 +15,8 @@ use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
 
 use Symfony\Component\Process\Process;
+use Simtabi\Laranail\Ichava\Support\CommandName;
+use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IconSetCatalogService;
 use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
 
@@ -51,18 +53,18 @@ final class InstallCommand extends BaseCommand
 
     public function handle(): int
     {
-        intro('🧩 Install Ichava Icon Set');
+        intro(__('ichava/ichava-core::commands.install.intro'));
 
         try {
             $sets = $this->catalog->all();
         } catch (Throwable $e) {
-            $this->failure("Could not load icon set catalog: {$e->getMessage()}");
+            $this->failure(__('ichava/ichava-core::commands.install.catalog_failed', ['error' => $e->getMessage()]));
 
             return self::FAILURE;
         }
 
         if ($sets === []) {
-            warning('No icon sets declared in icon-sets.json.');
+            warning(__('ichava/ichava-core::commands.install.catalog_empty'));
 
             return self::SUCCESS;
         }
@@ -84,15 +86,16 @@ final class InstallCommand extends BaseCommand
         }
 
         if ($set['installed'] === true) {
-            warning("'{$set['title']}' looks already installed."
-                . ($set['installed_version'] ? " (version {$set['installed_version']})" : ''));
-            note('Re-running will require the latest release and re-seed its icons.');
+            warning($set['installed_version']
+                ? __('ichava/ichava-core::commands.install.already_installed_version', ['title' => $set['title'], 'version' => $set['installed_version']])
+                : __('ichava/ichava-core::commands.install.already_installed', ['title' => $set['title']]));
+            note(__('ichava/ichava-core::commands.install.reinstall_note'));
 
             if (! $this->option('force') && ! confirm(
-                label: 'Continue with reinstall?',
+                label: __('ichava/ichava-core::commands.install.reinstall_confirm'),
                 default: false,
             )) {
-                warning('Operation cancelled.');
+                warning(__('ichava/ichava-core::commands.common.cancelled'));
 
                 return self::SUCCESS;
             }
@@ -103,18 +106,18 @@ final class InstallCommand extends BaseCommand
         $latest = $set['latest_version'] ?? null;
 
         if ($latest !== null) {
-            $this->line("  <fg=white>Latest release:</fg=white> <fg=cyan>{$latest}</fg=cyan>");
+            $this->detail(__('ichava/ichava-core::commands.install.latest', ['version' => $latest]));
         } else {
-            note('Could not resolve the latest release tag; composer will install the newest stable release.');
+            note(__('ichava/ichava-core::commands.install.latest_unknown'));
         }
 
         $target = $this->catalog->requireTarget($package);
 
         if (! $this->option('force') && ! confirm(
-            label: "Require '{$target}' via Composer?",
+            label: __('ichava/ichava-core::commands.install.require_confirm', ['target' => $target]),
             default: true,
         )) {
-            warning('Operation cancelled.');
+            warning(__('ichava/ichava-core::commands.common.cancelled'));
 
             return self::SUCCESS;
         }
@@ -124,16 +127,16 @@ final class InstallCommand extends BaseCommand
         }
 
         if ($this->option('no-seed')) {
-            note("Skipped seeding. Seed later with: php artisan ichava::ichava-core.database seed --package={$package}");
-            outro("✅ {$set['title']} required successfully");
+            note(__('ichava/ichava-core::commands.install.seed_skipped', ['command' => CommandName::of(DatabaseCommand::class), 'package' => $package]));
+            outro(__('ichava/ichava-core::commands.install.required', ['title' => $set['title']]));
 
             return self::SUCCESS;
         }
 
-        $this->line('');
-        $this->line("  <fg=white>Seeding icons for</fg=white> <fg=cyan>{$package}</fg=cyan>...");
+        $this->newLine();
+        $this->detail(__('ichava/ichava-core::commands.install.seeding', ['package' => $package]));
 
-        $seedExit = $this->call('ichava::ichava-core.database', array_filter([
+        $seedExit = $this->call(CommandName::of(DatabaseCommand::class), array_filter([
             'action'    => 'seed',
             '--package' => $package,
             '--sync'    => $this->option('sync') ?: null,
@@ -141,13 +144,13 @@ final class InstallCommand extends BaseCommand
         ], fn ($value) => $value !== null));
 
         if ($seedExit !== 0) {
-            $this->failure("Composer require succeeded but seeding '{$package}' failed.");
-            $this->tip("Retry seeding with: php artisan ichava::ichava-core.database seed --package={$package}");
+            $this->failure(__('ichava/ichava-core::commands.install.seed_failed', ['package' => $package]));
+            $this->tip(__('ichava/ichava-core::commands.install.seed_retry', ['command' => CommandName::of(DatabaseCommand::class), 'package' => $package]));
 
             return self::FAILURE;
         }
 
-        outro("✅ {$set['title']} installed and seeded successfully");
+        outro(__('ichava/ichava-core::commands.install.installed', ['title' => $set['title']]));
 
         return self::SUCCESS;
     }
@@ -165,11 +168,11 @@ final class InstallCommand extends BaseCommand
             $found = $this->catalog->find($requested);
 
             if ($found === null) {
-                $this->failure("Unknown icon set '{$requested}'.");
-                note('Available: ' . implode(', ', array_map(
+                $this->failure(__('ichava/ichava-core::commands.install.unknown_set', ['set' => $requested]));
+                note(__('ichava/ichava-core::commands.install.available', ['sets' => implode(', ', array_map(
                     fn (array $set) => (string) $set['key'],
                     $sets,
-                )));
+                ))]));
 
                 return null;
             }
@@ -179,23 +182,34 @@ final class InstallCommand extends BaseCommand
 
         $options = [];
         foreach ($sets as $set) {
-            $installed = $set['installed'] === true
-                ? '✅ installed' . (is_string($set['installed_version'] ?? null) && $set['installed_version'] !== '' ? " ({$set['installed_version']})" : '')
-                : '○ not installed';
-            $seeded = ($set['seeded'] ?? null) === true
-                ? '✅ seeded' . (isset($set['seeded_count']) ? ' (' . $this->formatNumber((int) $set['seeded_count']) . ')' : '')
-                : '○ not seeded';
+            $version = is_string($set['installed_version'] ?? null) && $set['installed_version'] !== ''
+                ? $set['installed_version']
+                : null;
 
-            $options[(string) $set['key']] = "{$set['title']} ("
-                . $this->formatNumber((int) $set['icon_count']) . ' icons, '
-                . implode(' + ', (array) $set['variants']) . ') — '
-                . "{$installed} · {$seeded}";
+            $installed = $set['installed'] === true
+                ? Status::Success->symbol() . ' ' . ($version !== null
+                    ? __('ichava/ichava-core::commands.install.state.installed_version', ['version' => $version])
+                    : __('ichava/ichava-core::commands.install.state.installed'))
+                : Status::Pending->symbol() . ' ' . __('ichava/ichava-core::commands.install.state.not_installed');
+            $seeded = ($set['seeded'] ?? null) === true
+                ? Status::Success->symbol() . ' ' . (isset($set['seeded_count'])
+                    ? __('ichava/ichava-core::commands.install.state.seeded_count', ['count' => $this->formatNumber((int) $set['seeded_count'])])
+                    : __('ichava/ichava-core::commands.install.state.seeded'))
+                : Status::Pending->symbol() . ' ' . __('ichava/ichava-core::commands.install.state.not_seeded');
+
+            $options[(string) $set['key']] = __('ichava/ichava-core::commands.install.option', [
+                'title'     => $set['title'],
+                'count'     => $this->formatNumber((int) $set['icon_count']),
+                'variants'  => implode(' + ', (array) $set['variants']),
+                'installed' => $installed,
+                'seeded'    => $seeded,
+            ]);
         }
 
         $key = select(
-            label: 'Which icon set would you like to install?',
+            label: __('ichava/ichava-core::commands.install.select'),
             options: $options,
-            hint: 'Pick a set to require via Composer and seed',
+            hint: __('ichava/ichava-core::commands.install.select_hint'),
         );
 
         return $this->catalog->find($key);
@@ -212,30 +226,30 @@ final class InstallCommand extends BaseCommand
             return true;
         }
 
-        warning('Core database tables are missing. Icons cannot be seeded until core migrations have run.');
-        note('Missing tables: ' . implode(', ', $this->database->getMissingTables()));
+        warning(__('ichava/ichava-core::commands.install.tables_missing'));
+        note(__('ichava/ichava-core::commands.install.missing_tables', ['tables' => implode(', ', $this->database->getMissingTables())]));
 
         $runNow = $this->option('force') || confirm(
-            label: 'Run core migrations now?',
+            label: __('ichava/ichava-core::commands.install.migrate_confirm'),
             default: true,
         );
 
         if (! $runNow) {
-            warning('Operation cancelled.');
-            note('Re-run this command once migration is done: php artisan ichava::ichava-core.install');
+            warning(__('ichava/ichava-core::commands.common.cancelled'));
+            note(__('ichava/ichava-core::commands.install.rerun', ['command' => $this->getName()]));
 
             return null;
         }
 
-        $exit = $this->call('ichava::ichava-core.database', ['action' => 'migrate']);
+        $exit = $this->call(CommandName::of(DatabaseCommand::class), ['action' => 'migrate']);
 
         if ($exit !== 0 || ! $this->database->tablesExist()) {
-            $this->failure('Core migrations did not complete.');
+            $this->failure(__('ichava/ichava-core::commands.install.migrate_failed'));
 
             return false;
         }
 
-        $this->success('Core migrations completed.');
+        $this->success(__('ichava/ichava-core::commands.install.migrated'));
 
         return true;
     }
@@ -243,7 +257,7 @@ final class InstallCommand extends BaseCommand
     protected function runComposerRequire(string $target): int
     {
         if (! $this->isValidRequireTarget($target)) {
-            $this->failure("Refusing to run composer with unexpected target '{$target}'.");
+            $this->failure(__('ichava/ichava-core::commands.install.composer.refused', ['target' => $target]));
 
             return self::FAILURE;
         }
@@ -268,21 +282,21 @@ final class InstallCommand extends BaseCommand
 
                     return $process->getExitCode() ?? Process::ERR;
                 },
-                message: "Running composer require {$target}...",
+                message: __('ichava/ichava-core::commands.install.composer.running', ['target' => $target]),
             );
 
             if ($exit !== 0) {
-                $this->failure('Composer require failed. Run it manually to see full output:');
-                $this->tip("{$composer} require {$target}");
+                $this->failure(__('ichava/ichava-core::commands.install.composer.failed_manual'));
+                $this->tip(__('ichava/ichava-core::commands.install.composer.manual', ['composer' => $composer, 'target' => $target]));
 
                 return self::FAILURE;
             }
 
-            $this->success("Composer require completed: {$target}");
+            $this->success(__('ichava/ichava-core::commands.install.composer.done', ['target' => $target]));
 
             return self::SUCCESS;
         } catch (Throwable $e) {
-            $this->failure("Composer require failed: {$e->getMessage()}");
+            $this->failure(__('ichava/ichava-core::commands.install.composer.failed', ['error' => $e->getMessage()]));
 
             return self::FAILURE;
         }
