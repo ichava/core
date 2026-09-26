@@ -128,7 +128,7 @@ final class DatabaseCommand extends BaseCommand
 
             return $this->tryExecute(function () {
                 $result = spin(
-                    callback: fn () => $this->databaseService->freshMigration(),
+                    callback: fn () => $this->reclaimingPrompts(fn () => $this->databaseService->freshMigration()),
                     message: __('ichava/ichava-core::commands.database.migrate.fresh_running'),
                 );
 
@@ -155,7 +155,7 @@ final class DatabaseCommand extends BaseCommand
         intro(__('ichava/ichava-core::commands.database.migrate.intro'));
 
         $exitCode = spin(
-            callback: fn () => $this->databaseService->runMigrations(),
+            callback: fn () => $this->reclaimingPrompts(fn () => $this->databaseService->runMigrations()),
             message: __('ichava/ichava-core::commands.database.migrate.running'),
         );
 
