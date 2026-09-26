@@ -9,48 +9,45 @@ use Exception;
 use RuntimeException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Laravel\Prompts\Progress;
 
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\text;
 use function Laravel\Prompts\error;
-use function Laravel\Prompts\intro;
-use function Laravel\Prompts\outro;
-use function Laravel\Prompts\table;
 use function Laravel\Prompts\select;
 
 use Illuminate\Support\Facades\File;
-
-use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\warning;
-use function Laravel\Prompts\progress;
-
 use Illuminate\Support\Facades\Schema;
+use Simtabi\Laranail\Ichava\Support\CommandName;
+use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Console\Tools\Commands\Command;
+use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
+use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
+use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
+use Simtabi\Laranail\Console\Tools\Support\ExceptionRenderer;
 use Simtabi\Laranail\Console\Tools\Commands\Concerns\SupportsNamespacedNames;
+use Simtabi\Laranail\Console\Tools\Commands\Concerns\ConfirmsDestructiveActions;
 
 /**
- * Base command for all Ichava Artisan commands
+ * Base command for all Ichava Artisan commands.
  *
- * Provides shared functionality using Laravel Prompts:
- * - Timing/performance tracking
- * - Formatting helpers (bytes, duration, progress bars)
- * - Confirmation dialogs (using Prompts)
- * - Invalid action/type handling
- * - Display helpers (headers, status rows, tables)
- * - Export functionality
- * - Table existence checks
+ * A thin adapter over the laranail/console command base. Presentation --
+ * status labels, byte and time formatting, checklists, metric tables, error
+ * rendering, destructive-action confirmation -- lives in that package's
+ * widgets and support classes, so it is defined once for every command in the
+ * family. What stays here is what is specific to Ichava: its tables, its
+ * invalid-argument recovery and the handful of helpers the commands share.
  *
- * Extends the laranail/console command base, which unlocks the
- * namespaced `laranail::<slug>.<command>` naming, capability-aware
- * console services, and short-alias support for every Ichava command.
- *
- * @see https://laravel.com/docs/12.x/prompts
+ * Helpers nothing called were parked in `.parked/Commands/` on 2026-09-26.
  */
 abstract class BaseCommand extends Command
 {
+    /*
+     * `--force` answers yes without prompting; declining returns SUCCESS
+     * through cancelled(). One implementation for every destructive action.
+     */
+    use ConfirmsDestructiveActions;
+
     /*
      * Symfony's validateName() rejects the empty segment in `::`, so a command
      * named `ichava::ichava-core.cache` cannot be registered through the normal
@@ -59,6 +56,28 @@ abstract class BaseCommand extends Command
      * lookup. Same mechanism `laranail/db-console` uses.
      */
     use SupportsNamespacedNames;
+
+    /**
+     * Job and package states, mapped onto the shared status vocabulary. The
+     * domain strings stay here; the glyph, colour and label come from Status.
+     *
+     * @var array<string, Status>
+     */
+    protected const array STATUS_MAP = [
+        'processing'  => Status::Running,
+        'running'     => Status::Running,
+        'in_progress' => Status::Running,
+        'completed'   => Status::Success,
+        'done'        => Status::Success,
+        'success'     => Status::Success,
+        'failed'      => Status::Failed,
+        'error'       => Status::Failed,
+        'pending'     => Status::Pending,
+        'queued'      => Status::Pending,
+        'skipped'     => Status::Skipped,
+        'active'      => Status::Active,
+        'inactive'    => Status::Inactive,
+    ];
 
     /**
      * Start time for performance tracking
@@ -73,11 +92,6 @@ abstract class BaseCommand extends Command
         'ichava_icon_terms',
         'ichava_icon_termables',
     ];
-
-    public function __construct()
-    {
-        parent::__construct();
-    }
 
     /**
      * Start timing for performance tracking
@@ -100,66 +114,7 @@ abstract class BaseCommand extends Command
      */
     protected function displayElapsedTime(): void
     {
-        $elapsed = $this->getElapsedMs();
-        info('⏱️  Completed in ' . round($elapsed, 2) . 'ms');
-    }
-
-    /**
-     * Format bytes to human-readable size
-     */
-    protected function formatBytes(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $power = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
-        $power = min($power, count($units) - 1);
-
-        return number_format($bytes / (1024 ** $power), 2) . ' ' . $units[$power];
-    }
-
-    /**
-     * Format duration in seconds to human-readable format
-     */
-    protected function formatDuration(int $seconds): string
-    {
-        if ($seconds < 60) {
-            return "{$seconds}s";
-        }
-
-        $minutes = floor($seconds / 60);
-        $remainingSeconds = $seconds % 60;
-
-        if ($minutes < 60) {
-            return "{$minutes}m {$remainingSeconds}s";
-        }
-
-        $hours = floor($minutes / 60);
-        $remainingMinutes = $minutes % 60;
-
-        return "{$hours}h {$remainingMinutes}m {$remainingSeconds}s";
-    }
-
-    /**
-     * Format milliseconds to human-readable format
-     */
-    protected function formatMs(float $ms): string
-    {
-        if ($ms < 1000) {
-            return round($ms, 2) . 'ms';
-        }
-
-        return $this->formatDuration((int) ($ms / 1000));
-    }
-
-    /**
-     * Create a visual progress bar
-     */
-    protected function createProgressBar(float $percent, int $width = 10): string
-    {
-        $filled = (int) round($percent / (100 / $width));
-        $empty = $width - $filled;
-
-        return '<fg=green>' . str_repeat('█', $filled) . '</>' .
-               '<fg=gray>' . str_repeat('░', $empty) . '</>';
+        info(__('ichava/ichava-core::commands.common.completed_in', ['time' => TimeFormat::fromMillis($this->getElapsedMs())]));
     }
 
     /**
@@ -171,27 +126,11 @@ abstract class BaseCommand extends Command
     }
 
     /**
-     * Display a styled intro header using Laravel Prompts
-     */
-    protected function displayHeader(string $title, string $icon = '📊'): void
-    {
-        intro("{$icon} {$title}");
-    }
-
-    /**
-     * Display a boxed header using Laravel Prompts note
-     */
-    protected function displayBoxedHeader(string $title): void
-    {
-        note($title);
-    }
-
-    /**
      * Display a success message using Laravel Prompts
      */
     protected function success(string $message): void
     {
-        info("✅ {$message}");
+        info(Status::Success->symbol() . " {$message}");
     }
 
     /**
@@ -199,15 +138,7 @@ abstract class BaseCommand extends Command
      */
     protected function failure(string $message): void
     {
-        error("❌ {$message}");
-    }
-
-    /**
-     * Display a warning message using Laravel Prompts
-     */
-    protected function displayWarning(string $message): void
-    {
-        warning("⚠️  {$message}");
+        error(Status::Failed->symbol() . " {$message}");
     }
 
     /**
@@ -215,101 +146,62 @@ abstract class BaseCommand extends Command
      */
     protected function tip(string $message): void
     {
-        note("💡 {$message}");
+        note(__('ichava/ichava-core::commands.common.tip', ['message' => $message]));
     }
 
     /**
-     * Display an outro/completion message using Laravel Prompts
+     * One indented detail line under a heading.
      */
-    protected function displayOutro(string $message): void
+    protected function detail(string $text): void
     {
-        outro($message);
+        $this->line(str_repeat(' ', 2) . $text);
     }
 
     /**
-     * Display a table using Laravel Prompts
-     */
-    protected function displayTable(array $headers, array $rows): void
-    {
-        table($headers, $rows);
-    }
-
-    /**
-     * Display key-value pairs using Laravel Prompts table
-     */
-    protected function displayKeyValue(string $key, mixed $value): void
-    {
-        $this->components->twoColumnDetail($key, (string) $value);
-    }
-
-    /**
-     * Display multiple key-value pairs
-     */
-    protected function displayKeyValues(array $items): void
-    {
-        foreach ($items as $key => $value) {
-            $this->displayKeyValue($key, $value);
-        }
-    }
-
-    /**
-     * Format status with color coding
+     * A coloured status label for a job or package state.
      */
     protected function formatStatus(string $status): string
     {
-        return match (Str::lower($status)) {
-            'processing', 'running', 'in_progress' => '<fg=yellow>⏳ Processing</>',
-            'completed', 'done', 'success'         => '<fg=green>✅ Completed</>',
-            'failed', 'error'                      => '<fg=red>❌ Failed</>',
-            'pending', 'queued'                    => '<fg=blue>⏸️  Pending</>',
-            'skipped'                              => '<fg=gray>⏭️  Skipped</>',
-            'active'                               => '<fg=green>● Active</>',
-            'inactive'                             => '<fg=gray>○ Inactive</>',
-            default                                => '<fg=gray>Unknown</>',
-        };
+        return StatusBadge::fromMap(self::STATUS_MAP, Str::lower($status))->render();
     }
 
     /**
-     * Display a status row with icon
+     * The icon-database statistics table `database stats` and `info stats`
+     * both print, built in one place so the two cannot drift apart. A row is
+     * shown when its statistic is present in `$stats`; the database size is
+     * PostgreSQL-only and reads N/A elsewhere.
+     *
+     * @param array<string, mixed> $stats
      */
-    protected function displayStatusRow(string $label, bool $status, int $labelWidth = 15): void
+    protected function statisticsTable(array $stats): MetricTable
     {
-        $icon = $status ? '<fg=green>✓</fg=green>' : '<fg=red>✗</fg=red>';
-        $statusText = $status ? '<fg=green>OK</fg=green>' : '<fg=red>NOT READY</fg=red>';
-        $this->line("  {$icon} <fg=white>" . str_pad($label . ':', $labelWidth) . "</fg=white> {$statusText}");
-    }
+        $rows = [
+            'icons'              => __('ichava/ichava-core::commands.common.stats.icons'),
+            'packages'           => __('ichava/ichava-core::commands.common.stats.packages'),
+            'categories'         => __('ichava/ichava-core::commands.common.stats.categories'),
+            'variants'           => __('ichava/ichava-core::commands.common.stats.variants'),
+            'term_relationships' => __('ichava/ichava-core::commands.common.stats.term_relationships'),
+            'database_size'      => __('ichava/ichava-core::commands.common.stats.database_size'),
+            'cache_driver'       => __('ichava/ichava-core::commands.common.stats.cache_driver'),
+        ];
 
-    /**
-     * Confirm destructive operation using Laravel Prompts (respects --force flag)
-     */
-    protected function confirmDestructive(string $message = 'This will clear existing data. Continue?'): bool
-    {
-        if ($this->option('force')) {
-            return true;
+        $table = MetricTable::make();
+
+        foreach ($rows as $key => $label) {
+            if (! array_key_exists($key, $stats)) {
+                continue;
+            }
+
+            $value = $stats[$key];
+
+            $table->metric($label, match (true) {
+                is_int($value)  => $value,
+                $value === null => __('ichava/ichava-core::commands.common.not_available'),
+                default         => (string) $value,
+            });
         }
 
-        return confirm(
-            label: $message,
-            default: false,
-            yes: 'Yes, proceed',
-            no: 'No, cancel',
-            hint: 'This action cannot be undone.',
-        );
-    }
-
-    /**
-     * Confirm operation using Laravel Prompts with default value
-     */
-    protected function confirmOperation(string $message, bool $default = false): bool
-    {
-        if ($this->option('force')) {
-            return true;
-        }
-
-        return confirm(
-            label: $message,
-            default: $default,
-        );
+        return $table;
     }
 
     /**
@@ -334,82 +226,19 @@ abstract class BaseCommand extends Command
     }
 
     /**
-     * Ask for selection from options using Laravel Prompts
-     */
-    protected function askSelect(
-        string $label,
-        array $options,
-        ?string $default = null,
-        int $scroll = 5,
-        ?string $hint = null,
-    ): string {
-        return select(
-            label: $label,
-            options: $options,
-            default: $default,
-            scroll: $scroll,
-            hint: $hint,
-        );
-    }
-
-    /**
-     * Execute a callback with a spinner using Laravel Prompts
-     */
-    protected function withSpinner(string $message, callable $callback): mixed
-    {
-        return spin(
-            callback: $callback,
-            message: $message,
-        );
-    }
-
-    /**
-     * Create a progress bar for iterating items using Laravel Prompts
-     *
-     * @template TKey
-     * @template TValue
-     *
-     * @param iterable<TKey, TValue> $items
-     * @param callable(TValue, Progress<TKey, TValue>): mixed $callback
-     *
-     * @return array<TKey, mixed>
-     */
-    protected function withProgress(string $label, iterable $items, callable $callback, ?string $hint = null): array
-    {
-        return progress(
-            label: $label,
-            steps: $items,
-            callback: $callback,
-            hint: $hint,
-        );
-    }
-
-    /**
      * Handle invalid action argument using Laravel Prompts
      */
     protected function handleInvalidAction(string $action, array $validActions): int
     {
-        error("Invalid action: {$action}");
-        note('Valid actions: ' . implode(', ', $validActions));
+        error(__('ichava/ichava-core::commands.common.invalid_action', ['action' => $action]));
+        note(__('ichava/ichava-core::commands.common.valid_actions', ['actions' => implode(', ', $validActions)]));
 
-        // Offer to select a valid action
-        if (! $this->isQuiet()) {
-            $selectedAction = $this->askSelect(
-                label: 'Would you like to select a valid action?',
-                options: array_merge(['cancel' => 'Cancel operation'], array_combine($validActions, $validActions)),
-                default: 'cancel',
-                hint: 'Select an action or cancel',
-            );
-
-            if ($selectedAction !== 'cancel') {
-                // Re-run with the selected action
-                $this->input->setArgument('action', $selectedAction);
-
-                return $this->handle();
-            }
-        }
-
-        return self::INVALID;
+        return $this->offerValidArgument(
+            'action',
+            $validActions,
+            __('ichava/ichava-core::commands.common.select_action'),
+            __('ichava/ichava-core::commands.common.select_action_hint'),
+        );
     }
 
     /**
@@ -417,35 +246,15 @@ abstract class BaseCommand extends Command
      */
     protected function handleInvalidType(string $type, array $validTypes): int
     {
-        error("Invalid type: {$type}");
-        note('Valid types: ' . implode(', ', $validTypes));
+        error(__('ichava/ichava-core::commands.common.invalid_type', ['type' => $type]));
+        note(__('ichava/ichava-core::commands.common.valid_types', ['types' => implode(', ', $validTypes)]));
 
-        // Offer to select a valid type
-        if (! $this->isQuiet()) {
-            $selectedType = $this->askSelect(
-                label: 'Would you like to select a valid type?',
-                options: array_merge(['cancel' => 'Cancel operation'], array_combine($validTypes, $validTypes)),
-                default: 'cancel',
-                hint: 'Select a type or cancel',
-            );
-
-            if ($selectedType !== 'cancel') {
-                // Re-run with the selected type
-                $this->input->setArgument('type', $selectedType);
-
-                return $this->handle();
-            }
-        }
-
-        return self::INVALID;
-    }
-
-    /**
-     * Display a section divider
-     */
-    protected function displayDivider(string $char = '─', int $width = 50): void
-    {
-        $this->line(str_repeat($char, $width));
+        return $this->offerValidArgument(
+            'type',
+            $validTypes,
+            __('ichava/ichava-core::commands.common.select_type'),
+            __('ichava/ichava-core::commands.common.select_type_hint'),
+        );
     }
 
     /**
@@ -456,11 +265,11 @@ abstract class BaseCommand extends Command
         try {
             $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             File::put($filename, $json);
-            $this->success("Exported to: {$filename}");
+            $this->success(__('ichava/ichava-core::commands.common.exported', ['path' => $filename]));
 
             return true;
         } catch (Exception $e) {
-            $this->failure("Failed to export: {$e->getMessage()}");
+            $this->failure(__('ichava/ichava-core::commands.common.export_failed', ['error' => $e->getMessage()]));
 
             return false;
         }
@@ -491,11 +300,11 @@ abstract class BaseCommand extends Command
             }
 
             fclose($handle);
-            $this->success("Exported to: {$filename}");
+            $this->success(__('ichava/ichava-core::commands.common.exported', ['path' => $filename]));
 
             return true;
         } catch (Exception $e) {
-            $this->failure("Failed to export: {$e->getMessage()}");
+            $this->failure(__('ichava/ichava-core::commands.common.export_failed', ['error' => $e->getMessage()]));
 
             return false;
         }
@@ -530,8 +339,8 @@ abstract class BaseCommand extends Command
     {
         if (! $this->ichavaTablesExist()) {
             $missing = $this->getMissingIchavaTables();
-            $this->failure('Required tables do not exist: ' . implode(', ', $missing));
-            $this->tip('Run migrations first: php artisan ichava::ichava-core.database migrate');
+            $this->failure(__('ichava/ichava-core::commands.common.tables_missing', ['tables' => implode(', ', $missing)]));
+            $this->tip(__('ichava/ichava-core::commands.common.run_migrations', ['command' => CommandName::of(DatabaseCommand::class)]));
 
             return false;
         }
@@ -553,20 +362,6 @@ abstract class BaseCommand extends Command
     }
 
     /**
-     * Get relative path from base path
-     */
-    protected function getRelativePath(string $path, ?string $basePath = null): string
-    {
-        $basePath = $basePath ?? base_path();
-
-        if (Str::startsWith($path, $basePath)) {
-            return substr($path, strlen($basePath) + 1);
-        }
-
-        return $path;
-    }
-
-    /**
      * Check if output is quiet mode
      */
     protected function isQuiet(): bool
@@ -575,80 +370,75 @@ abstract class BaseCommand extends Command
     }
 
     /**
-     * Check if verbose mode is enabled
+     * Execute a callback, reporting a failure under the action's own prefix.
+     *
+     * The message always prints; the file and line from -v, the stack trace
+     * only from -vvv. Traces can carry call arguments -- credentials handed to
+     * a connector, tokens in a URL -- so ExceptionRenderer holds them back
+     * below debug verbosity.
      */
-    protected function isVerbose(): bool
-    {
-        return $this->output->isVerbose();
-    }
-
-    /**
-     * Output only if not in quiet mode
-     */
-    protected function outputIfNotQuiet(string $message, string $type = 'line'): void
-    {
-        if (! $this->isQuiet()) {
-            match ($type) {
-                'info'    => info($message),
-                'warn'    => warning($message),
-                'error'   => error($message),
-                'comment' => $this->comment($message),
-                default   => $this->line($message),
-            };
-        }
-    }
-
-    /**
-     * Output only if in verbose mode
-     */
-    protected function outputIfVerbose(string $message, string $type = 'line'): void
-    {
-        if ($this->isVerbose()) {
-            match ($type) {
-                'info'    => info($message),
-                'warn'    => warning($message),
-                'error'   => error($message),
-                'comment' => $this->comment($message),
-                default   => $this->line($message),
-            };
-        }
-    }
-
-    /**
-     * Execute a callback with error handling
-     */
-    protected function tryExecute(callable $callback, string $failureMessage = 'Operation failed'): int
+    protected function tryExecute(callable $callback, ?string $failureMessage = null): int
     {
         try {
             return $callback();
         } catch (Exception $e) {
-            $this->failure("{$failureMessage}: {$e->getMessage()}");
-
-            if ($this->isVerbose()) {
-                $this->line("<fg=gray>{$e->getTraceAsString()}</>");
-            }
+            ExceptionRenderer::make($this->output)
+                ->context($failureMessage ?? __('ichava/ichava-core::commands.common.operation_failed'))
+                ->render($e);
 
             return self::FAILURE;
         }
     }
 
     /**
-     * Execute a callback with spinner and error handling
+     * Run a callback that may call another Artisan command through
+     * `Artisan::call()`, and take Laravel Prompts back afterwards.
+     *
+     * A nested command re-points Prompts' shared output -- and its fallbacks --
+     * at ITS OWN buffered output and never restores them, so everything this
+     * command printed through Prompts afterwards, success outro included,
+     * went into that buffer and never reached the user.
+     *
+     * @template T
+     *
+     * @param callable(): T $callback
+     *
+     * @return T
      */
-    protected function tryWithSpinner(string $message, callable $callback, string $failureMessage = 'Operation failed'): int
+    protected function reclaimingPrompts(callable $callback): mixed
     {
         try {
-            $result = $this->withSpinner($message, $callback);
-
-            return is_int($result) ? $result : self::SUCCESS;
-        } catch (Exception $e) {
-            $this->failure("{$failureMessage}: {$e->getMessage()}");
-
-            if ($this->isVerbose()) {
-                $this->line("<fg=gray>{$e->getTraceAsString()}</>");
-            }
-
-            return self::FAILURE;
+            return $callback();
+        } finally {
+            $this->configurePrompts($this->input);
         }
+    }
+
+    /**
+     * Offer the valid values for an argument, and re-run with the one chosen.
+     * Quiet runs cannot answer, so they return INVALID without asking.
+     *
+     * @param list<string> $valid
+     */
+    private function offerValidArgument(string $argument, array $valid, string $label, string $hint): int
+    {
+        if ($this->isQuiet()) {
+            return self::INVALID;
+        }
+
+        $selected = select(
+            label: $label,
+            options: array_merge(['cancel' => __('ichava/ichava-core::commands.common.cancel_option')], array_combine($valid, $valid)),
+            default: 'cancel',
+            hint: $hint,
+        );
+
+        if ($selected === 'cancel') {
+            return self::INVALID;
+        }
+
+        $this->input->setArgument($argument, $selected);
+
+        return $this->handle();
     }
 }

@@ -11,23 +11,28 @@ use Illuminate\Support\Str;
 use RecursiveIteratorIterator;
 use Illuminate\Database\Seeder;
 use RecursiveDirectoryIterator;
+use Illuminate\Bus\PendingBatch;
 
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
 use function Laravel\Prompts\table;
 
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\File;
 
 use function Laravel\Prompts\warning;
 
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Artisan;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Jobs\SeedIconsJob;
+use Simtabi\Laranail\Ichava\Support\CommandName;
+use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Commands\DatabaseCommand;
+use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
+use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Package\Tools\Services\Database\ChunkedBatchDispatcher;
 
 /**
  * Central seeder for all registered icon packages.
@@ -61,6 +66,15 @@ class IchavaSeeder extends Seeder
     public function __construct()
     {
         $this->logger = app('ichava.logger');
+    }
+
+    /**
+     * The SeederRunTracker key a package's seeding progress is written under,
+     * and read back by `ichava::ichava-core.job-status`.
+     */
+    public static function trackingKey(string $packageName): string
+    {
+        return "ichava:{$packageName}";
     }
 
     /**
@@ -199,78 +213,76 @@ class IchavaSeeder extends Seeder
             'force'       => $force,
         ]);
 
-        // Chunk files
-        $chunks = array_chunk($files, $chunkSize);
-        $totalJobs = count($chunks);
+        $queue = (string) config('ichava.ichava-core.queue.name', 'ichava-icons');
 
-        $this->logger->info("📦 Created {$totalJobs} seeding jobs", ['package' => $packageName]);
-
-        // Create jobs
-        $jobs = [];
-        foreach ($chunks as $index => $chunk) {
-            $jobs[] = new SeedIconsJob(
+        // Batch callbacks are serialized onto the queue, so none of them may
+        // capture $this (the seeder holds the console command). They resolve
+        // IchavaLogger from the container when they run instead.
+        $batch = ChunkedBatchDispatcher::make("Seed Icons: {$packageName}")
+            ->items($files)
+            ->chunk($chunkSize)
+            ->job(static fn (array $chunk, int $index, int $total): SeedIconsJob => new SeedIconsJob(
                 packageName: $packageName,
                 files: $chunk,
-                jobIndex: $index + 1,
-                totalJobs: $totalJobs,
+                jobIndex: $index,
+                totalJobs: $total,
                 force: $force,
-            );
-        }
-
-        // Batch closures must avoid capturing $this (non-serializable command).
-        // Resolve IchavaLogger from the container at execution time instead.
-        $batch = Bus::batch($jobs)
-            ->name("Seed Icons: {$packageName}")
-            ->onQueue(config('ichava.ichava-core.queue.name', 'ichava-icons'))
-            ->allowFailures()
-            ->before(function (Batch $b) use ($packageName) {
-                app(IchavaLogger::class)->seedingInfo('🌱 Icon seeding started', [
-                    'package'    => $packageName,
-                    'batch_id'   => $b->id,
-                    'total_jobs' => $b->totalJobs,
-                ]);
-            })
-            ->progress(function (Batch $b) use ($packageName, $onProgress) {
-                app(IchavaLogger::class)->seedingInfo('🔄 Seeding progress', [
-                    'package'   => $packageName,
-                    'progress'  => $b->progress(),
-                    'processed' => $b->processedJobs(),
-                    'pending'   => $b->pendingJobs,
-                    'failed'    => $b->failedJobs,
-                ]);
-                if ($onProgress) {
-                    $onProgress($b);
-                }
-            })
-            ->then(function (Batch $b) use ($packageName, $totalFiles) {
-                app(IchavaLogger::class)->seedingInfo('✅ Icon seeding completed', [
-                    'package'        => $packageName,
-                    'batch_id'       => $b->id,
-                    'total_files'    => $totalFiles,
-                    'processed_jobs' => $b->processedJobs(),
-                ]);
-            })
-            ->catch(function (Batch $b, Throwable $e) use ($packageName) {
-                app(IchavaLogger::class)->seedingError('❌ Icon seeding failed', [
-                    'package'     => $packageName,
-                    'batch_id'    => $b->id,
-                    'failed_jobs' => $b->failedJobs,
-                    'error'       => $e->getMessage(),
-                ]);
-            })
-            ->finally(function (Batch $b) use ($packageName) {
-                app(IchavaLogger::class)->seedingInfo('🏁 Icon seeding finished', [
-                    'package'  => $packageName,
-                    'batch_id' => $b->id,
-                    'success'  => ! $b->hasFailures(),
-                ]);
-            })
+            ))
+            ->queue($queue)
+            ->track(self::trackingKey($packageName))
+            ->configure(static fn (PendingBatch $pending): PendingBatch => $pending
+                ->before(static function (Batch $b) use ($packageName): void {
+                    app(IchavaLogger::class)->seedingInfo('🌱 Icon seeding started', [
+                        'package'    => $packageName,
+                        'batch_id'   => $b->id,
+                        'total_jobs' => $b->totalJobs,
+                    ]);
+                })
+                ->progress(static function (Batch $b) use ($packageName, $onProgress): void {
+                    app(IchavaLogger::class)->seedingInfo('🔄 Seeding progress', [
+                        'package'   => $packageName,
+                        'progress'  => $b->progress(),
+                        'processed' => $b->processedJobs(),
+                        'pending'   => $b->pendingJobs,
+                        'failed'    => $b->failedJobs,
+                    ]);
+                    if ($onProgress) {
+                        $onProgress($b);
+                    }
+                })
+                ->then(static function (Batch $b) use ($packageName, $totalFiles): void {
+                    app(IchavaLogger::class)->seedingInfo('✅ Icon seeding completed', [
+                        'package'        => $packageName,
+                        'batch_id'       => $b->id,
+                        'total_files'    => $totalFiles,
+                        'processed_jobs' => $b->processedJobs(),
+                    ]);
+                })
+                ->catch(static function (Batch $b, Throwable $e) use ($packageName): void {
+                    app(IchavaLogger::class)->seedingError('❌ Icon seeding failed', [
+                        'package'     => $packageName,
+                        'batch_id'    => $b->id,
+                        'failed_jobs' => $b->failedJobs,
+                        'error'       => $e->getMessage(),
+                    ]);
+                })
+                ->finally(static function (Batch $b) use ($packageName): void {
+                    app(IchavaLogger::class)->seedingInfo('🏁 Icon seeding finished', [
+                        'package'  => $packageName,
+                        'batch_id' => $b->id,
+                        'success'  => ! $b->hasFailures(),
+                    ]);
+                }))
             ->dispatch();
+
+        if ($batch === null) {
+            return null;
+        }
 
         $this->logger->info('🚀 Seeding jobs dispatched', [
             'package'    => $packageName,
             'batch_id'   => $batch->id,
-            'total_jobs' => count($jobs),
+            'total_jobs' => $batch->totalJobs,
         ]);
 
         return $batch;
@@ -301,85 +313,29 @@ class IchavaSeeder extends Seeder
             return ['error' => 'No SVG files found'];
         }
 
-        $chunks = array_chunk($files, $chunkSize);
-        $totalJobs = count($chunks);
-        $processed = 0;
-        $errors = [];
-
-        foreach ($chunks as $index => $chunk) {
-            try {
-                $job = new SeedIconsJob(
-                    packageName: $packageName,
-                    files: $chunk,
-                    jobIndex: $index + 1,
-                    totalJobs: $totalJobs,
-                    force: $force,
-                );
-
-                $job->handle($this->logger);
-                $processed += count($chunk);
-
-                gc_collect_cycles();
-
-            } catch (Throwable $e) {
-                $errors[] = [
-                    'job'   => $index + 1,
-                    'error' => $e->getMessage(),
-                ];
-            }
-        }
+        $run = ChunkedBatchDispatcher::make("Seed Icons: {$packageName}")
+            ->items($files)
+            ->chunk($chunkSize)
+            ->job(static fn (array $chunk, int $index, int $total): SeedIconsJob => new SeedIconsJob(
+                packageName: $packageName,
+                files: $chunk,
+                jobIndex: $index,
+                totalJobs: $total,
+                force: $force,
+            ))
+            ->track(self::trackingKey($packageName))
+            ->runInline();
 
         return [
             'total_files' => $totalFiles,
-            'processed'   => $processed,
-            'jobs'        => $totalJobs,
-            'errors'      => $errors,
-            'force'       => $force,
+            'processed'   => $run->processed,
+            'jobs'        => $run->chunks,
+            'errors'      => array_map(
+                static fn (array $error): array => ['job' => $error['chunk'], 'error' => $error['message']],
+                $run->errors,
+            ),
+            'force' => $force,
         ];
-    }
-
-    /**
-     * Get seeding job status by batch ID.
-     */
-    public function getStatus(string $batchId): ?array
-    {
-        $batch = Bus::findBatch($batchId);
-
-        if (! $batch) {
-            return null;
-        }
-
-        return [
-            'id'             => $batch->id,
-            'name'           => $batch->name,
-            'progress'       => $batch->progress(),
-            'total_jobs'     => $batch->totalJobs,
-            'pending_jobs'   => $batch->pendingJobs,
-            'processed_jobs' => $batch->processedJobs(),
-            'failed_jobs'    => $batch->failedJobs,
-            'has_failures'   => $batch->hasFailures(),
-            'finished'       => $batch->finished(),
-            'cancelled'      => $batch->cancelled(),
-            'created_at'     => $batch->createdAt,
-            'finished_at'    => $batch->finishedAt,
-        ];
-    }
-
-    /**
-     * Cancel a running seeding operation.
-     */
-    public function cancel(string $batchId): bool
-    {
-        $batch = Bus::findBatch($batchId);
-
-        if (! $batch) {
-            return false;
-        }
-
-        $batch->cancel();
-        $this->logger->info('🛑 Seeding cancelled', ['batch_id' => $batchId]);
-
-        return true;
     }
 
     /**
@@ -437,7 +393,7 @@ class IchavaSeeder extends Seeder
      */
     protected function seedAllPackages(): void
     {
-        $this->command->info('🔄 Discovering registered icon packages...');
+        $this->command->info(__('ichava/ichava-core::commands.seeder.discovering'));
         $this->command->newLine();
         $this->logger->seedingInfo('🔍 Starting package discovery');
 
@@ -449,7 +405,7 @@ class IchavaSeeder extends Seeder
             return;
         }
 
-        $this->command->info('📋 Found ' . count($packages) . ' package(s)');
+        $this->command->info(__('ichava/ichava-core::commands.seeder.found', ['count' => count($packages)]));
         $this->command->newLine();
         $this->logger->seedingInfo('Found ' . count($packages) . ' registered packages');
 
@@ -486,11 +442,11 @@ class IchavaSeeder extends Seeder
                 $packageStats['icons'] = $iconCount;
                 $stats['total_icons'] += $iconCount;
 
-                $this->command->line("    <fg=gray>Icons found: {$iconCount}</fg=gray>");
+                $this->command->line('    <fg=gray>' . __('ichava/ichava-core::commands.seeder.icons_found', ['count' => $iconCount]) . '</>');
                 $this->logger->seedingInfo("🎨 Icons found for {$packageName}: {$iconCount}");
 
                 if ($iconCount === 0) {
-                    $this->command->line('    <fg=yellow>⚠ No icons to seed</fg=yellow>');
+                    $this->command->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.no_icons') . '</>');
                     $packageStats['status'] = 'empty';
                     $stats['packages_success']++;
                     $stats['package_details'][] = $packageStats;
@@ -499,10 +455,10 @@ class IchavaSeeder extends Seeder
                 }
 
                 // Step 3: Seed icons
-                $forceMsg = $this->forceUpdate ? ' (force update)' : '';
+                $forceMsg = $this->forceUpdate ? __('ichava/ichava-core::commands.seeder.force_suffix') : '';
 
                 if ($this->syncMode || ! config('ichava.ichava-core.database.use_queue', true)) {
-                    $this->command->line("    <fg=yellow>→ Seeding icons synchronously{$forceMsg} (chunk size: {$chunkSize})...</fg=yellow>");
+                    $this->command->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.seeding_sync', ['force' => $forceMsg, 'size' => $chunkSize]) . '</>');
 
                     $result = $this->seedSync($packageName, $packageData['svg_path'], $chunkSize, $this->forceUpdate);
 
@@ -512,11 +468,11 @@ class IchavaSeeder extends Seeder
 
                     $packageStats['jobs'] = $result['jobs'];
                     $packageStats['status'] = 'synced';
-                    $this->command->line("    <fg=green>✓ Seeded {$result['processed']} icons in {$result['jobs']} chunks</fg=green>");
+                    $this->command->line('    <fg=green>' . __('ichava/ichava-core::commands.seeder.seeded_sync', ['processed' => $result['processed'], 'chunks' => $result['jobs']]) . '</>');
                     $this->logger->seedingInfo("✅ Icons seeded synchronously for {$packageName}", $result);
 
                 } else {
-                    $this->command->line("    <fg=yellow>→ Dispatching seeding jobs{$forceMsg} (chunk size: {$chunkSize})...</fg=yellow>");
+                    $this->command->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.dispatching', ['force' => $forceMsg, 'size' => $chunkSize]) . '</>');
 
                     $batch = $this->seed($packageName, $packageData['svg_path'], $chunkSize, null, $this->forceUpdate);
 
@@ -526,7 +482,7 @@ class IchavaSeeder extends Seeder
                         $packageStats['status'] = 'queued';
                         $packageStats['batch_id'] = $batch->id;
                         $stats['jobs_dispatched'] += $totalJobs;
-                        $this->command->line("    <fg=green>✓ Dispatched {$totalJobs} jobs (ID: {$batch->id})</fg=green>");
+                        $this->command->line('    <fg=green>' . __('ichava/ichava-core::commands.seeder.dispatched', ['jobs' => $totalJobs, 'batch' => $batch->id]) . '</>');
                         $this->logger->seedingInfo("🚀 Seeding jobs dispatched for {$packageName}", [
                             'batch_id'     => $batch->id,
                             'total_jobs'   => $totalJobs,
@@ -539,7 +495,7 @@ class IchavaSeeder extends Seeder
                 $stats['packages_success']++;
 
             } catch (IchavaException|Throwable $e) {
-                $this->command->error('    ❌ Failed: ' . $e->getMessage());
+                $this->command->error('    ' . __('ichava/ichava-core::commands.seeder.failed', ['message' => $e->getMessage()]));
                 $this->logger->error("❌ Failed to process package: {$packageName}", $e, [
                     'package' => $packageName,
                 ]);
@@ -600,16 +556,16 @@ class IchavaSeeder extends Seeder
      */
     protected function seedPackageTerms(string $packageName, array $packageData): void
     {
-        $this->command->line('    <fg=gray>→ Seeding terms...</fg=gray>');
+        $this->command->line('    <fg=gray>' . __('ichava/ichava-core::commands.seeder.seeding_terms') . '</>');
 
         try {
             $termSeeder = new IconTermsSeeder;
             $termSeeder->setCommand($this->command);
             $termSeeder->setContainer(app());
             $termSeeder->seedSinglePackage($packageName, $packageData);
-            $this->command->line('    <fg=green>✓ Terms seeded</fg=green>');
+            $this->command->line('    <fg=green>' . __('ichava/ichava-core::commands.seeder.terms_seeded') . '</>');
         } catch (IchavaException $e) {
-            $this->command->warn("    ⚠ Terms failed: {$e->getMessage()}");
+            $this->command->warn('    ' . __('ichava/ichava-core::commands.seeder.terms_failed', ['message' => $e->getMessage()]));
         }
     }
 
@@ -655,8 +611,8 @@ class IchavaSeeder extends Seeder
     protected function ensureTableExists(): bool
     {
         if (! Schema::hasTable('ichava_icons')) {
-            $this->command->error('❌ Table "ichava_icons" does not exist!');
-            $this->command->warn('💡 Run migrations first: php artisan migrate');
+            $this->command->error(__('ichava/ichava-core::commands.seeder.table_missing'));
+            $this->command->warn(__('ichava/ichava-core::commands.seeder.table_missing_hint'));
 
             return false;
         }
@@ -666,21 +622,21 @@ class IchavaSeeder extends Seeder
 
     protected function displayHeader(): void
     {
-        $this->command->line('<options=bold;fg=cyan>🚀 Ichava Icon Database Seeding</>');
+        $this->command->line('<options=bold;fg=cyan>' . __('ichava/ichava-core::commands.seeder.header') . '</>');
         $this->command->newLine();
     }
 
     protected function displayFooter(): void
     {
         $this->command->newLine();
-        $this->command->line('<options=bold;fg=green>✅ Seeding completed!</>');
+        $this->command->line('<options=bold;fg=green>' . __('ichava/ichava-core::commands.seeder.completed') . '</>');
 
         if ($this->syncMode) {
             try {
                 $totalIcons = Icon::count();
-                info('📊 Total icons in database: ' . number_format($totalIcons));
+                info(__('ichava/ichava-core::commands.seeder.total_in_database', ['count' => number_format($totalIcons)]));
             } catch (Exception $e) {
-                warning('📊 Unable to query database. Run: php artisan ichava::ichava-core.database stats');
+                warning(__('ichava/ichava-core::commands.seeder.database_unreadable', ['command' => CommandName::of(DatabaseCommand::class)]));
             }
         }
     }
@@ -689,47 +645,53 @@ class IchavaSeeder extends Seeder
     {
         $this->command->newLine();
 
-        $this->command->line('<options=bold;fg=cyan>📊 ICHAVA SEEDING SUMMARY</>');
+        $this->command->line('<options=bold;fg=cyan>' . __('ichava/ichava-core::commands.seeder.summary') . '</>');
 
-        // Configuration summary table
-        $mode = $stats['mode'] === 'sync' ? 'Synchronous' : 'Queue';
-        $force = $stats['force_update'] ? 'Yes' : 'No';
-
-        table(
-            headers: ['Setting', 'Value'],
-            rows: [
-                ['Mode', $mode],
-                ['Force Update', $force],
-                ['Chunk Size', number_format($stats['chunk_size'])],
-                ['Total Icons', number_format($stats['total_icons'])],
-                ['Total Jobs', number_format($stats['jobs_dispatched'])],
-            ],
-        );
+        MetricTable::make()
+            ->headers(__('ichava/ichava-core::commands.seeder.setting'))
+            ->metrics([
+                [__('ichava/ichava-core::commands.seeder.mode'), $stats['mode'] === 'sync' ? __('ichava/ichava-core::commands.seeder.mode_sync') : __('ichava/ichava-core::commands.seeder.mode_queue')],
+                [__('ichava/ichava-core::commands.seeder.force_update'), $stats['force_update']],
+                [__('ichava/ichava-core::commands.seeder.chunk_size'), $stats['chunk_size']],
+                [__('ichava/ichava-core::commands.seeder.total_icons'), $stats['total_icons']],
+                [__('ichava/ichava-core::commands.seeder.total_jobs'), $stats['jobs_dispatched']],
+            ])
+            ->render($this->command->getOutput());
 
         $this->command->newLine();
-        info("📦 Packages ({$stats['packages_total']} total)");
+        info(__('ichava/ichava-core::commands.seeder.packages', ['count' => $stats['packages_total']]));
 
-        // Package breakdown table
+        $statuses = [
+            'synced' => Status::Success,
+            'queued' => Status::Pending,
+            'empty'  => Status::Inactive,
+            'failed' => Status::Failed,
+        ];
+
+        $labels = [
+            'synced' => __('ichava/ichava-core::commands.seeder.status.synced'),
+            'queued' => __('ichava/ichava-core::commands.seeder.status.queued'),
+            'empty'  => __('ichava/ichava-core::commands.seeder.status.empty'),
+            'failed' => __('ichava/ichava-core::commands.seeder.status.failed'),
+        ];
+
         $packageRows = [];
         foreach ($stats['package_details'] as $pkg) {
-            $status = match ($pkg['status']) {
-                'synced' => '✓ Synced',
-                'queued' => '⏳ Queued',
-                'empty'  => '○ Empty',
-                'failed' => '✗ Failed',
-                default  => '? Unknown',
-            };
-
             $packageRows[] = [
                 $pkg['name'],
                 number_format($pkg['icons']),
                 (string) $pkg['jobs'],
-                $status,
+                StatusBadge::fromMap($statuses, $pkg['status'])->label($labels[$pkg['status']] ?? null)->render(),
             ];
         }
 
         table(
-            headers: ['Package', 'Icons', 'Jobs', 'Status'],
+            headers: [
+                __('ichava/ichava-core::commands.seeder.table.package'),
+                __('ichava/ichava-core::commands.seeder.table.icons'),
+                __('ichava/ichava-core::commands.seeder.table.jobs'),
+                __('ichava/ichava-core::commands.seeder.table.status'),
+            ],
             rows: $packageRows,
         );
 
@@ -737,9 +699,9 @@ class IchavaSeeder extends Seeder
 
         // Result
         if ($stats['packages_failed'] > 0) {
-            warning("⚠ {$stats['packages_failed']} package(s) failed!");
+            warning(__('ichava/ichava-core::commands.seeder.packages_failed', ['count' => $stats['packages_failed']]));
         } else {
-            $this->command->line("<options=bold;fg=green>✓ All {$stats['packages_success']} package(s) processed successfully!</>");
+            $this->command->line('<options=bold;fg=green>' . __('ichava/ichava-core::commands.seeder.packages_succeeded', ['count' => $stats['packages_success']]) . '</>');
         }
     }
 
@@ -754,44 +716,31 @@ class IchavaSeeder extends Seeder
         $queueName = config('ichava.ichava-core.queue.name', 'ichava-icons');
 
         $this->command->newLine();
-        $this->command->line("<options=bold;fg=yellow>⏳ Processing {$jobCount} seeding jobs...</>");
+        $this->command->line('<options=bold;fg=yellow>' . __('ichava/ichava-core::commands.seeder.processing_jobs', ['count' => $jobCount]) . '</>');
         $this->command->newLine();
 
         try {
             // Process all queued jobs and exit when done
-            Artisan::call('queue:work', [
-                '--queue'           => $queueName,
-                '--stop-when-empty' => true,
-                '--memory'          => 512,
-                '--timeout'         => 300,
-            ], $this->command->getOutput());
+            ChunkedBatchDispatcher::drain($queueName, $this->command->getOutput(), [
+                '--memory'  => 512,
+                '--timeout' => 300,
+            ]);
 
             $this->command->newLine();
-            $this->command->line('<options=bold;fg=green>✅ All seeding jobs processed!</>');
+            $this->command->line('<options=bold;fg=green>' . __('ichava/ichava-core::commands.seeder.jobs_processed') . '</>');
 
         } catch (Throwable $e) {
-            $this->command->line('<options=bold;fg=red>❌ Queue processing failed: ' . $e->getMessage() . '</>');
+            $this->command->line('<options=bold;fg=red>' . __('ichava/ichava-core::commands.seeder.queue_failed', ['message' => $e->getMessage()]) . '</>');
             $this->command->newLine();
-            note("Run manually: php artisan queue:work --queue={$queueName} --stop-when-empty");
+            note(__('ichava/ichava-core::commands.seeder.queue_manual', ['queue' => $queueName]));
         }
-    }
-
-    protected function displayJobInstructions(int $jobCount): void
-    {
-        $queueName = config('ichava.ichava-core.queue.name', 'ichava-icons');
-
-        $this->command->newLine();
-        warning("⏳ {$jobCount} seeding jobs dispatched to queue");
-        $this->command->newLine();
-        note("Start queue worker: php artisan queue:work --queue={$queueName}");
-        note('Or use Horizon: php artisan horizon');
     }
 
     protected function displayNoPackagesMessage(): void
     {
-        warning('⚠️  No icon packages registered!');
+        warning(__('ichava/ichava-core::commands.seeder.no_packages'));
         $this->command->newLine();
-        note('💡 Register packages using IconRegistry::fromDirectory()');
+        note(__('ichava/ichava-core::commands.seeder.no_packages_hint'));
 
         $codeExample = <<<'CODE'
 IconRegistry::fromDirectory(

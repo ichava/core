@@ -96,7 +96,7 @@ it('fails for an unknown set and lists the available keys', function (): void {
     [$exit, $display] = $this->runCommand(INSTALL_COMMAND, ['set' => 'nope']);
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ["❌ Unknown icon set 'nope'.", 'Available: tabler, flags, emoji']);
+    $this->assertDisplayContains($display, ["✗ Unknown icon set 'nope'.", 'Available: tabler, flags, emoji']);
 });
 
 it('fails when the catalog cannot be loaded', function (): void {
@@ -105,7 +105,7 @@ it('fails when the catalog cannot be loaded', function (): void {
     [$exit, $display] = $this->runCommand(INSTALL_COMMAND, ['set' => 'tabler']);
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['❌ Could not load icon set catalog: catalog is corrupt']);
+    $this->assertDisplayContains($display, ['✗ Could not load icon set catalog: catalog is corrupt']);
 });
 
 it('succeeds with a warning when the catalog is empty', function (): void {
@@ -170,5 +170,5 @@ it('fails when migrating did not produce the tables', function (): void {
     [$exit, $display] = $this->runCommand(INSTALL_COMMAND, ['set' => 'tabler'], ['yes']);
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['🔄 Running Ichava migrations', '❌ Core migrations did not complete.']);
+    $this->assertDisplayContains($display, ['🔄 Running Ichava migrations', '✗ Core migrations did not complete.']);
 });

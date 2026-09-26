@@ -13,6 +13,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Simtabi\Laranail\Ichava\Support\AuditLogger;
+use Simtabi\Laranail\DbTools\Query\PortableQuery;
 use Simtabi\Laranail\Ichava\Commands\InfoCommand;
 use Simtabi\Laranail\Ichava\Facades\IchavaFacade;
 use Simtabi\Laranail\Ichava\Support\IconRenderer;
@@ -216,7 +217,13 @@ class IchavaServiceProvider extends PackageServiceProvider
      */
     public function packageRegistered(): void
     {
-        // Intentionally empty. This used to re-merge a nested config block back
+        // Icon::scopeFuzzySearch() builds on laranail/db-tools' portable LIKE
+        // macros. Registered here as well as by db-tools' own provider, because a
+        // host that turns off package discovery would otherwise lose search with a
+        // BadMethodCallException. register() is idempotent.
+        PortableQuery::register();
+
+        // No config re-merge here any more. This used to re-merge a nested config block back
         // onto the flat 'ichava' key. The nesting came from the config file
         // being named 'ichava' while the package short name is 'core', so
         // package-tools appended the filename to the namespace. The short name
