@@ -72,26 +72,29 @@ final class CheckIconUpdatesCommand extends BaseCommand
         $format = $this->option('format');
         $failOnStale = (bool) $this->option('fail-on-stale');
 
-        intro(__('ichava/ichava-core::commands.check_updates.intro'));
+        // Under --format=json stdout is the JSON document and nothing else --
+        // no intro, spinner, note or outro -- so it can be piped straight
+        // into a parser. The exit code still carries --fail-on-stale.
+        $json = $format === 'json';
+
+        if (! $json) {
+            intro(__('ichava/ichava-core::commands.check_updates.intro'));
+        }
 
         // Spin while checkAll() does its HTTP round-trips per pack.
-        // For json / non-interactive runs the spinner falls back to a
-        // silent execution -- Laravel Prompts handles that automatically.
-        $results = $format === 'json'
+        $results = $json
             ? $checker->checkAll($packageFilter)
             : spin(
                 fn () => $checker->checkAll($packageFilter),
                 __('ichava/ichava-core::commands.check_updates.polling'),
             );
 
-        if (empty($results)) {
+        if ($json) {
+            $this->line(json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        } elseif (empty($results)) {
             note(__('ichava/ichava-core::commands.check_updates.none'));
 
             return self::SUCCESS;
-        }
-
-        if ($format === 'json') {
-            $this->line(json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         } else {
             // Only render the Source column when at least one row has a
             // non-primary source -- otherwise it's noise for the common
@@ -134,12 +137,12 @@ final class CheckIconUpdatesCommand extends BaseCommand
         $stale = array_filter($results, static fn (array $r): bool => $r['status'] === 'update-available');
         $unreachable = array_filter($results, static fn (array $r): bool => in_array($r['status'], ['unreachable', 'error'], true));
 
-        if (! empty($stale)) {
-            outro(__('ichava/ichava-core::commands.check_updates.behind', ['count' => count($stale)]));
-        } elseif (! empty($unreachable)) {
-            outro(__('ichava/ichava-core::commands.check_updates.unreachable', ['count' => count($unreachable)]));
-        } else {
-            outro(__('ichava/ichava-core::commands.check_updates.up_to_date'));
+        if (! $json) {
+            outro(match (true) {
+                $stale !== []       => __('ichava/ichava-core::commands.check_updates.behind', ['count' => count($stale)]),
+                $unreachable !== [] => __('ichava/ichava-core::commands.check_updates.unreachable', ['count' => count($unreachable)]),
+                default             => __('ichava/ichava-core::commands.check_updates.up_to_date'),
+            });
         }
 
         if ($failOnStale && (! empty($stale) || ! empty($unreachable))) {
