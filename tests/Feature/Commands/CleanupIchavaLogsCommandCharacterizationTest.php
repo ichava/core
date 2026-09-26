@@ -139,7 +139,7 @@ it('reports when no Ichava logs exist', function (): void {
     [$exit, $display] = $this->runCommand(CLEANUP_LOGS_COMMAND, ['--days' => 7]);
 
     $this->assertSame(0, $exit);
-    $this->assertDisplayContains($display, ['✅ No Ichava log files found']);
+    $this->assertDisplayContains($display, ['✓ No Ichava log files found']);
 });
 
 it('fails when the log directory is missing', function (): void {
@@ -148,5 +148,5 @@ it('fails when the log directory is missing', function (): void {
     [$exit, $display] = $this->runCommand(CLEANUP_LOGS_COMMAND, ['--days' => 7]);
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ["❌ Log directory not found: {$this->storage}/logs"]);
+    $this->assertDisplayContains($display, ["✗ Log directory not found: {$this->storage}/logs"]);
 });
