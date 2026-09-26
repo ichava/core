@@ -15,7 +15,7 @@
                 "outline",
                 "filled"
             ],
-            "latest_version": "0.3.2"
+            "latest_version": "0.3.3"
         },
         {
             "key": "flags",
@@ -29,7 +29,7 @@
                 "4x3",
                 "1x1"
             ],
-            "latest_version": "0.3.2"
+            "latest_version": "0.3.3"
         },
         {
             "key": "emoji",
@@ -42,8 +42,8 @@
             "variants": [
                 "default"
             ],
-            "latest_version": "0.3.2"
+            "latest_version": "0.3.3"
         }
     ],
-    "synced_at": "2026-09-22T08:04:34Z"
+    "synced_at": "2026-09-26T08:07:47Z"
 }
