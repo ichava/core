@@ -10,6 +10,8 @@ use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
 use function Laravel\Prompts\table;
 
+use Simtabi\Laranail\Console\Tools\Support\Status;
+use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
 use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
 
 /**
@@ -27,6 +29,21 @@ use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
  */
 final class CheckIconUpdatesCommand extends BaseCommand
 {
+    /**
+     * The checker's states on the shared status vocabulary. The state itself
+     * stays the label: it is what `--format=json` prints and what a user
+     * searches the output for.
+     *
+     * @var array<string, Status>
+     */
+    private const array UPDATE_STATUS_MAP = [
+        'up-to-date'       => Status::Success,
+        'update-available' => Status::Warning,
+        'unreachable'      => Status::Failed,
+        'error'            => Status::Failed,
+        'no-upstream'      => Status::Skipped,
+    ];
+
     /*
      * Named `.check-updates`, not `.icons:check-updates`.
      *
@@ -55,26 +72,29 @@ final class CheckIconUpdatesCommand extends BaseCommand
         $format = $this->option('format');
         $failOnStale = (bool) $this->option('fail-on-stale');
 
-        intro('🔍 Checking icon-pack upstream sources');
+        // Under --format=json stdout is the JSON document and nothing else --
+        // no intro, spinner, note or outro -- so it can be piped straight
+        // into a parser. The exit code still carries --fail-on-stale.
+        $json = $format === 'json';
+
+        if (! $json) {
+            intro(__('ichava/ichava-core::commands.check_updates.intro'));
+        }
 
         // Spin while checkAll() does its HTTP round-trips per pack.
-        // For json / non-interactive runs the spinner falls back to a
-        // silent execution -- Laravel Prompts handles that automatically.
-        $results = $format === 'json'
+        $results = $json
             ? $checker->checkAll($packageFilter)
             : spin(
                 fn () => $checker->checkAll($packageFilter),
-                'Polling upstream sources (12h cache on hit)…',
+                __('ichava/ichava-core::commands.check_updates.polling'),
             );
 
-        if (empty($results)) {
-            note('No registered packs to check.');
+        if ($json) {
+            $this->line(json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        } elseif (empty($results)) {
+            note(__('ichava/ichava-core::commands.check_updates.none'));
 
             return self::SUCCESS;
-        }
-
-        if ($format === 'json') {
-            $this->line(json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         } else {
             // Only render the Source column when at least one row has a
             // non-primary source -- otherwise it's noise for the common
@@ -95,7 +115,7 @@ final class CheckIconUpdatesCommand extends BaseCommand
                 ], $results);
 
                 table(
-                    headers: ['Package', 'Source', 'Status', 'Current', 'Latest', 'Notes'],
+                    headers: [__('ichava/ichava-core::commands.check_updates.table.package'), __('ichava/ichava-core::commands.check_updates.table.source'), __('ichava/ichava-core::commands.check_updates.table.status'), __('ichava/ichava-core::commands.check_updates.table.current'), __('ichava/ichava-core::commands.check_updates.table.latest'), __('ichava/ichava-core::commands.check_updates.table.notes')],
                     rows: $rows,
                 );
             } else {
@@ -108,7 +128,7 @@ final class CheckIconUpdatesCommand extends BaseCommand
                 ], $results);
 
                 table(
-                    headers: ['Package', 'Status', 'Current', 'Latest', 'Notes'],
+                    headers: [__('ichava/ichava-core::commands.check_updates.table.package'), __('ichava/ichava-core::commands.check_updates.table.status'), __('ichava/ichava-core::commands.check_updates.table.current'), __('ichava/ichava-core::commands.check_updates.table.latest'), __('ichava/ichava-core::commands.check_updates.table.notes')],
                     rows: $rows,
                 );
             }
@@ -117,12 +137,12 @@ final class CheckIconUpdatesCommand extends BaseCommand
         $stale = array_filter($results, static fn (array $r): bool => $r['status'] === 'update-available');
         $unreachable = array_filter($results, static fn (array $r): bool => in_array($r['status'], ['unreachable', 'error'], true));
 
-        if (! empty($stale)) {
-            outro(sprintf('⚠️  %d pack(s) behind upstream', count($stale)));
-        } elseif (! empty($unreachable)) {
-            outro(sprintf('⚠️  %d pack(s) unreachable; rest up to date', count($unreachable)));
-        } else {
-            outro('✅ All packs up to date');
+        if (! $json) {
+            outro(match (true) {
+                $stale !== []       => __('ichava/ichava-core::commands.check_updates.behind', ['count' => count($stale)]),
+                $unreachable !== [] => __('ichava/ichava-core::commands.check_updates.unreachable', ['count' => count($unreachable)]),
+                default             => __('ichava/ichava-core::commands.check_updates.up_to_date'),
+            });
         }
 
         if ($failOnStale && (! empty($stale) || ! empty($unreachable))) {
@@ -134,12 +154,6 @@ final class CheckIconUpdatesCommand extends BaseCommand
 
     protected static function statusBadge(string $status): string
     {
-        return match ($status) {
-            'up-to-date'       => '<fg=green>up-to-date</fg=green>',
-            'update-available' => '<fg=yellow>update-available</fg=yellow>',
-            'unreachable'      => '<fg=red>unreachable</fg=red>',
-            'no-upstream'      => '<fg=gray>no-upstream</fg=gray>',
-            default            => "<fg=red>{$status}</fg=red>",
-        };
+        return StatusBadge::fromMap(self::UPDATE_STATUS_MAP, $status)->label($status)->render();
     }
 }

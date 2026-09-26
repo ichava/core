@@ -89,11 +89,12 @@ it('emits valid JSON under --format=json', function () {
         ->toContain('"package": "ichava/icon-sets-tabler"')
         ->and($output)->toContain('"latest": "3.44.0"');
 
-    if (preg_match('/(\[\s*\{.*?\}\s*\])/s', $output, $m)) {
-        $decoded = json_decode($m[1], true);
-        expect($decoded)->toBeArray()->and($decoded)->toHaveCount(1);
-        expect($decoded[0]['package'])->toBe('ichava/icon-sets-tabler');
-    }
+    // The whole of stdout is the document -- no intro or outro around it --
+    // so it decodes as-is. This used to regex the array out, inside an `if`
+    // that passed silently whenever the regex matched nothing.
+    $decoded = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
+    expect($decoded)->toBeArray()->toHaveCount(1)
+        ->and($decoded[0]['package'])->toBe('ichava/icon-sets-tabler');
 });
 
 it('exits non-zero with --fail-on-stale when any pack is behind', function () {

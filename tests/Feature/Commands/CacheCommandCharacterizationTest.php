@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Contracts\Console\Kernel;
 use Simtabi\Laranail\Ichava\Commands\CacheCommand;
 use Symfony\Component\Console\Output\OutputInterface;
+use Simtabi\Laranail\Ichava\Actions\ClearDiscoveryCaches;
 use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
 use Simtabi\Laranail\Ichava\Tests\Support\RunsCommandsForCharacterization;
 
@@ -14,9 +15,9 @@ use Simtabi\Laranail\Ichava\Tests\Support\RunsCommandsForCharacterization;
 | Characterization: `ichava::ichava-core.cache`
 |--------------------------------------------------------------------------
 |
-| Pins what the command prints and asks TODAY, before the console refactor.
-| Three of its six actions are broken on main -- pinned as they are, so the
-| refactor fixes them visibly rather than by accident.
+| Pins what the command prints and asks. Three of its six actions -- clear,
+| refresh and generate -- called cache methods that never existed; they
+| were pinned broken before the console refactor and fixed in it.
 |
 */
 
@@ -71,9 +72,9 @@ it('prints the cache statistics table for stats', function (): void {
         'Cached Categories',
         'Total Cache Keys',
         'Manifest Exists',
-        '❌ No',
+        '✗ No',
         'Manifest Stale',
-        '⚠️  Yes',
+        '⚠ Yes',
     ]);
 });
 
@@ -108,13 +109,14 @@ it('reports the tryExecute failure message when rebuild throws', function (): vo
     [$exit, $display] = $this->runCommand(CACHE_COMMAND, ['action' => 'rebuild']);
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['❌ Failed to rebuild cache: store unreachable']);
-    $this->assertDisplayLacks($display, ['#0 ', '✅ Cache rebuilt successfully']);
+    $this->assertDisplayContains($display, ['Failed to rebuild cache: store unreachable']);
+    $this->assertDisplayLacks($display, ['File: ', '#0 ', '✅ Cache rebuilt successfully']);
 });
 
-it('prints the full stack trace at -v when tryExecute catches', function (): void {
-    // characterization: tryExecute prints the whole trace at -v, where the
-    // laranail/console base holds traces back to -vvv; changes in the refactor.
+it('adds the file and line at -v, but no stack trace', function (): void {
+    // Traces can carry call arguments, so tryExecute holds them back to -vvv,
+    // the policy laranail/console's ExceptionRenderer applies everywhere. It
+    // used to print the whole trace at -v.
     bindThrowingCacheOperations();
 
     [$exit, $display] = $this->runCommand(
@@ -124,62 +126,94 @@ it('prints the full stack trace at -v when tryExecute catches', function (): voi
     );
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['❌ Failed to rebuild cache: store unreachable', '#0 ']);
+    $this->assertDisplayContains($display, ['Failed to rebuild cache: store unreachable', 'File: ']);
+    $this->assertDisplayLacks($display, ['#0 ']);
 });
 
-it('fails clear on a method the cache service does not have', function (): void {
-    // characterization: CacheOperationsService::clearAll() calls
-    // IconCacheService::forgetPattern(), which does not exist. The Error is not
-    // an Exception, so tryExecute's catch misses it and the laranail/console
-    // base reports it instead ("Command failed:"), skipping the command's own
-    // failure line. Changes in the refactor.
-    [$exit, $display] = $this->runCommand(CACHE_COMMAND, ['action' => 'clear']);
+it('prints the stack trace at -vvv', function (): void {
+    bindThrowingCacheOperations();
+
+    [$exit, $display] = $this->runCommand(
+        CACHE_COMMAND,
+        ['action' => 'rebuild'],
+        verbosity: OutputInterface::VERBOSITY_DEBUG,
+    );
 
     $this->assertSame(1, $exit);
+    $this->assertDisplayContains($display, ['Failed to rebuild cache: store unreachable', 'File: ', 'Trace: ', '#0 ']);
+});
+
+it('clears the discovery caches, each pack count cache and the watcher fingerprints', function (): void {
+    // clear used to call IconCacheService::forgetPattern(), which never
+    // existed, so it failed on every run.
+    $generation = ClearDiscoveryCaches::generation();
+
+    [$exit, $display] = $this->runCommand(
+        CACHE_COMMAND,
+        ['action' => 'clear'],
+        verbosity: OutputInterface::VERBOSITY_VERBOSE,
+    );
+
+    $this->assertSame(0, $exit);
+    $this->assertSame($generation + 1, ClearDiscoveryCaches::generation(), 'The discovery caches were not retired.');
     $this->assertDisplayContains($display, [
         '🧹 Clearing icon caches',
-        'Clearing all caches...',
-        'Command failed: Call to undefined method Simtabi\Laranail\Ichava\Services\IconCacheService::forgetPattern()',
+        'Cleared 3 cache group(s)',
+        'Cleared Caches',
+        'ichava.discovery.*',
+        'ichava.discovery.manifest.',
+        'ichava.directory.fingerprints',
+        '⏱️  Completed in',
     ]);
-    $this->assertDisplayLacks($display, ['❌ Failed to clear cache']);
+    $this->assertDisplayLacks($display, ['Call to undefined method']);
 });
 
-it('fails clear --package the same way', function (): void {
-    // characterization: same undefined forgetPattern(); changes in the refactor.
+it('clears one pack with --package', function (): void {
+    $generation = ClearDiscoveryCaches::generation();
+
     [$exit, $display] = $this->runCommand(CACHE_COMMAND, ['action' => 'clear', '--package' => 'ichava/test-icons']);
 
-    $this->assertSame(1, $exit);
+    $this->assertSame(0, $exit);
+    $this->assertSame($generation + 1, ClearDiscoveryCaches::generation());
     $this->assertDisplayContains($display, [
         'Clearing cache for package: ichava/test-icons...',
-        'Command failed: Call to undefined method',
+        'Cleared 2 cache group(s)',
     ]);
 });
 
-it('fails refresh the same way, because it clears first', function (): void {
-    // characterization: refresh() calls clearAll(); changes in the refactor.
-    [$exit, $display] = $this->runCommand(CACHE_COMMAND, ['action' => 'refresh']);
+it('fails clear --package for a pack that is not registered', function (): void {
+    [$exit, $display] = $this->runCommand(CACHE_COMMAND, ['action' => 'clear', '--package' => 'ichava/nope']);
 
     $this->assertSame(1, $exit);
+    $this->assertDisplayContains($display, ['Failed to clear cache: ', 'ichava/nope']);
+});
+
+it('refreshes by clearing and rebuilding', function (): void {
+    [$exit, $display] = $this->runCommand(CACHE_COMMAND, ['action' => 'refresh']);
+
+    $this->assertSame(0, $exit);
     $this->assertDisplayContains($display, [
         '🔄 Refreshing icon caches',
         'Clearing and rebuilding caches...',
-        'Command failed: Call to undefined method Simtabi\Laranail\Ichava\Services\IconCacheService::forgetPattern()',
+        'Keys Cleared',
+        'Total Icons',
+        '✅ Cache refreshed successfully',
     ]);
-    $this->assertDisplayLacks($display, ['✅ Cache refreshed successfully']);
 });
 
-it('fails generate on a method the cache service does not have', function (): void {
-    // characterization: generateProductionCache() is called on IconCacheService,
-    // which does not declare it; the Error escapes tryExecute. Changes in the
-    // refactor.
-    [$exit, $display] = $this->runCommand(CACHE_COMMAND, ['action' => 'generate']);
+it('generates production caches: warms discovery and writes the manifest', function (): void {
+    // generate used to call IconCacheService::generateProductionCache(),
+    // which never existed. It now does what a deployment needs: rebuild
+    // plus manifest.
+    [$exit, $display] = $this->runCommand(CACHE_COMMAND, ['action' => 'generate', '--path' => $this->manifestPath]);
 
-    $this->assertSame(1, $exit);
+    $this->assertSame(0, $exit);
+    $this->assertFileExists($this->manifestPath);
     $this->assertDisplayContains($display, [
         '⚡ Generating production cache',
-        'Command failed: Call to undefined method Simtabi\Laranail\Ichava\Services\IconCacheService::generateProductionCache()',
+        'Cache Driver',
+        '✅ Production cache generated',
     ]);
-    $this->assertDisplayLacks($display, ['✅ Production cache generated']);
 });
 
 it('generates a manifest at --path and prints where it went', function (): void {
@@ -223,9 +257,11 @@ it('rebuilds a fresh manifest under --force without asking', function (): void {
     $this->assertDisplayLacks($display, ['Manifest exists and is stale. Overwrite?']);
 });
 
-it('asks before overwriting a stale manifest, and fails when declined', function (): void {
+it('asks before overwriting a stale manifest, and cancels cleanly when declined', function (): void {
     $this->runCommand(CACHE_COMMAND, ['action' => 'manifest', '--path' => $this->manifestPath]);
     touch($this->manifestPath, time() - 7200);
+    clearstatcache();
+    $staleAt = filemtime($this->manifestPath);
 
     [$exit, $display] = $this->runCommand(
         CACHE_COMMAND,
@@ -233,9 +269,10 @@ it('asks before overwriting a stale manifest, and fails when declined', function
         ['no'],
     );
 
-    // Declining returns FAILURE, unlike every other cancellation in the
-    // commands, which return SUCCESS.
-    $this->assertSame(1, $exit);
+    // Declining used to return FAILURE, unlike every other cancellation.
+    $this->assertSame(0, $exit);
+    clearstatcache();
+    $this->assertSame($staleAt, filemtime($this->manifestPath), 'A declined overwrite rewrote the manifest.');
     $this->assertDisplayContains($display, [
         'Manifest exists and is stale. Overwrite? (yes/no) [yes]',
         'Manifest generation cancelled.',
