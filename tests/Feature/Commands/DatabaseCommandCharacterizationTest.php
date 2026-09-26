@@ -117,19 +117,21 @@ it('returns INVALID silently under --quiet', function (): void {
     $this->assertSame('', $display);
 });
 
-it('runs migrations for migrate, and loses its own outro to the nested migrate call', function (): void {
+it('runs migrations for migrate and prints its own outro', function (): void {
     [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'migrate']);
 
     $this->assertSame(0, $exit);
-    $this->assertDisplayContains($display, ['🔄 Running Ichava migrations', 'Running migrations...']);
 
-    // characterization: runMigrations() goes through Artisan::call('migrate'),
-    // and the nested command re-points Laravel Prompts at ITS buffered output
-    // without restoring it. Everything this command prints through Prompts
-    // afterwards -- the success outro included -- lands in that buffer and
-    // never reaches the user. Changes in the refactor.
-    $this->assertDisplayLacks($display, ['✅ Migrations completed successfully']);
-    $this->assertStringContainsString('✅ Migrations completed successfully', Artisan::output());
+    // runMigrations() goes through Artisan::call('migrate'), and the nested
+    // command re-points Laravel Prompts at ITS buffered output without
+    // restoring it. The outro used to land in that buffer and never reach the
+    // user; the command now takes Prompts back after the call.
+    $this->assertDisplayContains($display, [
+        '🔄 Running Ichava migrations',
+        'Running migrations...',
+        '✅ Migrations completed successfully',
+    ]);
+    $this->assertStringNotContainsString('✅ Migrations completed successfully', Artisan::output());
 });
 
 it('cancels migrate --fresh when the drop is declined', function (): void {
@@ -158,18 +160,18 @@ it('runs migrate --fresh under --force without asking', function (): void {
         'Dropping and recreating tables...',
     ]);
 
-    // characterization: as with plain migrate, the table and outro printed
-    // after the nested Artisan::call('migrate') land in that call's buffer,
-    // not in this command's display. Changes in the refactor.
-    // Artisan::output() drains the buffer, so read it once.
+    // As with plain migrate, the table and outro printed after the nested
+    // Artisan::call('migrate') used to land in that call's buffer; they reach
+    // this command's display now. Artisan::output() drains the buffer, so read
+    // it once.
     $nested = Artisan::output();
 
-    $this->assertDisplayLacks($display, ['Dropped Tables']);
-    $this->assertDisplayContains($nested, [
+    $this->assertDisplayContains($display, [
         'Dropped Tables',
         'ichava_icon_termables',
         '✅ Fresh migration completed successfully',
     ]);
+    $this->assertStringNotContainsString('Dropped Tables', $nested);
 
     // The drop used to leave the rows in `migrations`, so the re-run reported
     // "Nothing to migrate" and the tables stayed dropped while the command
