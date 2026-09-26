@@ -12,9 +12,13 @@ use function Laravel\Prompts\outro;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\warning;
 
+use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Console\Tools\Support\FileSize;
+use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
+use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
+use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
 use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
 
 /**
@@ -59,17 +63,17 @@ final class CacheCommand extends BaseCommand
         // If no action provided, prompt user to select
         if (empty($action)) {
             $action = select(
-                label: 'What cache operation would you like to perform?',
+                label: __('ichava/ichava-core::commands.cache.select'),
                 options: [
-                    'clear'    => 'Clear - Remove all cached data',
-                    'rebuild'  => 'Rebuild - Regenerate all caches',
-                    'refresh'  => 'Refresh - Clear and rebuild caches',
-                    'generate' => 'Generate - Create production-optimized cache',
-                    'manifest' => 'Manifest - Generate icon manifest file',
-                    'stats'    => 'Stats - Show cache statistics',
+                    'clear'    => __('ichava/ichava-core::commands.cache.options.clear'),
+                    'rebuild'  => __('ichava/ichava-core::commands.cache.options.rebuild'),
+                    'refresh'  => __('ichava/ichava-core::commands.cache.options.refresh'),
+                    'generate' => __('ichava/ichava-core::commands.cache.options.generate'),
+                    'manifest' => __('ichava/ichava-core::commands.cache.options.manifest'),
+                    'stats'    => __('ichava/ichava-core::commands.cache.options.stats'),
                 ],
                 default: 'stats',
-                hint: 'Select an action to perform',
+                hint: __('ichava/ichava-core::commands.cache.select_hint'),
             );
         }
 
@@ -91,7 +95,7 @@ final class CacheCommand extends BaseCommand
     {
         $package = $this->option('package');
 
-        intro('🧹 Clearing icon caches');
+        intro(__('ichava/ichava-core::commands.cache.clear.intro'));
 
         $this->startTiming();
 
@@ -101,23 +105,23 @@ final class CacheCommand extends BaseCommand
                     ? $this->cacheService->clearPackage($package)
                     : $this->cacheService->clearAll(),
                 message: $package
-                    ? "Clearing cache for package: {$package}..."
-                    : 'Clearing all caches...',
+                    ? __('ichava/ichava-core::commands.cache.clear.clearing_package', ['package' => $package])
+                    : __('ichava/ichava-core::commands.cache.clear.clearing_all'),
             );
 
-            info('Cleared ' . count($clearedKeys) . ' cache key(s)');
+            info(__('ichava/ichava-core::commands.cache.clear.cleared', ['count' => count($clearedKeys)]));
 
             if ($this->isVerbose() && ! empty($clearedKeys)) {
                 table(
-                    headers: ['Cleared Cache Keys'],
+                    headers: [__('ichava/ichava-core::commands.cache.clear.cleared_keys')],
                     rows: array_map(fn ($key) => [$key], $clearedKeys),
                 );
             }
 
-            outro('⏱️  Completed in ' . $this->formatMs($this->getElapsedMs()));
+            outro(__('ichava/ichava-core::commands.common.completed_in', ['time' => TimeFormat::fromMillis($this->getElapsedMs())]));
 
             return self::SUCCESS;
-        }, 'Failed to clear cache');
+        }, __('ichava/ichava-core::commands.cache.clear.failed'));
     }
 
     /**
@@ -125,28 +129,27 @@ final class CacheCommand extends BaseCommand
      */
     protected function handleRebuild(): int
     {
-        intro('🔨 Rebuilding icon caches');
+        intro(__('ichava/ichava-core::commands.cache.rebuild.intro'));
 
         return $this->tryExecute(function () {
             $result = spin(
                 callback: fn () => $this->cacheService->rebuild(),
-                message: 'Rebuilding caches...',
+                message: __('ichava/ichava-core::commands.cache.rebuild.rebuilding'),
             );
 
-            table(
-                headers: ['Metric', 'Value'],
-                rows: [
-                    ['Categories', (string) $result['categories']],
-                    ['Packages', (string) $result['packages']],
-                    ['Total Icons', $this->formatNumber($result['total_icons'])],
-                    ['Build Time', $result['build_time_ms'] . 'ms'],
-                ],
-            );
+            MetricTable::make()
+                ->metrics([
+                    __('ichava/ichava-core::commands.cache.metric.categories')  => (int) $result['categories'],
+                    __('ichava/ichava-core::commands.cache.metric.packages')    => (int) $result['packages'],
+                    __('ichava/ichava-core::commands.cache.metric.total_icons') => (int) $result['total_icons'],
+                    __('ichava/ichava-core::commands.cache.metric.build_time')  => TimeFormat::fromMillis((float) $result['build_time_ms']),
+                ])
+                ->render($this->output);
 
-            outro('✅ Cache rebuilt successfully');
+            outro(__('ichava/ichava-core::commands.cache.rebuild.done'));
 
             return self::SUCCESS;
-        }, 'Failed to rebuild cache');
+        }, __('ichava/ichava-core::commands.cache.rebuild.failed'));
     }
 
     /**
@@ -154,28 +157,27 @@ final class CacheCommand extends BaseCommand
      */
     protected function handleRefresh(): int
     {
-        intro('🔄 Refreshing icon caches');
+        intro(__('ichava/ichava-core::commands.cache.refresh.intro'));
 
         return $this->tryExecute(function () {
             $result = spin(
                 callback: fn () => $this->cacheService->refresh(),
-                message: 'Clearing and rebuilding caches...',
+                message: __('ichava/ichava-core::commands.cache.refresh.refreshing'),
             );
 
-            table(
-                headers: ['Metric', 'Value'],
-                rows: [
-                    ['Keys Cleared', (string) $result['cleared_keys']],
-                    ['Categories', (string) $result['rebuild_stats']['categories']],
-                    ['Packages', (string) $result['rebuild_stats']['packages']],
-                    ['Total Icons', $this->formatNumber($result['rebuild_stats']['total_icons'])],
-                ],
-            );
+            MetricTable::make()
+                ->metrics([
+                    __('ichava/ichava-core::commands.cache.metric.keys_cleared') => (int) $result['cleared_keys'],
+                    __('ichava/ichava-core::commands.cache.metric.categories')   => (int) $result['rebuild_stats']['categories'],
+                    __('ichava/ichava-core::commands.cache.metric.packages')     => (int) $result['rebuild_stats']['packages'],
+                    __('ichava/ichava-core::commands.cache.metric.total_icons')  => (int) $result['rebuild_stats']['total_icons'],
+                ])
+                ->render($this->output);
 
-            outro('✅ Cache refreshed successfully');
+            outro(__('ichava/ichava-core::commands.cache.refresh.done'));
 
             return self::SUCCESS;
-        }, 'Failed to refresh cache');
+        }, __('ichava/ichava-core::commands.cache.refresh.failed'));
     }
 
     /**
@@ -183,20 +185,20 @@ final class CacheCommand extends BaseCommand
      */
     protected function handleGenerate(): int
     {
-        intro('⚡ Generating production cache');
+        intro(__('ichava/ichava-core::commands.cache.generate.intro'));
 
         return $this->tryExecute(function () {
             spin(
-                callback: fn () => $this->cacheService->generateProductionCache(),
-                message: 'Generating optimized production cache...',
+                callback: fn () => $this->cacheService->generateProductionCache($this->option('path')),
+                message: __('ichava/ichava-core::commands.cache.generate.generating'),
             );
 
             $this->displayCacheStats();
 
-            outro('✅ Production cache generated');
+            outro(__('ichava/ichava-core::commands.cache.generate.done'));
 
             return self::SUCCESS;
-        }, 'Failed to generate cache');
+        }, __('ichava/ichava-core::commands.cache.generate.failed'));
     }
 
     /**
@@ -206,7 +208,7 @@ final class CacheCommand extends BaseCommand
     {
         $path = $this->option('path');
 
-        intro('🎨 Generating Ichava icon manifest');
+        intro(__('ichava/ichava-core::commands.cache.manifest.intro'));
 
         // Skip rebuild if a fresh manifest already exists and --force was not passed.
         if (
@@ -214,50 +216,48 @@ final class CacheCommand extends BaseCommand
             && $this->cacheService->manifestExists($path)
             && ! $this->cacheService->manifestIsStale($path)
         ) {
-            note('🟢 Manifest is fresh; skipping. Use --force to rebuild.');
+            note(__('ichava/ichava-core::commands.cache.manifest.fresh'));
 
             return self::SUCCESS;
         }
 
         if ($this->cacheService->manifestExists($path) && ! $this->option('force')) {
             $overwrite = confirm(
-                label: 'Manifest exists and is stale. Overwrite?',
+                label: __('ichava/ichava-core::commands.cache.manifest.overwrite'),
                 default: true,
-                yes: 'Yes, rebuild',
-                no: 'No, cancel',
-                hint: 'The existing manifest will be replaced',
+                yes: __('ichava/ichava-core::commands.cache.manifest.overwrite_yes'),
+                no: __('ichava/ichava-core::commands.cache.manifest.overwrite_no'),
+                hint: __('ichava/ichava-core::commands.cache.manifest.overwrite_hint'),
             );
 
             if (! $overwrite) {
-                warning('Manifest generation cancelled.');
-
-                return self::FAILURE;
+                // Declining is not a failure; every other cancellation exits 0.
+                return $this->cancelled(__('ichava/ichava-core::commands.cache.manifest.cancelled'));
             }
         }
 
         return $this->tryExecute(function () use ($path) {
             $result = spin(
                 callback: fn () => $this->cacheService->generateManifest($path),
-                message: 'Generating manifest file...',
+                message: __('ichava/ichava-core::commands.cache.manifest.generating'),
             );
 
-            table(
-                headers: ['Metric', 'Value'],
-                rows: [
-                    ['Packages', (string) $result['packages']],
-                    ['Total Icons', $this->formatNumber($result['total_icons'])],
-                    ['File Size', $this->formatBytes($result['file_size'])],
-                    ['Build Time', $result['build_time_ms'] . 'ms'],
-                ],
-            );
+            MetricTable::make()
+                ->metrics([
+                    __('ichava/ichava-core::commands.cache.metric.packages')    => (int) $result['packages'],
+                    __('ichava/ichava-core::commands.cache.metric.total_icons') => (int) $result['total_icons'],
+                    __('ichava/ichava-core::commands.cache.metric.file_size')   => FileSize::format((int) $result['file_size']),
+                    __('ichava/ichava-core::commands.cache.metric.build_time')  => TimeFormat::fromMillis((float) $result['build_time_ms']),
+                ])
+                ->render($this->output);
 
-            note("📁 Manifest saved to: {$result['path']}");
-            note('💡 Add this command to your deployment process: php artisan ichava::ichava-core.cache manifest --force');
+            note(__('ichava/ichava-core::commands.cache.manifest.saved', ['path' => $result['path']]));
+            note(__('ichava/ichava-core::commands.cache.manifest.deploy_tip', ['command' => $this->getName()]));
 
-            outro('✅ Manifest generation complete!');
+            outro(__('ichava/ichava-core::commands.cache.manifest.done'));
 
             return self::SUCCESS;
-        }, 'Failed to generate manifest');
+        }, __('ichava/ichava-core::commands.cache.manifest.failed'));
     }
 
     /**
@@ -265,7 +265,7 @@ final class CacheCommand extends BaseCommand
      */
     protected function handleStats(): int
     {
-        intro('📊 Ichava Cache Statistics');
+        intro(__('ichava/ichava-core::commands.cache.stats.intro'));
 
         $this->displayCacheStats();
 
@@ -279,19 +279,26 @@ final class CacheCommand extends BaseCommand
     {
         $stats = spin(
             callback: fn () => $this->cacheService->getStatistics(),
-            message: 'Gathering cache statistics...',
+            message: __('ichava/ichava-core::commands.cache.stats.gathering'),
         );
 
-        table(
-            headers: ['Metric', 'Value'],
-            rows: [
-                ['Cache Driver', $stats['driver']],
-                ['Cached Packages', (string) ($stats['stats']['packages'] ?? 0)],
-                ['Cached Categories', (string) ($stats['stats']['categories'] ?? 0)],
-                ['Total Cache Keys', (string) ($stats['stats']['total_keys'] ?? 0)],
-                ['Manifest Exists', $stats['manifest_exists'] ? '✅ Yes' : '❌ No'],
-                ['Manifest Stale', $stats['manifest_stale'] ? '⚠️  Yes' : '✅ No'],
-            ],
-        );
+        $yes = __('ichava/ichava-core::commands.common.yes');
+        $no = __('ichava/ichava-core::commands.common.no');
+
+        MetricTable::make()
+            ->metrics([
+                __('ichava/ichava-core::commands.cache.metric.driver')            => (string) $stats['driver'],
+                __('ichava/ichava-core::commands.cache.metric.cached_packages')   => (int) ($stats['stats']['packages'] ?? 0),
+                __('ichava/ichava-core::commands.cache.metric.cached_categories') => (int) ($stats['stats']['categories'] ?? 0),
+                __('ichava/ichava-core::commands.cache.metric.total_keys')        => (int) ($stats['stats']['total_keys'] ?? 0),
+                __('ichava/ichava-core::commands.cache.metric.manifest_exists')   => StatusBadge::of((bool) $stats['manifest_exists'])
+                    ->label($stats['manifest_exists'] ? $yes : $no)
+                    ->render(),
+                // A stale manifest is a warning, not a failure: it still serves.
+                __('ichava/ichava-core::commands.cache.metric.manifest_stale') => StatusBadge::of($stats['manifest_stale'] ? Status::Warning : Status::Success)
+                    ->label($stats['manifest_stale'] ? $yes : $no)
+                    ->render(),
+            ])
+            ->render($this->output);
     }
 }

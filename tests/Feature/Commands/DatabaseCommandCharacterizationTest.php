@@ -79,12 +79,19 @@ it('prints the statistics table for stats', function (): void {
         'Database Size',
     ]);
 
-    // characterization: the size query is pg_total_relation_size() on every
-    // driver, so only PostgreSQL reports a size; the rest print N/A.
-    if (DB::connection()->getDriverName() === 'pgsql') {
-        $this->assertMatchesRegularExpression('/Database Size\s*│?\s*[\d.]+ (bytes|kB|MB|GB)/u', $display);
+    // The size comes from laranail/db-tools' per-driver TableStatistics. It used
+    // to be pg_total_relation_size() on every driver, so everything but
+    // PostgreSQL printed N/A. Server drivers always report a size now; SQLite
+    // does when it was compiled with the dbstat table.
+    $size = '/Database Size\s*│?\s*[\d.,]+ ?(B|KB|MB|GB|TB)\b/u';
+
+    if (DB::connection()->getDriverName() === 'sqlite') {
+        $this->assertTrue(
+            preg_match($size, $display) === 1 || str_contains($display, 'N/A'),
+            'SQLite must report either a size or N/A',
+        );
     } else {
-        $this->assertDisplayContains($display, ['N/A']);
+        $this->assertMatchesRegularExpression($size, $display);
     }
 });
 
@@ -117,19 +124,21 @@ it('returns INVALID silently under --quiet', function (): void {
     $this->assertSame('', $display);
 });
 
-it('runs migrations for migrate, and loses its own outro to the nested migrate call', function (): void {
+it('runs migrations for migrate and prints its own outro', function (): void {
     [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'migrate']);
 
     $this->assertSame(0, $exit);
-    $this->assertDisplayContains($display, ['🔄 Running Ichava migrations', 'Running migrations...']);
 
-    // characterization: runMigrations() goes through Artisan::call('migrate'),
-    // and the nested command re-points Laravel Prompts at ITS buffered output
-    // without restoring it. Everything this command prints through Prompts
-    // afterwards -- the success outro included -- lands in that buffer and
-    // never reaches the user. Changes in the refactor.
-    $this->assertDisplayLacks($display, ['✅ Migrations completed successfully']);
-    $this->assertStringContainsString('✅ Migrations completed successfully', Artisan::output());
+    // runMigrations() goes through Artisan::call('migrate'), and the nested
+    // command re-points Laravel Prompts at ITS buffered output without
+    // restoring it. The outro used to land in that buffer and never reach the
+    // user; the command now takes Prompts back after the call.
+    $this->assertDisplayContains($display, [
+        '🔄 Running Ichava migrations',
+        'Running migrations...',
+        '✅ Migrations completed successfully',
+    ]);
+    $this->assertStringNotContainsString('✅ Migrations completed successfully', Artisan::output());
 });
 
 it('cancels migrate --fresh when the drop is declined', function (): void {
@@ -143,40 +152,45 @@ it('cancels migrate --fresh when the drop is declined', function (): void {
     $this->assertDisplayLacks($display, ['🔄 Running fresh Ichava migration']);
 });
 
-it('still prompts for migrate --fresh under --force, and proceeds even when declined', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
-    // The answer is then ignored: `! $confirmed && ! force` lets a "no" through.
+it('runs migrate --fresh under --force without asking', function (): void {
+    // --force answers the drop confirmation; it used to prompt anyway and then
+    // ignore the answer, so a "no" still dropped every table.
     [$exit, $display] = $this->runCommand(
         DATABASE_COMMAND,
         ['action' => 'migrate', '--fresh' => true, '--force' => true],
-        ['no'],
     );
 
     $this->assertSame(0, $exit);
+    $this->assertDisplayLacks($display, ['This will DROP all Ichava tables and re-run migrations. Continue?']);
     $this->assertDisplayContains($display, [
-        'This will DROP all Ichava tables and re-run migrations. Continue?',
         '🔄 Running fresh Ichava migration',
         'Dropping and recreating tables...',
     ]);
 
-    // characterization: as with plain migrate, the table and outro printed
-    // after the nested Artisan::call('migrate') land in that call's buffer,
-    // not in this command's display. Changes in the refactor.
-    // Artisan::output() drains the buffer, so read it once.
+    // As with plain migrate, the table and outro printed after the nested
+    // Artisan::call('migrate') used to land in that call's buffer; they reach
+    // this command's display now. Artisan::output() drains the buffer, so read
+    // it once.
     $nested = Artisan::output();
 
-    $this->assertDisplayLacks($display, ['Dropped Tables']);
-    $this->assertDisplayContains($nested, [
+    $this->assertDisplayContains($display, [
         'Dropped Tables',
         'ichava_icon_termables',
         '✅ Fresh migration completed successfully',
     ]);
+    $this->assertStringNotContainsString('Dropped Tables', $nested);
 
-    // characterization: the drop leaves the rows in `migrations`, so the
-    // re-run reports "Nothing to migrate" and the tables stay dropped while
-    // the command reports success. Changes in the refactor.
-    $this->assertStringContainsString('Nothing to migrate', $nested);
-    $this->assertFalse(Schema::hasTable('ichava_icons'));
+    // The drop used to leave the rows in `migrations`, so the re-run reported
+    // "Nothing to migrate" and the tables stayed dropped while the command
+    // reported success. The rows are forgotten first now, so fresh recreates.
+    $this->assertStringNotContainsString('Nothing to migrate', $nested);
+    $this->assertTrue(Schema::hasTable('ichava_icons'));
+    $this->assertTrue(Schema::hasTable('ichava_icon_terms'));
+    $this->assertTrue(Schema::hasTable('ichava_icon_termables'));
+    $this->assertTrue(
+        DB::table('migrations')->where('migration', '2024_11_22_000001_create_ichava_tables')->exists(),
+        'The recreated tables were not recorded as migrated.',
+    );
 })->skip(fn (): bool => ! databaseCommandDdlIsTransactional(), 'DDL is not transactional on this driver');
 
 it('fails a table-backed action when a table is missing', function (): void {
@@ -186,7 +200,7 @@ it('fails a table-backed action when a table is missing', function (): void {
 
     $this->assertSame(1, $exit);
     $this->assertDisplayContains($display, [
-        '❌ Required tables do not exist: ichava_icon_termables',
+        '✗ Required tables do not exist: ichava_icon_termables',
         '💡 Run migrations first: php artisan ichava::ichava-core.database migrate',
     ]);
 })->skip(fn (): bool => ! databaseCommandDdlIsTransactional(), 'DDL is not transactional on this driver');
@@ -213,7 +227,7 @@ it('truncates on yes', function (): void {
 });
 
 it('truncates without asking under --force', function (): void {
-    // truncate is the one destructive action in this command that honours --force.
+    // truncate honoured --force before the other five destructive actions did.
     [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'truncate', '--force' => true]);
 
     $this->assertSame(0, $exit);
@@ -227,13 +241,12 @@ it('reports the tryExecute failure message when truncation throws', function ():
     [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'truncate', '--force' => true]);
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['❌ Failed to truncate: disk on fire']);
-    $this->assertDisplayLacks($display, ['#0 ']);
+    $this->assertDisplayContains($display, ['Failed to truncate: disk on fire']);
+    $this->assertDisplayLacks($display, ['File: ', '#0 ']);
 });
 
-it('prints the full stack trace at -v when tryExecute catches', function (): void {
-    // characterization: tryExecute prints the whole trace at -v, where the
-    // laranail/console base holds traces back to -vvv; changes in the refactor.
+it('adds the file and line at -v, but no stack trace', function (): void {
+    // Traces are held back to -vvv; tryExecute used to print them at -v.
     bindThrowingDatabaseOperations();
 
     [$exit, $display] = $this->runCommand(
@@ -243,7 +256,8 @@ it('prints the full stack trace at -v when tryExecute catches', function (): voi
     );
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['❌ Failed to truncate: disk on fire', '#0 ']);
+    $this->assertDisplayContains($display, ['Failed to truncate: disk on fire', 'File: ']);
+    $this->assertDisplayLacks($display, ['#0 ']);
 });
 
 it('offers a choice for unseed without --package and cancels', function (): void {
@@ -289,29 +303,31 @@ it('asks for a package name after choosing package, then confirms', function ():
     ]);
 });
 
-it('skips the unseed choice under --force but still confirms, and proceeds even when declined', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
-    [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'unseed', '--force' => true], ['no']);
+it('unseeds everything under --force without the choice or the confirmation', function (): void {
+    [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'unseed', '--force' => true]);
 
     $this->assertSame(0, $exit);
-    $this->assertDisplayLacks($display, ['What would you like to unseed?']);
-    $this->assertDisplayContains($display, [
-        'This will remove ALL Ichava data. Continue?',
-        '✅ All packages unseeded successfully',
-    ]);
+    $this->assertDisplayLacks($display, ['What would you like to unseed?', 'This will remove ALL Ichava data. Continue?']);
+    $this->assertDisplayContains($display, ['✅ All packages unseeded successfully']);
 });
 
-it('still confirms unseed --package under --force, and proceeds even when declined', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
+it('cancels unseeding everything when the confirmation is declined', function (): void {
+    [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'unseed'], ['all', 'no']);
+
+    $this->assertSame(0, $exit);
+    $this->assertDisplayContains($display, ['This will remove ALL Ichava data. Continue?', 'Operation cancelled.']);
+    $this->assertDisplayLacks($display, ['🗑️  Unseeding all packages']);
+});
+
+it('unseeds a package under --force without asking', function (): void {
     [$exit, $display] = $this->runCommand(
         DATABASE_COMMAND,
         ['action' => 'unseed', '--package' => 'ichava/test-icons', '--force' => true],
-        ['no'],
     );
 
     $this->assertSame(0, $exit);
+    $this->assertDisplayLacks($display, ["This will remove all data for package 'ichava/test-icons'. Continue?"]);
     $this->assertDisplayContains($display, [
-        "This will remove all data for package 'ichava/test-icons'. Continue?",
         '🗑️  Unseeding package: ichava/test-icons',
         'Icons deleted',
         'Term relations deleted',
@@ -342,17 +358,15 @@ it('asks twice for refresh without --force: once to refresh, once to truncate', 
     ]);
 });
 
-it('still confirms refresh under --force, then truncates and seeds', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
+it('refreshes under --force without asking, then truncates and seeds', function (): void {
     [$exit, $display] = $this->runCommand(
         DATABASE_COMMAND,
         ['action' => 'refresh', '--force' => true, '--sync' => true],
-        ['no'],
     );
 
     $this->assertSame(0, $exit);
+    $this->assertDisplayLacks($display, ['This will delete all existing data and re-seed. Continue?']);
     $this->assertDisplayContains($display, [
-        'This will delete all existing data and re-seed. Continue?',
         '🔄 Refreshing database',
         'Tables truncated:',
         '🌱 Seeding Ichava database',
@@ -407,17 +421,18 @@ it('cancels seed --fresh when declined', function (): void {
     $this->assertDisplayLacks($display, ['🏷️  Seeding terms...']);
 });
 
-it('still confirms seed --fresh under --force, and proceeds even when declined', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
+it('seeds --fresh under --force without asking', function (): void {
     [$exit, $display] = $this->runCommand(
         DATABASE_COMMAND,
         ['action' => 'seed', '--fresh' => true, '--force' => true, '--sync' => true],
-        ['no'],
     );
 
     $this->assertSame(0, $exit);
-    $this->assertDisplayContains($display, [
+    $this->assertDisplayLacks($display, [
         'This will delete all existing data before seeding. Continue?',
+        'This will delete all icons and terms. Continue?',
+    ]);
+    $this->assertDisplayContains($display, [
         'Tables truncated:',
         '✅ Database seeded successfully',
     ]);

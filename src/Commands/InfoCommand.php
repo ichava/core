@@ -11,11 +11,13 @@ use function Laravel\Prompts\text;
 use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
 use function Laravel\Prompts\table;
-use function Laravel\Prompts\search;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\warning;
 
+use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Console\Tools\Widgets\CheckList;
+use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
 use Simtabi\Laranail\Ichava\Services\InformationService;
 
 /**
@@ -36,6 +38,19 @@ use Simtabi\Laranail\Ichava\Services\InformationService;
  */
 final class InfoCommand extends BaseCommand
 {
+    /**
+     * Lifecycle stages on the shared status vocabulary: ready is done, the
+     * two part-way stages are warnings, and nothing installed is a failure.
+     *
+     * @var array<string, Status>
+     */
+    private const array STAGE_MAP = [
+        'READY'         => Status::Success,
+        'SEEDED'        => Status::Warning,
+        'MIGRATED'      => Status::Warning,
+        'UNINITIALIZED' => Status::Failed,
+    ];
+
     protected $signature = 'ichava::ichava-core.info
                             {type? : Type: packages, icons, status, languages, discover, stats}
                             {--search= : Search filter}
@@ -64,17 +79,17 @@ final class InfoCommand extends BaseCommand
         // If no type provided, prompt user to select
         if (empty($type)) {
             $type = select(
-                label: 'What information would you like to view?',
+                label: __('ichava/ichava-core::commands.info.select'),
                 options: [
-                    'stats'     => 'Stats - Overview statistics',
-                    'packages'  => 'Packages - List registered icon packages',
-                    'icons'     => 'Icons - Browse icons',
-                    'status'    => 'Status - Lifecycle and health status',
-                    'languages' => 'Languages - PostgreSQL FTS languages',
-                    'discover'  => 'Discover - Find unregistered packages',
+                    'stats'     => __('ichava/ichava-core::commands.info.options.stats'),
+                    'packages'  => __('ichava/ichava-core::commands.info.options.packages'),
+                    'icons'     => __('ichava/ichava-core::commands.info.options.icons'),
+                    'status'    => __('ichava/ichava-core::commands.info.options.status'),
+                    'languages' => __('ichava/ichava-core::commands.info.options.languages'),
+                    'discover'  => __('ichava/ichava-core::commands.info.options.discover'),
                 ],
                 default: 'stats',
-                hint: 'Select what to display',
+                hint: __('ichava/ichava-core::commands.info.select_hint'),
             );
         }
 
@@ -94,16 +109,16 @@ final class InfoCommand extends BaseCommand
      */
     protected function handlePackages(): int
     {
-        intro('📦 Registered Icon Packages');
+        intro(__('ichava/ichava-core::commands.info.packages.intro'));
 
         $packages = spin(
             callback: fn () => $this->infoService->getPackages(),
-            message: 'Loading packages...',
+            message: __('ichava/ichava-core::commands.info.packages.loading'),
         );
 
         if (empty($packages)) {
-            warning('No packages registered.');
-            note('💡 Register packages in your service provider using IchavaRegistrar');
+            warning(__('ichava/ichava-core::commands.info.packages.none'));
+            $this->tip(__('ichava/ichava-core::commands.info.packages.none_hint'));
 
             return self::SUCCESS;
         }
@@ -112,9 +127,9 @@ final class InfoCommand extends BaseCommand
         $searchTerm = $this->option('search');
         if (empty($searchTerm) && ! $this->isQuiet()) {
             $searchTerm = text(
-                label: 'Search packages (leave empty to show all)',
-                placeholder: 'e.g., fontawesome',
-                hint: 'Filter packages by name',
+                label: __('ichava/ichava-core::commands.info.packages.search'),
+                placeholder: __('ichava/ichava-core::commands.info.packages.search_placeholder'),
+                hint: __('ichava/ichava-core::commands.info.packages.search_hint'),
             );
         }
 
@@ -139,15 +154,15 @@ final class InfoCommand extends BaseCommand
      */
     protected function handleIcons(): int
     {
-        intro('🎨 Icon Browser');
+        intro(__('ichava/ichava-core::commands.info.icons.intro'));
 
         // Get search filter
         $searchTerm = $this->option('search');
         if (empty($searchTerm) && ! $this->isQuiet()) {
             $searchTerm = text(
-                label: 'Search icons',
-                placeholder: 'e.g., arrow, user, check',
-                hint: 'Filter icons by name',
+                label: __('ichava/ichava-core::commands.info.icons.search'),
+                placeholder: __('ichava/ichava-core::commands.info.icons.search_placeholder'),
+                hint: __('ichava/ichava-core::commands.info.icons.search_hint'),
             );
         }
 
@@ -159,11 +174,11 @@ final class InfoCommand extends BaseCommand
 
         $icons = spin(
             callback: fn () => $this->infoService->getIcons($filters),
-            message: 'Loading icons...',
+            message: __('ichava/ichava-core::commands.info.icons.loading'),
         );
 
         if (empty($icons)) {
-            warning('No icons found.');
+            warning(__('ichava/ichava-core::commands.info.icons.none'));
 
             return self::SUCCESS;
         }
@@ -172,7 +187,7 @@ final class InfoCommand extends BaseCommand
             $this->line(json_encode($icons, JSON_PRETTY_PRINT));
         } else {
             $this->displayIconsTable($icons);
-            note('Showing ' . count($icons) . ' icons. Use --limit to show more.');
+            note(__('ichava/ichava-core::commands.info.icons.showing', ['count' => count($icons)]));
         }
 
         // Export if requested
@@ -186,60 +201,57 @@ final class InfoCommand extends BaseCommand
      */
     protected function handleStatus(): int
     {
-        intro('🔍 Ichava Lifecycle Status');
+        intro(__('ichava/ichava-core::commands.info.status.intro'));
 
         // Reset if requested
         if ($this->option('reset')) {
             spin(
                 callback: fn () => $this->infoService->resetLifecycle(),
-                message: 'Resetting lifecycle state...',
+                message: __('ichava/ichava-core::commands.info.status.resetting'),
             );
-            $this->success('Lifecycle state reset');
+            $this->success(__('ichava/ichava-core::commands.info.status.reset'));
         }
 
         $status = spin(
             callback: fn () => $this->infoService->getLifecycleStatus(),
-            message: 'Checking status...',
+            message: __('ichava/ichava-core::commands.info.status.checking'),
         );
 
-        // Status checks table
-        table(
-            headers: ['Check', 'Status'],
-            rows: [
-                ['Migrations', $status['checks']['migrations'] ? '✅ OK' : '❌ NOT READY'],
-                ['Seeds', $status['checks']['seeds'] ? '✅ OK' : '❌ NOT READY'],
-                ['Cache', $status['checks']['cache'] ? '✅ OK' : '❌ NOT READY'],
-            ],
+        $this->line(
+            CheckList::make()
+                ->check(__('ichava/ichava-core::commands.info.status.migrations'), (bool) $status['checks']['migrations'])
+                ->check(__('ichava/ichava-core::commands.info.status.seeds'), (bool) $status['checks']['seeds'])
+                ->check(__('ichava/ichava-core::commands.info.status.cache'), (bool) $status['checks']['cache'])
+                ->render(),
         );
+        $this->newLine();
 
-        // Current stage
-        $stageColor = match ($status['stage']) {
-            'READY'    => 'green',
-            'SEEDED'   => 'yellow',
-            'MIGRATED' => 'yellow',
-            default    => 'red',
-        };
-
-        $this->line("  <fg=white>Current Stage:</fg=white> <fg={$stageColor}>{$status['stage']}</fg={$stageColor}>");
-        $this->line('  <fg=white>System Ready:</fg=white>  ' . ($status['is_ready'] ? '<fg=green>YES</fg=green>' : '<fg=red>NO</fg=red>'));
+        $this->detail(__('ichava/ichava-core::commands.info.status.stage', [
+            'stage' => StatusBadge::fromMap(self::STAGE_MAP, $status['stage'])->label($status['stage'])->withoutSymbol()->render(),
+        ]));
+        $this->detail(__('ichava/ichava-core::commands.info.status.ready', [
+            'ready' => StatusBadge::of((bool) $status['is_ready'])
+                ->label($status['is_ready'] ? __('ichava/ichava-core::commands.common.yes') : __('ichava/ichava-core::commands.common.no'))
+                ->withoutSymbol()
+                ->render(),
+        ]));
 
         // Icon count
         if ($status['icon_count'] !== null) {
             $iconCount = is_numeric($status['icon_count']) ? $this->formatNumber($status['icon_count']) : $status['icon_count'];
-            $this->line("  <fg=white>Icon Count:</fg=white>   <fg=cyan>{$iconCount}</fg=cyan>");
+            $this->detail(__('ichava/ichava-core::commands.info.status.icon_count', ['count' => $iconCount]));
         }
 
         $this->newLine();
 
         // Next steps
         if (! $status['is_ready'] && ! empty($status['next_steps'])) {
-            warning('Next Steps:');
+            warning(__('ichava/ichava-core::commands.info.status.next_steps'));
             foreach ($status['next_steps'] as $index => $step) {
-                $num = $index + 1;
-                $this->line("  {$num}. <fg=cyan>{$step}</fg=cyan>");
+                $this->detail(($index + 1) . ". {$step}");
             }
         } elseif ($status['is_ready']) {
-            outro('✅ Ichava is fully operational!');
+            outro(__('ichava/ichava-core::commands.info.status.operational'));
         }
 
         return self::SUCCESS;
@@ -250,21 +262,25 @@ final class InfoCommand extends BaseCommand
      */
     protected function handleLanguages(): int
     {
-        intro('🌍 PostgreSQL FTS Languages');
+        intro(__('ichava/ichava-core::commands.info.languages.intro'));
 
         $languages = spin(
             callback: fn () => $this->infoService->getFtsLanguages(),
-            message: 'Loading languages...',
+            message: __('ichava/ichava-core::commands.info.languages.loading'),
         );
 
         if (empty($languages)) {
-            warning('No FTS languages found or not using PostgreSQL.');
+            warning(__('ichava/ichava-core::commands.info.languages.none'));
 
             return self::SUCCESS;
         }
 
         table(
-            headers: ['Language', 'Owner', 'Description'],
+            headers: [
+                __('ichava/ichava-core::commands.info.languages.table.language'),
+                __('ichava/ichava-core::commands.info.languages.table.owner'),
+                __('ichava/ichava-core::commands.info.languages.table.description'),
+            ],
             rows: array_map(fn ($lang) => [
                 $lang['language'],
                 $lang['owner'],
@@ -273,8 +289,8 @@ final class InfoCommand extends BaseCommand
         );
 
         $currentLang = $this->infoService->getCurrentFtsLanguage();
-        info("📌 Current language: {$currentLang}");
-        note('💡 Configure in config/ichava.php or ICHAVA_SEARCH_LANGUAGE env var');
+        info(__('ichava/ichava-core::commands.info.languages.current', ['language' => $currentLang]));
+        $this->tip(__('ichava/ichava-core::commands.info.languages.configure'));
 
         return self::SUCCESS;
     }
@@ -284,30 +300,37 @@ final class InfoCommand extends BaseCommand
      */
     protected function handleDiscover(): int
     {
-        intro('🔍 Discovering Icon Packages');
+        intro(__('ichava/ichava-core::commands.info.discover.intro'));
 
         $discovered = spin(
             callback: fn () => $this->infoService->discoverPackages(),
-            message: 'Scanning filesystem...',
+            message: __('ichava/ichava-core::commands.info.discover.scanning'),
         );
 
         if (empty($discovered)) {
-            warning('No packages discovered.');
+            warning(__('ichava/ichava-core::commands.info.discover.none'));
 
             return self::SUCCESS;
         }
+
+        $yes = __('ichava/ichava-core::commands.common.yes');
+        $no = __('ichava/ichava-core::commands.common.no');
 
         $rows = [];
         foreach ($discovered as $name => $data) {
             $rows[] = [
                 $name,
                 $this->truncatePath($data['path']),
-                $data['registered'] ? '✅ Yes' : '❌ No',
+                StatusBadge::of((bool) $data['registered'])->label($data['registered'] ? $yes : $no)->render(),
             ];
         }
 
         table(
-            headers: ['Package', 'Path', 'Registered'],
+            headers: [
+                __('ichava/ichava-core::commands.info.table.package'),
+                __('ichava/ichava-core::commands.info.table.path'),
+                __('ichava/ichava-core::commands.info.table.registered'),
+            ],
             rows: $rows,
         );
 
@@ -319,37 +342,30 @@ final class InfoCommand extends BaseCommand
      */
     protected function handleStats(): int
     {
-        intro('📊 Ichava Statistics');
+        intro(__('ichava/ichava-core::commands.info.stats.intro'));
 
         $stats = spin(
             callback: fn () => $this->infoService->getStatistics(),
-            message: 'Gathering statistics...',
+            message: __('ichava/ichava-core::commands.info.stats.gathering'),
         );
 
-        table(
-            headers: ['Metric', 'Value'],
-            rows: [
-                ['Total Icons', $this->formatNumber($stats['icons'])],
-                ['Total Packages', $this->formatNumber($stats['packages'])],
-                ['Categories', $this->formatNumber($stats['categories'])],
-                ['Variants', $this->formatNumber($stats['variants'])],
-                ['Database Size', $stats['database_size'] ?? 'N/A'],
-                ['Cache Driver', $stats['cache_driver'] ?? 'N/A'],
-            ],
-        );
+        $this->statisticsTable($stats)->render($this->output);
 
         // Top packages by icon count
         $topPackages = spin(
             callback: fn () => $this->infoService->getTopPackages(5),
-            message: 'Loading top packages...',
+            message: __('ichava/ichava-core::commands.info.stats.loading_top'),
         );
 
         if (! empty($topPackages)) {
             $this->newLine();
-            info('🏆 Top 5 Packages by Icon Count:');
+            info(__('ichava/ichava-core::commands.info.stats.top', ['count' => 5]));
 
             table(
-                headers: ['Package', 'Icon Count'],
+                headers: [
+                    __('ichava/ichava-core::commands.info.table.package'),
+                    __('ichava/ichava-core::commands.info.table.icon_count'),
+                ],
                 rows: array_map(fn ($pkg) => [
                     $pkg['package'],
                     $this->formatNumber($pkg['count']),
@@ -376,7 +392,12 @@ final class InfoCommand extends BaseCommand
         }
 
         table(
-            headers: ['Package', 'Path', 'Icons', 'Status'],
+            headers: [
+                __('ichava/ichava-core::commands.info.table.package'),
+                __('ichava/ichava-core::commands.info.table.path'),
+                __('ichava/ichava-core::commands.info.table.icons'),
+                __('ichava/ichava-core::commands.info.table.status'),
+            ],
             rows: $rows,
         );
     }
@@ -393,7 +414,11 @@ final class InfoCommand extends BaseCommand
         ], $icons);
 
         table(
-            headers: ['Name', 'Package', 'Path'],
+            headers: [
+                __('ichava/ichava-core::commands.info.table.name'),
+                __('ichava/ichava-core::commands.info.table.package'),
+                __('ichava/ichava-core::commands.info.table.path'),
+            ],
             rows: $rows,
         );
     }

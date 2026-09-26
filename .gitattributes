@@ -24,3 +24,4 @@
 /docs                   export-ignore
 /.dev                   export-ignore
 /phpstan.neon.dist      export-ignore
+/.parked                export-ignore

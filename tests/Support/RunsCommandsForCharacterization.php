@@ -7,6 +7,7 @@ namespace Simtabi\Laranail\Ichava\Tests\Support;
 use Illuminate\Contracts\Console\Kernel;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Console\Output\OutputInterface;
+use Simtabi\Laranail\Console\Tools\Support\Capabilities;
 
 /**
  * Runs an Artisan command and hands back its whole rendered display.
@@ -24,6 +25,10 @@ use Symfony\Component\Console\Output\OutputInterface;
  * A question left unanswered silently takes its default, so a test that cares
  * whether a prompt appeared asserts its label, and one that cares it did NOT
  * appear asserts the label's absence.
+ *
+ * laranail/console picks Unicode or ASCII glyphs from the terminal it detects,
+ * which differs between a laptop and a CI runner. Each run is pinned to the
+ * Unicode set, so an assertion on `✓` means the same thing everywhere.
  */
 trait RunsCommandsForCharacterization
 {
@@ -46,11 +51,17 @@ trait RunsCommandsForCharacterization
         $tester = new CommandTester($command);
         $tester->setInputs($inputs);
 
-        $exit = $tester->execute($arguments, [
-            'interactive' => true,
-            'verbosity'   => $verbosity,
-            'decorated'   => false,
-        ]);
+        Capabilities::fake(colors: false, unicode: true);
+
+        try {
+            $exit = $tester->execute($arguments, [
+                'interactive' => true,
+                'verbosity'   => $verbosity,
+                'decorated'   => false,
+            ]);
+        } finally {
+            Capabilities::clearFake();
+        }
 
         return [$exit, $tester->getDisplay()];
     }
