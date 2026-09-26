@@ -12,7 +12,6 @@ use function Laravel\Prompts\outro;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\warning;
 
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
@@ -232,9 +231,8 @@ final class CacheCommand extends BaseCommand
             );
 
             if (! $overwrite) {
-                warning(__('ichava/ichava-core::commands.cache.manifest.cancelled'));
-
-                return self::FAILURE;
+                // Declining is not a failure; every other cancellation exits 0.
+                return $this->cancelled(__('ichava/ichava-core::commands.cache.manifest.cancelled'));
             }
         }
 

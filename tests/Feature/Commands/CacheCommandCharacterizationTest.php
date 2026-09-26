@@ -257,9 +257,11 @@ it('rebuilds a fresh manifest under --force without asking', function (): void {
     $this->assertDisplayLacks($display, ['Manifest exists and is stale. Overwrite?']);
 });
 
-it('asks before overwriting a stale manifest, and fails when declined', function (): void {
+it('asks before overwriting a stale manifest, and cancels cleanly when declined', function (): void {
     $this->runCommand(CACHE_COMMAND, ['action' => 'manifest', '--path' => $this->manifestPath]);
     touch($this->manifestPath, time() - 7200);
+    clearstatcache();
+    $staleAt = filemtime($this->manifestPath);
 
     [$exit, $display] = $this->runCommand(
         CACHE_COMMAND,
@@ -267,9 +269,10 @@ it('asks before overwriting a stale manifest, and fails when declined', function
         ['no'],
     );
 
-    // Declining returns FAILURE, unlike every other cancellation in the
-    // commands, which return SUCCESS.
-    $this->assertSame(1, $exit);
+    // Declining used to return FAILURE, unlike every other cancellation.
+    $this->assertSame(0, $exit);
+    clearstatcache();
+    $this->assertSame($staleAt, filemtime($this->manifestPath), 'A declined overwrite rewrote the manifest.');
     $this->assertDisplayContains($display, [
         'Manifest exists and is stale. Overwrite? (yes/no) [yes]',
         'Manifest generation cancelled.',
