@@ -171,11 +171,17 @@ it('runs migrate --fresh under --force without asking', function (): void {
         '✅ Fresh migration completed successfully',
     ]);
 
-    // characterization: the drop leaves the rows in `migrations`, so the
-    // re-run reports "Nothing to migrate" and the tables stay dropped while
-    // the command reports success. Changes in the refactor.
-    $this->assertStringContainsString('Nothing to migrate', $nested);
-    $this->assertFalse(Schema::hasTable('ichava_icons'));
+    // The drop used to leave the rows in `migrations`, so the re-run reported
+    // "Nothing to migrate" and the tables stayed dropped while the command
+    // reported success. The rows are forgotten first now, so fresh recreates.
+    $this->assertStringNotContainsString('Nothing to migrate', $nested);
+    $this->assertTrue(Schema::hasTable('ichava_icons'));
+    $this->assertTrue(Schema::hasTable('ichava_icon_terms'));
+    $this->assertTrue(Schema::hasTable('ichava_icon_termables'));
+    $this->assertTrue(
+        DB::table('migrations')->where('migration', '2024_11_22_000001_create_ichava_tables')->exists(),
+        'The recreated tables were not recorded as migrated.',
+    );
 })->skip(fn (): bool => ! databaseCommandDdlIsTransactional(), 'DDL is not transactional on this driver');
 
 it('fails a table-backed action when a table is missing', function (): void {
