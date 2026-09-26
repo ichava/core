@@ -11,11 +11,13 @@ use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Simtabi\Laranail\DbTools\DbTools;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Artisan;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Console\Tools\Support\FileSize;
 
 /**
  * DatabaseOperationsService
@@ -387,10 +389,7 @@ class DatabaseOperationsService
             $stats['variants'] = IconTerm::where('type', IconTerm::TYPE_VARIANT)->count();
             $stats['term_relationships'] = DB::table('ichava_icon_termables')->count();
 
-            // Get database size (PostgreSQL)
-            if (Helpers::dbDriverIsPgSql()) {
-                $stats['database_size'] = $this->getPostgresqlDatabaseSize();
-            }
+            $stats['database_size'] = $this->databaseSize();
         } catch (Exception $e) {
             $this->logger->warning('⚠️ Failed to get database statistics', ['error' => $e->getMessage()]);
         }
@@ -491,23 +490,15 @@ class DatabaseOperationsService
     }
 
     /**
-     * Get PostgreSQL database size for Ichava tables
+     * Storage used by the Ichava tables, human-readable; null when no driver
+     * can say. This was `pg_total_relation_size()` hard-wired, so every other
+     * driver reported "N/A" -- laranail/db-tools answers per driver.
      */
-    protected function getPostgresqlDatabaseSize(): ?string
+    protected function databaseSize(): ?string
     {
-        try {
-            $result = DB::select("
-                SELECT pg_size_pretty(
-                    pg_total_relation_size('ichava_icons') +
-                    pg_total_relation_size('ichava_icon_terms') +
-                    pg_total_relation_size('ichava_icon_termables')
-                ) as size
-            ");
+        $sizes = array_filter(DbTools::tableSizes(self::TABLES), is_int(...));
 
-            return $result[0]->size ?? null;
-        } catch (Exception $e) {
-            return null;
-        }
+        return $sizes === [] ? null : FileSize::format(array_sum($sizes));
     }
 
     /**

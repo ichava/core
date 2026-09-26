@@ -136,7 +136,6 @@ class InformationService
     {
         $stats = $this->databaseService->getStatistics();
 
-        $stats['database_size'] = $this->getDatabaseSize();
         $stats['cache_driver'] = config('cache.default');
 
         return $stats;
@@ -292,25 +291,5 @@ class InformationService
 
             return false;
         });
-    }
-
-    /**
-     * Get database size (PostgreSQL)
-     */
-    protected function getDatabaseSize(): string
-    {
-        try {
-            $size = DB::select("
-                SELECT pg_size_pretty(
-                    pg_total_relation_size('ichava_icons') +
-                    pg_total_relation_size('ichava_icon_terms') +
-                    pg_total_relation_size('ichava_icon_termables')
-                ) as size
-            ")[0]->size ?? '0 bytes';
-
-            return $size;
-        } catch (Exception $e) {
-            return 'N/A';
-        }
     }
 }
