@@ -197,4 +197,51 @@ return [
         ],
     ],
 
+    'job_status' => [
+        'intro'                => '📊 Ichava Icon Seeding Job Status',
+        'intro_package'        => '📊 Job Status: :package',
+        'no_packages'          => 'No icon packages registered.',
+        'no_progress'          => 'No job progress data found.',
+        'no_progress_hint'     => 'Jobs are tracked after running: php artisan :command seed',
+        'no_progress_for'      => 'No progress data found for: :package',
+        'no_progress_for_hint' => 'This package may not have been seeded yet, or progress data has expired.',
+        'no_data'              => 'No data',
+        'summary'              => '📊 Summary:',
+        'counting'             => 'Counting icons...',
+        'progress'             => 'Progress:',
+        'icons'                => 'Icons: :processed / :total',
+        'started'              => 'Started: :at (:ago)',
+        'completed'            => 'Completed: :at (:ago)',
+        'duration'             => 'Duration: :duration',
+        'exception'            => 'Exception: :class',
+        'in_database'          => 'Icons in database: :count',
+
+        'table' => [
+            'package'  => 'Package',
+            'status'   => 'Status',
+            'progress' => 'Progress',
+            'icons'    => 'Icons',
+            'updated'  => 'Updated',
+            'count'    => 'Count',
+            'property' => 'Property',
+            'job_id'   => 'Job ID',
+        ],
+
+        'metric' => [
+            'active'      => 'Active jobs',
+            'completed'   => 'Completed',
+            'failed'      => 'Failed',
+            'total_icons' => 'Total icons in DB',
+        ],
+
+        'clear' => [
+            'confirm'  => "Clear progress data for ':package'?",
+            'yes'      => 'Yes, clear it',
+            'no'       => 'No, cancel',
+            'hint'     => 'This will remove the cached progress tracking data',
+            'clearing' => 'Clearing progress...',
+            'done'     => '✅ Progress cleared for: :package',
+        ],
+    ],
+
 ];
