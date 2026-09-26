@@ -154,6 +154,6 @@ final class CheckIconUpdatesCommand extends BaseCommand
 
     protected static function statusBadge(string $status): string
     {
-        return StatusBadge::fromMap(self::UPDATE_STATUS_MAP, $status)->label($status)->render();
+        return StatusBadge::fromMap(self::UPDATE_STATUS_MAP, $status, valueAsLabel: true)->render();
     }
 }

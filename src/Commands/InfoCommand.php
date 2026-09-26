@@ -227,7 +227,7 @@ final class InfoCommand extends BaseCommand
         $this->newLine();
 
         $this->detail(__('ichava/ichava-core::commands.info.status.stage', [
-            'stage' => StatusBadge::fromMap(self::STAGE_MAP, $status['stage'])->label($status['stage'])->withoutSymbol()->render(),
+            'stage' => StatusBadge::fromMap(self::STAGE_MAP, $status['stage'], valueAsLabel: true)->withoutSymbol()->render(),
         ]));
         $this->detail(__('ichava/ichava-core::commands.info.status.ready', [
             'ready' => StatusBadge::of((bool) $status['is_ready'])
