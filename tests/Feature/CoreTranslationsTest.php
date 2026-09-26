@@ -167,7 +167,7 @@ it('does not add hardcoded English to the commands still awaiting migration', fu
         'src/Support/Seeder' => [
             'IchavaSeeder.php'      => 0,
             'IconSeederHelpers.php' => 0,
-            'IconTermsSeeder.php'   => 0,
+            'IconTermsSeeder.php'   => 8,
         ],
     ];
 
@@ -233,10 +233,12 @@ function hardcodedLiteralOffsets(string $body): array
     $offsets = [];
 
     // (a) $this->helper('literal' -- `table()` takes its headers as an array,
-    // so the literal may sit one bracket in.
+    // so the literal may sit one bracket in. A seeder writes through
+    // `$this->command->helper(` and IconTermsSeeder through its own
+    // `$this->output(`; both were outside this guard until 2026-09-26.
     $helpers = 'success|failure|tip|line|info|error|warn|comment|question'
-        . '|table|confirm|ask|choice';
-    preg_match_all('/\$this->(?:' . $helpers . ')\(\s*\[?\s*([\'"])/', $body, $m, PREG_OFFSET_CAPTURE);
+        . '|table|confirm|ask|choice|output';
+    preg_match_all('/\$this->(?:command->)?(?:' . $helpers . ')\(\s*\[?\s*([\'"])/', $body, $m, PREG_OFFSET_CAPTURE);
     foreach ($m[1] as [, $offset]) {
         $offsets[$offset] = 'helper';
     }
@@ -263,5 +265,34 @@ function hardcodedLiteralOffsets(string $body): array
         $offsets[$offset] = 'named';
     }
 
-    return $offsets;
+    // A literal a person reads has words in it. Markup around a translated
+    // string (`'    <fg=gray>' . __(...)`), an indent or an empty string is not
+    // English, so it does not count.
+    return array_filter(
+        $offsets,
+        static fn (int $offset): bool => literalReadsAsEnglish($body, $offset),
+        ARRAY_FILTER_USE_KEY,
+    );
+}
+
+function literalReadsAsEnglish(string $body, int $offset): bool
+{
+    $quote = $body[$offset];
+    $end = $offset + 1;
+
+    while ($end < strlen($body) && $body[$end] !== $quote) {
+        $end += $body[$end] === '\\' ? 2 : 1;
+    }
+
+    $text = substr($body, $offset + 1, $end - $offset - 1);
+
+    // Markup tags, and in a double-quoted string its interpolations, are not
+    // words a translator could translate.
+    $text = (string) preg_replace('#</?[a-z]*(=[a-z;,=]+)?>#i', '', $text);
+
+    if ($quote === '"') {
+        $text = (string) preg_replace('/\{\$[^}]*\}|\$\w+(->\w+|\[[^\]]*\])*/', '', $text);
+    }
+
+    return preg_match('/[A-Za-z]{2}/', $text) === 1;
 }
