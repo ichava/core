@@ -134,7 +134,7 @@ it('exports packages to a JSON file under --export', function (): void {
 
         $this->assertSame(0, $exit);
         $this->assertFileExists($path);
-        $this->assertDisplayContains($display, ["✅ Exported to: {$path}"]);
+        $this->assertDisplayContains($display, ["✓ Exported to: {$path}"]);
     } finally {
         File::delete($path);
     }
@@ -191,7 +191,7 @@ it('shows a ready lifecycle after seeding and --reset', function (): void {
     $this->assertSame(0, $exit);
     $this->assertDisplayContains($display, [
         'Resetting lifecycle state...',
-        '✅ Lifecycle state reset',
+        '✓ Lifecycle state reset',
         'Current Stage: READY',
         'System Ready:  YES',
         'Icon Count:   4',

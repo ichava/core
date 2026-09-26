@@ -16,7 +16,9 @@ use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
 
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Console\Tools\Widgets\Gauge;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
 use Simtabi\Laranail\Ichava\Support\JobProgressTracker;
 
 /**
@@ -122,12 +124,10 @@ class JobStatusCommand extends BaseCommand
                 default      => null,
             };
 
-            $progressBar = $this->createProgressBar($progressPercent);
-
             return [
                 $packageName,
                 $this->formatStatus($status),
-                "{$progressBar} {$progressPercent}%",
+                Gauge::make((float) $progressPercent)->width(10)->render(),
                 "{$processed}/{$total}",
                 $updatedAt,
             ];
@@ -189,7 +189,7 @@ class JobStatusCommand extends BaseCommand
 
         $this->newLine();
         info('Progress:');
-        $this->line("  {$this->createProgressBar($progressPercent, 20)} {$progressPercent}%");
+        $this->line('  ' . Gauge::make((float) $progressPercent)->width(20)->render());
         $this->line("  Icons: {$processed} / {$total}");
 
         if (isset($progress['started_at'])) {
@@ -203,7 +203,7 @@ class JobStatusCommand extends BaseCommand
         }
 
         if (isset($progress['duration_seconds'])) {
-            $this->line("  Duration: {$this->formatDuration($progress['duration_seconds'])}");
+            $this->line('  Duration: ' . TimeFormat::duration((float) $progress['duration_seconds']));
         }
 
         if (isset($progress['error'])) {

@@ -73,7 +73,7 @@ it('tabulates a pack with progress', function (): void {
     $this->assertSame(0, $exit);
     $this->assertDisplayContains($display, [
         JOB_STATUS_PACK,
-        '⏳ Processing',
+        '◉ Processing',
         '50%',
         '5/10',
         '📊 Summary:',
@@ -104,7 +104,7 @@ it('details a single pack in progress', function (): void {
         'Value',
         'Job ID',
         'job-1',
-        '⏳ Processing',
+        '◉ Processing',
         'Progress:',
         '50%',
         'Icons: 5 / 10',
@@ -120,7 +120,7 @@ it('details a failed pack with its error and exception class', function (): void
     [$exit, $display] = $this->runCommand(JOB_STATUS_COMMAND, ['package' => JOB_STATUS_PACK]);
 
     $this->assertSame(0, $exit);
-    $this->assertDisplayContains($display, ['❌ Failed', '❌ kaput', 'Exception: RuntimeException']);
+    $this->assertDisplayContains($display, ['✗ Failed', '✗ kaput', 'Exception: RuntimeException']);
 });
 
 it('asks before clearing progress and clears on yes', function (): void {

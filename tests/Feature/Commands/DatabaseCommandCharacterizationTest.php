@@ -186,7 +186,7 @@ it('fails a table-backed action when a table is missing', function (): void {
 
     $this->assertSame(1, $exit);
     $this->assertDisplayContains($display, [
-        '❌ Required tables do not exist: ichava_icon_termables',
+        '✗ Required tables do not exist: ichava_icon_termables',
         '💡 Run migrations first: php artisan ichava::ichava-core.database migrate',
     ]);
 })->skip(fn (): bool => ! databaseCommandDdlIsTransactional(), 'DDL is not transactional on this driver');
@@ -227,7 +227,7 @@ it('reports the tryExecute failure message when truncation throws', function ():
     [$exit, $display] = $this->runCommand(DATABASE_COMMAND, ['action' => 'truncate', '--force' => true]);
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['❌ Failed to truncate: disk on fire']);
+    $this->assertDisplayContains($display, ['✗ Failed to truncate: disk on fire']);
     $this->assertDisplayLacks($display, ['#0 ']);
 });
 
@@ -243,7 +243,7 @@ it('prints the full stack trace at -v when tryExecute catches', function (): voi
     );
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ['❌ Failed to truncate: disk on fire', '#0 ']);
+    $this->assertDisplayContains($display, ['✗ Failed to truncate: disk on fire', '#0 ']);
 });
 
 it('offers a choice for unseed without --package and cancels', function (): void {
