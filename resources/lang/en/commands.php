@@ -146,8 +146,8 @@ return [
             'intro'            => '🧹 Clearing icon caches',
             'clearing_all'     => 'Clearing all caches...',
             'clearing_package' => 'Clearing cache for package: :package...',
-            'cleared'          => 'Cleared :count cache key(s)',
-            'cleared_keys'     => 'Cleared Cache Keys',
+            'cleared'          => 'Cleared :count cache group(s)',
+            'cleared_keys'     => 'Cleared Caches',
             'failed'           => 'Failed to clear cache',
         ],
 
@@ -167,7 +167,7 @@ return [
 
         'generate' => [
             'intro'      => '⚡ Generating production cache',
-            'generating' => 'Generating optimized production cache...',
+            'generating' => 'Warming caches and writing the icon manifest...',
             'done'       => '✅ Production cache generated',
             'failed'     => 'Failed to generate cache',
         ],

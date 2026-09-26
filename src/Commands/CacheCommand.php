@@ -190,7 +190,7 @@ final class CacheCommand extends BaseCommand
 
         return $this->tryExecute(function () {
             spin(
-                callback: fn () => $this->cacheService->generateProductionCache(),
+                callback: fn () => $this->cacheService->generateProductionCache($this->option('path')),
                 message: __('ichava/ichava-core::commands.cache.generate.generating'),
             );
 
