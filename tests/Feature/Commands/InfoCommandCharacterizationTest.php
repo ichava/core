@@ -169,14 +169,11 @@ it('shows a not-ready lifecycle with next steps before seeding', function (): vo
     $this->assertSame(0, $exit);
     $this->assertDisplayContains($display, [
         '🔍 Ichava Lifecycle Status',
-        'Check',
-        'Migrations',
-        'Seeds',
-        'Cache',
-        '✅ OK',
-        '❌ NOT READY',
+        '✓ Migrations: OK',
+        '✗ Seeds:      NOT READY',
+        '✓ Cache:      OK',
         'Current Stage: MIGRATED',
-        'System Ready:  NO',
+        'System Ready:  No',
         'Next Steps:',
         '1. Run: php artisan ichava::ichava-core.database seed',
     ]);
@@ -193,7 +190,7 @@ it('shows a ready lifecycle after seeding and --reset', function (): void {
         'Resetting lifecycle state...',
         '✓ Lifecycle state reset',
         'Current Stage: READY',
-        'System Ready:  YES',
+        'System Ready:  Yes',
         'Icon Count:   4',
         '✅ Ichava is fully operational!',
     ]);

@@ -39,6 +39,17 @@ return [
         'yes'                => 'Yes',
         'no'                 => 'No',
         'cancelled'          => 'Operation cancelled.',
+        'not_available'      => 'N/A',
+
+        'stats' => [
+            'icons'              => 'Total Icons',
+            'packages'           => 'Total Packages',
+            'categories'         => 'Categories',
+            'variants'           => 'Variants',
+            'term_relationships' => 'Term Relationships',
+            'database_size'      => 'Database Size',
+            'cache_driver'       => 'Cache Driver',
+        ],
     ],
 
     'cleanup_logs' => [
@@ -241,6 +252,92 @@ return [
             'hint'     => 'This will remove the cached progress tracking data',
             'clearing' => 'Clearing progress...',
             'done'     => '✅ Progress cleared for: :package',
+        ],
+    ],
+
+    'info' => [
+        'select'      => 'What information would you like to view?',
+        'select_hint' => 'Select what to display',
+
+        'options' => [
+            'stats'     => 'Stats - Overview statistics',
+            'packages'  => 'Packages - List registered icon packages',
+            'icons'     => 'Icons - Browse icons',
+            'status'    => 'Status - Lifecycle and health status',
+            'languages' => 'Languages - PostgreSQL FTS languages',
+            'discover'  => 'Discover - Find unregistered packages',
+        ],
+
+        'packages' => [
+            'intro'              => '📦 Registered Icon Packages',
+            'loading'            => 'Loading packages...',
+            'none'               => 'No packages registered.',
+            'none_hint'          => 'Register packages in your service provider using IchavaRegistrar',
+            'search'             => 'Search packages (leave empty to show all)',
+            'search_placeholder' => 'e.g., fontawesome',
+            'search_hint'        => 'Filter packages by name',
+        ],
+
+        'icons' => [
+            'intro'              => '🎨 Icon Browser',
+            'search'             => 'Search icons',
+            'search_placeholder' => 'e.g., arrow, user, check',
+            'search_hint'        => 'Filter icons by name',
+            'loading'            => 'Loading icons...',
+            'none'               => 'No icons found.',
+            'showing'            => 'Showing :count icons. Use --limit to show more.',
+        ],
+
+        'status' => [
+            'intro'       => '🔍 Ichava Lifecycle Status',
+            'resetting'   => 'Resetting lifecycle state...',
+            'reset'       => 'Lifecycle state reset',
+            'checking'    => 'Checking status...',
+            'migrations'  => 'Migrations',
+            'seeds'       => 'Seeds',
+            'cache'       => 'Cache',
+            'stage'       => 'Current Stage: :stage',
+            'ready'       => 'System Ready:  :ready',
+            'icon_count'  => 'Icon Count:   :count',
+            'next_steps'  => 'Next Steps:',
+            'operational' => '✅ Ichava is fully operational!',
+        ],
+
+        'languages' => [
+            'intro'     => '🌍 PostgreSQL FTS Languages',
+            'loading'   => 'Loading languages...',
+            'none'      => 'No FTS languages found or not using PostgreSQL.',
+            'current'   => '📌 Current language: :language',
+            'configure' => 'Configure in config/ichava.php or ICHAVA_SEARCH_LANGUAGE env var',
+
+            'table' => [
+                'language'    => 'Language',
+                'owner'       => 'Owner',
+                'description' => 'Description',
+            ],
+        ],
+
+        'discover' => [
+            'intro'    => '🔍 Discovering Icon Packages',
+            'scanning' => 'Scanning filesystem...',
+            'none'     => 'No packages discovered.',
+        ],
+
+        'stats' => [
+            'intro'       => '📊 Ichava Statistics',
+            'gathering'   => 'Gathering statistics...',
+            'loading_top' => 'Loading top packages...',
+            'top'         => '🏆 Top :count Packages by Icon Count:',
+        ],
+
+        'table' => [
+            'package'    => 'Package',
+            'path'       => 'Path',
+            'icons'      => 'Icons',
+            'status'     => 'Status',
+            'name'       => 'Name',
+            'registered' => 'Registered',
+            'icon_count' => 'Icon Count',
         ],
     ],
 
