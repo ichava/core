@@ -7,7 +7,6 @@ namespace Simtabi\Laranail\Ichava\Commands;
 use Carbon\Carbon;
 
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\note;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
@@ -16,9 +15,13 @@ use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
 
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Console\Tools\Widgets\Gauge;
+use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
+use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
+use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
 use Simtabi\Laranail\Ichava\Support\JobProgressTracker;
 
 /**
@@ -58,13 +61,13 @@ class JobStatusCommand extends BaseCommand
      */
     protected function displaySinglePackage(string $packageName): int
     {
-        intro("📊 Job Status: {$packageName}");
+        intro(__('ichava/ichava-core::commands.job_status.intro_package', ['package' => $packageName]));
 
         $progress = JobProgressTracker::get($packageName);
 
         if (! $progress) {
-            warning("No progress data found for: {$packageName}");
-            note('💡 This package may not have been seeded yet, or progress data has expired.');
+            warning(__('ichava/ichava-core::commands.job_status.no_progress_for', ['package' => $packageName]));
+            $this->tip(__('ichava/ichava-core::commands.job_status.no_progress_for_hint'));
 
             return self::SUCCESS;
         }
@@ -79,13 +82,13 @@ class JobStatusCommand extends BaseCommand
      */
     protected function displayAllPackages(): int
     {
-        intro('📊 Ichava Icon Seeding Job Status');
+        intro(__('ichava/ichava-core::commands.job_status.intro'));
 
         $registry = app(IconRegistry::class);
         $packages = $registry->all();
 
         if (empty($packages)) {
-            warning('No icon packages registered.');
+            warning(__('ichava/ichava-core::commands.job_status.no_packages'));
 
             return self::SUCCESS;
         }
@@ -101,7 +104,7 @@ class JobStatusCommand extends BaseCommand
                 if ($this->option('all')) {
                     return [
                         $packageName,
-                        '<fg=gray>No data</>',
+                        StatusBadge::of(Status::Unknown)->label(__('ichava/ichava-core::commands.job_status.no_data'))->render(),
                         '-',
                         (string) $this->countDatabaseIcons($packageName),
                         '-',
@@ -134,35 +137,43 @@ class JobStatusCommand extends BaseCommand
         })->filter()->values()->toArray();
 
         if (empty($rows)) {
-            warning('No job progress data found.');
-            note('💡 Jobs are tracked after running: php artisan ichava::ichava-core.database seed');
+            warning(__('ichava/ichava-core::commands.job_status.no_progress'));
+            $this->tip(__('ichava/ichava-core::commands.job_status.no_progress_hint', [
+                'command' => CommandName::of(DatabaseCommand::class),
+            ]));
 
             return self::SUCCESS;
         }
 
         table(
-            headers: ['Package', 'Status', 'Progress', 'Icons', 'Updated'],
+            headers: [
+                __('ichava/ichava-core::commands.job_status.table.package'),
+                __('ichava/ichava-core::commands.job_status.table.status'),
+                __('ichava/ichava-core::commands.job_status.table.progress'),
+                __('ichava/ichava-core::commands.job_status.table.icons'),
+                __('ichava/ichava-core::commands.job_status.table.updated'),
+            ],
             rows: $rows,
         );
 
         // Summary
         $this->newLine();
-        info('📊 Summary:');
+        info(__('ichava/ichava-core::commands.job_status.summary'));
 
         $totalIcons = spin(
             callback: fn () => Icon::count(),
-            message: 'Counting icons...',
+            message: __('ichava/ichava-core::commands.job_status.counting'),
         );
 
-        table(
-            headers: ['Metric', 'Count'],
-            rows: [
-                ['Active jobs', (string) $activeJobs],
-                ['Completed', (string) $completedJobs],
-                ['Failed', (string) $failedJobs],
-                ['Total icons in DB', $this->formatNumber($totalIcons)],
-            ],
-        );
+        MetricTable::make()
+            ->headers(value: __('ichava/ichava-core::commands.job_status.table.count'))
+            ->metrics([
+                __('ichava/ichava-core::commands.job_status.metric.active')      => $activeJobs,
+                __('ichava/ichava-core::commands.job_status.metric.completed')   => $completedJobs,
+                __('ichava/ichava-core::commands.job_status.metric.failed')      => $failedJobs,
+                __('ichava/ichava-core::commands.job_status.metric.total_icons') => (int) $totalIcons,
+            ])
+            ->render($this->output);
 
         return self::SUCCESS;
     }
@@ -174,49 +185,57 @@ class JobStatusCommand extends BaseCommand
     {
         $status = $progress['status'] ?? 'unknown';
 
-        table(
-            headers: ['Property', 'Value'],
-            rows: [
-                ['Package', $packageName],
-                ['Status', $this->formatStatus($status)],
-                ['Job ID', $progress['job_id'] ?? '-'],
-            ],
-        );
+        MetricTable::make()
+            ->headers(__('ichava/ichava-core::commands.job_status.table.property'))
+            ->metrics([
+                __('ichava/ichava-core::commands.job_status.table.package') => $packageName,
+                __('ichava/ichava-core::commands.job_status.table.status')  => $this->formatStatus($status),
+                __('ichava/ichava-core::commands.job_status.table.job_id')  => (string) ($progress['job_id'] ?? '-'),
+            ])
+            ->render($this->output);
 
         $processed = $progress['processed'] ?? 0;
         $total = $progress['total'] ?? 0;
         $progressPercent = $progress['progress_percent'] ?? 0;
 
         $this->newLine();
-        info('Progress:');
-        $this->line('  ' . Gauge::make((float) $progressPercent)->width(20)->render());
-        $this->line("  Icons: {$processed} / {$total}");
+        info(__('ichava/ichava-core::commands.job_status.progress'));
+        $this->detail(Gauge::make((float) $progressPercent)->width(20)->render());
+        $this->detail(__('ichava/ichava-core::commands.job_status.icons', ['processed' => $processed, 'total' => $total]));
 
         if (isset($progress['started_at'])) {
             $startedAt = Carbon::parse($progress['started_at']);
-            $this->line("  Started: {$startedAt->format('Y-m-d H:i:s')} ({$startedAt->diffForHumans()})");
+            $this->detail(__('ichava/ichava-core::commands.job_status.started', [
+                'at'  => $startedAt->format('Y-m-d H:i:s'),
+                'ago' => $startedAt->diffForHumans(),
+            ]));
         }
 
         if (isset($progress['completed_at'])) {
             $completedAt = Carbon::parse($progress['completed_at']);
-            $this->line("  Completed: {$completedAt->format('Y-m-d H:i:s')} ({$completedAt->diffForHumans()})");
+            $this->detail(__('ichava/ichava-core::commands.job_status.completed', [
+                'at'  => $completedAt->format('Y-m-d H:i:s'),
+                'ago' => $completedAt->diffForHumans(),
+            ]));
         }
 
         if (isset($progress['duration_seconds'])) {
-            $this->line('  Duration: ' . TimeFormat::duration((float) $progress['duration_seconds']));
+            $this->detail(__('ichava/ichava-core::commands.job_status.duration', [
+                'duration' => TimeFormat::duration((float) $progress['duration_seconds']),
+            ]));
         }
 
         if (isset($progress['error'])) {
             $this->newLine();
             $this->failure($progress['error']);
             if (isset($progress['exception'])) {
-                $this->line("  Exception: <fg=red>{$progress['exception']}</>");
+                $this->detail(__('ichava/ichava-core::commands.job_status.exception', ['class' => $progress['exception']]));
             }
         }
 
         $this->newLine();
         $dbCount = $this->countDatabaseIcons($packageName);
-        info("Icons in database: {$this->formatNumber($dbCount)}");
+        info(__('ichava/ichava-core::commands.job_status.in_database', ['count' => $this->formatNumber($dbCount)]));
     }
 
     /**
@@ -225,25 +244,25 @@ class JobStatusCommand extends BaseCommand
     protected function clearProgress(string $packageName): int
     {
         $confirmed = confirm(
-            label: "Clear progress data for '{$packageName}'?",
+            label: __('ichava/ichava-core::commands.job_status.clear.confirm', ['package' => $packageName]),
             default: false,
-            yes: 'Yes, clear it',
-            no: 'No, cancel',
-            hint: 'This will remove the cached progress tracking data',
+            yes: __('ichava/ichava-core::commands.job_status.clear.yes'),
+            no: __('ichava/ichava-core::commands.job_status.clear.no'),
+            hint: __('ichava/ichava-core::commands.job_status.clear.hint'),
         );
 
         if (! $confirmed && ! $this->option('force')) {
-            warning('Operation cancelled.');
+            warning(__('ichava/ichava-core::commands.common.cancelled'));
 
             return self::SUCCESS;
         }
 
         spin(
             callback: fn () => JobProgressTracker::clear($packageName),
-            message: 'Clearing progress...',
+            message: __('ichava/ichava-core::commands.job_status.clear.clearing'),
         );
 
-        outro("✅ Progress cleared for: {$packageName}");
+        outro(__('ichava/ichava-core::commands.job_status.clear.done', ['package' => $packageName]));
 
         return self::SUCCESS;
     }
@@ -254,5 +273,13 @@ class JobStatusCommand extends BaseCommand
     protected function countDatabaseIcons(string $packageName): int
     {
         return Icon::where('package', $packageName)->count();
+    }
+
+    /**
+     * One indented detail line under the progress heading.
+     */
+    private function detail(string $text): void
+    {
+        $this->line(str_repeat(' ', 2) . $text);
     }
 }
