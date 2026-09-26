@@ -163,7 +163,7 @@ class JobStatusCommand extends BaseCommand
             return [
                 $packageName,
                 $this->formatStatus($status),
-                Gauge::make((float) $progressPercent)->width(10)->render(),
+                Gauge::make((float) $progressPercent)->width(10)->status($this->statusOf($status))->render(),
                 "{$processed}/{$total}",
                 $updatedAt,
             ];
@@ -232,7 +232,7 @@ class JobStatusCommand extends BaseCommand
 
         $this->newLine();
         info(__('ichava/ichava-core::commands.job_status.progress'));
-        $this->detail(Gauge::make((float) $progressPercent)->width(20)->render());
+        $this->detail(Gauge::make((float) $progressPercent)->width(20)->status($this->statusOf($status))->render());
         $this->detail(__('ichava/ichava-core::commands.job_status.icons', ['processed' => $processed, 'total' => $total]));
 
         if (isset($progress['started_at'])) {
