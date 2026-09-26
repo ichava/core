@@ -40,6 +40,11 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   stdout could not be handed to a JSON parser as-is. Under `--format=json` the command now
   prints the array and nothing else -- `[]` when no pack is registered -- and `--fail-on-stale`
   still sets the exit code.
+- **`database migrate` shows its own result again.** Running migrations goes through
+  `Artisan::call('migrate')`, and the nested command re-pointed Laravel Prompts at its own
+  buffered output without restoring it, so the success outro -- and, for `--fresh`, the dropped
+  tables -- were printed into a buffer nobody read. The command now takes Prompts back after the
+  nested call; `install` does the same around the commands it calls.
 
 ### Tests
 

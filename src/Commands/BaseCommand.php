@@ -391,6 +391,30 @@ abstract class BaseCommand extends Command
     }
 
     /**
+     * Run a callback that may call another Artisan command through
+     * `Artisan::call()`, and take Laravel Prompts back afterwards.
+     *
+     * A nested command re-points Prompts' shared output -- and its fallbacks --
+     * at ITS OWN buffered output and never restores them, so everything this
+     * command printed through Prompts afterwards, success outro included,
+     * went into that buffer and never reached the user.
+     *
+     * @template T
+     *
+     * @param callable(): T $callback
+     *
+     * @return T
+     */
+    protected function reclaimingPrompts(callable $callback): mixed
+    {
+        try {
+            return $callback();
+        } finally {
+            $this->configurePrompts($this->input);
+        }
+    }
+
+    /**
      * Offer the valid values for an argument, and re-run with the one chosen.
      * Quiet runs cannot answer, so they return INVALID without asking.
      *

@@ -136,12 +136,12 @@ final class InstallCommand extends BaseCommand
         $this->newLine();
         $this->detail(__('ichava/ichava-core::commands.install.seeding', ['package' => $package]));
 
-        $seedExit = $this->call(CommandName::of(DatabaseCommand::class), array_filter([
+        $seedExit = $this->reclaimingPrompts(fn () => $this->call(CommandName::of(DatabaseCommand::class), array_filter([
             'action'    => 'seed',
             '--package' => $package,
             '--sync'    => $this->option('sync') ?: null,
             '--force'   => $this->option('force') ?: null,
-        ], fn ($value) => $value !== null));
+        ], fn ($value) => $value !== null)));
 
         if ($seedExit !== 0) {
             $this->failure(__('ichava/ichava-core::commands.install.seed_failed', ['package' => $package]));
@@ -241,7 +241,7 @@ final class InstallCommand extends BaseCommand
             return null;
         }
 
-        $exit = $this->call(CommandName::of(DatabaseCommand::class), ['action' => 'migrate']);
+        $exit = $this->reclaimingPrompts(fn () => $this->call(CommandName::of(DatabaseCommand::class), ['action' => 'migrate']));
 
         if ($exit !== 0 || ! $this->database->tablesExist()) {
             $this->failure(__('ichava/ichava-core::commands.install.migrate_failed'));
