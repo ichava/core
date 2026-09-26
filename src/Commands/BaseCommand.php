@@ -14,7 +14,6 @@ use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
 use function Laravel\Prompts\text;
 use function Laravel\Prompts\error;
-use function Laravel\Prompts\intro;
 use function Laravel\Prompts\select;
 
 use Illuminate\Support\Facades\File;
@@ -159,14 +158,6 @@ abstract class BaseCommand extends Command
     protected function formatNumber(int|float $number): string
     {
         return number_format($number);
-    }
-
-    /**
-     * Display a styled intro header using Laravel Prompts
-     */
-    protected function displayHeader(string $title, string $icon = '📊'): void
-    {
-        intro("{$icon} {$title}");
     }
 
     /**
@@ -411,33 +402,11 @@ abstract class BaseCommand extends Command
     }
 
     /**
-     * Get relative path from base path
-     */
-    protected function getRelativePath(string $path, ?string $basePath = null): string
-    {
-        $basePath = $basePath ?? base_path();
-
-        if (Str::startsWith($path, $basePath)) {
-            return substr($path, strlen($basePath) + 1);
-        }
-
-        return $path;
-    }
-
-    /**
      * Check if output is quiet mode
      */
     protected function isQuiet(): bool
     {
         return $this->output->isQuiet();
-    }
-
-    /**
-     * Check if verbose mode is enabled
-     */
-    protected function isVerbose(): bool
-    {
-        return $this->output->isVerbose();
     }
 
     /**
