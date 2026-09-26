@@ -4,6 +4,41 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Changed
+
+- **The Artisan commands' output is built on laranail/console's status vocabulary.** Status
+  cells, checklists and statistics tables come from its `Status` enum, `StatusBadge`, `CheckList`
+  and `MetricTable` instead of hand-written `<fg=...>` markup and emoji strings, so glyphs,
+  colours and labels are defined once for the family. Visible differences: success and failure
+  lines read `✓` / `✗` rather than `✅` / `❌`; job states read `◉ Processing` / `✗ Failed`;
+  `info status` prints a checklist (`✓ Migrations: OK`) rather than a Check/Status table, and
+  `System Ready: Yes`/`No` rather than `YES`/`NO`; `cache stats` reads `✗ No` / `⚠ Yes`.
+  Byte sizes and durations go through `FileSize` and `TimeFormat`, and progress through `Gauge`.
+- **Every user-facing string the commands print or ask is translated**, under
+  `ichava/ichava-core::commands.*` -- including Laravel Prompts' intros, outros, notes, table
+  headers and the `label:`, `hint:`, `placeholder:`, `yes:` and `no:` of every prompt. Command
+  `$description`s stay English, as before.
+- **Hints that name another command derive the name from its registration.** A new
+  `Support\CommandName::of(DatabaseCommand::class)` returns the name Artisan holds the command
+  under, so a rename can no longer leave a hint -- or `install`'s nested calls -- pointing at a
+  name that does not exist.
+- **`database stats` and `info stats` share one statistics table**, so `info stats` now also
+  shows Term Relationships, which its service already returned.
+
+### Removed
+
+- **Fifteen protected `BaseCommand` helpers nothing called were parked**, moved verbatim to
+  `.parked/Commands/BaseCommandHelpers.php` (not autoloaded, not shipped): `displayBoxedHeader`,
+  `displayWarning`, `displayOutro`, `displayTable`, `displayKeyValue(s)`, `displayStatusRow`,
+  `confirmDestructive`, `confirmOperation`, `withSpinner`, `withProgress`, `displayDivider`,
+  `outputIfNotQuiet`, `outputIfVerbose` and `tryWithSpinner`. `.parked/README.md` records the
+  caller count behind each. `confirmDestructive()` is now laranail/console's, with a different
+  signature (`string $question, ?string $hint`).
+- **`BaseCommand::formatBytes()`, `formatDuration()`, `formatMs()`, `createProgressBar()`,
+  `askSelect()`, `displayHeader()`, `getRelativePath()` and its duplicate `isVerbose()` are
+  gone**; use laranail/console's `FileSize`, `TimeFormat` and `Gauge` for the first four. A
+  command extending `BaseCommand` outside this package that called one of them must switch.
+
 ### Fixed
 
 - **`--force` now skips destructive confirmations instead of prompting and then ignoring the
@@ -54,7 +89,8 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   (`tests/Support/RunsCommandsForCharacterization.php`), because `expectsOutputToContain()` matches
   one write at a time and Laravel Prompts renders a whole table in one write.
 
-  They also pin defects, marked `characterization:` in the tests, for the refactor to fix:
+  They also pinned defects, marked `characterization:` in the tests, for the refactor to fix --
+  all fixed above:
   - Five `database` actions and `job-status --clear` prompt even under `--force`, and then
     proceed when the answer is "no".
   - `tryExecute` prints stack traces at `-v`.
@@ -62,6 +98,11 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
     `IconCacheService`.
   - `database migrate --fresh` drops the tables and does not recreate them.
   - A second `watch` run fails on the unique index.
+- **The hardcoded-English ratchet sees Laravel Prompts.** `CoreTranslationsTest` counted only
+  `$this->helper('literal')`, and so reported 38 literals in `src/Commands` while the real count
+  was 225. It now also counts literal first arguments to imported Prompts functions and literal
+  `label:`/`hint:`/`placeholder:`/`yes:`/`no:` arguments, per file, across `src/Commands` and
+  `src/Support/Seeder`. `src/Commands` is at 0; the seeder is pinned at 12 for a later pass.
 
 ## [0.4.2] - 2026-09-26
 
