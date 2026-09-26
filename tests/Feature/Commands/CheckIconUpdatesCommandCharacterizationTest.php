@@ -126,21 +126,37 @@ it('adds a Source column only when a row has a secondary source', function (): v
     $this->assertDisplayContains($display, ['Source', 'primary', 'openmoji', '✅ All packs up to date']);
 });
 
-it('prints JSON with no spinner under --format=json, framed by the intro and outro', function (): void {
-    // characterization: the intro and outro still print around the JSON, so
-    // stdout under --format=json is not parseable as JSON on its own (the
-    // exit-code test in CheckIconUpdatesCommandTest regex-extracts the array
-    // for this reason). Changes in the refactor.
+it('prints nothing but the JSON document under --format=json', function (): void {
+    // The intro and outro used to frame the JSON, so stdout was not parseable
+    // on its own and callers had to regex the array out.
     bindUpdateCheckerRows([updateCheckerRow('update-available')]);
 
     [$exit, $display] = $this->runCommand(CHECK_UPDATES_COMMAND, ['--format' => 'json']);
 
     $this->assertSame(0, $exit);
-    $this->assertDisplayContains($display, [
-        '🔍 Checking icon-pack upstream sources',
-        '"package": "ichava/icon-sets-tabler"',
-        '"status": "update-available"',
-        '⚠️  1 pack(s) behind upstream',
-    ]);
-    $this->assertDisplayLacks($display, ['Polling upstream sources']);
+
+    $decoded = json_decode($display, true, flags: JSON_THROW_ON_ERROR);
+
+    $this->assertCount(1, $decoded);
+    $this->assertSame('ichava/icon-sets-tabler', $decoded[0]['package']);
+    $this->assertSame('update-available', $decoded[0]['status']);
+    $this->assertDisplayLacks($display, ['🔍 Checking icon-pack upstream sources', 'Polling upstream sources', 'pack(s) behind upstream']);
+});
+
+it('prints an empty JSON array, not a note, when no pack is registered', function (): void {
+    bindUpdateCheckerRows([]);
+
+    [$exit, $display] = $this->runCommand(CHECK_UPDATES_COMMAND, ['--format' => 'json']);
+
+    $this->assertSame(0, $exit);
+    $this->assertSame([], json_decode($display, true, flags: JSON_THROW_ON_ERROR));
+});
+
+it('keeps the --fail-on-stale exit code under --format=json', function (): void {
+    bindUpdateCheckerRows([updateCheckerRow('update-available')]);
+
+    [$exit, $display] = $this->runCommand(CHECK_UPDATES_COMMAND, ['--format' => 'json', '--fail-on-stale' => true]);
+
+    $this->assertSame(1, $exit);
+    $this->assertCount(1, json_decode($display, true, flags: JSON_THROW_ON_ERROR));
 });

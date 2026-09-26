@@ -3,7 +3,8 @@
 declare(strict_types=1);
 
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
-use Simtabi\Laranail\Ichava\Support\JobProgressTracker;
+use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
+use Simtabi\Laranail\Package\Tools\Services\Database\SeederRunTracker;
 use Simtabi\Laranail\Ichava\Tests\Support\RunsCommandsForCharacterization;
 
 /*
@@ -12,7 +13,7 @@ use Simtabi\Laranail\Ichava\Tests\Support\RunsCommandsForCharacterization;
 |--------------------------------------------------------------------------
 |
 | Pins what the command prints and asks TODAY, before the console refactor.
-| Progress rows are written through JobProgressTracker, the same API the
+| Progress rows are written through SeederRunTracker, the same API the
 | seeding jobs use.
 |
 */
@@ -21,6 +22,11 @@ uses(RunsCommandsForCharacterization::class);
 
 const JOB_STATUS_COMMAND = 'ichava::ichava-core.job-status';
 const JOB_STATUS_PACK = 'ichava/test-icons';
+
+function jobStatusTracker(): SeederRunTracker
+{
+    return app(SeederRunTracker::class);
+}
 
 it('reports no progress data for any registered pack', function (): void {
     [$exit, $display] = $this->runCommand(JOB_STATUS_COMMAND);
@@ -65,15 +71,15 @@ it('lists packs without progress under --all, with the summary table', function 
 });
 
 it('tabulates a pack with progress', function (): void {
-    JobProgressTracker::start(JOB_STATUS_PACK, 10, 'job-1');
-    JobProgressTracker::update(JOB_STATUS_PACK, 5);
+    jobStatusTracker()->start(IchavaSeeder::trackingKey(JOB_STATUS_PACK), 10);
+    jobStatusTracker()->advance(IchavaSeeder::trackingKey(JOB_STATUS_PACK), by: 5);
 
     [$exit, $display] = $this->runCommand(JOB_STATUS_COMMAND);
 
     $this->assertSame(0, $exit);
     $this->assertDisplayContains($display, [
         JOB_STATUS_PACK,
-        '⏳ Processing',
+        '◉ Processing',
         '50%',
         '5/10',
         '📊 Summary:',
@@ -93,8 +99,8 @@ it('reports no progress data for a single pack', function (): void {
 });
 
 it('details a single pack in progress', function (): void {
-    JobProgressTracker::start(JOB_STATUS_PACK, 10, 'job-1');
-    JobProgressTracker::update(JOB_STATUS_PACK, 5);
+    jobStatusTracker()->start(IchavaSeeder::trackingKey(JOB_STATUS_PACK), 10);
+    jobStatusTracker()->advance(IchavaSeeder::trackingKey(JOB_STATUS_PACK), by: 5);
 
     [$exit, $display] = $this->runCommand(JOB_STATUS_COMMAND, ['package' => JOB_STATUS_PACK]);
 
@@ -102,9 +108,7 @@ it('details a single pack in progress', function (): void {
     $this->assertDisplayContains($display, [
         'Property',
         'Value',
-        'Job ID',
-        'job-1',
-        '⏳ Processing',
+        '◉ Processing',
         'Progress:',
         '50%',
         'Icons: 5 / 10',
@@ -114,22 +118,22 @@ it('details a single pack in progress', function (): void {
 });
 
 it('details a failed pack with its error and exception class', function (): void {
-    JobProgressTracker::start(JOB_STATUS_PACK, 10, 'job-1');
-    JobProgressTracker::fail(JOB_STATUS_PACK, new RuntimeException('kaput'));
+    jobStatusTracker()->start(IchavaSeeder::trackingKey(JOB_STATUS_PACK), 10);
+    jobStatusTracker()->fail(IchavaSeeder::trackingKey(JOB_STATUS_PACK), 'kaput');
 
     [$exit, $display] = $this->runCommand(JOB_STATUS_COMMAND, ['package' => JOB_STATUS_PACK]);
 
     $this->assertSame(0, $exit);
-    $this->assertDisplayContains($display, ['❌ Failed', '❌ kaput', 'Exception: RuntimeException']);
+    $this->assertDisplayContains($display, ['✗ Failed', '✗ kaput']);
 });
 
 it('asks before clearing progress and clears on yes', function (): void {
-    JobProgressTracker::start(JOB_STATUS_PACK, 10, 'job-1');
+    jobStatusTracker()->start(IchavaSeeder::trackingKey(JOB_STATUS_PACK), 10);
 
     [$exit, $display] = $this->runCommand(JOB_STATUS_COMMAND, ['--clear' => JOB_STATUS_PACK], ['yes']);
 
     $this->assertSame(0, $exit);
-    $this->assertNull(JobProgressTracker::get(JOB_STATUS_PACK));
+    $this->assertNull(jobStatusTracker()->get(IchavaSeeder::trackingKey(JOB_STATUS_PACK)));
     $this->assertDisplayContains($display, [
         "Clear progress data for 'ichava/test-icons'? (yes/no) [no]",
         '✅ Progress cleared for: ichava/test-icons',
@@ -137,29 +141,25 @@ it('asks before clearing progress and clears on yes', function (): void {
 });
 
 it('keeps progress when clearing is declined', function (): void {
-    JobProgressTracker::start(JOB_STATUS_PACK, 10, 'job-1');
+    jobStatusTracker()->start(IchavaSeeder::trackingKey(JOB_STATUS_PACK), 10);
 
     [$exit, $display] = $this->runCommand(JOB_STATUS_COMMAND, ['--clear' => JOB_STATUS_PACK], ['no']);
 
     $this->assertSame(0, $exit);
-    $this->assertNotNull(JobProgressTracker::get(JOB_STATUS_PACK));
+    $this->assertNotNull(jobStatusTracker()->get(IchavaSeeder::trackingKey(JOB_STATUS_PACK)));
     $this->assertDisplayContains($display, ['Operation cancelled.']);
 });
 
-it('still asks under --force, and clears even when declined', function (): void {
-    // characterization: prompts even under --force; changes in the refactor
-    JobProgressTracker::start(JOB_STATUS_PACK, 10, 'job-1');
+it('clears under --force without asking', function (): void {
+    jobStatusTracker()->start(IchavaSeeder::trackingKey(JOB_STATUS_PACK), 10);
 
     [$exit, $display] = $this->runCommand(
         JOB_STATUS_COMMAND,
         ['--clear' => JOB_STATUS_PACK, '--force' => true],
-        ['no'],
     );
 
     $this->assertSame(0, $exit);
-    $this->assertNull(JobProgressTracker::get(JOB_STATUS_PACK));
-    $this->assertDisplayContains($display, [
-        "Clear progress data for 'ichava/test-icons'?",
-        '✅ Progress cleared for: ichava/test-icons',
-    ]);
+    $this->assertNull(jobStatusTracker()->get(IchavaSeeder::trackingKey(JOB_STATUS_PACK)));
+    $this->assertDisplayLacks($display, ["Clear progress data for 'ichava/test-icons'?"]);
+    $this->assertDisplayContains($display, ['✅ Progress cleared for: ichava/test-icons']);
 });

@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Exception;
 use RuntimeException;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Actions\ClearDiscoveryCaches;
 
 /**
  * CacheOperationsService
@@ -24,15 +25,6 @@ use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
  */
 class CacheOperationsService
 {
-    /**
-     * Cache key patterns used by Ichava
-     */
-    protected const CACHE_PATTERNS = [
-        'ichava.*',
-        'icons.*',
-        'packages.*',
-    ];
-
     public function __construct(
         protected IconCacheService $cacheService,
         protected IconDiscoveryService $discoveryService,
@@ -43,24 +35,37 @@ class CacheOperationsService
     ) {}
 
     /**
-     * Clear all Ichava caches
+     * Clear every cache Ichava can enumerate, and name what was cleared.
+     *
+     * This used to call `IconCacheService::forgetPattern()`, which has never
+     * existed -- a Laravel cache store cannot enumerate keys by pattern -- so
+     * `cache clear`, `clear --package` and `refresh` failed on every run. What
+     * can be cleared is what has an owner that knows its keys:
+     *
+     * - the discovery caches, retired at once by ClearDiscoveryCaches'
+     *   generation counter (the md5-suffixed keys cannot be listed);
+     * - each registered pack's SVG-count cache, keyed by its base path;
+     * - the directory-watcher fingerprints.
+     *
+     * Rendered SVG content is cached under `ichava.core.cache.version` and is
+     * deliberately not flushed here: IconCacheService::flush() empties the
+     * host's whole store. Bump the version to abandon those entries.
+     *
+     * @return list<string> the cache groups cleared, for display
      */
     public function clearAll(): array
     {
-        $clearedKeys = [];
+        $clearedKeys = [ClearDiscoveryCaches::PREFIX . '.*'];
+        $this->discoveryService->clearCache();
 
-        foreach (self::CACHE_PATTERNS as $pattern) {
-            try {
-                $keys = $this->cacheService->forgetPattern($pattern);
-                $clearedKeys = array_merge($clearedKeys, $keys);
-            } catch (Exception $e) {
-                $this->logger->warning("Failed to clear cache pattern: {$pattern}", [
-                    'error' => $e->getMessage(),
-                ]);
-            }
+        foreach (array_keys($this->registry->all()) as $packageName) {
+            $clearedKeys = [...$clearedKeys, ...$this->clearPackageManifest($packageName)];
         }
 
-        // Dispatch cache invalidated event
+        if ($this->cacheService->clearWatcher()) {
+            $clearedKeys[] = 'ichava.directory.fingerprints';
+        }
+
         Event::dispatch(IconCacheEvent::invalidated(
             reason: 'Manual clear (all)',
             clearedKeys: $clearedKeys,
@@ -74,11 +79,21 @@ class CacheOperationsService
     }
 
     /**
-     * Clear cache for a specific package
+     * Clear the caches that hold a registered pack's data.
+     *
+     * Discovery results are cached registry-wide rather than per pack, so they
+     * are retired whole; the pack's own SVG-count cache is cleared by key.
+     *
+     * @return list<string> the cache groups cleared, for display
+     *
+     * @throws IchavaException when the package is not registered
      */
     public function clearPackage(string $packageName): array
     {
-        $clearedKeys = $this->cacheService->forgetPattern("ichava.{$packageName}.*");
+        $packageKeys = $this->clearPackageManifest($packageName);
+
+        $this->discoveryService->clearCache();
+        $clearedKeys = [ClearDiscoveryCaches::PREFIX . '.*', ...$packageKeys];
 
         Event::dispatch(IconCacheEvent::invalidated(
             reason: "Manual clear for {$packageName}",
@@ -143,15 +158,24 @@ class CacheOperationsService
     }
 
     /**
-     * Generate production-optimized cache
+     * Prepare the caches a production deployment reads: warm the discovery
+     * caches, then write the icon manifest.
+     *
+     * This used to delegate to `IconCacheService::generateProductionCache()`,
+     * which has never existed. There is no separate "production" cache to
+     * build; what a deployment benefits from is exactly `rebuild` plus
+     * `manifest`, so that is what this does.
+     *
+     * @return array{rebuild: array<string, mixed>, manifest: array<string, mixed>}
      */
-    public function generateProductionCache(): array
+    public function generateProductionCache(?string $manifestPath = null): array
     {
         $this->logger->info('💾 Generating production cache');
 
-        $this->cacheService->generateProductionCache();
-
-        return $this->getStatistics();
+        return [
+            'rebuild'  => $this->rebuild(),
+            'manifest' => $this->generateManifest($manifestPath),
+        ];
     }
 
     /**
@@ -225,6 +249,27 @@ class CacheOperationsService
             'manifest_exists' => $this->manifestExists(),
             'manifest_stale'  => $this->manifestIsStale(),
         ];
+    }
+
+    /**
+     * Clear one registered pack's SVG-count cache.
+     *
+     * @return list<string>
+     *
+     * @throws IchavaException when the package is not registered
+     */
+    protected function clearPackageManifest(string $packageName): array
+    {
+        $metadata = $this->registry->get($packageName);
+        $basePath = $metadata['base_path'] ?? $metadata['path'] ?? null;
+
+        if (! is_string($basePath) || $basePath === '') {
+            return [];
+        }
+
+        $this->cacheService->clearManifest($basePath);
+
+        return [IconDiscoveryService::CACHE_PREFIX . '.manifest.' . md5($basePath)];
     }
 
     /**
