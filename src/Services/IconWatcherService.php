@@ -505,7 +505,14 @@ class IconWatcherService
 
             try {
                 $iconData = $this->extractIconData($file, $package, $basePath);
-                $icons[$file->getPathname()] = $iconData;
+
+                // Keyed by the STORED path -- relative to the pack's base
+                // path -- because syncPackage() compares these keys with the
+                // `path` column. Keying by the absolute pathname meant no disk
+                // icon ever matched its row: every scan after the first
+                // re-inserted every icon and failed on the unique index, and
+                // the deletion check would have deleted every row.
+                $icons[$iconData['path']] = $iconData;
             } catch (IchavaException $e) {
                 $this->logger->warning('Failed to process icon file', [
                     'package' => $package,
