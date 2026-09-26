@@ -258,21 +258,6 @@ class InformationService
     }
 
     /**
-     * Format file size
-     */
-    public function formatFileSize(int $bytes): string
-    {
-        if ($bytes === 0) {
-            return '0 B';
-        }
-
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $i = floor(log($bytes, 1024));
-
-        return round($bytes / pow(1024, $i), 2) . ' ' . $units[$i];
-    }
-
-    /**
      * Filter items by search term
      */
     public function filterBySearch(array $items, string $search, array $searchFields = ['name']): array

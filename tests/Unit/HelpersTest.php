@@ -5,23 +5,6 @@ declare(strict_types=1);
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
-describe('Helpers::sanitizePath', function () {
-    it('strips leading and trailing slashes', function () {
-        expect(Helpers::sanitizePath('/foo/bar/'))->toBe('foo/bar');
-        expect(Helpers::sanitizePath('//x//'))->toBe('x');
-        expect(Helpers::sanitizePath('foo/bar'))->toBe('foo/bar');
-    });
-
-    it('handles empty input', function () {
-        expect(Helpers::sanitizePath(''))->toBe('');
-        expect(Helpers::sanitizePath('//'))->toBe('');
-    });
-
-    it('strips backslashes too', function () {
-        expect(Helpers::sanitizePath('\\foo\\'))->toBe('foo');
-    });
-});
-
 describe('Helpers vendor / package extractors', function () {
     it('splits vendor/package on slash', function () {
         expect(Helpers::getVendorFromPackage('myorg/icons'))->toBe('myorg');

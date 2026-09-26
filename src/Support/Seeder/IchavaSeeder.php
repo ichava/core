@@ -17,7 +17,6 @@ use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
 use function Laravel\Prompts\table;
 
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\File;
 
 use function Laravel\Prompts\warning;
@@ -332,50 +331,6 @@ class IchavaSeeder extends Seeder
             ),
             'force' => $force,
         ];
-    }
-
-    /**
-     * Get seeding job status by batch ID.
-     */
-    public function getStatus(string $batchId): ?array
-    {
-        $batch = Bus::findBatch($batchId);
-
-        if (! $batch) {
-            return null;
-        }
-
-        return [
-            'id'             => $batch->id,
-            'name'           => $batch->name,
-            'progress'       => $batch->progress(),
-            'total_jobs'     => $batch->totalJobs,
-            'pending_jobs'   => $batch->pendingJobs,
-            'processed_jobs' => $batch->processedJobs(),
-            'failed_jobs'    => $batch->failedJobs,
-            'has_failures'   => $batch->hasFailures(),
-            'finished'       => $batch->finished(),
-            'cancelled'      => $batch->cancelled(),
-            'created_at'     => $batch->createdAt,
-            'finished_at'    => $batch->finishedAt,
-        ];
-    }
-
-    /**
-     * Cancel a running seeding operation.
-     */
-    public function cancel(string $batchId): bool
-    {
-        $batch = Bus::findBatch($batchId);
-
-        if (! $batch) {
-            return false;
-        }
-
-        $batch->cancel();
-        $this->logger->info('🛑 Seeding cancelled', ['batch_id' => $batchId]);
-
-        return true;
     }
 
     /**
@@ -768,17 +723,6 @@ class IchavaSeeder extends Seeder
             $this->command->newLine();
             note("Run manually: php artisan queue:work --queue={$queueName} --stop-when-empty");
         }
-    }
-
-    protected function displayJobInstructions(int $jobCount): void
-    {
-        $queueName = config('ichava.ichava-core.queue.name', 'ichava-icons');
-
-        $this->command->newLine();
-        warning("⏳ {$jobCount} seeding jobs dispatched to queue");
-        $this->command->newLine();
-        note("Start queue worker: php artisan queue:work --queue={$queueName}");
-        note('Or use Horizon: php artisan horizon');
     }
 
     protected function displayNoPackagesMessage(): void

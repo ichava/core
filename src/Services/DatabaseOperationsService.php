@@ -6,9 +6,6 @@ namespace Simtabi\Laranail\Ichava\Services;
 
 use Exception;
 use Throwable;
-use Illuminate\Support\Str;
-use RecursiveIteratorIterator;
-use RecursiveDirectoryIterator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\DbTools\DbTools;
@@ -338,34 +335,6 @@ class DatabaseOperationsService
         $threshold = config('ichava.ichava-core.database.smart_queue_threshold', self::SMART_QUEUE_THRESHOLD);
 
         return $iconCount >= $threshold;
-    }
-
-    /**
-     * Count icons in a directory
-     */
-    public function countIconsInDirectory(string $path): int
-    {
-        if (empty($path) || ! File::isDirectory($path)) {
-            return 0;
-        }
-
-        $count = 0;
-
-        try {
-            $iterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS),
-            );
-
-            foreach ($iterator as $file) {
-                if ($file->isFile() && Str::lower($file->getExtension()) === 'svg') {
-                    $count++;
-                }
-            }
-        } catch (Exception $e) {
-            $this->logger->warning("Failed to count icons in: {$path}", ['error' => $e->getMessage()]);
-        }
-
-        return $count;
     }
 
     /**
