@@ -146,9 +146,9 @@ class DatabaseOperationsService
          * application, for the whole life of the package. Nothing caught it because
          * the suite runs migrations through Testbench, which never calls this.
          */
-        $migrations = realpath(__DIR__ . '/../../database/migrations');
+        $migrations = $this->migrationPath();
 
-        if ($migrations === false) {
+        if ($migrations === null) {
             $this->logger->error('🗄️ Ichava migration directory is missing', [
                 'looked_in' => __DIR__ . '/../../database/migrations',
             ]);
@@ -172,12 +172,19 @@ class DatabaseOperationsService
 
         $dropped = $this->dropTables();
 
+        // Dropping the tables leaves their rows in the migrations table, and
+        // `migrate` reads those rows as "already ran" -- so the re-run below
+        // reported "Nothing to migrate" and the tables stayed dropped while
+        // the command reported success. Forget our rows first.
+        $forgotten = $this->forgetMigrationRecords();
+
         $exitCode = $this->runMigrations();
 
         return [
             'dropped_tables'      => $dropped,
+            'forgotten'           => $forgotten,
             'migration_exit_code' => $exitCode,
-            'success'             => $exitCode === 0,
+            'success'             => $exitCode === 0 && $this->tablesExist(),
         ];
     }
 
@@ -418,6 +425,44 @@ class DatabaseOperationsService
         } catch (Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * Remove this package's rows from the host's migrations table, so its
+     * migrations run again. Only our own files are touched; the host's
+     * migration history is not.
+     *
+     * @return list<string> the migration names forgotten
+     */
+    protected function forgetMigrationRecords(): array
+    {
+        $path = $this->migrationPath();
+        $repository = app('migration.repository');
+
+        if ($path === null || ! $repository->repositoryExists()) {
+            return [];
+        }
+
+        $forgotten = [];
+
+        foreach (File::glob($path . '/*.php') as $file) {
+            $migration = basename($file, '.php');
+            $repository->delete((object) ['migration' => $migration]);
+            $forgotten[] = $migration;
+        }
+
+        return $forgotten;
+    }
+
+    /**
+     * The package's migration directory, resolved from this file rather than
+     * written down, or null when it is missing on disk.
+     */
+    protected function migrationPath(): ?string
+    {
+        $path = realpath(__DIR__ . '/../../database/migrations');
+
+        return $path === false ? null : $path;
     }
 
     /**

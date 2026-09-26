@@ -24,6 +24,11 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   unregistered one; `generate` warms the discovery caches and writes the icon manifest, and
   honours `--path`. Rendered-SVG caches are not flushed -- that would empty the host's whole
   store -- and are abandoned by bumping `ichava.core.cache.version`, as before.
+- **`database migrate --fresh` recreates the tables it drops.** The drop left this package's
+  rows in the host's `migrations` table, so the re-run reported "Nothing to migrate", the
+  tables stayed gone and the command still reported success. The package's own rows are now
+  forgotten between the drop and the re-run (the host's migration history is untouched), and
+  success requires the tables to exist afterwards.
 
 ### Tests
 
