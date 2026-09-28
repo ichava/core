@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+// Moved from tests/Unit/IconTreeTest.php with .parked/Services/IconBrowserServiceMethods.php
+// on 2026-09-28: it exercised scanFolderTree() by reflection, and nothing calls that since
+// core#104 read the tree from the database. Not run.
+
 use Simtabi\Laranail\Ichava\Services\IconBrowserService;
 
 /**
