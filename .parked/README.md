@@ -50,6 +50,24 @@ react-browser). None of them references any of these.
 | `src/Services/InformationService.php` | `formatFileSize` | 0 | `Services/InformationServiceMethods.php` | No caller; `FileSize::format()` is the one byte formatter. |
 | `src/Services/DatabaseOperationsService.php` | `countIconsInDirectory` | 0 | `Services/DatabaseOperationsServiceMethods.php` | No caller (the live callers use `IconRegistry`'s, which delegates to `CountSvgFiles`). |
 
+## `Services/IconBrowserServiceMethods.php`
+
+Moved verbatim from `src/Services/IconBrowserService.php` on 2026-09-28, after
+[core#104](https://github.com/ichava/core/pull/104) rebuilt `buildIconTree()` on the database
+taxonomy. Measured that day with `grep -rE "(->|::)NAME\(" src tests`, counting calls from
+outside each member's own body, and across the estate's `origin/main` (icon-browser, the five
+packs, the scaffolder, react-browser), which had none:
+
+| Original path | Name | Callers | Why parked |
+|---|---|---:|---|
+| `src/Services/IconBrowserService.php` | `getPackageConfig` | 0 | Only the old disk-walking tree read it; labels come from the registry now. |
+| `src/Services/IconBrowserService.php` | `scanFolderTree` | 0 | Replaced by the database taxonomy in #104. Called only itself. |
+| `src/Services/IconBrowserService.php` | `countSvgFilesRecursive` | 0 | Called only by `scanFolderTree`. |
+| `src/Services/IconBrowserService.php` | `countSvgFilesInDirectory` | 0 | No caller before #104 either. |
+| `src/Services/IconBrowserService.php` | `countIconsInFolder` | 0 | No caller before #104 either. |
+
+`tests/IconTreeTest.php` moved with them: it only exercised `scanFolderTree` by reflection.
+
 The tests that covered only parked code moved with it, into `tests/`: the
 `CacheDriver` enum cases and `Helpers::sanitizePath`. Whole classes keep their
 original namespace, so restoring one is a `git mv`.
