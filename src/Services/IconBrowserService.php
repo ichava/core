@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -121,15 +120,15 @@ final class IconBrowserService
             // The SVG endpoint lives in the browser package's (optionally disabled)
             // REST API. Fall back to null when those routes are not registered —
             // Inertia pages already carry `svg_content`, so tiles render anyway.
-            'svg_url'     => Route::has('ichava.api.icons.svg')
+            'svg_url' => Route::has('ichava.api.icons.svg')
                 ? route('ichava.api.icons.svg', ['id' => $icon->id], false)
                 : null,
-            'viewbox'     => $icon->viewbox,
-            'width'       => $icon->width,
-            'height'      => $icon->height,
-            'icon_path'   => $icon->icon_path,
-            'file_path'   => $icon->path ?? '',
-            'set'         => $icon->package,
+            'viewbox'   => $icon->viewbox,
+            'width'     => $icon->width,
+            'height'    => $icon->height,
+            'icon_path' => $icon->icon_path,
+            'file_path' => $icon->path ?? '',
+            'set'       => $icon->package,
         ];
 
         // Generate Blade component syntax server-side

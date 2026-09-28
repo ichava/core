@@ -264,8 +264,9 @@ class SeedIconsJob implements ShouldQueue
                     ['name', 'file_hash', 'file_modified_at', 'tags', 'keywords', 'updated_at'],
                 );
 
-                // DEDUPLICATION LEVEL 4: Bulk attach categories with conflict handling
+                // DEDUPLICATION LEVEL 4: Bulk attach categories + variants with conflict handling
                 $this->bulkAttachCategories($iconData);
+                $this->bulkAttachVariants($iconData);
             });
 
             return $suspended;
@@ -309,22 +310,65 @@ class SeedIconsJob implements ShouldQueue
             }
         }
 
-        if (empty($pathToCategory)) {
+        $this->insertTermables($pathToCategory);
+    }
+
+    /**
+     * Bulk attach variants to icons with deduplication.
+     *
+     * The variant is the first directory after `files/` when it matches a
+     * variant term the pack declares (e.g. tabler's `outline`/`filled`); plain
+     * folders that are not declared variants stay categories only, so a path
+     * like `files/test-icons/triangle.svg` never gains a bogus variant.
+     */
+    protected function bulkAttachVariants(array $iconData): void
+    {
+        $variantMap = IconTerm::where('package', $this->packageName)
+            ->where('type', IconTerm::TYPE_VARIANT)
+            ->pluck('id', 'slug')
+            ->toArray();
+
+        if (empty($variantMap)) {
+            return;
+        }
+
+        $pathToVariant = [];
+        foreach ($iconData as $data) {
+            $variantSlug = $this->extractVariantSlug($data['path'], $variantMap);
+            if ($variantSlug && isset($variantMap[$variantSlug])) {
+                $pathToVariant[$data['path']] = $variantMap[$variantSlug];
+            }
+        }
+
+        $this->insertTermables($pathToVariant);
+    }
+
+    /**
+     * Insert path→term attachments, ignoring duplicates.
+     *
+     * The morph type is the registered alias (`icon`), never the FQCN: every
+     * reader -- Eloquent relations and the `getMorphClass()` joins in the
+     * browser services -- queries the alias, so FQCN rows are invisible to the
+     * whole taxonomy (null categories/variants, empty tree counts).
+     */
+    protected function insertTermables(array $pathToTermId): void
+    {
+        if (empty($pathToTermId)) {
             return;
         }
 
         // Get icon IDs for the paths
         $iconIds = Icon::where('package', $this->packageName)
-            ->whereIn('path', array_keys($pathToCategory))
+            ->whereIn('path', array_keys($pathToTermId))
             ->pluck('id', 'path')
             ->toArray();
 
         // Build termables data
         $termablesData = [];
-        $morphType = Icon::class;
+        $morphType = (new Icon)->getMorphClass();
         $now = now();
 
-        foreach ($pathToCategory as $path => $termId) {
+        foreach ($pathToTermId as $path => $termId) {
             $iconId = $iconIds[$path] ?? null;
             if (! $iconId) {
                 continue;
