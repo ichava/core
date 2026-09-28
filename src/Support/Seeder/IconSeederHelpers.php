@@ -78,6 +78,45 @@ trait IconSeederHelpers
     }
 
     /**
+     * Extract variant slug from relative path.
+     *
+     * The variant is the first directory AFTER 'files/' when it matches a
+     * variant the pack declares (passed as slug => id map keys). Anything
+     * else -- plain folders like `test-icons` -- is not a variant.
+     *
+     * Examples (tabler declares outline/filled):
+     * - files/outline/a-b.svg → outline
+     * - files/filled/a-b.svg → filled
+     * - files/test-icons/triangle.svg → null
+     *
+     * @param string $relativePath Relative path to icon
+     * @param array<string, int> $variantMap Declared variant slugs
+     *
+     * @return string|null Variant slug or null if not found
+     */
+    protected function extractVariantSlug(string $relativePath, array $variantMap): ?string
+    {
+        $parts = array_values(array_filter(explode('/', $relativePath)));
+
+        if (empty($parts)) {
+            return null;
+        }
+
+        $filesIndex = array_search('files', $parts);
+        $candidate = $filesIndex !== false
+            ? ($parts[$filesIndex + 1] ?? null)
+            : ($parts[0] ?? null);
+
+        if ($candidate === null || pathinfo($candidate, PATHINFO_EXTENSION) === 'svg') {
+            return null;
+        }
+
+        $slug = Str::slug($candidate);
+
+        return isset($variantMap[$slug]) ? $slug : null;
+    }
+
+    /**
      * Extract tags from path and filename.
      *
      * Tags include directory names and the icon name itself.
