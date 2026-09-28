@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -117,7 +118,12 @@ final class IconBrowserService
             'variant'     => $icon->primary_variant?->slug,
             'path'        => $icon->icon_path,
             'svg_content' => $icon->svg_content,
-            'svg_url'     => route('ichava.api.icons.svg', ['id' => $icon->id], false),
+            // The SVG endpoint lives in the browser package's (optionally disabled)
+            // REST API. Fall back to null when those routes are not registered —
+            // Inertia pages already carry `svg_content`, so tiles render anyway.
+            'svg_url'     => Route::has('ichava.api.icons.svg')
+                ? route('ichava.api.icons.svg', ['id' => $icon->id], false)
+                : null,
             'viewbox'     => $icon->viewbox,
             'width'       => $icon->width,
             'height'      => $icon->height,
@@ -224,7 +230,7 @@ final class IconBrowserService
                     'description' => $pkg['description'] ?? '',
                     'vendor'      => $pkg['vendor'] ?? '',
                 ];
-            })->values();
+            })->values()->toArray();
 
             // Get the morph alias for Icon model (registered as 'icon' in morphMap)
             $iconMorphAlias = (new Icon)->getMorphClass();
@@ -244,7 +250,7 @@ final class IconBrowserService
                         'label' => $category->name,
                         'count' => $category->count,
                     ];
-                })->values();
+                })->values()->toArray();
 
             // Get variants from terms table
             $variants = DB::table('ichava_icon_termables')
@@ -261,7 +267,7 @@ final class IconBrowserService
                         'label' => $variant->name,
                         'count' => $variant->count,
                     ];
-                })->values();
+                })->values()->toArray();
 
             return [
                 'packages'   => $transformedPackages,
