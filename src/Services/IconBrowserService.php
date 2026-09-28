@@ -6,10 +6,8 @@ namespace Simtabi\Laranail\Ichava\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Simtabi\Laranail\Ichava\Models\Icon;
-use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 

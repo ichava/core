@@ -57,6 +57,13 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Removed
 
+- **The folder-tree scanner in `IconBrowserService`.** Since #104 the tree reads the
+  database taxonomy, which left five private helpers with no caller: `getPackageConfig`,
+  `scanFolderTree`, `countSvgFilesRecursive`, `countSvgFilesInDirectory` and
+  `countIconsInFolder` (the last two had none before #104 either). They are parked in
+  `.parked/Services/IconBrowserServiceMethods.php`, with the test that exercised
+  `scanFolderTree` by reflection. All were private, so no public API changes.
+
 - **Parked, not deleted:** `JobProgressTracker`, the `CacheDriver` enum,
   `IchavaSeeder::getStatus()`, `cancel()` and `displayJobInstructions()`, `Helpers::sanitizePath()`
   and the `ICHAVA_PGSQL_*` constants, `PathResolver::resolveConfigOrDefault()` and `ensureFile()`,
