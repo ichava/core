@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -117,13 +117,18 @@ final class IconBrowserService
             'variant'     => $icon->primary_variant?->slug,
             'path'        => $icon->icon_path,
             'svg_content' => $icon->svg_content,
-            'svg_url'     => route('ichava.api.icons.svg', ['id' => $icon->id], false),
-            'viewbox'     => $icon->viewbox,
-            'width'       => $icon->width,
-            'height'      => $icon->height,
-            'icon_path'   => $icon->icon_path,
-            'file_path'   => $icon->path ?? '',
-            'set'         => $icon->package,
+            // The SVG endpoint lives in the browser package's (optionally disabled)
+            // REST API. Fall back to null when those routes are not registered —
+            // Inertia pages already carry `svg_content`, so tiles render anyway.
+            'svg_url' => Route::has('ichava.api.icons.svg')
+                ? route('ichava.api.icons.svg', ['id' => $icon->id], false)
+                : null,
+            'viewbox'   => $icon->viewbox,
+            'width'     => $icon->width,
+            'height'    => $icon->height,
+            'icon_path' => $icon->icon_path,
+            'file_path' => $icon->path ?? '',
+            'set'       => $icon->package,
         ];
 
         // Generate Blade component syntax server-side
@@ -135,31 +140,20 @@ final class IconBrowserService
     }
 
     /**
-     * Generate Blade component syntax for an icon
+     * Generate Blade component syntax for an icon.
+     *
+     * The name carries the full root-relative path (variant + nested folders
+     * when the icon lives in subdirectories, plain name otherwise), so the
+     * pasted snippet renders the exact icon that was copied:
+     * `<x-ichava::icon name="ichava/icon-sets-tabler::outline/a-b" />`.
      */
     public function generateBladeComponent(Icon $icon, bool $useCleanSyntax = true): string
     {
-        $packageName = $icon->package;
-        $iconPath = $icon->icon_path;
-        $category = $icon->primary_category?->slug ?? '';
-
-        // If not using clean syntax, always return generic component
         if (! $useCleanSyntax) {
-            return "<x-ichava::icon name=\"{$iconPath}\" class=\"w-6 h-6\" />";
+            return "<x-ichava-icon name=\"{$this->shortIconRef($icon)}\" class=\"w-6 h-6\" />";
         }
 
-        // Parse package name
-        if (! Str::contains($packageName, '/')) {
-            // No vendor prefix, use generic
-            return "<x-ichava::icon name=\"{$iconPath}\" class=\"w-6 h-6\" />";
-        }
-
-        $vendor = Str::before($packageName, '/');
-        $packagePart = Str::after($packageName, '/');
-
-        // Generate unified syntax: <x-ichava::icon name="vendor/package::path/icon" />
-        // This works for all packages (official ichava and third-party)
-        return "<x-ichava::icon name=\"{$iconPath}\" class=\"w-6 h-6\" />";
+        return "<x-ichava::icon name=\"{$this->fullIconPath($icon)}\" class=\"w-6 h-6\" />";
     }
 
     /**
@@ -167,9 +161,50 @@ final class IconBrowserService
      */
     public function generateHelperCode(Icon $icon): string
     {
-        $iconPath = $icon->icon_path;
+        return "{{ ichava('{$this->fullIconPath($icon)}')->class('w-6 h-6') }}";
+    }
 
-        return "{{ ichava('{$iconPath}')->class('w-6 h-6') }}";
+    /**
+     * Full renderable path: `package::variant/...folders.../name`.
+     *
+     * Derived from the stored file path (filesystem truth), not from terms:
+     * `files/outline/a-b.svg` → `ichava/icon-sets-tabler::outline/a-b`,
+     * `files/a-b.svg` → `ichava/icon-sets-tabler::a-b`. Matches the
+     * PathResolver grammar the renderer resolves.
+     */
+    public function fullIconPath(Icon $icon): string
+    {
+        $rel = (string) ($icon->path ?? '');
+        $rel = preg_replace('#^files/#', '', $rel) ?? '';
+        $rel = preg_replace('#\.svg$#i', '', $rel) ?? '';
+        $rel = trim($rel, '/');
+
+        if ($rel === '') {
+            $rel = $icon->name;
+        }
+
+        return $icon->package . '::' . $rel;
+    }
+
+    /**
+     * Short `set:path` ref used by the generic/Livewire/Alpine snippets.
+     * Mirrors the client's iconRef contract (short set + full segments).
+     */
+    public function shortIconRef(Icon $icon): string
+    {
+        $short = preg_replace('#^ichava/#', '', $icon->package) ?? $icon->package;
+        $short = preg_replace('/-icons$/', '', $short) ?? $short;
+
+        $rel = (string) ($icon->path ?? '');
+        $rel = preg_replace('#^files/#', '', $rel) ?? '';
+        $rel = preg_replace('#\.svg$#i', '', $rel) ?? '';
+        $rel = trim($rel, '/');
+
+        if ($rel === '') {
+            $rel = $icon->name;
+        }
+
+        return $short . ':' . $rel;
     }
 
     /**
@@ -224,7 +259,7 @@ final class IconBrowserService
                     'description' => $pkg['description'] ?? '',
                     'vendor'      => $pkg['vendor'] ?? '',
                 ];
-            })->values();
+            })->values()->toArray();
 
             // Get the morph alias for Icon model (registered as 'icon' in morphMap)
             $iconMorphAlias = (new Icon)->getMorphClass();
@@ -244,7 +279,7 @@ final class IconBrowserService
                         'label' => $category->name,
                         'count' => $category->count,
                     ];
-                })->values();
+                })->values()->toArray();
 
             // Get variants from terms table
             $variants = DB::table('ichava_icon_termables')
@@ -261,7 +296,7 @@ final class IconBrowserService
                         'label' => $variant->name,
                         'count' => $variant->count,
                     ];
-                })->values();
+                })->values()->toArray();
 
             return [
                 'packages'   => $transformedPackages,
