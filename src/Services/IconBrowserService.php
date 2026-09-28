@@ -423,6 +423,25 @@ final class IconBrowserService
                 ->map(fn ($count) => (int) $count)
                 ->all();
 
+            // Variants per category: icons carrying BOTH terms. A pack-wide
+            // variant count would put every variant under every category, and
+            // report icons under a category that none of its icons belong to.
+            $variantsByCategory = DB::table('ichava_icon_termables as tc')
+                ->join('ichava_icon_terms as c', 'c.id', '=', 'tc.term_id')
+                ->join('ichava_icon_termables as tv', function ($join) {
+                    $join->on('tv.termable_id', '=', 'tc.termable_id')
+                        ->on('tv.termable_type', '=', 'tc.termable_type');
+                })
+                ->join('ichava_icon_terms as v', 'v.id', '=', 'tv.term_id')
+                ->where('tc.termable_type', $iconMorphAlias)
+                ->where('c.type', 'category')
+                ->where('v.type', 'variant')
+                ->select(['tc.term_id as category_id', 'v.slug', 'v.name'])
+                ->selectRaw('COUNT(*) as icon_count')
+                ->groupBy('tc.term_id', 'v.slug', 'v.name')
+                ->get()
+                ->groupBy('category_id');
+
             $labels = $this->getPackageLabels();
 
             $tree = [];
@@ -431,8 +450,7 @@ final class IconBrowserService
                 $categories = [];
 
                 foreach ($packageRows->where('type', 'category') as $row) {
-                    $variants = $packageRows
-                        ->where('type', 'variant')
+                    $variants = collect($variantsByCategory->get($row->id, []))
                         ->where('slug', '!=', $row->slug)
                         ->map(fn ($variant) => [
                             'slug'  => $variant->slug,
