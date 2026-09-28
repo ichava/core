@@ -241,32 +241,6 @@ final class IconCacheService
     }
 
     /**
-     * Forget cached values matching a key pattern.
-     *
-     * Keys are stored hashed, so patterns cannot be matched per-key on
-     * tag-unaware drivers — those fall back to a full flush. Returns the
-     * patterns considered cleared so callers can report them.
-     */
-    public function forgetPattern(string $pattern): array
-    {
-        try {
-            $store = cache()->store(config('cache.driver', 'file'));
-
-            if (method_exists($store->getStore(), 'tags')) {
-                $store->tags(['ichava', 'icons'])->flush();
-
-                return [$pattern];
-            }
-
-            $this->flush();
-
-            return [$pattern];
-        } catch (Exception) {
-            return [];
-        }
-    }
-
-    /**
      * Clear all ichava cache
      */
     public function flush(): bool
