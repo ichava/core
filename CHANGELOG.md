@@ -99,6 +99,12 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   because `insertOrIgnore()` already emits it, chunked under the bind-parameter cap.
 - **The registry's SVG count uses `CountSvgFiles`.** `IconRegistry` kept its own copy, which caught
   `Exception` where the action had been fixed to catch `Throwable`.
+- **`IconBrowserService` works without the browser package's routes.** Every tile's `svg_url` was
+  built from `ichava.api.icons.svg`, a route `ichava/browser` owns and may never register, so the
+  service threw a `RouteNotFoundException` instead of rendering. It now asks `Route::has()` first and
+  leaves the URL `null`; the Inertia pages already carry `svg_content`, so the tiles render either
+  way. `getPackages()`, `getCategories()` and `getVariants()` also return their package, category and
+  variant maps as arrays, not `Collection`s.
 
 - **`--force` now skips destructive confirmations instead of prompting and then ignoring the
   answer.** `database migrate --fresh`, `seed --fresh`, `unseed`, `unseed --package`, `refresh`
