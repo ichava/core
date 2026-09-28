@@ -71,6 +71,34 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **The browser's category tree and package counts come from the database.**
+  `buildIconTree()` walked each pack's `base_path` on disk, so the tree described
+  the *directory layout* rather than the taxonomy: every pack stores its icons
+  under a literal `files/` folder, so the top level read `files` and the real
+  categories sat one level below it. It now reads `ichava_icon_terms` and
+  `ichava_icon_termables` -- the same taxonomy the category and variant filters
+  filter on, so the tree and the facets cannot disagree.
+
+  Counts were wrong for the same reason. The scanner counted a folder
+  recursively *and* added its children's counts on top, so every pack reported
+  twice its icons (47 read as 94, 6202 as 12404), and a pack whose files were
+  missing from disk disappeared from the browser entirely even with its icons
+  seeded. Both the tree and `getFilters()`'s package counts are now `COUNT(*)`
+  over `ichava_icons`, so they read what is seeded. Pack labels and
+  descriptions still come from each pack's `config.json`, as before.
+
+- **A pack installed after the first page load appeared in the browser.**
+  `browser.filters`, `browser.tree` and `browser.statistics` are summarised icon
+  and taxonomy reads, but were absent from the invalidation list in
+  `InvalidateIconCache`, so they outlived every invalidation. They are forgotten
+  by name now, through a new `IconCacheService::forgetMany()`.
+
+  `flushPrefix()` could not have helped: it globbed for `md5($prefix)`, while
+  `buildKey()` writes `<prefix>:<version>:<md5>` and the file store names each
+  file after the digest of the whole key, so the prefix is not recoverable from
+  the filename. It silently cleared nothing on the file driver. It is unchanged
+  and still does; callers that know what they depend on must name their keys.
+
 - **Two packs with the same relative icon path no longer overwrite each other.**
   `ichava_icons.path` is stored relative to each pack's base directory, so every
   pack laid out as `files/<category>/<name>.svg` produces the same strings. The

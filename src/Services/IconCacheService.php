@@ -261,6 +261,32 @@ final class IconCacheService
     /**
      * Clear all ichava cache by prefix (more targeted than flush)
      */
+    /**
+     * Forget every cache this package owns, by name.
+     *
+     * There is deliberately no glob-by-prefix here. `buildKey()` hashes the
+     * key, and the file store then names each file after the digest of the
+     * whole key, so the prefix a key *carries* is not recoverable from the
+     * filename. The previous version globbed for `md5($prefix)`, which cannot
+     * match any real key, so it silently cleared nothing. Callers that know
+     * which caches they depend on must list them (see
+     * `InvalidateIconCache::clearAllIconCaches()`).
+     *
+     * @param list<string> $keys
+     */
+    public function forgetMany(array $keys): array
+    {
+        $cleared = [];
+
+        foreach ($keys as $key) {
+            if ($this->forget($key)) {
+                $cleared[] = $key;
+            }
+        }
+
+        return $cleared;
+    }
+
     public function flushPrefix(): bool
     {
         try {

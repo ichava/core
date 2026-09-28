@@ -251,11 +251,22 @@ final class IconBrowserService
 
             $packages = $this->registry->all();
 
-            $transformedPackages = collect($packages)->map(function ($pkg, $key) {
+            // The count is the number of icons SEEDED for the pack, not the
+            // number of SVG files the pack ships: a pack that is registered but
+            // not yet seeded reads 0 instead of its file count, and one whose
+            // files are absent from disk still reports its seeded icons.
+            $iconCounts = DB::table('ichava_icons')
+                ->selectRaw('package, COUNT(*) as icon_count')
+                ->groupBy('package')
+                ->pluck('icon_count', 'package')
+                ->map(fn ($count) => (int) $count)
+                ->all();
+
+            $transformedPackages = collect($packages)->map(function ($pkg, $key) use ($iconCounts) {
                 return [
                     'name'        => $key,
                     'label'       => $pkg['name'] ?? $key,
-                    'count'       => $pkg['total'] ?? 0,
+                    'count'       => $iconCounts[$key] ?? 0,
                     'description' => $pkg['description'] ?? '',
                     'vendor'      => $pkg['vendor'] ?? '',
                 ];
@@ -353,74 +364,120 @@ final class IconBrowserService
     }
 
     /**
-     * Build hierarchical icon tree structure
+     * Build the pack → category → variant tree, read from the database.
+     *
+     * The taxonomy is what the filters already filter on, so the tree and the
+     * facets cannot disagree. It used to be built by walking each pack's
+     * `base_path`, which produced the *directory* layout rather than the
+     * taxonomy: every pack stores its icons under a literal `files/` folder, so
+     * the top level read `files` and the real categories sat one level deeper
+     * under it. It also counted icons by scanning the disk, so a pack reported
+     * twice its icons (the recursive folder count already included the children
+     * whose counts were then added on top of it), and a pack whose files were
+     * missing from disk disappeared entirely even with its icons seeded.
+     *
+     * @return list<array{pack: string, label: string, count: int, icon_count: int, cats: list<array<string, mixed>>}>
      */
     public function buildIconTree(): array
     {
-        return $this->cacheManager->remember('browser.tree', function () {
-            // Check if database has any icons
+        return $this->cacheManager->remember('browser.tree', function (): array {
             if (! $this->hasIcons()) {
-                return [
-                    'tree'  => [],
-                    'empty' => true,
-                ];
+                return [];
             }
 
-            $packages = $this->registry->all();
-            $tree = [];
-
-            // Batch-load category counts from terms relationship
-            // Use morph alias (registered as 'icon' in morphMap)
             $iconMorphAlias = (new Icon)->getMorphClass();
 
-            $categoryCounts = DB::table('ichava_icon_termables')
-                ->join('ichava_icon_terms', 'ichava_icon_termables.term_id', '=', 'ichava_icon_terms.id')
+            // One row per (package, term) with the number of icons carrying it.
+            $rows = DB::table('ichava_icon_terms')
+                ->join('ichava_icon_termables', 'ichava_icon_termables.term_id', '=', 'ichava_icon_terms.id')
                 ->join('ichava_icons', function ($join) use ($iconMorphAlias) {
                     $join->on('ichava_icon_termables.termable_id', '=', 'ichava_icons.id')
                         ->where('ichava_icon_termables.termable_type', '=', $iconMorphAlias);
                 })
-                ->where('ichava_icon_terms.type', 'category')
-                ->selectRaw('ichava_icons.package, ichava_icon_terms.slug as category, COUNT(*) as count')
-                ->groupBy('ichava_icons.package', 'ichava_icon_terms.slug')
-                ->get()
+                ->whereIn('ichava_icon_terms.type', ['category', 'variant'])
+                ->select([
+                    'ichava_icons.package',
+                    'ichava_icon_terms.id',
+                    'ichava_icon_terms.type',
+                    'ichava_icon_terms.slug',
+                    'ichava_icon_terms.name',
+                ])
+                ->selectRaw('COUNT(*) as icon_count')
+                ->groupBy(
+                    'ichava_icons.package',
+                    'ichava_icon_terms.id',
+                    'ichava_icon_terms.type',
+                    'ichava_icon_terms.slug',
+                    'ichava_icon_terms.name',
+                )
+                ->get();
+
+            if ($rows->isEmpty()) {
+                return [];
+            }
+
+            $iconTotals = DB::table('ichava_icons')
+                ->selectRaw('package, COUNT(*) as icon_count')
                 ->groupBy('package')
-                ->map(function ($packageCategories) {
-                    return $packageCategories->pluck('count', 'category')->toArray();
-                })
-                ->toArray();
+                ->pluck('icon_count', 'package')
+                ->map(fn ($count) => (int) $count)
+                ->all();
 
-            foreach ($packages as $packageKey => $packageData) {
-                $config = $this->getPackageConfig($packageKey, $packageData);
-                $basePath = $packageData['base_path'] ?? null;
+            $labels = $this->getPackageLabels();
 
-                if (! $basePath || ! File::exists($basePath)) {
+            $tree = [];
+
+            foreach ($rows->groupBy('package') as $package => $packageRows) {
+                $categories = [];
+
+                foreach ($packageRows->where('type', 'category') as $row) {
+                    $variants = $packageRows
+                        ->where('type', 'variant')
+                        ->where('slug', '!=', $row->slug)
+                        ->map(fn ($variant) => [
+                            'slug'  => $variant->slug,
+                            'name'  => $variant->name,
+                            'count' => (int) $variant->icon_count,
+                        ])
+                        ->sortBy('name')
+                        ->values()
+                        ->all();
+
+                    $categories[] = array_filter([
+                        'name'  => $row->slug,
+                        'label' => $row->name,
+                        'count' => (int) $row->icon_count,
+                        // Only present when the category actually has variants
+                        // of its own; a pack whose variant slugs are the same as
+                        // its categories (tabler: outline/filled) gains nothing
+                        // from a second, identical level.
+                        'sub' => $variants === [] ? null : $variants,
+                    ], fn ($value) => $value !== null);
+                }
+
+                if ($categories === []) {
                     continue;
                 }
 
-                $packageCounts = $categoryCounts[$packageKey] ?? [];
+                usort($categories, fn ($a, $b) => strcasecmp($a['label'], $b['label']));
 
-                // Scan for categories/folders
-                $children = $this->scanFolderTree($basePath, $packageKey, $packageCounts);
-
-                // Only include packages that have categories/folders
-                if (empty($children)) {
-                    continue;
-                }
+                $iconCount = $iconTotals[$package] ?? 0;
 
                 $tree[] = [
-                    'id'          => $packageKey,
-                    'type'        => 'package',
-                    'name'        => $config['name'],
-                    'title'       => $config['title'],
-                    'description' => $config['description'],
-                    'icon_count'  => $packageData['total'] ?? 0,
-                    'expanded'    => false,
-                    'children'    => $children,
+                    'pack'  => $package,
+                    'label' => $labels[$package] ?? $package,
+                    // The pack badge in the browser reads `count`, and it has
+                    // always shown the pack's ICON count, so it stays the icon
+                    // count. `category_count` is the number of facets below it.
+                    'count'          => $iconCount,
+                    'icon_count'     => $iconCount,
+                    'category_count' => count($categories),
+                    'cats'           => $categories,
                 ];
             }
 
-            // Return just the tree array for backwards compatibility
-            // The empty check is implicit (empty array)
+            usort($tree, fn ($a, $b) => strcasecmp($a['label'], $b['label']));
+
             return $tree;
         });
     }
@@ -433,6 +490,18 @@ final class IconBrowserService
         $this->cacheManager->forget('browser.filters');
         $this->cacheManager->forget('browser.statistics');
         $this->cacheManager->forget('browser.tree');
+    }
+
+    /**
+     * Display labels for every registered pack, keyed by package name.
+     *
+     * @return array<string, string>
+     */
+    private function getPackageLabels(): array
+    {
+        return collect($this->registry->all())
+            ->map(fn (array $package, string $key): string => $package['name'] ?? $key)
+            ->all();
     }
 
     /**

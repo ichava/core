@@ -129,6 +129,21 @@ final class InvalidateIconCache
             $clearedKeys[] = $key;
         }
 
+        // The browser's own read models. These summarise the icon rows and the
+        // term taxonomy, so they are stale the moment a pack is registered or
+        // seeded -- and they were not in this list, which is why a pack
+        // installed after the first page load never appeared in the browser's
+        // package list or tree until the cache was cleared by hand.
+        $browserKeys = [
+            'browser.filters',
+            'browser.tree',
+            'browser.statistics',
+        ];
+
+        foreach ($this->cacheService->forgetMany($browserKeys) as $key) {
+            $clearedKeys[] = $key;
+        }
+
         // Use cache service to clear all ichava caches
         $this->cacheService->clearAll();
 
