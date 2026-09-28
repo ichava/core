@@ -6,6 +6,13 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Changed
 
+- **`buildIconTree()` returns a different shape, and so does the REST `/tree` endpoint.**
+  Since #104 each pack is `{pack, label, count, icon_count, category_count, cats: [{name,
+  label, count, sub?}]}`, replacing `{id, type, name, title, description, icon_count,
+  expanded, children}`, and an empty catalogue returns `[]` rather than
+  `{tree: [], empty: true}`. The Inertia UI already reads the new shape; a REST client
+  built against the old one needs updating.
+
 - **The last hand-rolled console output moved onto the shared builders.**
   - Every `--force` check reads `forced()` from laranail/console's `ConfirmsDestructiveActions`. So
     does install's reinstall prompt, which is now `confirmDestructive()`. The two install prompts
@@ -70,6 +77,13 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   command extending `BaseCommand` outside this package that called one of them must switch.
 
 ### Fixed
+
+- **The browser tree listed every variant under every category.** The tree read from the
+  database since #104 gave each category the pack's full variant list, with pack-wide counts,
+  so a category showed variants none of its icons carried. Variants are now counted per
+  category, over icons carrying both terms. `IconBrowserTreeTest` pins category counts,
+  per-category variants, the collapsed level for tabler-shaped packs, and the invalidation
+  #104 added; none of them had a test.
 
 - **The browser's category tree and package counts come from the database.**
   `buildIconTree()` walked each pack's `base_path` on disk, so the tree described

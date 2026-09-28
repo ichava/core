@@ -259,20 +259,15 @@ final class IconCacheService
     }
 
     /**
-     * Clear all ichava cache by prefix (more targeted than flush)
-     */
-    /**
-     * Forget every cache this package owns, by name.
+     * Forget the named caches, returning the keys that were actually forgotten.
      *
-     * There is deliberately no glob-by-prefix here. `buildKey()` hashes the
-     * key, and the file store then names each file after the digest of the
-     * whole key, so the prefix a key *carries* is not recoverable from the
-     * filename. The previous version globbed for `md5($prefix)`, which cannot
-     * match any real key, so it silently cleared nothing. Callers that know
-     * which caches they depend on must list them (see
-     * `InvalidateIconCache::clearAllIconCaches()`).
+     * Callers that know which caches they depend on list them here (see
+     * `InvalidateIconCache::clearAllIconCaches()`), because {@see flushPrefix()}
+     * cannot find them on the file driver.
      *
      * @param list<string> $keys
+     *
+     * @return list<string>
      */
     public function forgetMany(array $keys): array
     {
@@ -287,6 +282,15 @@ final class IconCacheService
         return $cleared;
     }
 
+    /**
+     * Clear all ichava cache by prefix (more targeted than flush).
+     *
+     * Known not to work on the file driver: it globs for `md5($prefix)`, while
+     * `buildKey()` writes `<prefix>:<version>:<md5>` and the file store names each
+     * file after the digest of the whole key, so the prefix is not recoverable
+     * from a filename and this clears nothing there. Name keys with
+     * {@see forgetMany()} instead.
+     */
     public function flushPrefix(): bool
     {
         try {
