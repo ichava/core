@@ -7,9 +7,11 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+# The workflow's own token only reads. The branch and the pull request come from the maintainer-owned
+# Refresh Bot app: a pull request opened with GITHUB_TOKEN starts no workflows, so main's required checks
+# would never report on it, and the organisation no longer lets Actions open pull requests at all.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,8 +23,22 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      # A per-run token, scoped to this repository's contents and pull requests and revoked when the job
+      # ends. The client ID and key are organisation-level (REFRESH_APP_CLIENT_ID, REFRESH_APP_PRIVATE_KEY).
+      - name: Mint the Refresh Bot token
+        id: app
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.REFRESH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      # Checked out with the app's token, so the fetch and force-push below are the app's too.
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app.outputs.token }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
@@ -74,4 +90,4 @@ jobs:
             gh pr create --base main --head "$BRANCH" --title 'docs: sync icon-sets catalog' --body 'Automated refresh of icon-sets.json.'
           fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}

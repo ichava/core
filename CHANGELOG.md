@@ -6,6 +6,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Changed
 
+- **The daily icon-set catalogue sync opens its pull request as the Refresh Bot GitHub App.** A pull
+  request opened with the workflow's own `GITHUB_TOKEN` starts no CI, so `main`'s required checks never
+  reported on it, and the organisation no longer lets Actions open pull requests. The workflow's own token
+  now only reads.
 - **`buildIconTree()` returns a different shape, and so does the REST `/tree` endpoint.**
   Since #104 each pack is `{pack, label, count, icon_count, category_count, cats: [{name,
   label, count, sub?}]}`, replacing `{id, type, name, title, description, icon_count,
