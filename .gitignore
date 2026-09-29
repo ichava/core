@@ -47,6 +47,6 @@ composer.local.json
 
 # Local dev tooling — log directories created by .dev/ helper scripts.
 # Pattern matches .dev/.<basename>-logs/ for any helper following the
-# convention (current: .dev/.shadcn_vue_installer-logs/).
+# convention.
 /.dev/.*-logs/
 package-lock.json
