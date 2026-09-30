@@ -77,6 +77,17 @@ function main(string $manifestPath): int
     }
 
     $manifest['schema_version'] = '3.0';
+
+    // synced_at records when the catalogue last *changed*, not when the script last ran. Stamping it on
+    // every run made each daily sync a one-line diff, and so a pull request a day with nothing in it.
+    $previous = json_decode($raw, true);
+
+    if (withoutStamp($previous) === withoutStamp($manifest)) {
+        echo "Catalogue unchanged; {$manifestPath} left as it is.\n";
+
+        return 0;
+    }
+
     $manifest['synced_at'] = gmdate('Y-m-d\TH:i:s\Z');
 
     $encoded = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -91,6 +102,20 @@ function main(string $manifestPath): int
     echo "Wrote {$manifestPath}\n";
 
     return 0;
+}
+
+/**
+ * The catalogue without its sync timestamp, for comparing two runs.
+ *
+ * @param array<string, mixed> $manifest
+ *
+ * @return array<string, mixed>
+ */
+function withoutStamp(array $manifest): array
+{
+    unset($manifest['synced_at']);
+
+    return $manifest;
 }
 
 /**
