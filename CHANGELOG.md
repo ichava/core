@@ -89,6 +89,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **The daily icon-set sync opened a pull request every day with nothing in it.** `bin/sync-icon-sets.php`
+  stamped `synced_at` on every run, so an unchanged catalogue still produced a one-line diff (#108 was
+  exactly that). It now leaves `icon-sets.json` alone unless the catalogue itself changed, and
+  `synced_at` records when it last did.
 - **The browser tree listed every variant under every category.** The tree read from the
   database since #104 gave each category the pack's full variant list, with pack-wide counts,
   so a category showed variants none of its icons carried. Variants are now counted per
