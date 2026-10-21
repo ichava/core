@@ -6,6 +6,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Changed
 
+- **References follow the repository renames.** `ichava/maintainer-toolkit` is now `ichava/icon-sets-sync`, `ichava/motion` is `ichava/js-motion` and `ichava/react-browser` is `ichava/react-icon-browser`. GitHub redirects the old names, but redirects are not permanent.
 - **The daily icon-set catalogue sync opens its pull request as the Refresh Bot GitHub App.** A pull
   request opened with the workflow's own `GITHUB_TOKEN` starts no CI, so `main`'s required checks never
   reported on it, and the organisation no longer lets Actions open pull requests. The workflow's own token

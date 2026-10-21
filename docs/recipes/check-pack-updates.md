@@ -62,7 +62,7 @@ Each pack ships `resources/assets/svg/config.json`, and its `upstream` block is 
 
 ## Refreshing the assets is a maintainer task
 
-This command reports; it does not update anything. Refreshing vendored SVGs, bumping `current_version` and opening the pull request is the maintainer toolkit's job — see [upstream tracking](https://opensource.simtabi.com/documentation/ichava/maintainer-toolkit/upstream-tracking) for the schema and the pipeline.
+This command reports; it does not update anything. Refreshing vendored SVGs, bumping `current_version` and opening the pull request is `ichava/icon-sets-sync`'s job — see [upstream tracking](https://opensource.simtabi.com/documentation/ichava/icon-sets-sync/upstream-tracking) for the schema and the pipeline.
 
 ## See also
 
