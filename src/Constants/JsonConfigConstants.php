@@ -459,7 +459,7 @@ abstract class JsonConfigConstants
 
     /**
      * Return the `update_command` block consumed by the maintainer-side
-     * sync toolkit (see https://github.com/ichava/maintainer-toolkit).
+     * sync toolkit (see https://github.com/ichava/icon-sets-sync).
      * Returns null when the pack doesn't advertise a refresh recipe.
      *
      * Recognised shapes (the toolkit dispatches on `type`; see
