@@ -96,7 +96,7 @@ php artisan ichava::ichava-core.check-updates --fail-on-stale              # exi
 | `--format=table\|json` | Output shape. `json` is what CI scripts consume. |
 | `--fail-on-stale` | Exit non-zero when any pack is behind or unreachable. |
 
-Refreshing the actual SVG assets is **not** an end-user step -- `vendor/` is regenerated on every `composer install`. The maintainer-side refresh runs in CI via [`ichava/maintainer-toolkit`](https://github.com/ichava/maintainer-toolkit); see [`../icon-pack-maintainer-sync.md`](https://opensource.simtabi.com/documentation/ichava/maintainer-toolkit/maintainer-sync).
+Refreshing the actual SVG assets is **not** an end-user step -- `vendor/` is regenerated on every `composer install`. The maintainer-side refresh runs in CI via [`ichava/icon-sets-sync`](https://github.com/ichava/icon-sets-sync); see [`../icon-pack-maintainer-sync.md`](https://opensource.simtabi.com/documentation/ichava/icon-sets-sync/maintainer-sync).
 
 ### `ichava:inject-npm-scripts`
 

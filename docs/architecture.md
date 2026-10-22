@@ -35,9 +35,9 @@ flowchart TB
     emoji["<b>ichava/icon-sets-emoji</b><br/>10,567 icons / 3 sets<br/>twemoji, openmoji-color, openmoji-black"]
     third["<b>3rd-party packs</b><br/>via ichava::icon-sets-package-scaffolder.make"]
     meta["<i>ichava/ichava</i><br/>pre-split monolith, superseded by core<br/>ARCHIVED 2026-09-22, read-only"]
-    toolkit["<b>ichava/maintainer-toolkit</b><br/>Docker-first Python tool<br/>refreshes vendored SVGs via PR<br/>(not installed by users)"]
-    motion["<i>@ichava/motion</i><br/>SVG animation engine<br/>~205 presets, no runtime deps<br/>(outside the Composer graph)"]
-    react["<i>@ichava/react-browser</i><br/>React 19 rebuild of the front end<br/>PRIVATE, not on npm"]
+    toolkit["<b>ichava/icon-sets-sync</b><br/>Docker-first sync tool<br/>refreshes vendored SVGs via PR<br/>(not installed by users)"]
+    motion["<i>ichava/js-motion</i><br/>SVG animation engine<br/>~205 presets, no runtime deps<br/>(outside the Composer graph)"]
+    react["<i>@ichava/react-icon-browser</i><br/>React 19 rebuild of the front end<br/>PRIVATE, not on npm"]
 
     browser -- depends on --> core
     tabler -- depends on --> core
