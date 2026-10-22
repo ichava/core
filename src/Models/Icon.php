@@ -826,6 +826,16 @@ final class Icon extends Model
                                 ]);
                             });
 
+                            /*
+                             * Opt-in (B7): a monochrome icon that hardcodes black
+                             * vanishes on a dark background. Off by default; the flag
+                             * is part of render_version, so turning it on re-keys this
+                             * cache entry by itself.
+                             */
+                            if ($svg->convertsMonochromeToCurrentColor()) {
+                                $raw = $svg->monochromeToCurrentColor($raw);
+                            }
+
                             return $svg->process($raw, [], false);
                         } catch (Throwable $e) {
                             /*

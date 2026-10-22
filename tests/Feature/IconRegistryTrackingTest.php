@@ -161,3 +161,21 @@ it('dispatches an unregistered event when removing a package', function (): void
         fn ($event) => $event->name === 'tests/pack-a' && $event->action === 'unregistered',
     );
 });
+
+it('returns a registered config when the same set is registered twice in one request', function (): void {
+    /*
+     * The in-memory short-circuit returned `->markRegistered()` directly, and
+     * markRegistered() returned void -- so a second registration of the same
+     * set in one request handed `null` to a method declared to return
+     * RegistrationConfig, and threw a TypeError instead of being a no-op.
+     */
+    /** @var IconRegistry $registry */
+    $registry = $this->app->make(IconRegistry::class);
+
+    $first = $registry->fromDirectory($this->packA, self::class);
+    $second = $registry->fromDirectory($this->packA, self::class);
+
+    expect($first->isRegistered())->toBeTrue();
+    expect($second->isRegistered())->toBeTrue();
+    expect($registry->isRegistered('tests/pack-a'))->toBeTrue();
+});

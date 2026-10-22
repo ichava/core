@@ -65,8 +65,7 @@ final class InvalidateIconCache
             IconCacheEvent::invalidated($reason, $clearedKeys);
 
         } catch (Throwable $e) {
-            $this->logger->error('Failed to invalidate icon cache', [
-                'error'   => $e->getMessage(),
+            $this->logger->error('Failed to invalidate icon cache', $e, [
                 'package' => $event->package,
                 'reason'  => $reason,
             ]);

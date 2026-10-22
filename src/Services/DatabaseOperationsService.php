@@ -148,7 +148,7 @@ class DatabaseOperationsService
         $migrations = $this->migrationPath();
 
         if ($migrations === null) {
-            $this->logger->error('🗄️ Ichava migration directory is missing', [
+            $this->logger->error('🗄️ Ichava migration directory is missing', null, [
                 'looked_in' => __DIR__ . '/../../database/migrations',
             ]);
 
