@@ -4,6 +4,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Changed
+
+
 ### Added
 
 - **Opt-in `ichava.ichava-core.svg.monochrome_to_current_color`** (env `ICHAVA_SVG_MONOCHROME_TO_CURRENT_COLOR`,
@@ -99,6 +102,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **A pack whose asset directory is missing no longer crashes the icon watcher.** `IconWatcherService::scanDiskIcons()` caught only `IchavaException`, but `File::allFiles()` throws Symfony's `DirectoryNotFoundException` for a missing directory, so the scan failed. It now returns no icons and logs the warning "Icon directory not found" with the package and path. `symfony/finder` is now a direct requirement, because core imports its exception class (it was already installed through `illuminate/filesystem`).
 - **Registering the same icon set twice in one request no longer throws.** `registerIconSet()` returned
   the result of `RegistrationConfig::markRegistered()`, which returned `void`, so the second call handed
   `null` to a method declared to return `RegistrationConfig` and raised a `TypeError`. `markRegistered()`
