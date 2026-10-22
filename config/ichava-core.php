@@ -385,6 +385,18 @@ return [
         'allowed_attributes' => SvgPolicy::allowedAttributes(),
 
         'forbidden_tags' => SvgPolicy::forbiddenTags(),
+
+        /*
+        | Rewrite pure-black paint (#000, #000000, black, rgb(0,0,0)) to
+        | currentColor, so a monochrome icon follows the text colour and stays
+        | visible in dark mode. Applied only to an icon whose every paint is
+        | black or transparent; multicolour icons, gradients and icons with a
+        | <style> element are served unchanged.
+        |
+        | Off by default. Turning it on changes the render fingerprint, so the
+        | icon cache re-keys on its own; a published config needs this key added.
+        */
+        'monochrome_to_current_color' => (bool) env('ICHAVA_SVG_MONOCHROME_TO_CURRENT_COLOR', false),
     ],
 
     /*
