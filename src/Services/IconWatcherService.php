@@ -19,6 +19,7 @@ use Simtabi\Laranail\Ichava\Traits\ContainsFilePaths;
 use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Support\IconPathStructureDetector;
+use Symfony\Component\Finder\Exception\DirectoryNotFoundException;
 
 /**
  * Watches icon directories for changes and keeps the icon cache + DB in sync.
@@ -488,6 +489,15 @@ class IconWatcherService
 
         try {
             $files = File::allFiles($basePath);
+        } catch (DirectoryNotFoundException) {
+            // A pack whose asset directory is missing has no icons on disk.
+            // Report it and carry on, rather than failing the whole scan.
+            $this->logger->warning('Icon directory not found', [
+                'package' => $package,
+                'path'    => $basePath,
+            ]);
+
+            return [];
         } catch (IchavaException $e) {
             $this->logger->error('Failed to scan directory', $e, [
                 'package' => $package,

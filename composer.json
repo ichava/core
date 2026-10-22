@@ -27,7 +27,8 @@
         "laranail/console": "^0.1.3",
         "laranail/db-tools": "^0.1.1",
         "laranail/enumerator": "^0.1.0",
-        "laranail/package-tools": "^0.1.1"
+        "laranail/package-tools": "^0.1.1",
+        "symfony/finder": "^7.4 || ^8.0"
     },
     "require-dev": {
         "ichava/icon-sets-package-scaffolder": "^0.1.0",
