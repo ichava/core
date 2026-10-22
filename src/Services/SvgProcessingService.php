@@ -14,6 +14,7 @@ use Simtabi\Laranail\Ichava\Services\Traits\SanitizesSvg;
 use Simtabi\Laranail\Ichava\Services\Traits\NamespacesSvgIds;
 use Simtabi\Laranail\Ichava\Services\Traits\ManagesAttributes;
 use Simtabi\Laranail\Ichava\Services\Traits\NormalisesSvgSizing;
+use Simtabi\Laranail\Ichava\Services\Traits\ConvertsMonochromeToCurrentColor;
 
 /**
  * SvgProcessingService - Unified SVG Processing Pipeline
@@ -33,6 +34,7 @@ use Simtabi\Laranail\Ichava\Services\Traits\NormalisesSvgSizing;
  */
 final class SvgProcessingService
 {
+    use ConvertsMonochromeToCurrentColor;
     use ManagesAttributes;
     use ManagesSizes;
     use NamespacesSvgIds;
@@ -79,13 +81,35 @@ final class SvgProcessingService
      */
     public function renderFingerprint(): string
     {
-        return mb_substr(hash('sha256', implode('|', [
+        $parts = [
             self::RENDER_PIPELINE_VERSION,
             $this->optimizationLevel->value,
             json_encode($this->getAllowedTags()),
             json_encode($this->getAllowedAttributes()),
             json_encode($this->getForbiddenTags()),
-        ])), 0, 12);
+        ];
+
+        /*
+         * Appended only when on, so the default leaves every existing
+         * fingerprint -- and every host's icon cache -- exactly as it was.
+         */
+        if ($this->convertsMonochromeToCurrentColor()) {
+            $parts[] = 'monochrome-current-color';
+        }
+
+        return mb_substr(hash('sha256', implode('|', $parts)), 0, 12);
+    }
+
+    /**
+     * Whether the host has opted in to rewriting a monochrome icon's black
+     * paint to `currentColor` (`ichava.ichava-core.svg.monochrome_to_current_color`).
+     *
+     * Read from config on every call rather than captured at construction, for
+     * the reason renderFingerprint() is not memoised.
+     */
+    public function convertsMonochromeToCurrentColor(): bool
+    {
+        return (bool) config('ichava.ichava-core.svg.monochrome_to_current_color', false);
     }
 
     /**

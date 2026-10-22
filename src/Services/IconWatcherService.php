@@ -489,10 +489,9 @@ class IconWatcherService
         try {
             $files = File::allFiles($basePath);
         } catch (IchavaException $e) {
-            $this->logger->error('Failed to scan directory', [
+            $this->logger->error('Failed to scan directory', $e, [
                 'package' => $package,
                 'path'    => $basePath,
-                'error'   => $e->getMessage(),
             ]);
 
             return [];

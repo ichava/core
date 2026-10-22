@@ -259,11 +259,17 @@ class RegistrationConfig
     }
 
     /**
-     * Mark as registered (internal use)
+     * Mark as registered (internal use).
+     *
+     * Returns the config so the call can sit in a `return` -- it returned void
+     * until IconRegistry::registerIconSet() did exactly that, and a second
+     * registration of one set in a request threw a TypeError.
      */
-    public function markRegistered(): void
+    public function markRegistered(): static
     {
         $this->registered = true;
+
+        return $this;
     }
 
     /**

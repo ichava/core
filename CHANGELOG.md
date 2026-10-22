@@ -4,6 +4,15 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Added
+
+- **Opt-in `ichava.ichava-core.svg.monochrome_to_current_color`** (env `ICHAVA_SVG_MONOCHROME_TO_CURRENT_COLOR`,
+  default `false`). When on, a monochrome icon whose paint is hardcoded black (`#000`, `#000000`, `black`,
+  `rgb(0,0,0)`, in attributes or a `style` attribute) is served with `currentColor`, so it stays visible in
+  dark mode. Icons with any other colour, a gradient or pattern, or a `<style>` element are untouched. The
+  flag is part of the render fingerprint, so enabling it re-keys the icon cache without bumping
+  `ICHAVA_CACHE_VERSION`; a published config needs the key added.
+
 ### Changed
 
 - **References follow the repository renames.** `ichava/maintainer-toolkit` is now `ichava/icon-sets-sync`, `ichava/motion` is `ichava/js-motion` and `ichava/react-browser` is `ichava/react-icon-browser`. GitHub redirects the old names, but redirects are not permanent.
@@ -89,6 +98,15 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   command extending `BaseCommand` outside this package that called one of them must switch.
 
 ### Fixed
+
+- **Registering the same icon set twice in one request no longer throws.** `registerIconSet()` returned
+  the result of `RegistrationConfig::markRegistered()`, which returned `void`, so the second call handed
+  `null` to a method declared to return `RegistrationConfig` and raised a `TypeError`. `markRegistered()`
+  now returns the config.
+- **Three error paths logged instead of crashing.** `IchavaLogger::error()` takes the exception second,
+  and the missing-migration-directory path in `DatabaseOperationsService`, the unscannable-directory path
+  in `IconWatcherService` and the failed-invalidation path in `InvalidateIconCache` passed their context
+  array there, so each threw a `TypeError` while reporting the failure it had handled.
 
 - **The daily icon-set sync opened a pull request every day with nothing in it.** `bin/sync-icon-sets.php`
   stamped `synced_at` on every run, so an unchanged catalogue still produced a one-line diff (#108 was
