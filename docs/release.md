@@ -4,12 +4,27 @@
 
 ## The tag is the trigger
 
-`.github/workflows/release.yml` runs on `push` to tags only. Nothing about a release is driven by a merge to `main` — a merge runs the gates, a tag publishes. Releasing is therefore a two-step act: land the change through a pull request, then tag the commit that resulted.
+`.github/workflows/release.yml` runs on `push` to `vX.Y.Z` tags. A merge runs the gates; a tag
+publishes. The tag is made by [release-please](https://github.com/googleapis/release-please), not by
+hand:
 
-```bash
-git tag vX.Y.Z
-git push origin vX.Y.Z
-```
+1. Every pull request that changes behaviour adds to the one `## [Unreleased]` section of
+   `CHANGELOG.md`, and uses a Conventional Commit subject.
+2. Run *Release Please* from the Actions tab (it also runs every Monday). It opens or refreshes one
+   release pull request that bumps `.release-please-manifest.json`, and closes `[Unreleased]` as
+   `## [X.Y.Z] - date` on that branch. It fails when `[Unreleased]` is empty.
+3. Merge the release pull request once CI is green. That run tags `vX.Y.Z` and creates the release;
+   the tag starts `release.yml`, which publishes the changelog section as the body.
+
+On 0.x a breaking change (`feat!:` or a `BREAKING CHANGE:` footer) bumps the minor and everything
+else bumps the patch. The minor moves in lockstep across the coupled ichava packages: when one of
+them needs `0.N.0`, every coupled repository gets a pull request carrying a `Release-As: 0.N.0`
+footer alongside its constraint change.
+Never edit the release pull request by hand: release-please rebuilds its branch and drops anything
+it did not write. Change the notes on `main` instead.
+
+If a tag ever starts nothing, run `release.yml` by hand against it:
+`gh workflow run release.yml --ref vX.Y.Z`. It refuses any ref that is not a release tag.
 
 Concurrency is grouped per ref with `cancel-in-progress: false`, so two tags pushed together both complete rather than the second cancelling the first.
 
@@ -38,7 +53,7 @@ The release body is this version's `CHANGELOG.md` section, extracted by the work
 
 The file follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/), and a `Changelog order` CI job fails a pull request when `[Unreleased]` is not first or the version sections do not descend.
 
-So the sequence before tagging is: move the entries out of `[Unreleased]` into a new `## [x.y.z] - YYYY-MM-DD` section, merge that through a pull request, then tag the merge commit.
+The release pull request does that move: it closes `[Unreleased]` as `## [x.y.z] - YYYY-MM-DD` on its branch, so the section is in place on the commit that gets tagged.
 
 ## The 0.1.0 re-base
 
