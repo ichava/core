@@ -19,6 +19,11 @@ on:
       - 'v*.*.*'
       - 'v*.*.*-*'
 
+  # Recovery path for a tag push that started nothing. Dispatch it against the
+  # tag: `gh workflow run release.yml --ref vX.Y.Z`. The first step refuses any
+  # other ref, so a dispatch on a branch publishes nothing.
+  workflow_dispatch:
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   # Never cancel a release in flight. A half-published release is worse than a
@@ -35,6 +40,13 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - name: Refuse a ref that is not a release tag
+        run: |
+          if [ "$GITHUB_REF_TYPE" != 'tag' ] || ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "::error::Run this against a vX.Y.Z tag, not the ${GITHUB_REF_TYPE} '${GITHUB_REF_NAME}'."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v7
 
