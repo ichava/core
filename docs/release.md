@@ -7,8 +7,8 @@
 `.github/workflows/release.yml` runs on `push` to tags only. Nothing about a release is driven by a merge to `main` — a merge runs the gates, a tag publishes. Releasing is therefore a two-step act: land the change through a pull request, then tag the commit that resulted.
 
 ```bash
-git tag v0.3.3
-git push origin v0.3.3
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
 Concurrency is grouped per ref with `cancel-in-progress: false`, so two tags pushed together both complete rather than the second cancelling the first.
@@ -40,11 +40,19 @@ The file follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [S
 
 So the sequence before tagging is: move the entries out of `[Unreleased]` into a new `## [x.y.z] - YYYY-MM-DD` section, merge that through a pull request, then tag the merge commit.
 
+## The 0.1.0 re-base
+
+Versioning was re-based on 2026-10-23, with every other ichava package. The tags `v0.1.0` to
+`v0.4.2` (2026-08-31 to 2026-09-26) and their GitHub releases were removed, and `main` was tagged `v0.1.0`. Every
+commit those tags pointed at is on `main`, so no code was lost; their notes are kept in
+`CHANGELOG.md` under *Archived pre-reset history*. Version numbers in older changelog entries and
+issues refer to that earlier series.
+
 ## Versioning, and why `0.x` minors are load-bearing
 
-Core is below `1.0`, where **a caret pins the minor**: `^0.2.8` matches `0.2.9` and does *not* match `0.3.0`. That makes the choice of bump a compatibility decision rather than a label.
+Core is below `1.0`, where **a caret pins the minor**: `^0.1` matches `0.1.1` and does *not* match `0.2.0`. That makes the choice of bump a compatibility decision rather than a label.
 
-- A **security fix** belongs in a patch. Consumers declaring `^0.2.8` receive `0.2.9` without touching their manifests; a `0.3.0` would reach none of them until every consumer bumped and re-released.
+- A **security fix** belongs in a patch. Consumers declaring `^0.1` receive `0.1.1` without touching their manifests; a `0.2.0` would reach none of them until every consumer bumped and re-released.
 - A **breaking change** takes the minor, and every consumer's constraint has to widen in the same wave.
 
 There is no `version` field in `composer.json` — the version comes from the git tag.
