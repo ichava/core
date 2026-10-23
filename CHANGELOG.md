@@ -4,6 +4,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-23
+
+Versioning re-based to 0.1.0. This release contains everything previously tagged v0.1.0 through v0.4.2 (2026-08-31 to 2026-09-26) plus the changes below. Those tags and their GitHub releases were removed; every commit they pointed at is on `main`, and their sections are kept under *Archived pre-reset history*.
+
 ### Changed
 
 
@@ -259,9 +263,14 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   `label:`/`hint:`/`placeholder:`/`yes:`/`no:` arguments, per file, across `src/Commands` and
   `src/Support/Seeder`. `src/Commands` is at 0; the seeder is pinned at 12 for a later pass.
 
-## [0.4.2] - 2026-09-26
+## [Archived pre-reset history]
 
-### Changed
+> Versioning was re-based to 0.1.0 on 2026-10-23. The tags and GitHub releases below were removed;
+> every commit they pointed at is on `main`. Sections reproduced verbatim, one heading level down.
+
+### [0.4.2] - 2026-09-26
+
+#### Changed
 
 - **`SECURITY.md` removed; the organization policy serves this repository now.**
   The file was byte-identical across six ichava repositories and held nothing
@@ -277,16 +286,16 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   went, so it now points at `/security/policy` directly. `composer.json` and the
   issue-template link already did.
 
-## [0.4.1] - 2026-09-22
+### [0.4.1] - 2026-09-22
 
-### Changed
+#### Changed
 
 - **Dead links to the deleted `ichava/documentation` repository removed.** That repository no
   longer exists, so every cross-reference to it resolved to a 404. The reporting channels in
   `SECURITY.md` were already stated inline and are unchanged; the Code of Conduct now cites the
   Contributor Covenant directly. Historical mentions in this changelog are left as written.
 
-### Fixed
+#### Fixed
 
 - **`branch-alias` named the 0.3 series while `main` was already on 0.4.**
   `extra.branch-alias.dev-main` read `0.3.x-dev`. The convention is that it moves in the change
@@ -298,9 +307,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   label and nothing objected. The first consumer to drop its `^0.3` arm would have met it as a
   resolution failure naming `ichava/core`, which is the wrong package to go looking at.
 
-## [0.4.0] - 2026-09-21
+### [0.4.0] - 2026-09-21
 
-### Added
+#### Added
 
 - **Every resource type a pack ships is registered, not just translations.**
   `Support\ServiceProvider::newPackage()` hand-rolled a directory check for
@@ -340,7 +349,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   from `IconRegistry` rather than a second reader: one pack in this estate
   shipped translations claiming MIT while its `config.json` said Commercial.
 
-### Changed
+#### Changed
 
 - **A prefix flush a mutation check showed was uncovered is gone.** The
   generation counter already changes the database search key, so
@@ -419,7 +428,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   > -- but the coupling argument is not yet proven, and further extraction
   > should be justified on its own before it proceeds.
 
-### Fixed
+#### Fixed
 
 - **Icon search ran the wrong query on three of four drivers, and clearing did
   not clear.** `IconDiscoveryService::executeSearchQuery()` hand-wrote raw
@@ -473,9 +482,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   The handler could not fire, so the failure it was written for escaped a method
   whose documented contract is to return `0`.
 
-## [0.3.2] - 2026-09-21
+### [0.3.2] - 2026-09-21
 
-### Added
+#### Added
 
 - **A test pinning the note to the validator.** It asserts the thrown message names the three
   fields a three-field set is missing, *and* that `_note` mentions every one of the six. So if
@@ -498,7 +507,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   The snapshot fields are pinned to what the pack's own `config.json` declares, so the next sync
   is a no-op rather than an immediate correction.
 
-### Fixed
+#### Fixed
 
 - **`database refresh` and `database truncate` threw on SQLite.**
   `dropTables()` and `truncateTables()` suppress foreign keys around a bulk
@@ -586,9 +595,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   ../core                                   exists
   ```
 
-## [0.3.1] - 2026-09-21
+### [0.3.1] - 2026-09-21
 
-### Added
+#### Added
 
 - **Icon packs now get their translations registered, by existing rather than by
   asking.** `laranail/package-tools` defaults `hasTranslations` to false, and no
@@ -624,7 +633,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   key, and an `if:` referencing a property that does not exist are all caught, while
   `yaml.safe_load` still parses the first of them without complaint.
 
-### Changed
+#### Changed
 
 - **One containment implementation instead of two.** `SvgDriver::loadFromLocal()`
   and `IconWatcherService::extractIconData()` each carried their own
@@ -635,7 +644,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   Behaviour is unchanged. Neutering the shared check fails 5 tests across both
   consumers, which is what makes the extraction real rather than cosmetic.
 
-### Fixed
+#### Fixed
 
 - **The Blade-component conflict detector had never fired.**
   `IconRegistry::checkConflicts()` has three detectors; two worked. The third
@@ -740,7 +749,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   default, but the point of this change is that a missing SBOM must not fail the publish, so it
   should not rest on a default a future reader has to know.
 
-### Security
+#### Security
 
 - **The icon watcher now enforces realpath containment, matching `SvgDriver`.**
   `IconWatcherService::extractIconData()` already refused a symlinked file and an oversized
@@ -760,9 +769,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   tests -- a file reached through a symlinked directory, and a `..` traversal -- and leaves
   the other four green.
 
-## [0.3.0] - 2026-09-21
+### [0.3.0] - 2026-09-21
 
-### Removed
+#### Removed
 
 - **`ichava::ichava-core.make:icon-package`, the scaffolder, and the `stubs/` tree.**
   They now live in [`ichava/icon-package-scaffolder`](https://github.com/ichava/icon-package-scaffolder),
@@ -797,7 +806,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   read a real pack's manifest off disk. That guard is gone from this repo, so the clone is too;
   it moved to the new package's `tests.yml` unchanged.
 
-### Added
+#### Added
 
 - **A `suggest` entry naming the replacement package and command**, so `composer suggest`
   answers "where did `make:icon-package` go" without a changelog archaeology trip.
@@ -811,7 +820,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   blocked a deletion that was independently verified. Verified by resolving it for real against
   the VCS repositories before adding the line, rather than by assuming a tag is enough.
 
-### Changed
+#### Changed
 
 - **`CommandNamingTest`'s dataset lost the scaffolder row**, since the command is gone. The
   `make:` squatting guard is kept rather than deleted with it: it asserts about the live
@@ -819,9 +828,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   installing a scaffolder that registers the bare name -- the case core can no longer see for
   itself.
 
-## [0.2.8] - 2026-09-21
+### [0.2.8] - 2026-09-21
 
-### Fixed
+#### Fixed
 
 - **Search terms match literally.** `%` and `_` in a query acted as `LIKE` wildcards, widening
   results and forcing full-table scans. Both search scopes now escape them — along with the
@@ -842,9 +851,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   `scanPackageIcons()` catches, logs a warning and carries on. One bad file is skipped rather
   than taking the whole directory's scan down with it.
 
-## [0.2.7] - 2026-09-21
+### [0.2.7] - 2026-09-21
 
-### Added
+#### Added
 
 - **A carrier-grade NAT guard test at the level the guard actually runs.**
   `IconPackUpdateCheckerTest` now covers a pack whose `version_check_url` host resolves into
@@ -863,7 +872,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
   **Mutation-checked:** removing `'100.64.0.0/10'` from `BLOCKED_V4` fails this test.
 
-### Fixed
+#### Fixed
 
 - **The catalog sync workflow could only succeed on the first run after a merge.** It pushes to
   a single stable branch, `chore/sync-icon-sets`, so each run updates one pull request instead of
@@ -906,9 +915,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   stripping the README links fails it too. The second is the one that matters, because the
   obvious fix is a bare deletion that silently orphans three pages.
 
-## [0.2.6] - 2026-09-21
+### [0.2.6] - 2026-09-21
 
-### Fixed
+#### Fixed
 
 - **`make:icon-package` generated a package that could not be installed.** Eight values in
   `stubs/icon-package/` had drifted from the five real packs, and nothing compared the two, so
@@ -933,7 +942,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   had already retired. The bare `ichava:update-…` name in particular is exactly the flat-map
   collision the namespaced scheme exists to prevent.
 
-### Added
+#### Added
 
 - **Scaffolded packages now ship the four workflows every real pack has** -- `tests`,
   `code-quality`, `release` and `sync-upstream`. A pack generated before this had no CI at all,
@@ -946,9 +955,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   test skips when the sibling is absent, since CI clones one repo and a false red there would
   train people to ignore it.
 
-## [0.2.5] - 2026-09-21
+### [0.2.5] - 2026-09-21
 
-### Security
+#### Security
 
 - **The version-check address guard judged addresses by notation, and missed most of the
   special-purpose registry.** `isPublicIp()` used PHP's
@@ -995,7 +1004,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   > now uses real public addresses and takes its inertness from the stub resolver and
   > `Http::fake()` instead of from the range.
 
-### Added
+#### Added
 
 - **`IconPackUpdateChecker` takes an optional host resolver** (constructor argument or
   `setHostResolver()`), so a test can say what a name resolves to without a working
@@ -1011,7 +1020,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   address. Each fails if the guard, the short-circuit, or the public-IP check is
   removed.
 
-### Fixed
+#### Fixed
 
 - **Eight unit tests no longer depend on live DNS.** The SSRF guard added in 0.2.4
   resolves `version_check_url` before any request is made, and `Http::fake()` does not
@@ -1025,9 +1034,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   never ran. It is `https://` now; the plain-`http` case is still covered by the
   non-https test.
 
-## [0.2.4] - 2026-09-21
+### [0.2.4] - 2026-09-21
 
-### Added
+#### Added
 
 - **`release.yml`** — tag-driven, so a `v*.*.*` push publishes a release whose body is that
   version's CHANGELOG section rather than auto-generated notes, plus a CycloneDX SBOM of the
@@ -1039,7 +1048,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   published pointing at `v0.2.0`'s commit — a tag whose version had no section at all. That
   tag was deleted within the minute, but nothing except a person noticing stood in the way.
 
-### Fixed
+#### Fixed
 
 - **Sync icon sets catalog no longer pushes to `main`.** Branch protection rejects direct
   pushes (GH013), so the workflow now commits to the stable branch `chore/sync-icon-sets`
@@ -1054,7 +1063,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   ran with the repository default token; both now declare `permissions:
   contents: read`.
 
-### Security
+#### Security
 
 - **Post-sanitizer attributes now pass the sanitizer gate.** `process()` sanitized the
   file and then applied every caller-supplied attribute unchecked, so `onload`,
@@ -1098,9 +1107,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   requested now, redirects are not followed, and anything else reports an error
   without sending.
 
-## [0.2.3] - 2026-09-16
+### [0.2.3] - 2026-09-16
 
-### Fixed
+#### Fixed
 
 - **Readiness was decided against a schema that has never existed**, so `info status` reported
   `UNINITIALIZED` on a fully migrated and seeded database, and both auto-seed listeners — which
@@ -1116,9 +1125,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   where it previously said `NOT READY / UNINITIALIZED`. `tests/Feature/LifecycleReadinessTest.php`
   pins the check against the migration, so a column the schema lacks cannot be required again.
 
-## [0.2.2] - 2026-09-16
+### [0.2.2] - 2026-09-16
 
-### Fixed
+#### Fixed
 
 - **`ichava::ichava-core.database migrate` never ran a migration.** `runMigrations()` passed
   `migrate` a literal `--path platform/ichava/ichava/database/migrations` — a layout from
@@ -1134,9 +1143,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   a real application and then reading `sqlite_master` rather than the exit code.
   `tests/Unit/MigrationPathTest.php` now refuses any relative `--path` literal in `src/`.
 
-## [0.2.1] - 2026-09-16
+### [0.2.1] - 2026-09-16
 
-### Fixed
+#### Fixed
 
 - **Six call sites still invoked commands by the names `0.2.0` retired**, so the paths through
   them raised `CommandNotFoundException` at runtime: the `cleanup-logs` and `watch` scheduled
@@ -1151,9 +1160,9 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   the defect is inert until the line runs and there is nothing to inspect at runtime before
   that.
 
-## [0.2.0] - 2026-09-16
+### [0.2.0] - 2026-09-16
 
-### Breaking
+#### Breaking
 
 - **Artisan commands are now namespaced `ichava::ichava-core.<command>`, and the bare names are
   gone.** Includes `ichava:install`, added in #21 while this was in flight. The old names are
@@ -1167,7 +1176,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 - **Config renamed: `config/core.php` → `config/ichava-core.php`, key `ichava.core.*` → `ichava.ichava-core.*`.** Republish with `php artisan vendor:publish --tag=ichava::ichava-core-config` and update every `config('ichava.core.*')` read, including host apps and sibling `ichava/*` packages. Published overrides at the old nested path are no longer loaded.
 
-### Added
+#### Added
 
 - **Tested support for SQLite, PostgreSQL, MySQL and MariaDB.** CI runs the suite against
   PostgreSQL 17, MySQL 8.4 and MariaDB 11.4 as service containers alongside the existing
@@ -1175,7 +1184,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
   of the four locally. See `documentation/core/databases.md`.
 - PHPStan static analysis (level 0) with `composer analyse` wired into CI.
 
-### Fixed
+#### Fixed
 
 - Nine commands registered bare generic slugs into Artisan's flat command map, where a second
   package claiming the same key replaces the first silently rather than colliding. All now
@@ -1213,17 +1222,17 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 - Facade imports (`DB`, `Schema`) made explicit in `IconPreferenceService`.
 - `FtsLanguageHelper::getLanguages()` called an instance method statically.
 
-### Changed
+#### Changed
 
 - Hardened CI workflows: concurrency groups, job timeouts, problem matchers, docs-only skip paths, and tidy composer scripts.
 - CI branch triggers standardized on `main` only.
 
-## [0.1.1] - 2026-09-02
+### [0.1.1] - 2026-09-02
 
 Patch rather than a minor so that consumers on `^0.1` pick it up without a constraint change.
 The additions are new public surface; nothing existing changed shape.
 
-### Added
+#### Added
 
 - `SvgProcessingService::renderFingerprint()` -- a short digest of everything that decides the
   output bytes for a given input file: the three allow-lists, the optimization level and a
@@ -1245,7 +1254,7 @@ The additions are new public surface; nothing existing changed shape.
   `tests/fixtures/archetypes/manifest.json`. Three rendering defects accumulated in this
   subsystem without detection because nothing rendered an icon in CI.
 
-### Changed
+#### Changed
 
 - `SanitizesSvg` reads the reference attributes and the fragment pattern from the policy
   instead of its own constants. They were constants, so emptying `fragmentOnlyRefs` in the
@@ -1260,7 +1269,7 @@ The additions are new public surface; nothing existing changed shape.
   applied -- so a file hash never identified it: widening the policy changes every icon while
   every file hash stays put. Existing cache entries are orphaned and repopulate on first read.
 
-### Why
+#### Why
 
 `ichava/browser` serves the SVG endpoint with `Cache-Control: immutable, max-age=31536000`,
 which is a promise that a URL's bytes never change. It could not keep that promise on a URL
@@ -1268,7 +1277,7 @@ keyed by icon id. `render_version` is the token that makes the URL content-addre
 has to cover the render policy as well as the file, or the next allow-list widening would ship
 into a year of cached responses produced by the previous policy.
 
-## [0.1.0] - 2026-08-31
+### [0.1.0] - 2026-08-31
 
 First open-source release. The engine of the Ichava icon ecosystem: registry, models, seeder,
 cache, SVG pipeline, Blade components, Artisan commands and the package scaffolder. Ships **zero
@@ -1279,7 +1288,7 @@ Earlier `v1.x` and `v2.x` tags existed on GitHub and were never published to Pac
 withdrawn: the ecosystem restarts from a single `0.1.0` across every package. Nothing depended on
 them.
 
-### Added
+#### Added
 
 - `IconRegistry` with runtime pack discovery, `register()`/`unregister()`, and registration
   events that drive automatic seeding and cache invalidation.
@@ -1298,7 +1307,7 @@ them.
 - Path handling that accepts both `vendor/package::category/icon` and the dot form, normalised
   through a single `PathResolver`.
 
-### Security
+#### Security
 
 - **SVG served through the model is sanitised.** The `svg_content` accessor was a bare
   `File::get()`, so whatever a pack shipped reached consumers verbatim: including the
@@ -1315,7 +1324,7 @@ them.
 - `role` and `aria-*` survive, so an icon shipping `<title>`/`<desc>` keeps a reachable accessible
   name.
 
-### Fixed
+#### Fixed
 
 - **The package config now loads at the key the source reads.** The file was `config/ichava.php`
   while the package short name is `core`, so it merged at `ichava.core.ichava.*` while every read
@@ -1335,7 +1344,7 @@ them.
   search on SQLite or MySQL failed outright.
 - `IconCacheService` referenced an undefined `$this->config` property in three methods.
 
-### Requirements
+#### Requirements
 
 - PHP `^8.4.1 || ^8.5`, `illuminate/support` `^13.0`.
 - `laranail/package-tools`, `laranail/console` and `laranail/enumerator`, all `^0.1.0`. None is
