@@ -102,6 +102,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **`bin/sync-icon-sets.php` records only a `vX.Y.Z` tag as a pack's latest version.** It took the first entry of `GET /repos/{r}/tags?per_page=1`, an order GitHub does not document, so a Go alias (`src/v0.1.0`), an archive or work-in-progress tag, or a lower version listed first would have been written into `icon-sets.json`. It now reads up to 100 tags and keeps the highest plain `vX.Y.Z` by semver, skipping pre-releases. `tests/Unit/SyncIconSetsLatestTagTest.php` covers it, and the script runs its `main()` only when executed directly so the selection can be tested.
 - **A pack whose asset directory is missing no longer crashes the icon watcher.** `IconWatcherService::scanDiskIcons()` caught only `IchavaException`, but `File::allFiles()` throws Symfony's `DirectoryNotFoundException` for a missing directory, so the scan failed. It now returns no icons and logs the warning "Icon directory not found" with the package and path. `symfony/finder` is now a direct requirement, because core imports its exception class (it was already installed through `illuminate/filesystem`).
 - **Registering the same icon set twice in one request no longer throws.** `registerIconSet()` returned
   the result of `RegistrationConfig::markRegistered()`, which returned `void`, so the second call handed

@@ -21,10 +21,10 @@ declare(strict_types=1);
 const CONFIG_FALLBACK_BRANCH = 'main';
 const DEFAULT_CONFIG_PATH = 'resources/assets/svg/config.json';
 
-$manifestPath = dirname(__DIR__) . '/icon-sets.json';
-
-$exit = main($manifestPath);
-exit($exit);
+// Run only when executed as a script, so the functions below can be loaded and tested on their own.
+if (realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')) === __FILE__) {
+    exit(main(dirname(__DIR__) . '/icon-sets.json'));
+}
 
 function main(string $manifestPath): int
 {
@@ -157,10 +157,38 @@ function snapshot(string $repository, string $configPath, array $previous): ?arr
 
 function latestTag(string $repository): ?string
 {
-    $tags = getJson("https://api.github.com/repos/{$repository}/tags?per_page=1");
-    $name = is_array($tags) ? ($tags[0]['name'] ?? null) : null;
+    $tags = getJson("https://api.github.com/repos/{$repository}/tags?per_page=100");
 
-    return is_string($name) && $name !== '' ? $name : null;
+    return is_array($tags) ? highestVersionTag($tags) : null;
+}
+
+/**
+ * The highest plain `vX.Y.Z` tag in a tags API response.
+ *
+ * The API lists every tag, in an order it does not document, including names that are not
+ * releases: a Go module alias (`src/v0.1.0`), an archive or work-in-progress tag. Taking the
+ * first entry could publish one of those as the pack's latest version. Pre-releases are skipped
+ * for the same reason: the catalogue names what a `^` constraint would install.
+ *
+ * @param array<mixed> $tags the tags API response
+ */
+function highestVersionTag(array $tags): ?string
+{
+    $best = null;
+
+    foreach ($tags as $tag) {
+        $name = is_array($tag) ? ($tag['name'] ?? null) : null;
+
+        if (! is_string($name) || preg_match('/^v\d+\.\d+\.\d+$/', $name) !== 1) {
+            continue;
+        }
+
+        if ($best === null || version_compare(substr($name, 1), substr($best, 1), '>')) {
+            $best = $name;
+        }
+    }
+
+    return $best;
 }
 
 function iconCount(string $repository, string $tag, string $configPath): ?int
