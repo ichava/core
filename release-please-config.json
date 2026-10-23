@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/v17.11.2/schemas/config.json",
+  "release-type": "php",
+  "bootstrap-sha": "ce31cc9e156bb7d856a84ad4b37ede48a9d8f61d",
+  "include-v-in-tag": true,
+  "include-component-in-tag": false,
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "skip-changelog": true,
+  "packages": {
+    ".": {
+      "package-name": "ichava/core"
+    }
+  }
+}
