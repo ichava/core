@@ -110,7 +110,7 @@ Or with the helper:
 - The icon registry, scaffolder, seeder
 - No HTTP routes, no Vue, no Vite
 
-For the visual icon browser at `/ichava/icons` and the REST API, install [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) on top.
+For the visual icon browser at `/ichava/icons` and the REST API, install [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) on top. It is a licensed, proprietary add-on in a private repository; everything above works without it.
 
 ## See also
 
