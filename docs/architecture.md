@@ -18,7 +18,7 @@ Relocated from the README, which is now a slim pointer.
 | Logging | Three dedicated channels: `ichava`, `ichava-icons`, `ichava-queue`. |
 | Search | Full-text search on PostgreSQL; portable `LIKE` search on SQLite, MySQL and MariaDB. |
 
-**Zero HTTP surface.** No REST endpoints, no middleware, no routes. The HTTP layer -- REST API plus the Vue/Vite SPA -- lives in the optional [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) package, which is why `composer require ichava/core` alone gives a fully functional headless icon engine.
+**Zero HTTP surface.** No REST endpoints, no middleware, no routes. The HTTP layer -- REST API plus the Inertia + React browser -- lives in the optional, licensed [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) package, which is why `composer require ichava/core` alone gives a fully functional headless icon engine.
 
 Scaffolding a new icon pack is **not** part of core either; it lives in [`ichava/icon-sets-package-scaffolder`](https://opensource.simtabi.com/documentation/ichava/icon-sets-package-scaffolder/creating-icon-packages) and replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0.2.7`.
 
@@ -27,7 +27,7 @@ Scaffolding a new icon pack is **not** part of core either; it lives in [`ichava
 ```mermaid
 flowchart TB
     core["<b>ichava/core</b><br/>services, registry, seeder, Blade base,<br/>scaffolder, migrations, log channels<br/>(no HTTP surface, headless-friendly)"]
-    browser["<b>ichava/icon-browser</b><br/>REST API + Vue/Vite SPA<br/>middleware + browser views"]
+    browser["<b>ichava/icon-browser</b><br/>REST API + Inertia/React browser<br/>middleware + browser views<br/>PRIVATE, licensed"]
     tabler["<b>ichava/icon-sets-tabler</b><br/>6,202 icons"]
     bundled["<b>ichava/icon-sets-bundled</b><br/>121,314 icons / 72 sets<br/>PRIVATE"]
     metronic["<b>ichava/icon-sets-metronic</b><br/>501 icons<br/>PRIVATE"]
