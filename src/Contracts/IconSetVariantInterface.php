@@ -46,9 +46,16 @@ interface IconSetVariantInterface
     /**
      * Get the full filesystem path to this variant's icons
      *
-     * @return string Absolute path to the variant's SVG directory
+     * Null when the variant or category has no directory of its own: a grouping
+     * of whole sets, say, or a category the pack's config.json does not describe.
+     * Callers must handle null rather than build a path from it.
+     *
+     * Widened from `string` in 0.1.2. An implementation that still returns
+     * `string` satisfies it unchanged, because a narrower return type is covariant.
+     *
+     * @return string|null Absolute path to the variant's SVG directory, or null when there is none
      */
-    public function getPath(): string;
+    public function getPath(): ?string;
 
     /**
      * Get the CSS class name for this variant
