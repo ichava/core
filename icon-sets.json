@@ -10,12 +10,12 @@
             "title": "Tabler Icons",
             "description": "Over 5,200 pixel-perfect icons for web apps. Free and open source icons designed with attention to detail to make your design stand out.",
             "license": "MIT",
-            "icon_count": 6202,
+            "icon_count": 6238,
             "variants": [
                 "outline",
                 "filled"
             ],
-            "latest_version": "0.3.4"
+            "latest_version": "0.1.0"
         },
         {
             "key": "flags",
@@ -29,7 +29,7 @@
                 "4x3",
                 "1x1"
             ],
-            "latest_version": "0.3.4"
+            "latest_version": "0.1.0"
         },
         {
             "key": "emoji",
@@ -42,8 +42,8 @@
             "variants": [
                 "default"
             ],
-            "latest_version": "0.3.4"
+            "latest_version": "0.1.0"
         }
     ],
-    "synced_at": "2026-09-30T09:09:24Z"
+    "synced_at": "2026-10-26T08:17:32Z"
 }
