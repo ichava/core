@@ -29,7 +29,7 @@ interface IchavaPackageInterface
     /**
      * Get the icon set name
      *
-     * @return string e.g., 'tabler', 'metronic'
+     * @return string e.g., 'tabler', 'flag'
      */
     public function getIconSetName(): string;
 

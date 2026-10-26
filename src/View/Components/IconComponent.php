@@ -32,7 +32,7 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * ```blade
  * <x-ichava::icon name="ichava/icon-sets-tabler::outline/home" />
  * <x-ichava::icon name="ichava/icon-sets-tabler::filled/home" />
- * <x-ichava::icon name="ichava/icon-sets-metronic::brand-logos/google" />
+ * <x-ichava::icon name="ichava/icon-sets-flag::4x3/gb" />
  * <x-ichava::icon name="vendor/icons::ui/buttons/primary/large" />
  * ```
  *
@@ -205,7 +205,7 @@ class IconComponent extends Component
      * Override this in child components to provide default icon set.
      * Used when no set is specified in the name or $set parameter.
      *
-     * @return string|null Icon set identifier (e.g., 'metronic', 'tabler')
+     * @return string|null Icon set identifier (e.g., 'icon-sets-tabler', 'icon-sets-flag')
      */
     protected function getIconSet(): ?string
     {
@@ -216,9 +216,9 @@ class IconComponent extends Component
      * Get the full vendor/package path (for package-specific components)
      *
      * Override this in child components to provide full vendor/package path.
-     * This enables cleaner syntax: <x-metronic name="icon" /> instead of full path.
+     * This enables cleaner syntax: <x-icon-sets-flag-icon name="4x3/gb" /> instead of full path.
      *
-     * @return string|null Full vendor/package path (e.g., 'ichava/icon-sets-metronic')
+     * @return string|null Full vendor/package path (e.g., 'ichava/icon-sets-flag')
      */
     protected function getVendorPackage(): ?string
     {
@@ -241,9 +241,9 @@ class IconComponent extends Component
      * Build the full icon path
      *
      * Handles three scenarios:
-     * 1. Full path already provided (e.g., 'ichava/icon-sets-metronic::brand-logos/facebook')
-     * 2. Vendor/package prefix needed (e.g., 'google' → 'ichava/icon-sets-metronic::google')
-     * 3. Fallback to set name only (e.g., 'google' → 'metronic::google')
+     * 1. Full path already provided (e.g., 'ichava/icon-sets-tabler::outline/home')
+     * 2. Vendor/package prefix needed (e.g., 'gb' with variant '4x3' → 'ichava/icon-sets-flag::4x3/gb')
+     * 3. Fallback to set name only (e.g., 'home' → 'icon-sets-tabler::home')
      *
      * @return string Complete icon path
      */
