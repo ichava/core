@@ -4,6 +4,8 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-26
+
 ### Changed
 
 - **The SVG policy's comments describe the corpus, not named packs.** Six `_comment` and `_count_note` strings in `resources/security/svg-policy.json` cited per-pack icon counts for two packs that are now private. They now give corpus-wide counts and refer to "a proprietary icon set" where the detail matters. Only underscore-prefixed comment keys changed: with those removed, the JSON is identical to the previous release, so every runtime enforces the same policy. The copies in icon-sets-sync and react-icon-browser are re-synced to the new digest (`56e8145b2cd87c7990cecf6816de5e062cb771d6eccd5249349c6c102c56e70d`).
