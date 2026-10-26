@@ -70,9 +70,6 @@ Core ships with no icons. The publicly available packs are:
 composer require ichava/icon-sets-tabler:^0.1
 ```
 
-`ichava/icon-sets-bundled` (121,314 icons) and `ichava/icon-sets-metronic` (501) are **private**: they are
-part of the ecosystem but not distributable, so they are available only to accounts with access.
-
 Or build your own with the dev-only [`ichava/icon-sets-package-scaffolder`](https://github.com/ichava/icon-sets-package-scaffolder) package:
 
 ```bash

@@ -36,7 +36,7 @@ By default the seeder dispatches chunks of 1,000 icons onto the `ichava-icons` q
 php artisan ichava::ichava-core.database seed --package=ichava/icon-sets-tabler --sync
 ```
 
-For 100,000-icon packs (`ichava/icon-sets-bundled`), keep the queue mode and run a worker:
+For very large packs (100,000+ icons), keep the queue mode and run a worker:
 
 ```bash
 php artisan queue:work --queue=ichava-icons --memory=512 --timeout=300
