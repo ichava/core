@@ -7,6 +7,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 ### Changed
 
 - **Docs mark `ichava/icon-browser` as a licensed add-on.** It went private and proprietary when it took the react-icon-browser UI, which contains Untitled UI PRO components. Getting started, installation and the architecture diagram say so, and the diagram no longer describes its front end as a Vue/Vite SPA. Core itself is unchanged and stays usable headless.
+- **Two archetype test fixtures are now synthetic.** `tests/fixtures/archetypes/gradient.svg` and `inline-style.svg` were copies of Metronic icons, which are proprietary artwork and cannot ship in a public repository. Both are replaced with hand-drawn SVGs that keep the constructs each archetype exists to exercise: gradients with stops reached through `url(#id)` plus a clip path, and an Illustrator-style export whose only paint is `style="fill:..."`. `manifest.json` records them as `synthetic` with no upstream source. The gradient test also asserts that every `url(#id)` still resolves after id namespacing, which it did not check before. Test-only; nothing shipped changes.
 
 ### Added
 
