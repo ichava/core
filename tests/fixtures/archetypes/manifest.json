@@ -1,11 +1,15 @@
 {
-  "_note": "Real corpus icons, not synthetic fixtures. One per ARCHETYPE, not per pack: a pack is not an archetype, since 6,184 tabler icons are one monochrome shape while five metronic logos are five different problems. Copied here because core cannot depend on the sibling packs. sha256 records which upstream file each came from, so a refresh is detectable.",
+  "_note": "One icon per ARCHETYPE, not per pack: a pack is not an archetype, since 6,184 tabler icons are one monochrome shape while five metronic logos are five different problems. Entries with a `source` are real corpus icons from public packs, copied here because core cannot depend on the sibling packs; sha256 records which upstream file each came from, so a refresh is detectable. Entries with `synthetic: true` have no upstream: they replace Metronic icons, which are proprietary artwork and must not ship in this public repository. Each was hand-written to carry the same constructs as the icon it replaced, so the test proves the same thing; sha256 there is of the fixture itself.",
   "_captured": "2026-09-02",
+  "_synthetic_since": "2026-10-26",
   "icons": {
     "gradient": {
-      "source": "metronic-icons/resources/assets/svg/files/brand-logos/lykke-lkk.svg",
-      "sha256": "4400a7c9a645da199165df8359633da1c23c7833327daf0918a8023835681923",
-      "proves": "linearGradient + <stop>: a gradient with no stops paints nothing"
+      "source": null,
+      "synthetic": true,
+      "sha256": "9134e2151f63d2ff5d9c2a11afe7ad04e96b169aca0b4c7a8f33d373a4b31219",
+      "replaces": "a Metronic brand logo (proprietary; removed from this public repo)",
+      "constructs": "two linearGradients (2 and 3 stops, offsets, gradientUnits=userSpaceOnUse) painted through fill=\"url(#id)\"; a clipPath applied through clip-path=\"url(#id)\"; author-style ids the namespacing pass must rewrite at both ends; root width/height beside a viewBox for sizing normalisation",
+      "proves": "linearGradient + <stop>: a gradient with no stops paints nothing; and every url(#id) still resolves after ids are namespaced"
     },
     "use-fragment": {
       "source": "flag-icons/resources/assets/svg/files/1x1/hn.svg",
@@ -13,8 +17,11 @@
       "proves": "<use href=\"#...\"> sprite: 126 flag icons render as nothing without it"
     },
     "inline-style": {
-      "source": "metronic-icons/resources/assets/svg/files/flags/dominican-republic.svg",
-      "sha256": "4f81d7c95be644f9710158ff163c6ed42d70c04f2e8db403351b895a853f2989",
+      "source": null,
+      "synthetic": true,
+      "sha256": "3904a070ab987a18a916d49938225f74fcaa794e93dc56ec84862996cf43e52f",
+      "replaces": "a Metronic flag icon (proprietary; removed from this public repo)",
+      "constructs": "an Illustrator-style export: XML prolog with iso-8859-1 encoding, a comment, root id=\"Layer_1\" with x/y, xml:space and style=\"enable-background:...\"; every paint is style=\"fill:...;\" on rect, path and polygon, with no fill attribute anywhere; nested and empty <g>; transform=\"matrix(...)\"",
       "proves": "style=\"fill:...\" is the ONLY paint source for 261 of 501 metronic icons"
     },
     "title": {
