@@ -90,8 +90,8 @@ final class SvgPolicy
      * safe only after a value check, and puts the second kind in its own blocks:
      * `style` under `styleAttribute`, `href`/`xlink:href` under
      * `fragmentOnlyRefs`. A by-name check that reads only `allowedAttributes`
-     * therefore strips `style` -- which is the sole paint source for 261 of 501
-     * metronic icons, so they render as solid black shapes. That regression was
+     * therefore strips `style` -- which is the sole paint source for over half of
+     * one pack's icons, so they render as solid black shapes. That regression was
      * caught here by `SvgStyleValueTest` on the first run after this class was
      * wired in; it is exactly `SEC-1b` reappearing from the other direction.
      *

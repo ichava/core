@@ -13,8 +13,7 @@ use DOMDocument;
  *
  * An icon that ships both a `viewBox` and hard `width`/`height` ignores the size
  * the component asks for, because the presentation attributes win over CSS in
- * enough contexts to matter. 6,146 tabler, 11,646 bundled and 239 metronic icons
- * ship exactly that pair.
+ * enough contexts to matter. 6,146 tabler icons alone ship exactly that pair.
  *
  * Three cases, and only the root `<svg>` is touched -- a nested `<rect>` without
  * its width is not a rect:
