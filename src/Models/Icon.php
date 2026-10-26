@@ -813,8 +813,8 @@ final class Icon extends Model
                             /*
                              * Hand sizing back to the component. An icon shipping
                              * both a viewBox and hard width/height ignores the size
-                             * it is asked for; 6,146 tabler, 11,646 bundled and 239
-                             * metronic icons ship that pair. An icon with neither is
+                             * it is asked for; 6,146 tabler icons alone ship that
+                             * pair. An icon with neither is
                              * reported rather than dropped -- it still renders, it
                              * just has no intrinsic size to scale against.
                              */

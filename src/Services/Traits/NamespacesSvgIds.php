@@ -32,8 +32,8 @@ trait NamespacesSvgIds
     /**
      * Attributes whose entire value is a space-separated list of id references.
      *
-     * `aria-labelledby` is the one that gets missed -- 283 occurrences in
-     * bundled-icons. Rename ids without it and the accessible name silently
+     * `aria-labelledby` is the one that gets missed -- it appears in hundreds
+     * of vendored icons. Rename ids without it and the accessible name silently
      * points at nothing.
      */
     private const ID_LIST_ATTRIBUTES = ['aria-labelledby', 'aria-describedby'];
