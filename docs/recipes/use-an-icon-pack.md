@@ -60,8 +60,8 @@ See [seeding pack icons](seed-pack-icons.md).
 Each pack's repository has a `docs/` directory:
 
 - [`ichava/icon-sets-tabler/docs/`](https://github.com/ichava/icon-sets-tabler/tree/main/docs)
-- [`ichava/icon-sets-bundled/docs/`](https://github.com/ichava/icon-sets-bundled/tree/main/docs)
-- [`ichava/icon-sets-metronic/docs/`](https://github.com/ichava/icon-sets-metronic/tree/main/docs)
+- [`ichava/icon-sets-flag/docs/`](https://github.com/ichava/icon-sets-flag/tree/main/docs)
+- [`ichava/icon-sets-emoji/docs/`](https://github.com/ichava/icon-sets-emoji/tree/main/docs)
 
 Look there for stroke widths, variant lists, attribution, and any pack-specific behaviour.
 

@@ -17,9 +17,10 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * shape, while five metronic logos are five different problems. The archetype
  * is what a policy gets wrong.
  *
- * Three fixtures are real corpus icons from public packs. `gradient` and
- * `inline-style` are synthetic: the corpus icons they replaced are Metronic
- * artwork, which is proprietary and cannot ship in this public repository.
+ * Two fixtures are real corpus icons from public packs. `gradient`,
+ * `inline-style` and `title` are synthetic: the corpus icons they replaced are
+ * Metronic artwork, which is proprietary, and an icon-sets-bundled icon, a
+ * private pack since 2026-10-26; neither can ship in this public repository.
  * Each was hand-written to carry the same constructs as the icon it replaced
  * (see the manifest), so the assertions below prove the same thing.
  *

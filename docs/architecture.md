@@ -29,8 +29,6 @@ flowchart TB
     core["<b>ichava/core</b><br/>services, registry, seeder, Blade base,<br/>scaffolder, migrations, log channels<br/>(no HTTP surface, headless-friendly)"]
     browser["<b>ichava/icon-browser</b><br/>REST API + Inertia/React browser<br/>middleware + browser views<br/>PRIVATE, licensed"]
     tabler["<b>ichava/icon-sets-tabler</b><br/>6,202 icons"]
-    bundled["<b>ichava/icon-sets-bundled</b><br/>121,314 icons / 72 sets<br/>PRIVATE"]
-    metronic["<b>ichava/icon-sets-metronic</b><br/>501 icons<br/>PRIVATE"]
     flag["<b>ichava/icon-sets-flag</b><br/>542 flags, 1x1 + 4x3"]
     emoji["<b>ichava/icon-sets-emoji</b><br/>10,567 icons / 3 sets<br/>twemoji, openmoji-color, openmoji-black"]
     third["<b>3rd-party packs</b><br/>via ichava::icon-sets-package-scaffolder.make"]
@@ -41,14 +39,10 @@ flowchart TB
 
     browser -- depends on --> core
     tabler -- depends on --> core
-    bundled -- depends on --> core
-    metronic -- depends on --> core
     flag -- depends on --> core
     emoji -- depends on --> core
     third -- depends on --> core
     toolkit -. CI refreshes .-> tabler
-    toolkit -. CI refreshes .-> bundled
-    toolkit -. CI refreshes .-> metronic
     toolkit -. CI refreshes .-> flag
     toolkit -. CI refreshes .-> emoji
     react -. replaces the SPA in .-> browser
@@ -60,7 +54,7 @@ flowchart TB
     classDef tooling fill:#bf8700,stroke:#bf8700,color:#fff
     class core engine
     class browser http
-    class tabler,bundled,metronic,flag,emoji,third pack
+    class tabler,flag,emoji,third pack
     class meta,motion,react other
     class toolkit tooling
 ```
@@ -103,12 +97,6 @@ classDiagram
     class TablerIcons_IconsServiceProvider["IconsServiceProvider"] {
         <<Ichava\IconSetsTabler\Providers>>
     }
-    class BundledIcons_IconsServiceProvider["IconsServiceProvider"] {
-        <<Ichava\IconsBundle\Providers>>
-    }
-    class MetronicIcons_IconsServiceProvider["IconsServiceProvider"] {
-        <<Ichava\IconSetsMetronic\Providers>>
-    }
     class FlagIcons_IconsServiceProvider["IconsServiceProvider"] {
         <<Ichava\IconSetsFlag\Providers>>
     }
@@ -119,15 +107,13 @@ classDiagram
     PackageServiceProvider <|-- SupportServiceProvider
     PackageServiceProvider <|-- IconBrowserServiceProvider
     SupportServiceProvider <|-- TablerIcons_IconsServiceProvider
-    SupportServiceProvider <|-- BundledIcons_IconsServiceProvider
-    SupportServiceProvider <|-- MetronicIcons_IconsServiceProvider
     SupportServiceProvider <|-- FlagIcons_IconsServiceProvider
     SupportServiceProvider <|-- EmojiSets_IconsServiceProvider
 ```
 
 **Every pack's provider is called `IconsServiceProvider`.** The short name is a constant across the
 ecosystem and only the namespace varies, so a contributor can `grep "class IconsServiceProvider"`
-and find all five. A `<Pack>IconsServiceProvider` name is the thing this convention exists to
+and find every pack. A `<Pack>IconsServiceProvider` name is the thing this convention exists to
 prevent; the same holds for `IconsConstants` and `IconComponent`.
 
 > **Rule for icon packs:** extend `Simtabi\Laranail\Ichava\Support\ServiceProvider` (lives in `ichava/core`). Never extend `IchavaServiceProvider`, `IconBrowserServiceProvider`, or `PackageServiceProvider` directly.
@@ -274,7 +260,7 @@ See `Simtabi\Laranail\Packager\Package\Support\RuntimeConfigurator` for the full
 
 ## IchavaRegistrar (bulk registration helper)
 
-Use `IchavaRegistrar` when a service provider manages multiple icon-set sub-directories under a shared base path (for example, a bundle with 72 sets). It loops over the directories, skips missing ones, and optionally tracks statistics.
+Use `IchavaRegistrar` when a service provider manages multiple icon-set sub-directories under a shared base path (for example, a pack that vendors dozens of upstream sets). It loops over the directories, skips missing ones, and optionally tracks statistics.
 
 | Scenario | Recommended approach |
 |---|---|
