@@ -62,9 +62,9 @@ Core ships with no icons. The publicly available packs are:
 
 | Pack | Icons | Add this repository |
 |---|---|---|
-| `ichava/icon-sets-tabler` | 6,184 | `https://github.com/ichava/icon-sets-tabler` |
+| `ichava/icon-sets-tabler` | 6,238 | `https://github.com/ichava/icon-sets-tabler` |
 | `ichava/icon-sets-flag` | 542 | `https://github.com/ichava/icon-sets-flag` |
-| `ichava/icon-sets-emoji` | engine wiring only, assets pending | `https://github.com/ichava/icon-sets-emoji` |
+| `ichava/icon-sets-emoji` | 10,567 | `https://github.com/ichava/icon-sets-emoji` |
 
 ```bash
 composer require ichava/icon-sets-tabler:^0.1
