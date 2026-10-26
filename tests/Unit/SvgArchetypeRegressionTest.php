@@ -12,10 +12,16 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * an icon in CI. Both suites stayed green throughout -- they tested the
  * sanitiser against fixtures written to match the sanitiser.
  *
- * These run REAL corpus icons through the REAL pipeline, sampled one per
- * ARCHETYPE rather than one per pack. A pack is not an archetype: 6,184 tabler
- * icons are one monochrome shape, while five metronic logos are five different
- * problems. The archetype is what a policy gets wrong.
+ * These run one icon per ARCHETYPE through the REAL pipeline, rather than one
+ * per pack. A pack is not an archetype: 6,184 tabler icons are one monochrome
+ * shape, while five metronic logos are five different problems. The archetype
+ * is what a policy gets wrong.
+ *
+ * Three fixtures are real corpus icons from public packs. `gradient` and
+ * `inline-style` are synthetic: the corpus icons they replaced are Metronic
+ * artwork, which is proprietary and cannot ship in this public repository.
+ * Each was hand-written to carry the same constructs as the icon it replaced
+ * (see the manifest), so the assertions below prove the same thing.
  *
  * This is construct-level rather than pixel-level, and that is a deliberate
  * limit worth stating. It cannot see that a gradient renders the wrong colour;
@@ -51,6 +57,16 @@ describe('archetype rendering regression', function () {
         expect($out)->toContain('<stop')
             ->toContain('stop-color')
             ->and($out)->toMatch('/<(linear|radial)Gradient/');
+
+        // Stops are only half of it: the paint reaches the gradient through
+        // url(#id), and the id-namespacing pass rewrites both ends. Every
+        // reference must still name an id defined in the same document.
+        preg_match_all('/url\(#([^)]+)\)/', $out, $refs);
+        expect($refs[1])->not->toBeEmpty();
+
+        foreach (array_unique($refs[1]) as $ref) {
+            $this->assertStringContainsString('id="' . $ref . '"', $out, "url(#{$ref}) resolves to nothing");
+        }
     });
 
     it('keeps the fragment references a <use> sprite resolves through', function () {
