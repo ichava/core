@@ -32,19 +32,6 @@ ichava('ichava/ui-icons::ui-icons/check')     // slash format
 ichava('ichava/ui-icons::ui-icons.check')     // dot format
 ichava('ichava/test-icons::test-icons/check')
 ichava('vendor/your-icons::category/icon-name')
-
-// Icons Bundle (70+ icon sets)
-ichava('vendor/your-icons::category/icon-name')
-ichava('vendor/your-icons::category.icon-name')
-ichava('vendor/your-icons::category/icon-name')
-ichava('vendor/your-icons::category.icon-name')
-ichava('vendor/your-icons::category/icon-name')
-ichava('vendor/your-icons::category/icon-name')
-
-// Metronic Icons
-ichava('vendor/your-icons::category/icon-name')
-ichava('vendor/your-icons::category.icon-name')
-ichava('vendor/your-icons::category/icon-name')
 ichava('vendor/your-icons::category.icon-name')
 ```
 
