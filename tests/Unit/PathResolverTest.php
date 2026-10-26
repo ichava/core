@@ -185,3 +185,34 @@ describe('PathResolver::getRelativePath', function () {
         expect($rel)->toContain('..');
     });
 });
+
+// --- names and segments that PHP treats as falsy ---------------------------
+
+describe('PathResolver with "0" names and segments', function () {
+    it('accepts an icon named 0 or 00', function (string $name) {
+        $r = $this->resolver->parseIconPath("myorg/icons::solid/{$name}");
+        expect($r->name)->toBe($name);
+        expect($r->variant)->toBe('solid');
+    })->with(['0', '00']);
+
+    it('accepts 0 and 00 as path segments', function () {
+        $r = $this->resolver->parseIconPath('myorg/icons::0/00/glyph');
+        expect($r->variant)->toBe('0');
+        expect($r->category)->toBe('00');
+        expect($r->name)->toBe('glyph');
+    });
+
+    it('still rejects an empty or whitespace-only icon name', function (string $path) {
+        expect(fn () => $this->resolver->parseIconPath($path))->toThrow(IchavaException::class);
+    })->with(['myorg/icons::solid/', 'myorg/icons::solid/ ']);
+
+    it('still rejects an empty path segment', function () {
+        expect(fn () => $this->resolver->parseIconPath('myorg/icons::solid//glyph'))
+            ->toThrow(IchavaException::class);
+    });
+
+    it('keeps 0 segments when building a path back', function () {
+        expect($this->resolver->buildIconPath('0', 'myorg/icons', '0', '00'))
+            ->toBe('myorg/icons::0/00/0');
+    });
+});

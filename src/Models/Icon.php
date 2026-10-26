@@ -127,7 +127,7 @@ final class Icon extends Model
     {
         $query = self::where('package', $package)->where('name', $name);
 
-        if ($variant) {
+        if ($variant !== null && $variant !== '') {
             $query->variant($variant);
         }
 
