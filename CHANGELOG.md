@@ -4,6 +4,8 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-26
+
 ### Changed
 
 - **The installation guide's pack table matches `icon-sets.json`.** It read tabler 6,184 and emoji "engine wiring only, assets pending"; the synced snapshot says 6,238 and 10,567, and the rows are now generated from it. `tests/Unit/InstallationPackTableTest.php` compares every row's package, count and repository with `icon-sets.json` and checks that the row count matches, so the next sync that moves a count fails it until the doc follows. It failed on `main` first.
