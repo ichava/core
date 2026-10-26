@@ -1,5 +1,5 @@
 {
-  "_note": "One icon per ARCHETYPE, not per pack: a pack is not an archetype, since 6,184 tabler icons are one monochrome shape while five metronic logos are five different problems. Entries with a `source` are real corpus icons from public packs, copied here because core cannot depend on the sibling packs; sha256 records which upstream file each came from, so a refresh is detectable. Entries with `synthetic: true` have no upstream: they replace Metronic icons, which are proprietary artwork and must not ship in this public repository. Each was hand-written to carry the same constructs as the icon it replaced, so the test proves the same thing; sha256 there is of the fixture itself.",
+  "_note": "One icon per ARCHETYPE, not per pack: a pack is not an archetype, since 6,184 tabler icons are one monochrome shape while five metronic logos are five different problems. Entries with a `source` are real corpus icons from public packs, copied here because core cannot depend on the sibling packs; sha256 records which upstream file each came from, so a refresh is detectable. Entries with `synthetic: true` have no upstream: they replace icons from Metronic (proprietary artwork) and icon-sets-bundled (a private pack since 2026-10-26, not redistributable), which must not ship in this public repository. Each was hand-written to carry the same constructs as the icon it replaced, so the test proves the same thing; sha256 there is of the fixture itself.",
   "_captured": "2026-09-02",
   "_synthetic_since": "2026-10-26",
   "icons": {
@@ -25,8 +25,11 @@
       "proves": "style=\"fill:...\" is the ONLY paint source for 261 of 501 metronic icons"
     },
     "title": {
-      "source": "bundled-icons/resources/assets/svg/files/clarity-icons/menu-line.svg",
-      "sha256": "93fcb5c899cfcb06e5e98c2b474d7b0b8e294e97c4b33957035510fb588f4d9c",
+      "source": null,
+      "synthetic": true,
+      "sha256": "035b603a99e26fced2373d57836e83dcd79fe7fea46bb0f0fba37a3e945323f0",
+      "replaces": "a clarity-icons icon from icon-sets-bundled (MIT upstream, but the pack is private since 2026-10-26; removed from this public repo)",
+      "constructs": "a single-line export: xmlns plus an unused xmlns:xlink, version=\"1.1\", a 36x36 viewBox with no width/height, preserveAspectRatio, fill=\"currentColor\" on the root; a <title> as the first child; three <path>s with multi-token class attributes and compound subpaths (Z then m/H/V); a full-size <rect> with fill-opacity=\"0\" as the hit area",
       "proves": "<title> is the accessible name; 6,966 bundled icons carry one"
     },
     "control": {

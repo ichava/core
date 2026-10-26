@@ -47,7 +47,7 @@ The `test_icons` component is auto-disabled in production, see `components.test_
 
 ### Per-package components
 
-Each child icon package registers its own thin wrapper component for ergonomics, e.g. `<x-icon-sets-tabler-icon>`, `<x-icon-sets-bundled-icon>`, `<x-icon-sets-metronic-icon>`. They forward to the same underlying `IconComponent`, see each child package's README for the exact tag name and accepted attributes.
+Each child icon package registers its own thin wrapper component for ergonomics, e.g. `<x-icon-sets-tabler-icon>`, `<x-icon-sets-flag-icon>`, `<x-icon-sets-emoji-icon>`. They forward to the same underlying `IconComponent`, see each child package's README for the exact tag name and accepted attributes.
 
 ---
 
