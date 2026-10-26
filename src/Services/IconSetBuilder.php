@@ -664,11 +664,11 @@ class IconSetBuilder implements IconSetInterface
     {
         $parts = [$this->basePath()];
 
-        if ($variant) {
+        if ($variant !== null && $variant !== '') {
             $parts[] = $variant;
         }
 
-        if ($category && $this->config->supportsCategories) {
+        if ($category !== null && $category !== '' && $this->config->supportsCategories) {
             $parts[] = $category;
         }
 
@@ -684,11 +684,11 @@ class IconSetBuilder implements IconSetInterface
     {
         $parts = [$this->basePath()];
 
-        if ($variant) {
+        if ($variant !== null && $variant !== '') {
             $parts[] = $variant;
         }
 
-        if ($category && $this->config->supportsCategories) {
+        if ($category !== null && $category !== '' && $this->config->supportsCategories) {
             $parts[] = $category;
         }
 
