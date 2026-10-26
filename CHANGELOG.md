@@ -4,6 +4,8 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-26
+
 ### Added
 
 - **Icon aliases: an old icon name can resolve to an icon kept under another name.** A pack ships them as `aliases.json` beside `config.json` (old path => kept path, within the pack), or a provider calls `IconRegistry::alias($set, $map)`; `IconRegistry::aliases($set)` reads them back. `IconRegistry::render()` and `has()`, and so `<x-ichava::icon>` and the `ichava()` helper, follow an alias only after the requested name misses, so an alias never shadows a real icon. Dot and slash form are one name. An alias that names itself or another alias, and an `aliases.json` that is not a JSON object, throw `IchavaException` at registration; unregistering a set drops its aliases. This lets a pack merge byte-identical duplicate icons without breaking a name anyone uses. Additive: a pack without `aliases.json` behaves as before. `tests/Feature/IconAliasTest.php` asserts each old name renders byte-for-byte what the kept name renders; with the lookup removed from `render()`, four of its sixteen tests fail.
