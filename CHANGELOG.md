@@ -4,6 +4,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Changed
+
+- **`IconSetVariantInterface::getPath()` may return `null`.** Its return type widens from `string` to `?string`, for a variant or category with no directory of its own, such as `icon-sets-bundled`'s categories, which group whole sets. Every existing implementation that returns `string` still satisfies the interface, because a narrower return type is covariant, so no pack has to change; a caller of `getPath()` through the interface must now handle `null`. Nothing in core calls it. `tests/Unit/VariantPathContractTest.php` declares one enum returning a path and one returning `null`, and asserts the interface's return type.
+
 ## [0.1.1] - 2026-10-26
 
 ### Changed
