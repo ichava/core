@@ -693,13 +693,14 @@ class IconWatcherService
     {
         $path = trim($path, '/\\');
 
-        if (empty($path)) {
+        if ($path === '') {
             return null;
         }
 
         $parts = explode('/', str_replace('\\', '/', $path));
+        $last = end($parts);
 
-        return end($parts) ?: null;
+        return $last === false || $last === '' ? null : $last;
     }
 
     /**
@@ -733,7 +734,7 @@ class IconWatcherService
         $nameParts = preg_split('/[-_]/', $name);
         $keywords = array_merge($keywords, $nameParts);
 
-        if ($category) {
+        if ($category !== null && $category !== '') {
             $keywords[] = $category;
             $categoryParts = preg_split('/[-_]/', $category);
             $keywords = array_merge($keywords, $categoryParts);
@@ -741,7 +742,7 @@ class IconWatcherService
 
         $keywords[] = $name;
 
-        return array_values(array_unique(array_filter($keywords)));
+        return array_values(array_unique(array_filter($keywords, fn ($keyword) => $keyword !== '')));
     }
 
     /**
@@ -753,7 +754,7 @@ class IconWatcherService
         $parts = preg_split('/[-_]/', $name);
         $tags = array_merge($tags, array_filter($parts, fn ($p) => strlen($p) > 2));
 
-        if ($category) {
+        if ($category !== null && $category !== '') {
             $tags[] = $category;
         }
 

@@ -275,11 +275,11 @@ final class IconsManifest
     {
         $key = $name;
 
-        if ($category) {
+        if ($category !== null && $category !== '') {
             $key = "{$category}/{$key}";
         }
 
-        if ($variant) {
+        if ($variant !== null && $variant !== '') {
             $key = "{$key}:{$variant}";
         }
 

@@ -7,6 +7,7 @@ namespace Simtabi\Laranail\Ichava\Services;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Support\PackConfigData;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
 /**
@@ -77,26 +78,32 @@ final class ConfigurationService
 
     /**
      * Check if config has variants
+     *
+     * Reads `metadata.data.variants` first, then the top-level `variants` key.
      */
     public function hasVariants(array $config): bool
     {
-        return isset($config['variants']) && is_array($config['variants']) && ! empty($config['variants']);
+        return PackConfigData::variants($config) !== [];
     }
 
     /**
      * Get variants from config
+     *
+     * Reads `metadata.data.variants` first, then the top-level `variants` key.
      */
     public function getVariants(array $config): array
     {
-        return $config['variants'] ?? [];
+        return PackConfigData::variants($config);
     }
 
     /**
      * Check if config has categories
+     *
+     * Reads `metadata.data.categories` first, then the top-level `categories` key.
      */
     public function hasCategories(array $config): bool
     {
-        return isset($config['categories']) && is_array($config['categories']) && ! empty($config['categories']);
+        return PackConfigData::categories($config) !== [];
     }
 
     /**

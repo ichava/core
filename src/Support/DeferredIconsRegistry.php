@@ -125,7 +125,7 @@ HTML;
     {
         $id = "ichava-{$set}-{$name}";
 
-        if ($variant) {
+        if ($variant !== null && $variant !== '') {
             $id .= "-{$variant}";
         }
 
