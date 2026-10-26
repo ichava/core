@@ -248,19 +248,19 @@ class PathResolver
         $parts = [];
 
         // Add vendor/package or set
-        if ($vendor && $package) {
+        if ($vendor !== null && $vendor !== '' && $package !== null && $package !== '') {
             $parts[] = $vendor . '/' . $package . $this->pathSeparator;
-        } elseif ($set) {
+        } elseif ($set !== null && $set !== '') {
             $parts[] = $set . $this->pathSeparator;
         }
 
         // Add variant
-        if ($variant) {
+        if ($variant !== null && $variant !== '') {
             $parts[] = $variant . $this->variantSeparator;
         }
 
         // Add category
-        if ($category) {
+        if ($category !== null && $category !== '') {
             $parts[] = $category . $this->variantSeparator;
         }
 
@@ -537,8 +537,8 @@ class PathResolver
      */
     private function isValidIconName(string $name): bool
     {
-        // Empty not allowed
-        if (empty(trim($name))) {
+        // Empty not allowed. Compare strictly: empty('0') is true, and `0` is a real icon name.
+        if (trim($name) === '') {
             return false;
         }
 
@@ -575,8 +575,8 @@ class PathResolver
      */
     private function isValidPathSegment(string $segment): bool
     {
-        // Empty segments not allowed
-        if (empty(trim($segment))) {
+        // Empty segments not allowed. Compare strictly: empty('0') is true.
+        if (trim($segment) === '') {
             return false;
         }
 

@@ -14,6 +14,7 @@ use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Illuminate\Contracts\Foundation\Application;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
 use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
+use Simtabi\Laranail\Ichava\Support\PackConfigData;
 use Simtabi\Laranail\Ichava\Support\IchavaRegistrar;
 use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -845,11 +846,13 @@ final class IconRegistry
     /**
      * Whether the parsed config.json declares any icon variants.
      *
+     * Reads `metadata.data.variants` first, then the top-level `variants` key.
+     *
      * @param array<string, mixed> $config Parsed config.json data
      */
     private function hasVariants(array $config): bool
     {
-        return isset($config['variants']) && is_array($config['variants']) && ! empty($config['variants']);
+        return PackConfigData::variants($config) !== [];
     }
 
     /**
@@ -861,17 +864,19 @@ final class IconRegistry
      */
     private function getVariants(array $config): array
     {
-        return $config['variants'] ?? [];
+        return PackConfigData::variants($config);
     }
 
     /**
      * Whether the parsed config.json declares any icon categories.
      *
+     * Reads `metadata.data.categories` first, then the top-level `categories` key.
+     *
      * @param array<string, mixed> $config Parsed config.json data
      */
     private function hasCategories(array $config): bool
     {
-        return isset($config['categories']) && is_array($config['categories']) && ! empty($config['categories']);
+        return PackConfigData::categories($config) !== [];
     }
 
     /**

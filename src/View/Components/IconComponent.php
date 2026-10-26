@@ -258,11 +258,11 @@ class IconComponent extends Component
         $iconName = $this->name;
 
         // Prepend category to icon name if provided
-        if ($this->category) {
+        if ($this->category !== null && $this->category !== '') {
             $iconName = "{$this->category}/{$iconName}";
         }
         // Prepend variant to icon name if provided (and no category)
-        elseif ($this->variant) {
+        elseif ($this->variant !== null && $this->variant !== '') {
             $iconName = "{$this->variant}/{$iconName}";
         }
 
