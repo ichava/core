@@ -4,6 +4,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Added
+
+- **Icon aliases: an old icon name can resolve to an icon kept under another name.** A pack ships them as `aliases.json` beside `config.json` (old path => kept path, within the pack), or a provider calls `IconRegistry::alias($set, $map)`; `IconRegistry::aliases($set)` reads them back. `IconRegistry::render()` and `has()`, and so `<x-ichava::icon>` and the `ichava()` helper, follow an alias only after the requested name misses, so an alias never shadows a real icon. Dot and slash form are one name. An alias that names itself or another alias, and an `aliases.json` that is not a JSON object, throw `IchavaException` at registration; unregistering a set drops its aliases. This lets a pack merge byte-identical duplicate icons without breaking a name anyone uses. Additive: a pack without `aliases.json` behaves as before. `tests/Feature/IconAliasTest.php` asserts each old name renders byte-for-byte what the kept name renders; with the lookup removed from `render()`, four of its sixteen tests fail.
+
 ### Changed
 
 - **`IconSetVariantInterface::getPath()` may return `null`.** Its return type widens from `string` to `?string`, for a variant or category with no directory of its own, such as `icon-sets-bundled`'s categories, which group whole sets. Every existing implementation that returns `string` still satisfies the interface, because a narrower return type is covariant, so no pack has to change; a caller of `getPath()` through the interface must now handle `null`. Nothing in core calls it. `tests/Unit/VariantPathContractTest.php` declares one enum returning a path and one returning `null`, and asserts the interface's return type.

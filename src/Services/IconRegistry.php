@@ -9,9 +9,11 @@ use Throwable;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Event;
+use Simtabi\Laranail\Ichava\Data\IconData;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Illuminate\Contracts\Foundation\Application;
+use Simtabi\Laranail\Ichava\Support\IconAliasMap;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
 use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
 use Simtabi\Laranail\Ichava\Support\PackConfigData;
@@ -92,6 +94,7 @@ final class IconRegistry
         private SvgDriver $driver,
         private IchavaLogger $logger,
         private PathResolver $pathResolver,
+        private IconAliasMap $aliases,
     ) {
         $this->initializeBootstrap();
     }
@@ -198,7 +201,43 @@ final class IconRegistry
         ];
 
         // Register immediately
-        return $this->registerIconSet($packageName, $iconSet, $metadata);
+        $registration = $this->registerIconSet($packageName, $iconSet, $metadata);
+
+        $this->loadAliasFile($packageName, $path);
+
+        return $registration;
+    }
+
+    /**
+     * Let old icon names in a set resolve to icons kept under other names.
+     *
+     * Each key is a path within the set as written after `::`, and each value
+     * is the path of the icon it now renders, e.g.
+     * `['shapes/circle' => 'shapes/dot']`. An alias is only consulted when no
+     * icon exists under the requested name, and resolves in one hop.
+     *
+     * A pack registered with fromDirectory() can ship the same map as
+     * `aliases.json` beside its `config.json`.
+     *
+     * @param array<string, string> $aliases old path => kept path
+     *
+     * @throws IchavaException when an entry names itself or chains to another alias
+     */
+    public function alias(string $set, array $aliases): static
+    {
+        $this->aliases->register($set, $aliases);
+
+        return $this;
+    }
+
+    /**
+     * The aliases registered for a set.
+     *
+     * @return array<string, string> old path => kept path
+     */
+    public function aliases(string $set): array
+    {
+        return $this->aliases->for($set);
     }
 
     /**
@@ -316,13 +355,14 @@ final class IconRegistry
     {
         try {
             $iconPath = $this->pathResolver->parseIconPath($name);
-            $set = $this->set($iconPath->set ?? $this->defaultSet);
+            $setName = $iconPath->set ?? $this->defaultSet;
+            $set = $this->set($setName);
 
-            return $set->has(
-                $iconPath->name,
-                $variant ?? $iconPath->variant,
-                $category ?? $iconPath->category,
-            );
+            $variant ??= $iconPath->variant;
+            $category ??= $iconPath->category;
+
+            return $set->has($iconPath->name, $variant, $category)
+                || $this->aliasedIcon($setName, $set, $iconPath->name, $variant, $category) !== null;
         } catch (Exception $e) {
             return false;
         }
@@ -359,11 +399,11 @@ final class IconRegistry
         }
 
         $set = $this->set($setName);
-        $icon = $set->get(
-            $iconPath->name,
-            $variant ?? $iconPath->variant,
-            $category ?? $iconPath->category,
-        );
+        $variant ??= $iconPath->variant;
+        $category ??= $iconPath->category;
+
+        $icon = $set->get($iconPath->name, $variant, $category)
+            ?? $this->aliasedIcon($setName, $set, $iconPath->name, $variant, $category);
 
         // Try fallback icon if not found
         if (! $icon && $set->config()->fallback) {
@@ -460,6 +500,8 @@ final class IconRegistry
             $this->defaultSet = null;
         }
 
+        $this->aliases->forget($iconSetName);
+
         Event::dispatch(IconRegistrationEvent::unregistered(
             registrarId: $packageName,
             name: $packageName,
@@ -551,6 +593,45 @@ final class IconRegistry
     public function driver(): SvgDriver
     {
         return $this->driver;
+    }
+
+    /**
+     * The icon an old name now points at, once the name itself has missed.
+     */
+    private function aliasedIcon(string $setName, IconSetInterface $set, string $name, ?string $variant, ?string $category): ?IconData
+    {
+        $requested = implode('/', array_filter([$variant, $category, $name], fn (?string $part): bool => $part !== null && $part !== ''));
+        $target = $this->aliases->resolve($setName, $requested);
+
+        if ($target === null) {
+            return null;
+        }
+
+        $kept = $this->pathResolver->parseIconPath($setName . '::' . $target);
+
+        return $set->get($kept->name, $kept->variant, $kept->category);
+    }
+
+    /**
+     * Register a pack's `aliases.json`, when it ships one.
+     *
+     * @throws IchavaException when the file is not a JSON object or holds an invalid alias
+     */
+    private function loadAliasFile(string $set, string $directoryPath): void
+    {
+        $aliasPath = Str::finish($directoryPath, '/') . 'aliases.json';
+
+        if (! File::exists($aliasPath)) {
+            return;
+        }
+
+        $aliases = json_decode(File::get($aliasPath), true);
+
+        if (! is_array($aliases)) {
+            throw IchavaException::invalidConfig('aliases.json must be a JSON object of old path => kept path', $aliasPath);
+        }
+
+        $this->aliases->register($set, $aliases);
     }
 
     /**
