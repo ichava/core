@@ -21,8 +21,8 @@ use DOMDocument;
  * colour, a gradient or pattern (`url(...)`), or a `<style>` element (whose
  * selectors this pass does not evaluate) is returned untouched.
  *
- * Only explicit black is rewritten. An element with no paint at all also
- * renders black by default; adding paint to it is a different, broader change.
+ * Only explicit black (or a near-black neutral grey, see isBlackPaint()) is
+ * rewritten. An element with no paint at all also renders black by default; adding paint to it is a different, broader change.
  *
  * The pass is gated by `ichava.ichava-core.svg.monochrome_to_current_color`
  * at the call site, and the flag feeds renderFingerprint(), so turning it on
@@ -121,9 +121,31 @@ trait ConvertsMonochromeToCurrentColor
         return $values;
     }
 
+    /**
+     * Black, or the near-black neutral grey emoji sets draw "black" glyphs in: every
+     * channel at most 0x40 and within 0x18 of the others. Twemoji's heavy dollar sign
+     * is #292F33, which pure-black matching missed, so it stayed near-black on a dark
+     * page. A dark colour with a hue (navy, maroon) is still a colour. Mirrors
+     * react-icon-browser's monochrome.ts, so both catalogs paint an icon the same way.
+     */
     private function isBlackPaint(string $value): bool
     {
-        return (bool) preg_match('/^(?:#000(?:000)?|black|rgb\(\s*0\s*,\s*0\s*,\s*0\s*\))$/i', trim($value));
+        $value = trim($value);
+
+        if (preg_match('/^(?:#000(?:000)?|black|rgb\(\s*0\s*,\s*0\s*,\s*0\s*\))$/i', $value)) {
+            return true;
+        }
+
+        if (! preg_match('/^#(?:([0-9a-f])([0-9a-f])([0-9a-f])|([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2}))$/i', $value, $m)) {
+            return false;
+        }
+
+        $channels = ($m[1] ?? '') !== ''
+            ? [$m[1] . $m[1], $m[2] . $m[2], $m[3] . $m[3]]
+            : [$m[4], $m[5], $m[6]];
+        $channels = array_map(static fn (string $hex): int => (int) hexdec($hex), $channels);
+
+        return max($channels) <= 0x40 && max($channels) - min($channels) <= 0x18;
     }
 
     private function rewriteBlackPaint(DOMElement $element): void
