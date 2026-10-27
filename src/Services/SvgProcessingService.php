@@ -94,7 +94,10 @@ final class SvgProcessingService
          * fingerprint -- and every host's icon cache -- exactly as it was.
          */
         if ($this->convertsMonochromeToCurrentColor()) {
-            $parts[] = 'monochrome-current-color';
+            // `-2`: the pass also rewrites near-black greys now, so icons cached by
+            // the black-only rule must not be served. Only hosts with the flag on
+            // are re-keyed.
+            $parts[] = 'monochrome-current-color-2';
         }
 
         return mb_substr(hash('sha256', implode('|', $parts)), 0, 12);

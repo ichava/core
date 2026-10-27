@@ -31,6 +31,18 @@ describe('SvgProcessingService::monochromeToCurrentColor', function () {
             ->not->toContain($black);
     })->with(['#000', '#000000', 'black', 'BLACK', 'rgb(0,0,0)', 'rgb(0, 0, 0)']);
 
+    it('treats a near-black neutral grey as black (twemoji heavy-dollar-sign)', function (string $grey) {
+        $in = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><path fill="' . $grey . '" d="M0 0h1"/></svg>';
+
+        expect($this->svg->monochromeToCurrentColor($in))->toContain('fill="currentColor"')->not->toContain($grey);
+    })->with(['#292F33', '#31373D', '#333']);
+
+    it('keeps dark colours with a hue, and greys past the near-black line', function (string $colour) {
+        $in = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="' . $colour . '" d="M0 0h1"/></svg>';
+
+        expect($this->svg->monochromeToCurrentColor($in))->toBe($in);
+    })->with(['#1a237e', '#3b0000', '#444444', '#555']);
+
     it('rewrites black inside a style attribute', function () {
         $in = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
             . '<path style="fill:#000000;stroke-width:2" d="M0 0h24"/></svg>';
