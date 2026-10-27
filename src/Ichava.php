@@ -50,12 +50,16 @@ final class Ichava
      * class(), size(), aria(), etc. before calling render().
      *
      * @param string $name Icon path in `vendor/package::category/name` format
+     * @param array<string, mixed> $attributes HTML attributes, as `->attributes()` takes them
      *
      * @return IconRenderer Fluent renderer instance
      */
-    public function render(string $name): IconRenderer
+    public function render(string $name, array $attributes = []): IconRenderer
     {
-        return $this->iconRenderer->name($name);
+        // A fresh renderer per call. This class is a singleton, so handing out the
+        // one renderer it was built with let every call inherit the last call's
+        // state: `ichava('x')` after `ichava('y')->class('big')` came out `big`.
+        return (clone $this->iconRenderer)->name($name, $attributes !== [] ? $attributes : null);
     }
 
     /**

@@ -150,6 +150,22 @@ final class Icon extends Model
         );
     }
 
+    /**
+     * A stored file path as the registry keys it: relative to the pack's `files/`
+     * root, forward slashes, no `.svg`. `files/outline/home.svg` → `outline/home`.
+     */
+    public static function registryKey(string $path): string
+    {
+        $path = str_replace('\\', '/', $path);
+        $files = strpos('/' . $path, '/files/');
+
+        if ($files !== false) {
+            $path = substr('/' . $path, $files + strlen('/files/'));
+        }
+
+        return (string) preg_replace('/\.svg$/i', '', ltrim($path, '/'));
+    }
+
     /***********************************************************************
      * Relationships
      **********************************************************************/
@@ -858,26 +874,29 @@ final class Icon extends Model
     }
 
     /**
-     * Get icon path for ichava() helper
-     * Format: package::category/name:variant
+     * The path `ichava()`, `<x-ichava::icon>` and the registry resolve:
+     * `vendor/package::<file path inside the pack, without .svg>`.
+     *
+     * It is built from the stored file path, because that is what the registry
+     * keys icons by. It used to be assembled from the primary category and
+     * variant terms as `package::category/name:variant`, which no resolver
+     * accepts: the registry refuses a `:` in an icon name, so every icon with a
+     * variant (all of tabler) produced a path that threw, and a pack nested
+     * deeper than one folder (bundled's `iconpark/...`) lost the folders between
+     * its category and its name. The terms are kept as the fallback for a row
+     * with no stored path, without the variant suffix.
      */
     protected function iconPath(): Attribute
     {
         return Attribute::make(
             get: function (): string {
-                $path = $this->package . '::';
-
-                if ($category = $this->primary_category) {
-                    $path .= $category->slug . '/';
+                if (is_string($this->path) && $this->path !== '') {
+                    return $this->package . '::' . self::registryKey($this->path);
                 }
 
-                $path .= $this->name;
+                $category = $this->primary_category?->slug;
 
-                if ($variant = $this->primary_variant) {
-                    $path .= ':' . $variant->slug;
-                }
-
-                return $path;
+                return $this->package . '::' . ($category ? $category . '/' : '') . $this->name;
             },
         );
     }

@@ -26,6 +26,9 @@ The `ichava()` helper provides a fluent API for rendering icons:
 // Color shortcut
 {{ ichava('ichava/test-icons::test-icons/check')->color('#3B82F6') }}
 
+// Attributes as the second argument, the same as ->attributes()
+{{ ichava('ichava/ui-icons::ui-icons/check', ['class' => 'w-6 h-6', 'aria-label' => 'Done']) }}
+
 // Combined
 {{ ichava('ichava/ui-icons::ui-icons/check')
     ->class('w-6 h-6 transition-colors')
