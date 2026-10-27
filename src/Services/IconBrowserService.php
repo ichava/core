@@ -6,6 +6,7 @@ namespace Simtabi\Laranail\Ichava\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -140,26 +141,52 @@ final class IconBrowserService
     /**
      * Generate Blade component syntax for an icon.
      *
-     * The name carries the full root-relative path (variant + nested folders
-     * when the icon lives in subdirectories, plain name otherwise), so the
-     * pasted snippet renders the exact icon that was copied:
-     * `<x-ichava::icon name="ichava/icon-sets-tabler::outline/a-b" />`.
+     * Both forms carry the full root-relative path, so the pasted snippet renders
+     * the exact icon that was copied.
+     *
+     * - Clean: the pack's own tag when the pack registered one,
+     *   `<x-icon-sets-tabler-icon name="a-b" category="outline" />`, with the
+     *   folders in `category` because the pack component reads a name containing
+     *   a slash as a full path. Falls back to the generic form otherwise.
+     * - Generic: `<x-ichava::icon name="ichava/icon-sets-tabler::outline/a-b" />`.
+     *   It used to be `<x-ichava-icon name="icon-sets-tabler:outline/a-b" />`, a
+     *   tag nothing registers holding a reference the registry refuses.
      */
-    public function generateBladeComponent(Icon $icon, bool $useCleanSyntax = true): string
+    public function generateBladeComponent(Icon $icon, bool $useCleanSyntax = true, string $class = 'w-6 h-6'): string
     {
-        if (! $useCleanSyntax) {
-            return "<x-ichava-icon name=\"{$this->shortIconRef($icon)}\" class=\"w-6 h-6\" />";
+        $path = $this->fullIconPath($icon);
+        $tag = $useCleanSyntax ? $this->packComponentTag($icon) : null;
+
+        if ($tag === null) {
+            return "<x-ichava::icon name=\"{$path}\" class=\"{$class}\" />";
         }
 
-        return "<x-ichava::icon name=\"{$this->fullIconPath($icon)}\" class=\"w-6 h-6\" />";
+        $relative = substr($path, strpos($path, '::') + 2);
+        $slash = strrpos($relative, '/');
+        $category = $slash === false ? '' : ' category="' . substr($relative, 0, $slash) . '"';
+        $leaf = $slash === false ? $relative : substr($relative, $slash + 1);
+
+        return "<x-{$tag} name=\"{$leaf}\"{$category} class=\"{$class}\" />";
     }
 
     /**
      * Generate helper function code for an icon
      */
-    public function generateHelperCode(Icon $icon): string
+    public function generateHelperCode(Icon $icon, string $class = 'w-6 h-6'): string
     {
-        return "{{ ichava('{$this->fullIconPath($icon)}')->class('w-6 h-6') }}";
+        return "{{ ichava('{$this->fullIconPath($icon)}')->class('{$class}') }}";
+    }
+
+    /**
+     * The Blade tag a pack registered with `loadBladeComponent()`, read from Blade's
+     * live alias map so a pack that registered none never gets an invented tag.
+     */
+    public function packComponentTag(Icon $icon): ?string
+    {
+        $slug = strtolower(substr($icon->package, (int) strrpos('/' . $icon->package, '/')));
+        $alias = "{$slug}-icon";
+
+        return array_key_exists($alias, Blade::getClassComponentAliases()) ? $alias : null;
     }
 
     /**
@@ -172,10 +199,7 @@ final class IconBrowserService
      */
     public function fullIconPath(Icon $icon): string
     {
-        $rel = (string) ($icon->path ?? '');
-        $rel = preg_replace('#^files/#', '', $rel) ?? '';
-        $rel = preg_replace('#\.svg$#i', '', $rel) ?? '';
-        $rel = trim($rel, '/');
+        $rel = trim(Icon::registryKey((string) ($icon->path ?? '')), '/');
 
         if ($rel === '') {
             $rel = $icon->name;
@@ -185,8 +209,12 @@ final class IconBrowserService
     }
 
     /**
-     * Short `set:path` ref used by the generic/Livewire/Alpine snippets.
-     * Mirrors the client's iconRef contract (short set + full segments).
+     * Short `set:path` ref, the client's display reference (short set + full segments).
+     *
+     * @deprecated 0.1.3 No snippet uses it any more: the registry refuses a reference
+     *             without `vendor/package`, so the generic snippet now uses
+     *             fullIconPath(). Kept working for callers outside this package;
+     *             removable no earlier than 0.2.0.
      */
     public function shortIconRef(Icon $icon): string
     {

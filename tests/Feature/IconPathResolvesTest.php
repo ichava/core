@@ -5,6 +5,8 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Blade;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Services\IconBrowserService;
+use Simtabi\Laranail\Ichava\Tests\Support\TestIconsPackComponent;
 
 /*
  * The strings the icon browser hands a user to paste -- `icon_path`, the
@@ -40,6 +42,24 @@ it('gives every seeded icon a path the registry and the Blade component resolve'
     foreach ($icons as $icon) {
         expect($registry->has($icon->icon_path))->toBeTrue("registry misses {$icon->icon_path}")
             ->and(Blade::render('<x-ichava::icon name="' . $icon->icon_path . '" />'))->toContain('<svg');
+    }
+});
+
+it('renders every snippet the browser service hands out', function (): void {
+    test()->artisan('ichava::ichava-core.database', ['action' => 'seed', '--sync' => true])->run();
+    Blade::component('test-icons-icon', TestIconsPackComponent::class);
+    $service = app(IconBrowserService::class);
+    $icons = Icon::query()->where('package', 'ichava/test-icons')->get();
+
+    expect($icons)->not->toBeEmpty();
+
+    foreach ($icons as $icon) {
+        $clean = $service->generateBladeComponent($icon);
+        expect($clean)->toStartWith('<x-test-icons-icon ');
+
+        foreach ([$clean, $service->generateBladeComponent($icon, false), $service->generateHelperCode($icon)] as $snippet) {
+            $this->assertStringContainsString('<svg', Blade::render($snippet), "{$snippet} did not render");
+        }
     }
 });
 

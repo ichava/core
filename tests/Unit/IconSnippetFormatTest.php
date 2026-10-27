@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Blade;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Services\IconBrowserService;
+use Simtabi\Laranail\Ichava\View\Components\IconComponent;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconSeederHelpers;
 
 function snippetService(): IconBrowserService
@@ -44,12 +46,31 @@ describe('Icon snippet full paths', function () {
             ->toBe('ichava/icons-bundle::brand-logos/social/facebook');
     });
 
-    it('emits short refs with full segments for the generic grammar', function () {
+    it('emits the generic component with the full path the registry resolves', function () {
         $icon = snippetIcon('ichava/icon-sets-tabler', 'ad-circle', 'files/filled/ad-circle.svg');
 
+        // It used to be `<x-ichava-icon name="icon-sets-tabler:filled/ad-circle">`: a tag
+        // nothing registers, holding a reference without vendor/package.
         expect(snippetService()->generateBladeComponent($icon, false))
-            ->toBe('<x-ichava-icon name="icon-sets-tabler:filled/ad-circle" class="w-6 h-6" />');
+            ->toBe('<x-ichava::icon name="ichava/icon-sets-tabler::filled/ad-circle" class="w-6 h-6" />');
+        expect(snippetService()->generateBladeComponent($icon, false, 'size-5'))
+            ->toBe('<x-ichava::icon name="ichava/icon-sets-tabler::filled/ad-circle" class="size-5" />');
+    });
+
+    it('keeps the deprecated short ref working', function () {
+        $icon = snippetIcon('ichava/icon-sets-tabler', 'ad-circle', 'files/filled/ad-circle.svg');
+
         expect(snippetService()->shortIconRef($icon))->toBe('icon-sets-tabler:filled/ad-circle');
+    });
+
+    it("uses the pack's own tag when the pack registered one, with the folders in category", function () {
+        Blade::component('icon-sets-tabler-icon', IconComponent::class);
+        $icon = snippetIcon('ichava/icon-sets-tabler', 'ad-circle', 'files/filled/ad-circle.svg');
+
+        expect(snippetService()->generateBladeComponent($icon))
+            ->toBe('<x-icon-sets-tabler-icon name="ad-circle" category="filled" class="w-6 h-6" />');
+        expect(snippetService()->generateBladeComponent(snippetIcon('ichava/icon-sets-tabler', 'home', 'files/home.svg')))
+            ->toBe('<x-icon-sets-tabler-icon name="home" class="w-6 h-6" />');
     });
 
     it('falls back to the bare name when no stored path exists', function () {
