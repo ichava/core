@@ -4,6 +4,8 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-27
+
 ### Fixed
 
 - **`icon_path` resolves.** It was assembled from the primary terms as `package::category/name:variant`, and the registry refuses a `:` in an icon name, so every icon with a variant (all of tabler) carried a path that threw when pasted into `ichava()` or `<x-ichava::icon>`; a pack nested deeper than one folder (bundled's `iconpark/...`) also lost the folders between its category and its name. It is now built from the stored file path, the way the registry keys icons: `files/outline/home.svg` becomes `ichava/icon-sets-tabler::outline/home`. Icons with no variant and one folder keep the same path. `Icon::registryKey()` is the shared rule.
