@@ -6,6 +6,12 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **`icon_path` resolves.** It was assembled from the primary terms as `package::category/name:variant`, and the registry refuses a `:` in an icon name, so every icon with a variant (all of tabler) carried a path that threw when pasted into `ichava()` or `<x-ichava::icon>`; a pack nested deeper than one folder (bundled's `iconpark/...`) also lost the folders between its category and its name. It is now built from the stored file path, the way the registry keys icons: `files/outline/home.svg` becomes `ichava/icon-sets-tabler::outline/home`. Icons with no variant and one folder keep the same path. `Icon::registryKey()` is the shared rule.
+- **Each `ichava()` call starts from a clean renderer.** `Ichava` is a singleton and handed out the one renderer it was built with, so a call inherited the previous call's classes and attributes: `ichava('x')` after `ichava('y')->class('big')` rendered `big`. `Ichava::render()` now clones a renderer that is never mutated.
+- **`ichava($name, $attributes)` applies the attributes.** The helper took one argument, so the second was dropped without an error, and the icon browser's own Helper snippet used that form. The helper and `Ichava::render()` now take an optional attributes array, passed to `->attributes()`.
+
+`tests/Feature/IconPathResolvesTest.php` covers all three, and seeds the test pack to check that every `icon_path` resolves in the registry and renders through `<x-ichava::icon>`.
+
 - **Near-black emoji follow the text colour when `monochrome_to_current_color` is on.** The pass matched only pure black, but Twemoji draws its black glyphs in #292F33 and #31373D, so the heavy dollar sign stayed near-black on a dark page. A single-colour icon painted in a near-black neutral grey (every channel at most 0x40 and within 0x18 of the others) now counts as black; dark colours with a hue are left alone. Same rule as react-icon-browser's `monochrome.ts`, so both catalogs paint an icon the same way. The flag's fingerprint marker becomes `monochrome-current-color-2`, so hosts with the flag on drop icons cached under the old rule; hosts with it off keep their cache. `tests/Unit/SvgMonochromeCurrentColorTest.php` covers both directions.
 
 ## [0.1.2] - 2026-10-26

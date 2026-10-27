@@ -16,15 +16,16 @@ if (! function_exists('ichava')) {
      *
      * ```blade
      * {!! ichava('ichava/icon-sets-tabler::outline/home')->class('w-6 h-6') !!}
+     * {!! ichava('ichava/icon-sets-tabler::outline/home', ['class' => 'w-6 h-6']) !!}
      * {!! ichava()->register('ichava/social-icons')->fromDirectory(storage_path('icons/social')) !!}
      * {!! ichava()->defs() !!}
      * ```
      */
-    function ichava(?string $name = null): IconRenderer|Ichava
+    function ichava(?string $name = null, array $attributes = []): IconRenderer|Ichava
     {
         /** @var Ichava $ichava */
         $ichava = app(Ichava::class);
 
-        return $name !== null ? $ichava->render($name) : $ichava;
+        return $name !== null ? $ichava->render($name, $attributes) : $ichava;
     }
 }
