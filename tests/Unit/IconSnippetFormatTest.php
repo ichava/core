@@ -57,12 +57,6 @@ describe('Icon snippet full paths', function () {
             ->toBe('<x-ichava::icon name="ichava/icon-sets-tabler::filled/ad-circle" class="size-5" />');
     });
 
-    it('keeps the deprecated short ref working', function () {
-        $icon = snippetIcon('ichava/icon-sets-tabler', 'ad-circle', 'files/filled/ad-circle.svg');
-
-        expect(snippetService()->shortIconRef($icon))->toBe('icon-sets-tabler:filled/ad-circle');
-    });
-
     it("uses the pack's own tag when the pack registered one, with the folders in category", function () {
         Blade::component('icon-sets-tabler-icon', IconComponent::class);
         $icon = snippetIcon('ichava/icon-sets-tabler', 'ad-circle', 'files/filled/ad-circle.svg');
@@ -77,7 +71,6 @@ describe('Icon snippet full paths', function () {
         $icon = snippetIcon('ichava/icon-sets-tabler', 'home', null);
 
         expect(snippetService()->fullIconPath($icon))->toBe('ichava/icon-sets-tabler::home');
-        expect(snippetService()->shortIconRef($icon))->toBe('icon-sets-tabler:home');
     });
 });
 

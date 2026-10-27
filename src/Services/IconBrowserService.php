@@ -209,31 +209,6 @@ final class IconBrowserService
     }
 
     /**
-     * Short `set:path` ref, the client's display reference (short set + full segments).
-     *
-     * @deprecated 0.1.3 No snippet uses it any more: the registry refuses a reference
-     *             without `vendor/package`, so the generic snippet now uses
-     *             fullIconPath(). Kept working for callers outside this package;
-     *             removable no earlier than 0.2.0.
-     */
-    public function shortIconRef(Icon $icon): string
-    {
-        $short = preg_replace('#^ichava/#', '', $icon->package) ?? $icon->package;
-        $short = preg_replace('/-icons$/', '', $short) ?? $short;
-
-        $rel = (string) ($icon->path ?? '');
-        $rel = preg_replace('#^files/#', '', $rel) ?? '';
-        $rel = preg_replace('#\.svg$#i', '', $rel) ?? '';
-        $rel = trim($rel, '/');
-
-        if ($rel === '') {
-            $rel = $icon->name;
-        }
-
-        return $short . ':' . $rel;
-    }
-
-    /**
      * Group icons by a specified field
      *
      * @param string $groupBy (package|category|name)

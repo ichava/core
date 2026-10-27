@@ -4,6 +4,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Removed
+
+- **`IconBrowserService::shortIconRef()`**, deprecated in 0.1.3 (Sim's call: remove deprecations rather than carry them). It only fed the broken generic snippet, its `set:path` reference is one the registry refuses, and nothing in the ichava packages calls it. Use `fullIconPath()`.
+
 ## [0.1.3] - 2026-10-27
 
 ### Fixed
