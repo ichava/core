@@ -22,6 +22,7 @@ final class IconBrowserService
 {
     public function __construct(
         private IconRegistry $registry,
+        // @phpstan-ignore property.onlyWritten (injected for subclasses and kept; removing a constructor dependency needs its own decision)
         private IconDiscoveryService $discoveryService,
         private IconCacheService $cacheManager,
         private IchavaLogger $logger,
@@ -55,7 +56,8 @@ final class IconBrowserService
          * alone is correct, and searching alone is correct.
          */
         if (! empty($filters['search'])) {
-            $query = Icon::fuzzySearch($filters['search'], 10000);
+            // The scope takes the search alone; a second argument (once a limit) was ignored.
+            $query = Icon::fuzzySearch($filters['search']);
         }
 
         if (! empty($filters['packages'])) {
@@ -96,6 +98,7 @@ final class IconBrowserService
         // Paginate with timeout protection
         try {
             return $query->paginate($perPage, ['*'], 'page', $page);
+            // @phpstan-ignore catch.neverThrown (kept as written: widening it to database errors would change what callers see)
         } catch (IchavaException $e) {
             $this->logger->error('Icon pagination failed: ' . $e->getMessage());
 

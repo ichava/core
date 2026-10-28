@@ -45,6 +45,9 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * @property-read string|null $svg_content
  * @property-read string $render_version
  * @property-read string $icon_path
+ * @property-read string|null $viewbox
+ * @property-read string|null $width
+ * @property-read string|null $height
  * @property-read IconTerm|null $primary_category
  * @property-read IconTerm|null $primary_variant
  * @property-read array $category_slugs
@@ -60,7 +63,7 @@ final class Icon extends Model
     /** @var string */
     protected $table = 'ichava_icons';
 
-    /** @var array<int, string> */
+    /** @var list<string> */
     protected $fillable = [
         'package',
         'name',
@@ -206,7 +209,7 @@ final class Icon extends Model
             return $query;
         }
 
-        if ($query->getConnection()->getDriverName() === 'pgsql') {
+        if (self::driverOf($query) === 'pgsql') {
             $languages = FtsLanguageHelper::getLanguages();
             $iconMorphType = addslashes(self::class);
 
@@ -304,7 +307,7 @@ final class Icon extends Model
     {
         $tags = (array) $tags;
 
-        if ($query->getConnection()->getDriverName() === 'pgsql') {
+        if (self::driverOf($query) === 'pgsql') {
             return $query->where(function (Builder $q) use ($tags): void {
                 foreach ($tags as $tag) {
                     $q->orWhereRaw('EXISTS (SELECT 1 FROM json_array_elements_text(tags::json) AS tag WHERE tag = ?)', [$tag]);
@@ -327,7 +330,7 @@ final class Icon extends Model
     {
         $keywords = (array) $keywords;
 
-        if ($query->getConnection()->getDriverName() === 'pgsql') {
+        if (self::driverOf($query) === 'pgsql') {
             return $query->where(function (Builder $q) use ($keywords): void {
                 foreach ($keywords as $keyword) {
                     $q->orWhereRaw('EXISTS (SELECT 1 FROM json_array_elements_text(keywords::json) AS kw WHERE kw = ?)', [$keyword]);
@@ -456,9 +459,7 @@ final class Icon extends Model
      */
     public function getSvgAttribute(string $key, mixed $default = null): mixed
     {
-        $attrs = $this->attributes ?? [];
-
-        return data_get($attrs, $key, $default);
+        return data_get($this->svgAttributes(), $key, $default);
     }
 
     /**
@@ -466,7 +467,7 @@ final class Icon extends Model
      */
     public function setSvgAttribute(string $key, mixed $value): void
     {
-        $attrs = $this->attributes ?? [];
+        $attrs = $this->svgAttributes();
         data_set($attrs, $key, $value);
         $this->setAttribute('attributes', $attrs);
     }
@@ -595,13 +596,8 @@ final class Icon extends Model
     protected function viewbox(): Attribute
     {
         return Attribute::make(
-            get: fn (): ?string => ($this->attributes ?? [])['viewbox'] ?? null,
-            set: fn (?string $value): array => [
-                'attributes' => array_merge(
-                    $this->attributes ?? [],
-                    ['viewbox' => $value],
-                ),
-            ],
+            get: fn (): ?string => ($v = $this->getSvgAttribute('viewbox')) === null ? null : (string) $v,
+            set: fn (?string $value): array => ['attributes' => $this->withSvgAttribute('viewbox', $value)],
         );
     }
 
@@ -611,13 +607,8 @@ final class Icon extends Model
     protected function width(): Attribute
     {
         return Attribute::make(
-            get: fn (): ?string => ($this->attributes ?? [])['width'] ?? null,
-            set: fn (?string $value): array => [
-                'attributes' => array_merge(
-                    $this->attributes ?? [],
-                    ['width' => $value],
-                ),
-            ],
+            get: fn (): ?string => ($v = $this->getSvgAttribute('width')) === null ? null : (string) $v,
+            set: fn (?string $value): array => ['attributes' => $this->withSvgAttribute('width', $value)],
         );
     }
 
@@ -627,13 +618,8 @@ final class Icon extends Model
     protected function height(): Attribute
     {
         return Attribute::make(
-            get: fn (): ?string => ($this->attributes ?? [])['height'] ?? null,
-            set: fn (?string $value): array => [
-                'attributes' => array_merge(
-                    $this->attributes ?? [],
-                    ['height' => $value],
-                ),
-            ],
+            get: fn (): ?string => ($v = $this->getSvgAttribute('height')) === null ? null : (string) $v,
+            set: fn (?string $value): array => ['attributes' => $this->withSvgAttribute('height', $value)],
         );
     }
 
@@ -907,9 +893,11 @@ final class Icon extends Model
     protected function primaryCategory(): Attribute
     {
         return Attribute::make(
-            get: fn (): ?IconTerm => $this->categories()
-                ->whereNull('parent_id')
-                ->first() ?? $this->categories()->first(),
+            get: function (): ?IconTerm {
+                $term = $this->categories()->whereNull('parent_id')->first() ?? $this->categories()->first();
+
+                return $term instanceof IconTerm ? $term : null;
+            },
         );
     }
 
@@ -919,7 +907,11 @@ final class Icon extends Model
     protected function primaryVariant(): Attribute
     {
         return Attribute::make(
-            get: fn (): ?IconTerm => $this->variants()->first(),
+            get: function (): ?IconTerm {
+                $term = $this->variants()->first();
+
+                return $term instanceof IconTerm ? $term : null;
+            },
         );
     }
 
@@ -980,5 +972,35 @@ final class Icon extends Model
         }
 
         return false;
+    }
+
+    /** The driver behind a query: the builder's connection, typed as the concrete class. */
+    private static function driverOf(Builder $query): string
+    {
+        /** @var \Illuminate\Database\Connection $connection */
+        $connection = $query->getConnection();
+
+        return $connection->getDriverName();
+    }
+
+    /**
+     * The decoded `attributes` JSON column.
+     *
+     * Not `$this->attributes`: on an Eloquent model that property is the row's raw columns, so
+     * reading `viewbox` from it always gave null and writing merged every column into the JSON.
+     *
+     * @return array<string, mixed>
+     */
+    private function svgAttributes(): array
+    {
+        $value = $this->getAttribute('attributes');
+
+        return is_array($value) ? $value : [];
+    }
+
+    /** The `attributes` column with one key replaced, encoded for a mutator's raw write. */
+    private function withSvgAttribute(string $key, ?string $value): string
+    {
+        return (string) json_encode([...$this->svgAttributes(), $key => $value]);
     }
 }

@@ -1,12 +1,18 @@
 includes:
+    - vendor/larastan/larastan/extension.neon
     - phpstan-baseline.neon
 
 parameters:
-    level: 0
+    level: 5
     paths:
         - src
     tmpDir: .phpstan.cache
     treatPhpDocTypesAsCertain: false
+
+    ignoreErrors:
+        # These traits are used by classes under the excluded paths below (View, Commands),
+        # so from inside `src` PHPStan sees no user. Lift this with those exclusions.
+        - identifier: trait.unused
 
     excludePaths:
         - src/Providers

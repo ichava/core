@@ -41,3 +41,18 @@ it('writes a manifest the canonical loader can read back', function (): void {
     expect($loaded['_stats'])->toHaveKey('total_icons');
     expect($loaded['_stats'])->toHaveKey('built_at');
 });
+
+it("records each set's real base path, not null", function (): void {
+    // It read IconSetConfig::$path, which does not exist, so every set's path was null.
+    $registry = $this->app->make(IconRegistry::class);
+    $manifest = new IconsManifest(new Filesystem, $this->path);
+    $manifest->write($registry);
+
+    $sets = array_filter($manifest->load(), fn ($v, $k) => $k !== '_stats' && is_array($v), ARRAY_FILTER_USE_BOTH);
+
+    expect($sets)->not->toBeEmpty();
+    foreach ($sets as $name => $set) {
+        $this->assertIsString($set['path'] ?? null, "{$name} has no path");
+        $this->assertDirectoryExists($set['path'], "{$name}'s path is not its directory");
+    }
+});

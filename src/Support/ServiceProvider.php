@@ -158,7 +158,9 @@ abstract class ServiceProvider extends PackageServiceProvider
      */
     protected function bootPackageAboutSections(): self
     {
-        $name = $this->package->name === null ? null : $this->package->getSlashNamespace();
+        // isset() also covers a package whose typed `name` was never assigned, which the
+        // `=== null` check this replaces could not (reading an unset typed property throws).
+        $name = isset($this->package->name) ? $this->package->getSlashNamespace() : null;
 
         if ($name !== null) {
             $this->package->hasAboutSection($name, function () use ($name): array {
@@ -182,7 +184,9 @@ abstract class ServiceProvider extends PackageServiceProvider
             });
         }
 
-        return parent::bootPackageAboutSections();
+        parent::bootPackageAboutSections();
+
+        return $this;
     }
 
     /**

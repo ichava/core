@@ -4,6 +4,21 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Changed
+
+- **PHPStan runs at level 5, with Larastan** (C3; it ran at level 0). Larastan teaches PHPStan Eloquent, which took the level-5 findings from 101 to 60. The rest are fixed: Eloquent relation generics, `@property` docs for the accessors, and a typed driver lookup for the scopes. Six were real bugs, listed under Fixed. Where PHPStan calls code redundant that the preserve rule keeps (a public constant, fluent properties nothing reads yet, defensive guards, and two `catch` blocks whose widening would change failure behaviour), a one-line `@phpstan-ignore` gives the reason in place. The traits used only from the excluded `View` and `Commands` paths are ignored in config until those paths are analysed.
+
+### Fixed
+
+- **Search results carry their category and variant.** `SearchIconsInDatabase`, behind `Ichava::search()` and `IconDiscoveryService::searchIcons()`, read `category` and `variant` off the icons table, which has no such columns, so both were null in every result and in the usage syntax. They now come from the eager-loaded terms.
+- **Filtering a search by category works.** It ran `whereIn('category', …)` against that missing column, an SQL error on every driver. It now matches term slugs through `whereHas('categories')`.
+- **`viewbox`, `width` and `height` read the icon's `attributes` column.** The accessors, and `getSvgAttribute()` / `setSvgAttribute()`, read Eloquent's internal `$this->attributes`, the row's raw columns, so they always returned null, and setting one threw. The seeder does not fill that column yet, so the API's output is unchanged today; the accessors now work when it is filled.
+- **The icons manifest records each set's path.** `IconsManifest::write()` read `IconSetConfig::$path`, which does not exist, so every set's `path` was null. It is the set's `basePath`.
+- **A merged icon set's config can be built.** `buildMergedConfig()` called the fluent setters `path()`, `paths()` and `defaultAttributes()` with no argument, and a `supportsCategories()` method no set has, so it could only throw. It now reads each set's resolved config. Nothing builds a merged set yet.
+- **The browser listing's search passes only the query.** `fuzzySearch()` was given a second argument, a limit the scope never read.
+
+`tests/Feature/SearchResultTermsTest.php`, `tests/Feature/IconSvgAttributesTest.php` and a new case in `tests/Feature/IconsManifestWriteTest.php` cover the first four, and fail on the old code.
+
 ### Removed
 
 - **`IconBrowserService::shortIconRef()`**, deprecated in 0.1.3 (Sim's call: remove deprecations rather than carry them). It only fed the broken generic snippet, its `set:path` reference is one the registry refuses, and nothing in the ichava packages calls it. Use `fullIconPath()`.

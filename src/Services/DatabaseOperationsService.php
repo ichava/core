@@ -375,7 +375,7 @@ class DatabaseOperationsService
             ->groupBy('package')
             ->orderByDesc('count')
             ->get()
-            ->mapWithKeys(fn ($row) => [$row->package => $row->count])
+            ->mapWithKeys(fn (Icon $row) => [$row->package => (int) $row->getAttribute('count')])
             ->toArray();
     }
 

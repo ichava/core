@@ -31,6 +31,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property string $type (category|variant)
  * @property string|null $package
  * @property int|null $parent_id
+ * @property string|null $description
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read IconTerm|null $parent
@@ -47,7 +48,7 @@ class IconTerm extends Model
 
     protected $table = 'ichava_icon_terms';
 
-    /** @var array<int, string> Explicit allow-list (no mass-assignment of id / timestamps) */
+    /** @var list<string> Explicit allow-list (no mass-assignment of id / timestamps) */
     protected $fillable = [
         'type',
         'package',
@@ -83,7 +84,7 @@ class IconTerm extends Model
     /**
      * Get the parent term (hierarchical relationship)
      *
-     * @return BelongsTo<IconTerm, IconTerm>
+     * @return BelongsTo<IconTerm, $this>
      */
     public function parent(): BelongsTo
     {
@@ -93,7 +94,7 @@ class IconTerm extends Model
     /**
      * Get child terms (hierarchical relationship)
      *
-     * @return HasMany<IconTerm>
+     * @return HasMany<IconTerm, $this>
      */
     public function children(): HasMany
     {
@@ -103,7 +104,7 @@ class IconTerm extends Model
     /**
      * Get all icons associated with this term
      *
-     * @return MorphToMany<Icon>
+     * @return MorphToMany<Icon, $this>
      */
     public function icons(): MorphToMany
     {

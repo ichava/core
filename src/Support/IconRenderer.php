@@ -37,6 +37,7 @@ final class IconRenderer implements Htmlable
 
     private ?string $ariaLabel = null;
 
+    // @phpstan-ignore property.unusedType (nullable on purpose: role(null) is a planned way to drop the attribute)
     private ?string $role = 'img';
 
     private ?string $size = null;
