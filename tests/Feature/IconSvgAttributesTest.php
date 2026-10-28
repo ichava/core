@@ -25,8 +25,10 @@ it('reads and writes the SVG attributes stored in the attributes column', functi
     $icon->setSvgAttribute('width', 16);
     $icon->save();
 
+    // Compared as a map: MySQL's JSON type reorders keys on write.
     $stored = json_decode((string) Icon::find($icon->id)->getRawOriginal('attributes'), true);
-    expect($stored)->toBe(['viewbox' => '0 0 16 16', 'width' => 16, 'height' => 24]);
+    ksort($stored);
+    expect($stored)->toBe(['height' => 24, 'viewbox' => '0 0 16 16', 'width' => 16]);
 });
 
 it('gives null for an icon with no SVG attributes stored', function (): void {
