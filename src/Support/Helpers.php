@@ -129,6 +129,9 @@ class Helpers
      */
     public static function logPath(string $filename = ''): string
     {
+        // Only config/ichava-core.php calls this, while the config is loading, so env() is
+        // read before any config cache exists; runtime code reads `ichava.core.logging.path`.
+        // @phpstan-ignore larastan.noEnvCallsOutsideOfConfig
         $configured = env('ICHAVA_LOG_PATH');
 
         if (empty($configured)) {

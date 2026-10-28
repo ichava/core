@@ -489,6 +489,7 @@ class IconWatcherService
 
         try {
             $files = File::allFiles($basePath);
+            // @phpstan-ignore catch.neverThrown (File::allFiles() throws it through Symfony Finder; WatcherMissingDirectoryTest covers it)
         } catch (DirectoryNotFoundException) {
             // A pack whose asset directory is missing has no icons on disk.
             // Report it and carry on, rather than failing the whole scan.

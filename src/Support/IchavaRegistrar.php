@@ -24,10 +24,13 @@ final class IchavaRegistrar
 
     private string $basePath = '';
 
+    // @phpstan-ignore property.onlyWritten (set by the fluent API and kept; nothing reads it yet)
     private string $packagePrefix = '';
 
+    // @phpstan-ignore property.onlyWritten (set by the fluent API and kept; nothing reads it yet)
     private string $iconSetSuffix = '';
 
+    // @phpstan-ignore property.onlyWritten (set by the fluent API and kept; nothing reads it yet)
     private string $bladeNamespace = '';
 
     private string $providerClass = '';
@@ -36,8 +39,10 @@ final class IchavaRegistrar
 
     private array $iconSets = [];
 
+    // @phpstan-ignore property.onlyWritten (set by the fluent API and kept; nothing reads it yet)
     private bool $trackStats = false;
 
+    // @phpstan-ignore property.onlyWritten (set by the fluent API and kept; nothing reads it yet)
     private bool $logging = false;
 
     private int $registered = 0;

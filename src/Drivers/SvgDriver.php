@@ -48,6 +48,7 @@ class SvgDriver
         protected SvgProcessingService $processor,
         protected IconCacheService $cache,
     ) {
+        // @phpstan-ignore booleanNot.alwaysFalse (defensive: kept for subclasses that override the constructor)
         if (! $this->cache) {
             throw IchavaException::dependencyNotInjected('IconCacheService', static::class);
         }

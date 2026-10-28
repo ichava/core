@@ -494,6 +494,7 @@ class IchavaSeeder extends Seeder
 
                 $stats['packages_success']++;
 
+                // @phpstan-ignore catch.neverThrown (kept as written: widening it would change seeding failures)
             } catch (IchavaException|Throwable $e) {
                 $this->command->error('    ' . __('ichava/ichava-core::commands.seeder.failed', ['message' => $e->getMessage()]));
                 $this->logger->error("❌ Failed to process package: {$packageName}", $e, [

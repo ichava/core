@@ -6,6 +6,7 @@ namespace Simtabi\Laranail\Ichava\Actions;
 
 use Closure;
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 
 /**
@@ -103,13 +104,16 @@ final class SearchIconsInDatabase
             $builder->whereIn('package', $packages);
         }
 
+        // Categories are terms, not a column: `whereIn('category', ...)` named a column the
+        // icons table has never had, so every category filter failed with an SQL error.
         if ($categories !== []) {
-            $builder->whereIn('category', $categories);
+            $builder->whereHas('categories', fn ($terms) => $terms->whereIn('slug', $categories));
         }
 
         $total = $builder->count();
 
         $icons = $builder
+            ->with('terms')
             ->orderBy($sortBy, $sortDirection)
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
@@ -119,20 +123,24 @@ final class SearchIconsInDatabase
 
         $items = $icons->map(function (Icon $icon) use ($allPackages, $usageSyntax): array {
             $meta = $allPackages[$icon->package] ?? [];
+            // Read from the eager-loaded terms. `$icon->category` and `$icon->variant` are
+            // not attributes, so every result carried null for both.
+            $category = $icon->terms->firstWhere('type', IconTerm::TYPE_CATEGORY)?->slug;
+            $variant = $icon->terms->firstWhere('type', IconTerm::TYPE_VARIANT)?->slug;
 
             return [
                 'package'      => $icon->package,
                 'package_name' => $meta['name'] ?? $icon->package,
                 'set'          => $icon->package,
                 'name'         => $icon->name,
-                'category'     => $icon->category,
-                'variant'      => $icon->variant,
+                'category'     => $category,
+                'variant'      => $variant,
                 'path'         => $icon->path,
                 // The model's own attribute. `getIconPath()` belongs to
                 // IconDriverInterface and has never existed on Icon.
                 'icon_path' => $icon->icon_path,
                 'syntax'    => $usageSyntax
-                    ? $usageSyntax($icon->package, $icon->name, $icon->variant)
+                    ? $usageSyntax($icon->package, $icon->name, $variant)
                     : [],
                 'svg_content' => null, // Deferred rendering.
             ];

@@ -45,9 +45,10 @@ final class IconsManifest
                 $config = $set->config();
 
                 $icons = [
-                    'name'       => $config->name,
-                    'prefix'     => $config->prefix ?? $setName,
-                    'path'       => $config->path,
+                    'name'   => $config->name,
+                    'prefix' => $config->prefix,
+                    // IconSetConfig has no `path`; reading it wrote null into every manifest.
+                    'path'       => $config->basePath,
                     'variants'   => $config->variants,
                     'categories' => [],
                     'icons'      => [],

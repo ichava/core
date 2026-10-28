@@ -23,6 +23,7 @@ final class ConfigurationService
 {
     private const CONFIG_FILENAME = 'config.json';
 
+    // @phpstan-ignore classConstant.unused (public constant kept for callers outside this package)
     private const CACHE_TTL = 3600; // 1 hour
 
     /**

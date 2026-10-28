@@ -171,7 +171,7 @@ class PathResolver
         $set = null;
 
         // Step 1: Parse vendor/package (REQUIRED)
-        if (Str::contains($path, '/') && Str::contains($path, $this->pathSeparator)) {
+        if (Str::contains($path, '/')) { // the separator was required above
             // Full format: vendor/package:icon
             [$vendorPackage, $iconPath] = explode($this->pathSeparator, $path, 2);
 

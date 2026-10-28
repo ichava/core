@@ -554,35 +554,19 @@ class IconSetBuilder implements IconSetInterface
     {
         $baseConfig = $this->mergedSets[0]->config();
 
-        // Collect all paths
-        $paths = [];
-        foreach ($this->mergedSets as $set) {
-            if (method_exists($set, 'paths')) {
-                $paths = array_merge($paths, $set->paths());
-            } else {
-                $paths[] = $set->path();
-            }
-        }
-
-        // Merge variants
+        // Read each merged set's resolved config. This called `path()`, `paths()` and
+        // `defaultAttributes()` with no arguments -- the fluent setters, which require one --
+        // and a `supportsCategories()` method no set has, so it could only throw. Its path
+        // list was never used. Nothing builds a merged set today (`$mergedSets` is never
+        // filled), which is how it went unnoticed.
         $variants = [];
-        foreach ($this->mergedSets as $set) {
-            $variants = array_merge($variants, $set->variants());
-        }
-
-        // Merge attributes
         $attributes = [];
-        foreach ($this->mergedSets as $set) {
-            $attributes = array_merge($attributes, $set->defaultAttributes());
-        }
-
-        // Check if any set supports categories
         $supportsCategories = false;
         foreach ($this->mergedSets as $set) {
-            if ($set->supportsCategories()) {
-                $supportsCategories = true;
-                break;
-            }
+            $config = $set->config();
+            $variants = array_merge($variants, $set->variants());
+            $attributes = array_merge($attributes, $config->defaultAttributes);
+            $supportsCategories = $supportsCategories || $config->supportsCategories;
         }
 
         return new IconSetConfig(

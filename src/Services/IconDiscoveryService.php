@@ -232,6 +232,7 @@ class IconDiscoveryService
     {
         $iconSet = $this->registry->set($package);
 
+        // @phpstan-ignore booleanNot.alwaysFalse (defensive: kept for registries that return null for an unknown set)
         if (! $iconSet) {
             return null;
         }
