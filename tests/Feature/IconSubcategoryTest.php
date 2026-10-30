@@ -94,3 +94,18 @@ it('keeps every key transformIcon returned before, adding sub', function (): voi
         'sub',
     );
 });
+
+it('links svg_url to icon-browser’s v1 SVG route when it is mounted', function (): void {
+    Illuminate\Support\Facades\Route::get('/ichava/api/v1/icons/{id}/svg', fn () => '')->name('ichava.api.v1.icons.svg');
+    app('router')->getRoutes()->refreshNameLookups();
+
+    $icon = collect(app(IconBrowserService::class)->getIcons(['packages' => [NESTED_PACK]], perPage: 1)->items())->first();
+
+    expect(app(IconBrowserService::class)->transformIcon($icon)['svg_url'])->toBe("/ichava/api/v1/icons/{$icon->id}/svg");
+});
+
+it('leaves svg_url null when icon-browser’s API is not mounted', function (): void {
+    $icon = collect(app(IconBrowserService::class)->getIcons(['packages' => [NESTED_PACK]], perPage: 1)->items())->first();
+
+    expect(app(IconBrowserService::class)->transformIcon($icon)['svg_url'])->toBeNull();
+});

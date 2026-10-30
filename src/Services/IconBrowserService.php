@@ -112,10 +112,11 @@ final class IconBrowserService
             'path'        => $icon->icon_path,
             'svg_content' => $icon->svg_content,
             // The SVG endpoint lives in the browser package's (optionally disabled)
-            // REST API. Fall back to null when those routes are not registered —
+            // REST API, mounted under `/api/v1` with `ichava.api.v1.*` route
+            // names. Fall back to null when those routes are not registered —
             // Inertia pages already carry `svg_content`, so tiles render anyway.
-            'svg_url' => Route::has('ichava.api.icons.svg')
-                ? route('ichava.api.icons.svg', ['id' => $icon->id], false)
+            'svg_url' => Route::has('ichava.api.v1.icons.svg')
+                ? route('ichava.api.v1.icons.svg', ['id' => $icon->id], false)
                 : null,
             'viewbox'   => $icon->viewbox,
             'width'     => $icon->width,
