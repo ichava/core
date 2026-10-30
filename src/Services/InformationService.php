@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use stdClass;
 use Exception;
 use Throwable;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,8 @@ class InformationService
 
     /**
      * Get all registered packages with statistics
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getPackages(): array
     {
@@ -54,6 +57,8 @@ class InformationService
 
     /**
      * Discover packages from filesystem (vendor directory)
+     *
+     * @return array<string, array{path: string, registered: bool}>
      */
     public function discoverPackages(): array
     {
@@ -63,6 +68,10 @@ class InformationService
         if (File::isDirectory($vendorPath)) {
             $directories = File::glob($vendorPath . '/*/ichava-*');
             foreach ($directories as $dir) {
+                if (! is_string($dir)) {
+                    continue;
+                }
+
                 $name = basename(dirname($dir)) . '/' . basename($dir);
                 $discovered[$name] = [
                     'path'       => $dir,
@@ -76,6 +85,10 @@ class InformationService
         if (File::isDirectory($platformPath)) {
             $directories = File::directories($platformPath);
             foreach ($directories as $dir) {
+                if (! is_string($dir)) {
+                    continue;
+                }
+
                 $name = 'ichava/' . basename($dir);
                 if (! isset($discovered[$name])) {
                     $discovered[$name] = [
@@ -91,6 +104,10 @@ class InformationService
 
     /**
      * Get icons with optional filters
+     *
+     * @param array<string, mixed> $filters
+     *
+     * @return array<array-key, mixed>
      */
     public function getIcons(array $filters = []): array
     {
@@ -100,8 +117,10 @@ class InformationService
             $query->where('package', $filters['package']);
         }
 
-        if (! empty($filters['search'])) {
-            $query->where('name', 'like', "%{$filters['search']}%");
+        $search = $filters['search'] ?? null;
+
+        if (! empty($search) && (is_string($search) || is_int($search))) {
+            $query->where('name', 'like', "%{$search}%");
         }
 
         if (! empty($filters['category'])) {
@@ -112,11 +131,14 @@ class InformationService
 
         $limit = $filters['limit'] ?? 50;
 
-        return $query->limit($limit)->get()->toArray();
+        // The query builder casts a numeric limit with (int) itself.
+        return $query->limit(is_numeric($limit) ? (int) $limit : 50)->get()->toArray();
     }
 
     /**
      * Search icons by name
+     *
+     * @return array<array-key, mixed>
      */
     public function searchIcons(string $search, ?string $package = null, int $limit = 50): array
     {
@@ -131,6 +153,8 @@ class InformationService
 
     /**
      * Get statistics
+     *
+     * @return array<string, mixed>
      */
     public function getStatistics(): array
     {
@@ -143,6 +167,8 @@ class InformationService
 
     /**
      * Get top packages by icon count
+     *
+     * @return array<array-key, mixed>
      */
     public function getTopPackages(int $limit = 5): array
     {
@@ -156,6 +182,8 @@ class InformationService
 
     /**
      * Get lifecycle status
+     *
+     * @return array<string, mixed>
      */
     public function getLifecycleStatus(): array
     {
@@ -210,6 +238,8 @@ class InformationService
 
     /**
      * Get available PostgreSQL FTS languages
+     *
+     * @return array<array-key, array{language: mixed, owner: mixed, description: mixed}>
      */
     public function getFtsLanguages(): array
     {
@@ -222,10 +252,14 @@ class InformationService
                 ORDER BY cfgname
             ");
 
-            return array_map(fn ($lang) => [
+            return array_map(fn (mixed $lang): array => $lang instanceof stdClass ? [
                 'language'    => $lang->language,
                 'owner'       => $lang->owner ?? '-',
                 'description' => $lang->description ?? '-',
+            ] : [
+                'language'    => null,
+                'owner'       => '-',
+                'description' => '-',
             ], $languages);
         } catch (Exception $e) {
             return [];
@@ -237,7 +271,9 @@ class InformationService
      */
     public function getCurrentFtsLanguage(): string
     {
-        return config('ichava.ichava-core.database.search.language', 'simple');
+        $language = config('ichava.ichava-core.database.search.language', 'simple');
+
+        return is_string($language) ? $language : 'simple';
     }
 
     /**
@@ -259,6 +295,11 @@ class InformationService
 
     /**
      * Filter items by search term
+     *
+     * @param array<array-key, mixed> $items
+     * @param array<array-key, string> $searchFields
+     *
+     * @return array<array-key, mixed>
      */
     public function filterBySearch(array $items, string $search, array $searchFields = ['name']): array
     {
@@ -269,7 +310,8 @@ class InformationService
         return array_filter($items, function ($item) use ($search, $searchFields) {
             foreach ($searchFields as $field) {
                 $value = is_array($item) ? ($item[$field] ?? '') : ($item->$field ?? '');
-                if (stripos($value, $search) !== false) {
+                if (is_string($value) && stripos($value, $search) !== false) {
+
                     return true;
                 }
             }

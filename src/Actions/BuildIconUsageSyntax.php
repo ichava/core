@@ -34,7 +34,12 @@ final readonly class BuildIconUsageSyntax
         // The pack's own prefix when it declares one; the package name is the
         // fallback, so an unregistered pack still produces something readable
         // rather than `:home`.
-        $prefix = $packageData['prefix'] ?? $package;
+        $prefix = $packageData['prefix'] ?? null;
+
+        if (! is_string($prefix)) {
+            $prefix = $package;
+        }
+
         $iconName = $prefix . ':' . $name;
 
         if ($variant !== null && $variant !== '') {

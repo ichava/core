@@ -29,12 +29,14 @@ final class IconCacheService
         private IchavaLogger $logger,
     ) {
         // Use config() directly instead of injecting ConfigurationService
-        $this->ttl = config('ichava.ichava-core.cache.ttl', IchavaConstants::DEFAULT_CACHE_TTL);
-        $this->prefix = config('ichava.ichava-core.cache.prefix', 'ichava');
+        $this->ttl = config()->integer('ichava.ichava-core.cache.ttl', IchavaConstants::DEFAULT_CACHE_TTL);
+        $this->prefix = config()->string('ichava.ichava-core.cache.prefix', 'ichava');
     }
 
     /**
      * Clear all icon-related caches
+     *
+     * @return array{discovery: int, manifests: int, watcher: int, manager: bool}
      */
     public function clearAll(): array
     {
@@ -86,6 +88,8 @@ final class IconCacheService
 
     /**
      * Rebuild icon cache intelligently
+     *
+     * @return array{rebuilt: int, skipped: int, errors: int, total: int, exit_code: int, success: bool}
      */
     public function rebuild(bool $force = false, ?string $package = null): array
     {
@@ -157,6 +161,8 @@ final class IconCacheService
 
     /**
      * Warm up cache for all packages
+     *
+     * @return array{rebuilt: int, skipped: int, errors: int, total: int, exit_code: int, success: bool}
      */
     public function warmUp(): array
     {
@@ -174,7 +180,7 @@ final class IconCacheService
                 ->remember(
                     key: $key,
                     ttl: now()->addHours(24),
-                    callback: $callback,
+                    callback: $callback(...),
                 );
         } catch (Exception $e) {
             return $callback();
@@ -244,7 +250,7 @@ final class IconCacheService
             return cache()->remember(
                 key: $fullKey,
                 ttl: now()->addSeconds($ttl ?? $this->ttl),
-                callback: $callback,
+                callback: $callback(...),
             );
         } catch (Exception $e) {
             $this->logger->warning('Ichava cache failed, executing directly', [
@@ -275,7 +281,7 @@ final class IconCacheService
     public function flush(): bool
     {
         try {
-            $store = cache()->store(config('cache.driver', 'file'));
+            $store = cache()->store($this->configuredDriver());
 
             if (method_exists($store, 'flush')) {
                 return $store->flush();
@@ -323,16 +329,19 @@ final class IconCacheService
     public function flushPrefix(): bool
     {
         try {
-            $driver = config('cache.driver', 'file');
+            $driver = $this->configuredDriver();
             $cacheStore = Cache::store($driver);
 
             // For file driver, delete by pattern
             if ($driver === 'file') {
                 $path = config('cache.stores.file.path', storage_path('framework/cache/data'));
+                $path = is_string($path) ? $path : storage_path('framework/cache/data');
                 $pattern = $path . '/' . md5($this->prefix) . '*';
 
                 foreach (File::glob($pattern) as $file) {
-                    File::delete($file);
+                    if (is_string($file)) {
+                        File::delete($file);
+                    }
                 }
 
                 return true;
@@ -434,6 +443,8 @@ final class IconCacheService
 
     /**
      * Refresh/rebuild cache file
+     *
+     * @param Closure(): (string|false|null) $buildCallback
      */
     public function refresh(string $path, Closure $buildCallback): bool
     {
@@ -452,6 +463,8 @@ final class IconCacheService
 
     /**
      * Clear and optionally rebuild cache
+     *
+     * @param (Closure(): (string|false|null))|null $rebuildCallback
      */
     public function clearAndRefresh(string $path, ?Closure $rebuildCallback = null): bool
     {
@@ -544,6 +557,8 @@ final class IconCacheService
 
     /**
      * Get cache statistics
+     *
+     * @return array<string, mixed>
      */
     public function getStats(): array
     {
@@ -627,6 +642,8 @@ final class IconCacheService
 
     /**
      * Parse rebuild command output for statistics
+     *
+     * @return array{rebuilt: int, skipped: int, errors: int, total: int}
      */
     private function parseRebuildOutput(string $output): array
     {
@@ -665,7 +682,21 @@ final class IconCacheService
     {
         $hashedKey = md5($key);
 
-        return $this->prefix . ':' . config('ichava.ichava-core.cache.version', 'v2') . ':' . $hashedKey;
+        $version = config('ichava.ichava-core.cache.version', 'v2');
+        $version = is_scalar($version) || $version === null ? (string) $version : 'v2';
+
+        return $this->prefix . ':' . $version . ':' . $hashedKey;
+    }
+
+    /**
+     * The store named by `cache.driver`, `file` when it is unset; null (the
+     * default store) when it is explicitly null.
+     */
+    private function configuredDriver(): ?string
+    {
+        $driver = config('cache.driver', 'file');
+
+        return is_string($driver) || $driver === null ? $driver : 'file';
     }
 
     /**
@@ -674,7 +705,7 @@ final class IconCacheService
     private function isAvailable(): bool
     {
         try {
-            $store = cache()->store(config('cache.driver', 'file'));
+            $store = cache()->store($this->configuredDriver());
             $testKey = "{$this->prefix}.health_test";
 
             $store->put(key: $testKey, value: 'ok', ttl: now()->addSeconds(5));

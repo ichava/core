@@ -109,7 +109,9 @@ trait ConvertsMonochromeToCurrentColor
 
             if ($name === 'style') {
                 foreach (explode(';', (string) $attribute->nodeValue) as $declaration) {
-                    [$property, $value] = array_pad(explode(':', $declaration, 2), 2, null);
+                    $parts = explode(':', $declaration, 2);
+                    $property = $parts[0];
+                    $value = $parts[1] ?? null;
 
                     if ($value !== null && in_array(mb_strtolower(trim($property)), self::PAINT_PROPERTIES, true)) {
                         $values[] = trim(preg_replace('/\s*!important\s*$/i', '', $value) ?? $value);
@@ -161,7 +163,9 @@ trait ConvertsMonochromeToCurrentColor
                 $declarations = explode(';', (string) $attribute->nodeValue);
 
                 foreach ($declarations as $i => $declaration) {
-                    [$property, $value] = array_pad(explode(':', $declaration, 2), 2, null);
+                    $parts = explode(':', $declaration, 2);
+                    $property = $parts[0];
+                    $value = $parts[1] ?? null;
 
                     if ($value === null || ! in_array(mb_strtolower(trim($property)), self::PAINT_PROPERTIES, true)) {
                         continue;

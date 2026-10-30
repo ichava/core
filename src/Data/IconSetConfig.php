@@ -6,6 +6,10 @@ namespace Simtabi\Laranail\Ichava\Data;
 
 final readonly class IconSetConfig
 {
+    /**
+     * @param array<int, string> $variants
+     * @param array<string, mixed> $defaultAttributes
+     */
     public function __construct(
         public string $name,
         public string $prefix,

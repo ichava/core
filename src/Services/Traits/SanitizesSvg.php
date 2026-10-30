@@ -77,16 +77,22 @@ trait SanitizesSvg
 
     /**
      * Allowed SVG elements (whitelist)
+     *
+     * @var array<array-key, string>
      */
     private array $allowedTags;
 
     /**
      * Allowed SVG attributes (whitelist)
+     *
+     * @var array<array-key, string>
      */
     private array $allowedAttributes;
 
     /**
      * Forbidden SVG elements (blacklist)
+     *
+     * @var array<array-key, string>
      */
     private array $forbiddenTags;
 
@@ -107,11 +113,19 @@ trait SanitizesSvg
         // Load into DOM with security settings
         $dom = $this->loadSecureDom($content);
 
+        // loadSecureDom() already refuses a document without a root; this
+        // restates that guarantee where the root is used.
+        $root = $dom->documentElement;
+
+        if ($root === null) {
+            throw IchavaException::invalidSvgContent('Invalid SVG XML structure');
+        }
+
         // Sanitize the tree
-        $this->sanitizeNode($dom->documentElement);
+        $this->sanitizeNode($root);
 
         // Export
-        $sanitized = $dom->saveXML($dom->documentElement);
+        $sanitized = $dom->saveXML($root);
 
         if ($sanitized === false) {
             throw IchavaException::invalidSvgContent('Failed to serialize sanitized SVG');
@@ -122,6 +136,8 @@ trait SanitizesSvg
 
     /**
      * Setters for custom configuration
+     *
+     * @param array<array-key, string> $tags
      */
     public function setAllowedTags(array $tags): self
     {
@@ -131,6 +147,9 @@ trait SanitizesSvg
         return $this;
     }
 
+    /**
+     * @param array<array-key, string> $attributes
+     */
     public function setAllowedAttributes(array $attributes): self
     {
         $this->allowedAttributes = $attributes;
@@ -139,6 +158,9 @@ trait SanitizesSvg
         return $this;
     }
 
+    /**
+     * @param array<array-key, string> $tags
+     */
     public function setForbiddenTags(array $tags): self
     {
         $this->forbiddenTags = $tags;
@@ -149,17 +171,25 @@ trait SanitizesSvg
 
     /**
      * Getters
+     *
+     * @return array<array-key, string>
      */
     public function getAllowedTags(): array
     {
         return $this->allowedTags;
     }
 
+    /**
+     * @return array<array-key, string>
+     */
     public function getAllowedAttributes(): array
     {
         return $this->allowedAttributes;
     }
 
+    /**
+     * @return array<array-key, string>
+     */
     public function getForbiddenTags(): array
     {
         return $this->forbiddenTags;
@@ -170,11 +200,57 @@ trait SanitizesSvg
      */
     protected function initializeSanitizer(): void
     {
-        $this->allowedTags = config('ichava.ichava-core.svg.allowed_tags', $this->getDefaultAllowedTags());
-        $this->allowedAttributes = config('ichava.ichava-core.svg.allowed_attributes', $this->getDefaultAllowedAttributes());
-        $this->forbiddenTags = config('ichava.ichava-core.svg.forbidden_tags', ['script', 'foreignObject', 'iframe']);
+        $this->allowedTags = $this->configuredNames('ichava.ichava-core.svg.allowed_tags', $this->getDefaultAllowedTags());
+        $this->allowedAttributes = $this->configuredNames('ichava.ichava-core.svg.allowed_attributes', $this->getDefaultAllowedAttributes());
+        $this->forbiddenTags = $this->configuredNames('ichava.ichava-core.svg.forbidden_tags', ['script', 'foreignObject', 'iframe']);
 
         $this->refreshLookups();
+    }
+
+    /**
+     * @param array<array-key, string> $names
+     *
+     * @return array<string, int>
+     */
+    private static function foldNames(array $names): array
+    {
+        $index = [];
+
+        foreach (array_values($names) as $position => $name) {
+            $index[mb_strtolower($name)] = $position;
+        }
+
+        return $index;
+    }
+
+    /**
+     * A sanitizer list from config. A list that is not an array of names is
+     * refused outright, as the typed property it fills always did: a
+     * half-read policy is worse than none.
+     *
+     * @param array<array-key, string> $default
+     *
+     * @return array<array-key, string>
+     */
+    private function configuredNames(string $key, array $default): array
+    {
+        $names = config($key, $default);
+
+        if (! is_array($names)) {
+            throw IchavaException::invalidConfiguration("{$key} must be an array of names");
+        }
+
+        $checked = [];
+
+        foreach ($names as $index => $name) {
+            if (! is_string($name)) {
+                throw IchavaException::invalidConfiguration("{$key} must contain only strings");
+            }
+
+            $checked[$index] = $name;
+        }
+
+        return $checked;
     }
 
     /**
@@ -220,18 +296,15 @@ trait SanitizesSvg
      */
     private function refreshLookups(): void
     {
-        $fold = static fn (array $names): array => array_flip(array_map(
-            static fn (string $name): string => mb_strtolower($name),
-            $names,
-        ));
-
-        $this->allowedTagIndex = $fold($this->allowedTags);
-        $this->allowedAttributeIndex = $fold($this->allowedAttributes);
-        $this->forbiddenTagIndex = $fold($this->forbiddenTags);
+        $this->allowedTagIndex = self::foldNames($this->allowedTags);
+        $this->allowedAttributeIndex = self::foldNames($this->allowedAttributes);
+        $this->forbiddenTagIndex = self::foldNames($this->forbiddenTags);
     }
 
     /**
      * Default allowed SVG tags (fallback if config not loaded)
+     *
+     * @return list<string>
      */
     private function getDefaultAllowedTags(): array
     {
@@ -245,6 +318,8 @@ trait SanitizesSvg
 
     /**
      * Default allowed SVG attributes (fallback if config not loaded)
+     *
+     * @return list<string>
      */
     private function getDefaultAllowedAttributes(): array
     {
@@ -352,13 +427,14 @@ trait SanitizesSvg
             // accident (V42).
             $actual = $attribute->nodeName;
             $name = mb_strtolower($actual);
-            $value = $attribute->nodeValue;
+            // An attribute node always carries a string value; null never reaches here.
+            $value = $attribute->nodeValue ?? '';
 
             if ($this->isDangerousAttribute($name) ||
                 $this->hasDangerousValue($value) ||
                 ! $this->isAllowedAttribute($name) ||
-                ! $this->isAllowedReferenceValue($name, (string) $value) ||
-                ! $this->isAllowedUrlValue($name, (string) $value)) {
+                ! $this->isAllowedReferenceValue($name, $value) ||
+                ! $this->isAllowedUrlValue($name, $value)) {
                 $toRemove[] = $actual;
             }
         }

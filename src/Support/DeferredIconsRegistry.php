@@ -62,6 +62,8 @@ final class DeferredIconsRegistry
 
     /**
      * Render icon as <use> reference
+     *
+     * @param array<string, mixed> $attributes
      */
     public function render(string $id, array $attributes = []): string
     {

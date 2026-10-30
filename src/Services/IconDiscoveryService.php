@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services;
 
 use Generator;
+use SplFileInfo;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use RecursiveIteratorIterator;
@@ -32,6 +33,10 @@ use Simtabi\Laranail\Ichava\Actions\DiscoverInstalledPackages;
  * - Installed packages (via composer.lock)
  * - Icon enumeration and search
  * - Statistics and metadata
+ *
+ * @phpstan-type InstalledPackage array{name: string, version: string, description: string, homepage: string|null, type: string, time: string|null}
+ * @phpstan-type StreamedIcon array{name: string, variant: null, category: string|null, path: string, set: string}
+ * @phpstan-type CategoryFolder array{name: string, display_name: string, path: string, package: string, depth: int, parent: string|null, full_path: string, icon_count: int, has_children: bool}
  */
 class IconDiscoveryService
 {
@@ -51,18 +56,26 @@ class IconDiscoveryService
 
     /**
      * Discover all installed Ichava packages from composer.lock
+     *
+     * @return list<array<string, mixed>>
      */
     public function discoverInstalledPackages(): array
     {
-        return Cache::remember(
+        $installed = Cache::remember(
             self::CACHE_PREFIX . '.installed',
             self::CACHE_DURATION,
             fn () => $this->scanComposerLock(),
         );
+
+        // The store is untrusted input: anything but a list of records is
+        // rebuilt from composer.lock rather than served.
+        return self::isListOfRecords($installed) ? $installed : $this->scanComposerLock();
     }
 
     /**
      * Get all registered packages (alias for getPackages)
+     *
+     * @return list<string>
      */
     public function getRegisteredPackages(): array
     {
@@ -71,21 +84,25 @@ class IconDiscoveryService
 
     /**
      * Get packages that are installed but not registered
+     *
+     * @return list<array<string, mixed>>
      */
     public function getUnregisteredPackages(): array
     {
         $installed = collect($this->discoverInstalledPackages());
-        $registered = collect($this->registry->all())->keys();
+        $registered = array_keys($this->registry->all());
 
-        return $installed
-            ->filter(fn ($pkg) => ! $registered->contains($pkg['name']))
-            ->filter(fn ($pkg) => $pkg['name'] !== 'ichava/ichava') // Exclude parent
-            ->values()
-            ->all();
+        // Loose `in_array()`, as `Collection::contains()` compared before.
+        return array_values($installed
+            ->filter(fn (array $pkg): bool => ! in_array($pkg['name'] ?? null, $registered))
+            ->filter(fn (array $pkg): bool => ($pkg['name'] ?? null) !== 'ichava/ichava') // Exclude parent
+            ->all());
     }
 
     /**
      * Get packages that are registered but missing from composer.lock
+     *
+     * @return array<int, string>
      */
     public function getOrphanedPackages(): array
     {
@@ -105,18 +122,22 @@ class IconDiscoveryService
      * - Uses cached manifests instead of scanning filesystem
      * - Only loads icon count, not full icon data
      * - Lazy loads actual icons on demand
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getPackages(): array
     {
         $registryPackages = $this->registry->all();
         $cacheKey = self::CACHE_PREFIX . '.packages.' . $this->generation() . '.' . md5(serialize($registryPackages));
 
-        return $this->remember($cacheKey, self::CACHE_DURATION, function () use ($registryPackages) {
+        $build = function () use ($registryPackages): array {
             $packages = [];
 
             foreach ($registryPackages as $packageName => $metadata) {
-                // Get icon count from manifest cache (fast)
-                $iconCount = $this->getIconCount($metadata['base_path']);
+                // Get icon count from manifest cache (fast). The registry
+                // refuses a pack without a base path, so the 0 is unreachable.
+                $basePath = $metadata['base_path'] ?? null;
+                $iconCount = is_string($basePath) ? $this->getIconCount($basePath) : 0;
 
                 $packages[$packageName] = array_merge($metadata, [
                     'alias'       => $metadata['icon_set_name'],
@@ -131,11 +152,17 @@ class IconDiscoveryService
             }
 
             return $packages;
-        });
+        };
+
+        $packages = $this->remember($cacheKey, self::CACHE_DURATION, $build);
+
+        return self::isRecordMap($packages) ? $packages : $build();
     }
 
     /**
      * Get a single package by name or alias
+     *
+     * @return array<string, mixed>|null
      */
     public function getPackage(string $nameOrAlias): ?array
     {
@@ -164,6 +191,11 @@ class IconDiscoveryService
      * - Uses generator pattern for memory efficiency
      * - Stops scanning once page is filled
      * - Caches search results
+     *
+     * @param array<int, string> $packages
+     * @param array<int, string> $categories
+     *
+     * @return array<string, mixed>
      */
     public function searchIcons(
         string $query = '',
@@ -176,7 +208,7 @@ class IconDiscoveryService
     ): array {
         // Use database if enabled and table exists
         if (config('ichava.ichava-core.database.enabled', true) && $this->isDatabaseAvailable()) {
-            return $this->searchIconsFromDatabase($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection);
+            return $this->searchIconsFromDatabase($query, array_values($packages), array_values($categories), $page, $perPage, $sortBy, $sortDirection);
         }
 
         // Fallback to file system search
@@ -186,20 +218,22 @@ class IconDiscoveryService
     /**
      * Get all categories across all packages with hierarchical structure
      * Cached for performance when dealing with large icon sets
+     *
+     * @return list<array<string, mixed>>
      */
     public function getAllCategories(): array
     {
         $packages = $this->packages();
         $cacheKey = self::CACHE_PREFIX . '.categories.' . $this->generation() . '.' . md5(serialize(array_keys($packages)));
 
-        return $this->remember($cacheKey, self::CACHE_DURATION, function () use ($packages) {
+        $build = function () use ($packages): array {
             $categories = [];
 
             foreach ($packages as $packageKey => $package) {
                 // Get base path - prioritize base_path (where SVG files are)
                 $basePath = $package['base_path'] ?? $package['icon_path'] ?? $package['path'] ?? null;
 
-                if (! $basePath || ! File::isDirectory($basePath)) {
+                if (! is_string($basePath) || empty($basePath) || ! File::isDirectory($basePath)) {
                     continue;
                 }
 
@@ -212,7 +246,7 @@ class IconDiscoveryService
             }
 
             // Sort categories by package and path
-            usort($categories, function ($a, $b) {
+            usort($categories, function (array $a, array $b): int {
                 $packageCompare = strcmp($a['package'], $b['package']);
                 if ($packageCompare !== 0) {
                     return $packageCompare;
@@ -222,7 +256,11 @@ class IconDiscoveryService
             });
 
             return $categories;
-        });
+        };
+
+        $categories = $this->remember($cacheKey, self::CACHE_DURATION, $build);
+
+        return self::isListOfRecords($categories) ? $categories : $build();
     }
 
     /**
@@ -248,6 +286,8 @@ class IconDiscoveryService
 
     /**
      * Get usage syntax for an icon
+     *
+     * @return array{helper: string, directive: string, component: string|null}
      */
     public function getIconSyntax(string $package, string $name, ?string $variant = null): array
     {
@@ -256,6 +296,8 @@ class IconDiscoveryService
 
     /**
      * Get statistics about registered packages and icons
+     *
+     * @return array<string, mixed>
      */
     public function getStatistics(): array
     {
@@ -266,7 +308,7 @@ class IconDiscoveryService
 
         foreach ($packages as $packageKey => $package) {
             // Use the pre-calculated 'total' instead of counting icons array
-            $packageTotal = $package['total'] ?? 0;
+            $packageTotal = self::toInt($package['total'] ?? 0);
             $totalIcons += $packageTotal;
 
             $byPackage[$packageKey] = [
@@ -304,6 +346,8 @@ class IconDiscoveryService
 
     /**
      * Get discovery statistics with unregistered package details
+     *
+     * @return array<string, mixed>
      */
     public function getDiscoveryStats(): array
     {
@@ -323,6 +367,8 @@ class IconDiscoveryService
      *
      * Note: Packages are now auto-registered via IconRegistry.
      * This method allows manual registration for testing/legacy purposes.
+     *
+     * @param array<string, mixed> $metadata
      */
     public function registerPackage(string $alias, array $metadata): void
     {
@@ -347,6 +393,8 @@ class IconDiscoveryService
 
     /**
      * Get all packages from IconRegistry
+     *
+     * @return array<string, array<string, mixed>>
      */
     protected function packages(): array
     {
@@ -355,6 +403,8 @@ class IconDiscoveryService
 
     /**
      * Scan composer.lock for Ichava packages
+     *
+     * @return list<InstalledPackage>
      */
     protected function scanComposerLock(): array
     {
@@ -380,13 +430,13 @@ class IconDiscoveryService
         $manifestKey = self::CACHE_PREFIX . '.manifest.' . md5($basePath);
 
         // rememberForever on the file driver so the manifest survives across requests.
-        return (int) cache()
+        return self::toInt(cache()
             ->store('file')
             ->remember(
                 key: $manifestKey,
                 ttl: now()->addHours(24),
                 callback: fn () => $this->countSvgFiles($basePath),
-            );
+            ));
     }
 
     /**
@@ -449,6 +499,11 @@ class IconDiscoveryService
 
     /**
      * Search icons from file system (legacy fallback)
+     *
+     * @param array<int, string> $packages
+     * @param array<int, string> $categories
+     *
+     * @return array<string, mixed>
      */
     protected function searchIconsFromFileSystem(
         string $query,
@@ -461,12 +516,13 @@ class IconDiscoveryService
     ): array {
         $cacheKey = self::CACHE_PREFIX . '.search.' . $this->generation() . '.' . md5(serialize(func_get_args()));
 
-        return $this->remember($cacheKey, 300, function () use ($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection) {
+        $build = function () use ($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection): array {
             $allPackages = $this->getPackages();
 
             // Filter by selected packages
             if (! empty($packages)) {
-                $allPackages = Arr::only($allPackages, $packages);
+                // What `Arr::only()` does, without losing the element type.
+                $allPackages = array_intersect_key($allPackages, array_flip($packages));
             }
 
             $offset = ($page - 1) * $perPage;
@@ -477,7 +533,13 @@ class IconDiscoveryService
 
             // Single pass: Count total AND collect page items efficiently
             foreach ($allPackages as $packageKey => $packageData) {
-                foreach ($this->streamIcons($packageData['base_path'], $packageKey) as $iconData) {
+                $basePath = $packageData['base_path'] ?? null;
+
+                if (! is_string($basePath)) {
+                    continue;
+                }
+
+                foreach ($this->streamIcons($basePath, $packageKey) as $iconData) {
                     // Apply filters
                     if (! $this->matchesFilters($iconData, $query, $categories)) {
                         continue;
@@ -535,14 +597,21 @@ class IconDiscoveryService
                 'per_page'  => $perPage,
                 'last_page' => (int) ceil($total / $perPage),
             ];
-        });
+        };
+
+        $result = $this->remember($cacheKey, 300, $build);
+
+        return self::isRecord($result) ? $result : $build();
     }
 
     /**
      * Sort icons by specified field and direction
      *
      * @param string $sortBy name, package, category
+     * @param list<array<string, mixed>> $icons
      * @param string $sortDirection asc, desc
+     *
+     * @return list<array<string, mixed>>
      */
     protected function sortIcons(array $icons, string $sortBy, string $sortDirection): array
     {
@@ -552,9 +621,11 @@ class IconDiscoveryService
             default    => 'name',
         };
 
-        usort($icons, function ($a, $b) use ($sortField, $sortDirection) {
+        usort($icons, function (array $a, array $b) use ($sortField, $sortDirection): int {
             $aValue = $a[$sortField] ?? '';
             $bValue = $b[$sortField] ?? '';
+            $aValue = is_string($aValue) ? $aValue : '';
+            $bValue = is_string($bValue) ? $bValue : '';
 
             $comparison = strcasecmp($aValue, $bValue);
 
@@ -568,6 +639,8 @@ class IconDiscoveryService
      * Stream icons from directory using generator pattern
      *
      * Memory efficient - yields one icon at a time
+     *
+     * @return Generator<int, StreamedIcon>
      */
     protected function streamIcons(string $basePath, string $packageName): Generator
     {
@@ -581,7 +654,7 @@ class IconDiscoveryService
         );
 
         foreach ($iterator as $file) {
-            if (! $file->isFile() || ! Str::endsWith($file->getFilename(), '.svg')) {
+            if (! $file instanceof SplFileInfo || ! $file->isFile() || ! Str::endsWith($file->getFilename(), '.svg')) {
                 continue;
             }
 
@@ -607,6 +680,9 @@ class IconDiscoveryService
 
     /**
      * Check if icon matches search filters
+     *
+     * @param StreamedIcon $iconData
+     * @param array<int, string> $categories
      */
     protected function matchesFilters(array $iconData, string $query, array $categories): bool
     {
@@ -672,6 +748,8 @@ class IconDiscoveryService
      * Scan folder hierarchy to detect nested category structure
      * Returns array with hierarchical information
      * OPTIMIZED: Only counts direct SVG files, estimates for subdirectories
+     *
+     * @return list<CategoryFolder>
      */
     protected function scanFolderHierarchy(string $basePath, string $packageKey, string $relativePath = '', int $depth = 0, int $maxDepth = 3): array
     {
@@ -798,6 +876,8 @@ class IconDiscoveryService
      *
      * @param string $basePath Base path to scan
      * @param int $limit Maximum number of icons to scan (0 = unlimited)
+     *
+     * @return list<array{name: string, variant: null, category: string|null, path: string}>
      */
     protected function scanIconDirectory(string $basePath, int $limit = 100): array
     {
@@ -875,6 +955,10 @@ class IconDiscoveryService
      * Normalize types in cached arrays
      *
      * Converts string integers back to integers (Redis serialization issue)
+     *
+     * @param array<array-key, mixed> $data
+     *
+     * @return array<array-key, mixed>
      */
     protected function normalizeTypes(array $data): array
     {
@@ -888,5 +972,74 @@ class IconDiscoveryService
         }
 
         return $data;
+    }
+
+    /**
+     * A cached count as an int: what `(int)` made of it, without casting
+     * values that are not numbers.
+     */
+    private static function toInt(mixed $value): int
+    {
+        return is_int($value) || is_float($value) || is_numeric($value) ? (int) $value : 0;
+    }
+
+    /**
+     * Whether a value is an array keyed by strings.
+     *
+     * @phpstan-assert-if-true array<string, mixed> $value
+     */
+    private static function isRecord(mixed $value): bool
+    {
+        if (! is_array($value)) {
+            return false;
+        }
+
+        foreach (array_keys($value) as $key) {
+            if (! is_string($key)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether a value is a list of string-keyed records.
+     *
+     * @phpstan-assert-if-true list<array<string, mixed>> $value
+     */
+    private static function isListOfRecords(mixed $value): bool
+    {
+        if (! is_array($value) || ! array_is_list($value)) {
+            return false;
+        }
+
+        foreach ($value as $row) {
+            if (! self::isRecord($row)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether a value maps string keys to string-keyed records.
+     *
+     * @phpstan-assert-if-true array<string, array<string, mixed>> $value
+     */
+    private static function isRecordMap(mixed $value): bool
+    {
+        if (! self::isRecord($value)) {
+            return false;
+        }
+
+        foreach ($value as $row) {
+            if (! self::isRecord($row)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

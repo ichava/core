@@ -71,7 +71,20 @@ class Helpers
             );
         }
 
-        return $config;
+        $object = [];
+
+        foreach ($config as $key => $value) {
+            if (! is_string($key)) {
+                throw IchavaException::invalidConfig(
+                    'Config must be a JSON object',
+                    $configPath,
+                );
+            }
+
+            $object[$key] = $value;
+        }
+
+        return $object;
     }
 
     /**
@@ -108,7 +121,7 @@ class Helpers
     {
         $configured = config('ichava.ichava-core.version');
 
-        if (! empty($configured)) {
+        if (! empty($configured) && (is_string($configured) || is_int($configured) || is_float($configured))) {
             return (string) $configured;
         }
 
@@ -134,7 +147,8 @@ class Helpers
         // @phpstan-ignore larastan.noEnvCallsOutsideOfConfig
         $configured = env('ICHAVA_LOG_PATH');
 
-        if (empty($configured)) {
+        // env() turns "true"/"false"/"null" into scalars; only a real string is a path.
+        if (! is_string($configured) || empty($configured)) {
             $dir = function_exists('storage_path')
                 ? storage_path('logs')
                 : sys_get_temp_dir();

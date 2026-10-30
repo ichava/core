@@ -6,9 +6,12 @@ namespace Simtabi\Laranail\Ichava\Support\Seeder;
 
 use Exception;
 use Throwable;
+use SplFileInfo;
+use LogicException;
 use Illuminate\Bus\Batch;
 use Illuminate\Support\Str;
 use RecursiveIteratorIterator;
+use Illuminate\Console\Command;
 use Illuminate\Database\Seeder;
 use RecursiveDirectoryIterator;
 use Illuminate\Bus\PendingBatch;
@@ -65,7 +68,8 @@ class IchavaSeeder extends Seeder
 
     public function __construct()
     {
-        $this->logger = app('ichava.logger');
+        // `ichava.logger` is an alias of this class, so this is the same singleton.
+        $this->logger = app(IchavaLogger::class);
     }
 
     /**
@@ -125,7 +129,7 @@ class IchavaSeeder extends Seeder
      * @param int $chunkSize Icons per job
      * @param bool $force Force update even if unchanged
      *
-     * @return array Result with 'terms', 'icons', and 'batch_id' (if queued)
+     * @return array<string, mixed> Result with 'terms', 'icons', and 'batch_id' (if queued)
      */
     public function seedPackage(
         string $packageName,
@@ -213,7 +217,7 @@ class IchavaSeeder extends Seeder
             'force'       => $force,
         ]);
 
-        $queue = (string) config('ichava.ichava-core.queue.name', 'ichava-icons');
+        $queue = self::queueName();
 
         // Batch callbacks are serialized onto the queue, so none of them may
         // capture $this (the seeder holds the console command). They resolve
@@ -223,7 +227,7 @@ class IchavaSeeder extends Seeder
             ->chunk($chunkSize)
             ->job(static fn (array $chunk, int $index, int $total): SeedIconsJob => new SeedIconsJob(
                 packageName: $packageName,
-                files: $chunk,
+                files: array_values(array_filter($chunk, is_string(...))),
                 jobIndex: $index,
                 totalJobs: $total,
                 force: $force,
@@ -295,6 +299,8 @@ class IchavaSeeder extends Seeder
      * @param string $svgPath Path to SVG directory
      * @param int $chunkSize Icons per chunk
      * @param bool $force Force update even if unchanged
+     *
+     * @return array{error: string}|array{total_files: int, processed: int, jobs: int, errors: list<array{job: int, error: string}>, force: bool}
      */
     public function seedSync(
         string $packageName,
@@ -318,7 +324,7 @@ class IchavaSeeder extends Seeder
             ->chunk($chunkSize)
             ->job(static fn (array $chunk, int $index, int $total): SeedIconsJob => new SeedIconsJob(
                 packageName: $packageName,
-                files: $chunk,
+                files: array_values(array_filter($chunk, is_string(...))),
                 jobIndex: $index,
                 totalJobs: $total,
                 force: $force,
@@ -393,8 +399,8 @@ class IchavaSeeder extends Seeder
      */
     protected function seedAllPackages(): void
     {
-        $this->command->info(__('ichava/ichava-core::commands.seeder.discovering'));
-        $this->command->newLine();
+        $this->console()->info(__('ichava/ichava-core::commands.seeder.discovering'));
+        $this->console()->newLine();
         $this->logger->seedingInfo('🔍 Starting package discovery');
 
         $packages = $this->discoverPackages();
@@ -405,11 +411,12 @@ class IchavaSeeder extends Seeder
             return;
         }
 
-        $this->command->info(__('ichava/ichava-core::commands.seeder.found', ['count' => count($packages)]));
-        $this->command->newLine();
+        $this->console()->info(__('ichava/ichava-core::commands.seeder.found', ['count' => count($packages)]));
+        $this->console()->newLine();
         $this->logger->seedingInfo('Found ' . count($packages) . ' registered packages');
 
-        $chunkSize = (int) config('ichava.ichava-core.database.batch_size', self::DEFAULT_CHUNK_SIZE);
+        $batchSize = config('ichava.ichava-core.database.batch_size', self::DEFAULT_CHUNK_SIZE);
+        $chunkSize = is_numeric($batchSize) ? (int) $batchSize : self::DEFAULT_CHUNK_SIZE;
 
         $stats = [
             'packages_total'   => count($packages),
@@ -432,7 +439,7 @@ class IchavaSeeder extends Seeder
             ];
 
             try {
-                $this->command->line("  <fg=cyan>📦 {$packageName}</fg=cyan>");
+                $this->console()->line("  <fg=cyan>📦 {$packageName}</fg=cyan>");
 
                 // Step 1: Seed terms for this package
                 $this->seedPackageTerms($packageName, $packageData);
@@ -442,11 +449,11 @@ class IchavaSeeder extends Seeder
                 $packageStats['icons'] = $iconCount;
                 $stats['total_icons'] += $iconCount;
 
-                $this->command->line('    <fg=gray>' . __('ichava/ichava-core::commands.seeder.icons_found', ['count' => $iconCount]) . '</>');
+                $this->console()->line('    <fg=gray>' . __('ichava/ichava-core::commands.seeder.icons_found', ['count' => $iconCount]) . '</>');
                 $this->logger->seedingInfo("🎨 Icons found for {$packageName}: {$iconCount}");
 
                 if ($iconCount === 0) {
-                    $this->command->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.no_icons') . '</>');
+                    $this->console()->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.no_icons') . '</>');
                     $packageStats['status'] = 'empty';
                     $stats['packages_success']++;
                     $stats['package_details'][] = $packageStats;
@@ -458,7 +465,7 @@ class IchavaSeeder extends Seeder
                 $forceMsg = $this->forceUpdate ? __('ichava/ichava-core::commands.seeder.force_suffix') : '';
 
                 if ($this->syncMode || ! config('ichava.ichava-core.database.use_queue', true)) {
-                    $this->command->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.seeding_sync', ['force' => $forceMsg, 'size' => $chunkSize]) . '</>');
+                    $this->console()->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.seeding_sync', ['force' => $forceMsg, 'size' => $chunkSize]) . '</>');
 
                     $result = $this->seedSync($packageName, $packageData['svg_path'], $chunkSize, $this->forceUpdate);
 
@@ -468,11 +475,11 @@ class IchavaSeeder extends Seeder
 
                     $packageStats['jobs'] = $result['jobs'];
                     $packageStats['status'] = 'synced';
-                    $this->command->line('    <fg=green>' . __('ichava/ichava-core::commands.seeder.seeded_sync', ['processed' => $result['processed'], 'chunks' => $result['jobs']]) . '</>');
+                    $this->console()->line('    <fg=green>' . __('ichava/ichava-core::commands.seeder.seeded_sync', ['processed' => $result['processed'], 'chunks' => $result['jobs']]) . '</>');
                     $this->logger->seedingInfo("✅ Icons seeded synchronously for {$packageName}", $result);
 
                 } else {
-                    $this->command->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.dispatching', ['force' => $forceMsg, 'size' => $chunkSize]) . '</>');
+                    $this->console()->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.dispatching', ['force' => $forceMsg, 'size' => $chunkSize]) . '</>');
 
                     $batch = $this->seed($packageName, $packageData['svg_path'], $chunkSize, null, $this->forceUpdate);
 
@@ -482,7 +489,7 @@ class IchavaSeeder extends Seeder
                         $packageStats['status'] = 'queued';
                         $packageStats['batch_id'] = $batch->id;
                         $stats['jobs_dispatched'] += $totalJobs;
-                        $this->command->line('    <fg=green>' . __('ichava/ichava-core::commands.seeder.dispatched', ['jobs' => $totalJobs, 'batch' => $batch->id]) . '</>');
+                        $this->console()->line('    <fg=green>' . __('ichava/ichava-core::commands.seeder.dispatched', ['jobs' => $totalJobs, 'batch' => $batch->id]) . '</>');
                         $this->logger->seedingInfo("🚀 Seeding jobs dispatched for {$packageName}", [
                             'batch_id'     => $batch->id,
                             'total_jobs'   => $totalJobs,
@@ -496,7 +503,7 @@ class IchavaSeeder extends Seeder
 
                 // @phpstan-ignore catch.neverThrown (kept as written: widening it would change seeding failures)
             } catch (IchavaException|Throwable $e) {
-                $this->command->error('    ' . __('ichava/ichava-core::commands.seeder.failed', ['message' => $e->getMessage()]));
+                $this->console()->error('    ' . __('ichava/ichava-core::commands.seeder.failed', ['message' => $e->getMessage()]));
                 $this->logger->error("❌ Failed to process package: {$packageName}", $e, [
                     'package' => $packageName,
                 ]);
@@ -506,7 +513,7 @@ class IchavaSeeder extends Seeder
             }
 
             $stats['package_details'][] = $packageStats;
-            $this->command->newLine();
+            $this->console()->newLine();
         }
 
         $this->displayStats($stats);
@@ -518,6 +525,8 @@ class IchavaSeeder extends Seeder
 
     /**
      * Collect all SVG files from directory.
+     *
+     * @return list<string>
      */
     protected function collectFiles(string $path): array
     {
@@ -532,8 +541,15 @@ class IchavaSeeder extends Seeder
         );
 
         foreach ($iterator as $file) {
-            if ($file->isFile() && Str::lower($file->getExtension()) === 'svg') {
-                $files[] = $file->getRealPath();
+            if (! $file instanceof SplFileInfo || ! $file->isFile() || Str::lower($file->getExtension()) !== 'svg') {
+                continue;
+            }
+
+            $realPath = $file->getRealPath();
+
+            // false only when the file vanished between listing and reading it.
+            if ($realPath !== false) {
+                $files[] = $realPath;
             }
         }
 
@@ -554,24 +570,28 @@ class IchavaSeeder extends Seeder
 
     /**
      * Seed package terms (categories/variants)
+     *
+     * @param array<string, mixed> $packageData
      */
     protected function seedPackageTerms(string $packageName, array $packageData): void
     {
-        $this->command->line('    <fg=gray>' . __('ichava/ichava-core::commands.seeder.seeding_terms') . '</>');
+        $this->console()->line('    <fg=gray>' . __('ichava/ichava-core::commands.seeder.seeding_terms') . '</>');
 
         try {
             $termSeeder = new IconTermsSeeder;
-            $termSeeder->setCommand($this->command);
+            $termSeeder->setCommand($this->console());
             $termSeeder->setContainer(app());
             $termSeeder->seedSinglePackage($packageName, $packageData);
-            $this->command->line('    <fg=green>' . __('ichava/ichava-core::commands.seeder.terms_seeded') . '</>');
+            $this->console()->line('    <fg=green>' . __('ichava/ichava-core::commands.seeder.terms_seeded') . '</>');
         } catch (IchavaException $e) {
-            $this->command->warn('    ' . __('ichava/ichava-core::commands.seeder.terms_failed', ['message' => $e->getMessage()]));
+            $this->console()->warn('    ' . __('ichava/ichava-core::commands.seeder.terms_failed', ['message' => $e->getMessage()]));
         }
     }
 
     /**
      * Discover all registered packages
+     *
+     * @return array<string, array{svg_path: string, base_path: string, package_data: array<string, mixed>}>
      */
     protected function discoverPackages(): array
     {
@@ -586,7 +606,8 @@ class IchavaSeeder extends Seeder
                     $iconSet = $registry->set($packageName);
                     $svgPath = $iconSet->basePath();
                 } catch (Exception $e) {
-                    $svgPath = $packageData['base_path'] ?? '';
+                    $fallback = $packageData['base_path'] ?? '';
+                    $svgPath = is_string($fallback) ? $fallback : '';
                 }
 
                 if (empty($svgPath) || ! File::isDirectory($svgPath)) {
@@ -612,8 +633,8 @@ class IchavaSeeder extends Seeder
     protected function ensureTableExists(): bool
     {
         if (! Schema::hasTable('ichava_icons')) {
-            $this->command->error(__('ichava/ichava-core::commands.seeder.table_missing'));
-            $this->command->warn(__('ichava/ichava-core::commands.seeder.table_missing_hint'));
+            $this->console()->error(__('ichava/ichava-core::commands.seeder.table_missing'));
+            $this->console()->warn(__('ichava/ichava-core::commands.seeder.table_missing_hint'));
 
             return false;
         }
@@ -623,14 +644,14 @@ class IchavaSeeder extends Seeder
 
     protected function displayHeader(): void
     {
-        $this->command->line('<options=bold;fg=cyan>' . __('ichava/ichava-core::commands.seeder.header') . '</>');
-        $this->command->newLine();
+        $this->console()->line('<options=bold;fg=cyan>' . __('ichava/ichava-core::commands.seeder.header') . '</>');
+        $this->console()->newLine();
     }
 
     protected function displayFooter(): void
     {
-        $this->command->newLine();
-        $this->command->line('<options=bold;fg=green>' . __('ichava/ichava-core::commands.seeder.completed') . '</>');
+        $this->console()->newLine();
+        $this->console()->line('<options=bold;fg=green>' . __('ichava/ichava-core::commands.seeder.completed') . '</>');
 
         if ($this->syncMode) {
             try {
@@ -642,11 +663,14 @@ class IchavaSeeder extends Seeder
         }
     }
 
+    /**
+     * @param array{packages_total: int, packages_success: int, packages_failed: int, jobs_dispatched: int, total_icons: int, chunk_size: int, mode: string, force_update: bool, package_details: list<array{name: string, icons: int, jobs: int, status: string, batch_id?: string, error?: string}>} $stats
+     */
     protected function displayStats(array $stats): void
     {
-        $this->command->newLine();
+        $this->console()->newLine();
 
-        $this->command->line('<options=bold;fg=cyan>' . __('ichava/ichava-core::commands.seeder.summary') . '</>');
+        $this->console()->line('<options=bold;fg=cyan>' . __('ichava/ichava-core::commands.seeder.summary') . '</>');
 
         MetricTable::make()
             ->headers(__('ichava/ichava-core::commands.seeder.setting'))
@@ -657,9 +681,9 @@ class IchavaSeeder extends Seeder
                 [__('ichava/ichava-core::commands.seeder.total_icons'), $stats['total_icons']],
                 [__('ichava/ichava-core::commands.seeder.total_jobs'), $stats['jobs_dispatched']],
             ])
-            ->render($this->command->getOutput());
+            ->render($this->console()->getOutput());
 
-        $this->command->newLine();
+        $this->console()->newLine();
         info(__('ichava/ichava-core::commands.seeder.packages', ['count' => $stats['packages_total']]));
 
         $statuses = [
@@ -678,11 +702,13 @@ class IchavaSeeder extends Seeder
 
         $packageRows = [];
         foreach ($stats['package_details'] as $pkg) {
+            $label = $labels[$pkg['status']] ?? null;
+
             $packageRows[] = [
                 $pkg['name'],
                 number_format($pkg['icons']),
                 (string) $pkg['jobs'],
-                StatusBadge::fromMap($statuses, $pkg['status'])->label($labels[$pkg['status']] ?? null)->render(),
+                StatusBadge::fromMap($statuses, $pkg['status'])->label(is_string($label) ? $label : null)->render(),
             ];
         }
 
@@ -696,13 +722,13 @@ class IchavaSeeder extends Seeder
             rows: $packageRows,
         );
 
-        $this->command->newLine();
+        $this->console()->newLine();
 
         // Result
         if ($stats['packages_failed'] > 0) {
             warning(__('ichava/ichava-core::commands.seeder.packages_failed', ['count' => $stats['packages_failed']]));
         } else {
-            $this->command->line('<options=bold;fg=green>' . __('ichava/ichava-core::commands.seeder.packages_succeeded', ['count' => $stats['packages_success']]) . '</>');
+            $this->console()->line('<options=bold;fg=green>' . __('ichava/ichava-core::commands.seeder.packages_succeeded', ['count' => $stats['packages_success']]) . '</>');
         }
     }
 
@@ -714,25 +740,25 @@ class IchavaSeeder extends Seeder
      */
     protected function processQueuedJobs(int $jobCount): void
     {
-        $queueName = config('ichava.ichava-core.queue.name', 'ichava-icons');
+        $queueName = self::queueName();
 
-        $this->command->newLine();
-        $this->command->line('<options=bold;fg=yellow>' . __('ichava/ichava-core::commands.seeder.processing_jobs', ['count' => $jobCount]) . '</>');
-        $this->command->newLine();
+        $this->console()->newLine();
+        $this->console()->line('<options=bold;fg=yellow>' . __('ichava/ichava-core::commands.seeder.processing_jobs', ['count' => $jobCount]) . '</>');
+        $this->console()->newLine();
 
         try {
             // Process all queued jobs and exit when done
-            ChunkedBatchDispatcher::drain($queueName, $this->command->getOutput(), [
+            ChunkedBatchDispatcher::drain($queueName, $this->console()->getOutput(), [
                 '--memory'  => 512,
                 '--timeout' => 300,
             ]);
 
-            $this->command->newLine();
-            $this->command->line('<options=bold;fg=green>' . __('ichava/ichava-core::commands.seeder.jobs_processed') . '</>');
+            $this->console()->newLine();
+            $this->console()->line('<options=bold;fg=green>' . __('ichava/ichava-core::commands.seeder.jobs_processed') . '</>');
 
         } catch (Throwable $e) {
-            $this->command->line('<options=bold;fg=red>' . __('ichava/ichava-core::commands.seeder.queue_failed', ['message' => $e->getMessage()]) . '</>');
-            $this->command->newLine();
+            $this->console()->line('<options=bold;fg=red>' . __('ichava/ichava-core::commands.seeder.queue_failed', ['message' => $e->getMessage()]) . '</>');
+            $this->console()->newLine();
             note(__('ichava/ichava-core::commands.seeder.queue_manual', ['queue' => $queueName]));
         }
     }
@@ -740,7 +766,7 @@ class IchavaSeeder extends Seeder
     protected function displayNoPackagesMessage(): void
     {
         warning(__('ichava/ichava-core::commands.seeder.no_packages'));
-        $this->command->newLine();
+        $this->console()->newLine();
         note(__('ichava/ichava-core::commands.seeder.no_packages_hint'));
 
         $codeExample = <<<'CODE'
@@ -749,6 +775,34 @@ IconRegistry::fromDirectory(
     self::class
 );
 CODE;
-        $this->command->line($codeExample);
+        $this->console()->line($codeExample);
+    }
+
+    /**
+     * The seeding queue's name, as configured.
+     *
+     * A scalar is read as the string it casts to, which is what the dispatch
+     * path always did; anything else falls back to the default.
+     */
+    private static function queueName(): string
+    {
+        $queue = config('ichava.ichava-core.queue.name', 'ichava-icons');
+
+        return is_scalar($queue) || $queue === null ? (string) $queue : 'ichava-icons';
+    }
+
+    /**
+     * The console command running this seeder.
+     *
+     * `run()` and the helpers it reaches are console-only and need one; the
+     * `seedPackage()` path never comes here, so it works with no command set.
+     */
+    private function console(): Command
+    {
+        if ($this->command === null) {
+            throw new LogicException('IchavaSeeder needs a console command here; call setCommand() first.');
+        }
+
+        return $this->command;
     }
 }

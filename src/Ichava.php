@@ -108,12 +108,15 @@ final class Ichava
      * package is not found rather than throwing.
      *
      * @param string $package Package name (e.g. 'ichava/icon-sets-tabler')
+     *
+     * @return Collection<array-key, mixed>
      */
     public function icons(string $package): Collection
     {
         $packageData = $this->discovery->getPackage($package);
+        $icons = $packageData['icons'] ?? [];
 
-        return collect($packageData['icons'] ?? []);
+        return collect(is_array($icons) ? $icons : []);
     }
 
     /**
@@ -124,12 +127,16 @@ final class Ichava
      *
      * @param string $query Search term (partial icon name match)
      * @param int $limit Maximum number of results to return (default: 50)
+     *
+     * @return Collection<array-key, mixed>
      */
     public function search(string $query, int $limit = 50): Collection
     {
         $results = $this->discovery->searchIcons($query);
+        $data = $results['data'] ?? [];
 
-        return collect($results['data'] ?? [])->take($limit);
+        return collect(is_array($data) ? $data : [])->take($limit);
+
     }
 
     /**

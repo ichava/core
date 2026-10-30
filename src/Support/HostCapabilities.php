@@ -26,6 +26,7 @@ final class HostCapabilities
 {
     private static ?self $instance = null;
 
+    /** @var array<string, bool> */
     private array $capabilities = [];
 
     private bool $detected = false;
@@ -76,7 +77,7 @@ final class HostCapabilities
     {
         $this->detect();
 
-        return $this->capabilities['session'];
+        return $this->capabilities['session'] ?? false;
     }
 
     /**
@@ -86,7 +87,7 @@ final class HostCapabilities
     {
         $this->detect();
 
-        return $this->capabilities['auth'];
+        return $this->capabilities['auth'] ?? false;
     }
 
     /**
@@ -96,7 +97,7 @@ final class HostCapabilities
     {
         $this->detect();
 
-        return $this->capabilities['sanctum'];
+        return $this->capabilities['sanctum'] ?? false;
     }
 
     /**
@@ -106,7 +107,7 @@ final class HostCapabilities
     {
         $this->detect();
 
-        return $this->capabilities['database'];
+        return $this->capabilities['database'] ?? false;
     }
 
     /**
@@ -116,11 +117,13 @@ final class HostCapabilities
     {
         $this->detect();
 
-        return $this->capabilities['cache'];
+        return $this->capabilities['cache'] ?? false;
     }
 
     /**
      * Get all capabilities as array
+     *
+     * @return array<string, bool>
      */
     public function all(): array
     {
@@ -176,7 +179,8 @@ final class HostCapabilities
             // For database sessions, check if sessions table exists first
             // This prevents errors during initial setup before migrations run
             if ($driver === 'database') {
-                if (! Schema::hasTable(config('session.table', 'sessions'))) {
+                $table = config('session.table', 'sessions');
+                if (! is_string($table) || ! Schema::hasTable($table)) {
                     return false;
                 }
             }
@@ -206,19 +210,20 @@ final class HostCapabilities
     {
         try {
             // Check if auth guard is configured
-            if (! config('auth.defaults.guard')) {
+            $guard = config('auth.defaults.guard');
+            if (! $guard || ! is_string($guard)) {
                 return false;
             }
 
             // Check if User provider exists
-            $provider = config('auth.guards.' . config('auth.defaults.guard') . '.provider');
-            if (! $provider) {
+            $provider = config('auth.guards.' . $guard . '.provider');
+            if (! $provider || ! is_string($provider)) {
                 return false;
             }
 
             // Check if User model exists
             $model = config("auth.providers.{$provider}.model");
-            if (! $model || ! class_exists($model)) {
+            if (! $model || ! is_string($model) || ! class_exists($model)) {
                 return false;
             }
 

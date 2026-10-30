@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Constants;
 
 use Illuminate\Support\Str;
+use UnexpectedValueException;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 
@@ -23,7 +24,7 @@ abstract class JsonConfigConstants
     /**
      * Cached config data per class
      *
-     * @var array<string, array>
+     * @var array<string, array<array-key, mixed>>
      */
     private static array $configs = [];
 
@@ -40,7 +41,7 @@ abstract class JsonConfigConstants
      */
     public static function getVendorName(): string
     {
-        return Helpers::getVendorFromPackage(static::config()['package']['name']);
+        return Helpers::getVendorFromPackage(self::requiredString(['package', 'name']));
     }
 
     /**
@@ -48,7 +49,7 @@ abstract class JsonConfigConstants
      */
     public static function getPackageName(): string
     {
-        return Helpers::getPackageFromIdentifier(static::config()['package']['name']);
+        return Helpers::getPackageFromIdentifier(self::requiredString(['package', 'name']));
     }
 
     /**
@@ -56,7 +57,7 @@ abstract class JsonConfigConstants
      */
     public static function getVendorPackage(): string
     {
-        return static::config()['package']['name'];
+        return self::requiredString(['package', 'name']);
     }
 
     /**
@@ -64,31 +65,37 @@ abstract class JsonConfigConstants
      */
     public static function getPrefix(): string
     {
-        return static::config()['config']['icon_prefix'];
+        return self::requiredString(['config', 'icon_prefix']);
     }
 
     /**
      * Get categories from metadata.data.categories
+     *
+     * @return list<array-key>
      */
     public static function getCategories(): array
     {
-        return array_keys(static::config()['metadata']['data']['categories'] ?? []);
+        return array_keys(self::arrayValue(['metadata', 'data', 'categories']));
     }
 
     /**
      * Get variants from metadata.data.variants (keys only)
+     *
+     * @return list<array-key>
      */
     public static function getVariants(): array
     {
-        return array_keys(static::config()['metadata']['data']['variants'] ?? []);
+        return array_keys(self::arrayValue(['metadata', 'data', 'variants']));
     }
 
     /**
      * Get all variants with full metadata
+     *
+     * @return array<array-key, mixed>
      */
     public static function getVariantsWithMetadata(): array
     {
-        return static::config()['metadata']['data']['variants'] ?? [];
+        return self::arrayValue(['metadata', 'data', 'variants']);
     }
 
     /**
@@ -99,12 +106,14 @@ abstract class JsonConfigConstants
         $variants = static::getVariantsWithMetadata();
 
         foreach ($variants as $slug => $data) {
-            if ($data['default'] ?? false) {
-                return $slug;
+            if (is_array($data) && ($data['default'] ?? false)) {
+                return (string) $slug;
             }
         }
 
-        return array_key_first($variants);
+        $firstKey = array_key_first($variants);
+
+        return $firstKey === null ? null : (string) $firstKey;
     }
 
     /**
@@ -113,7 +122,7 @@ abstract class JsonConfigConstants
      */
     public static function getDefaultCategory(): ?string
     {
-        $categories = static::config()['metadata']['data']['categories'] ?? [];
+        $categories = self::arrayValue(['metadata', 'data', 'categories']);
 
         foreach ($categories as $slug => $data) {
             if (is_array($data) && ($data['default'] ?? false)) {
@@ -128,10 +137,14 @@ abstract class JsonConfigConstants
 
     /**
      * Get variant metadata
+     *
+     * @return array<array-key, mixed>|null
      */
     public static function getVariantMetadata(string $variant): ?array
     {
-        return static::getVariantsWithMetadata()[$variant] ?? null;
+        $metadata = static::getVariantsWithMetadata()[$variant] ?? null;
+
+        return is_array($metadata) ? $metadata : null;
     }
 
     /**
@@ -139,7 +152,7 @@ abstract class JsonConfigConstants
      */
     public static function getVariantName(string $variant): string
     {
-        return static::getVariantMetadata($variant)['name'] ?? Str::ucfirst($variant);
+        return self::variantString($variant, 'name') ?? Str::ucfirst($variant);
     }
 
     /**
@@ -147,15 +160,19 @@ abstract class JsonConfigConstants
      */
     public static function getVariantDescription(string $variant): string
     {
-        return static::getVariantMetadata($variant)['description'] ?? '';
+        return self::variantString($variant, 'description') ?? '';
     }
 
     /**
      * Get variant attributes (for SVG rendering)
+     *
+     * @return array<array-key, mixed>
      */
     public static function getVariantAttributes(string $variant): array
     {
-        return static::getVariantMetadata($variant)['attributes'] ?? [];
+        $attributes = static::getVariantMetadata($variant)['attributes'] ?? [];
+
+        return is_array($attributes) ? $attributes : [];
     }
 
     /**
@@ -168,13 +185,18 @@ abstract class JsonConfigConstants
 
     /**
      * Get variants sorted by display order
+     *
+     * @return list<array-key>
      */
     public static function getVariantsSorted(): array
     {
         $variants = static::getVariantsWithMetadata();
 
-        uasort($variants, function ($a, $b) {
-            return ($a['display_order'] ?? 999) <=> ($b['display_order'] ?? 999);
+        uasort($variants, function (mixed $a, mixed $b): int {
+            $orderA = is_array($a) ? ($a['display_order'] ?? 999) : 999;
+            $orderB = is_array($b) ? ($b['display_order'] ?? 999) : 999;
+
+            return $orderA <=> $orderB;
         });
 
         return array_keys($variants);
@@ -185,7 +207,7 @@ abstract class JsonConfigConstants
      */
     public static function getVariantSuffix(string $variant): string
     {
-        return static::getVariantMetadata($variant)['icon_suffix'] ?? '';
+        return self::variantString($variant, 'icon_suffix') ?? '';
     }
 
     /**
@@ -193,7 +215,7 @@ abstract class JsonConfigConstants
      */
     public static function getVariantPreviewIcon(string $variant): ?string
     {
-        return static::getVariantMetadata($variant)['preview_icon'] ?? null;
+        return self::variantString($variant, 'preview_icon');
     }
 
     /**
@@ -201,7 +223,7 @@ abstract class JsonConfigConstants
      */
     public static function getVariantColorScheme(string $variant): ?string
     {
-        return static::getVariantMetadata($variant)['color_scheme'] ?? null;
+        return self::variantString($variant, 'color_scheme');
     }
 
     /**
@@ -209,7 +231,7 @@ abstract class JsonConfigConstants
      */
     public static function getTitle(): string
     {
-        return static::config()['package']['title'] ?? static::getPackageName();
+        return self::optionalString(['package', 'title']) ?? static::getPackageName();
     }
 
     /**
@@ -217,7 +239,7 @@ abstract class JsonConfigConstants
      */
     public static function getDescription(): string
     {
-        return static::config()['package']['description'] ?? '';
+        return self::optionalString(['package', 'description']) ?? '';
     }
 
     /**
@@ -225,7 +247,7 @@ abstract class JsonConfigConstants
      */
     public static function getVersion(): string
     {
-        return static::config()['package']['version'] ?? '1.0.0';
+        return self::optionalString(['package', 'version']) ?? '1.0.0';
     }
 
     /**
@@ -233,7 +255,7 @@ abstract class JsonConfigConstants
      */
     public static function getLicense(): string
     {
-        return static::config()['package']['license'] ?? 'MIT';
+        return self::optionalString(['package', 'license']) ?? 'MIT';
     }
 
     /**
@@ -241,7 +263,7 @@ abstract class JsonConfigConstants
      */
     public static function getType(): string
     {
-        return static::config()['package']['type'] ?? 'single';
+        return self::optionalString(['package', 'type']) ?? 'single';
     }
 
     /**
@@ -259,7 +281,7 @@ abstract class JsonConfigConstants
      */
     public static function getHomepage(): string
     {
-        return static::config()['metadata']['homepage'] ?? '';
+        return self::optionalString(['metadata', 'homepage']) ?? '';
     }
 
     /**
@@ -273,7 +295,7 @@ abstract class JsonConfigConstants
      */
     public static function getRepository(): string
     {
-        return static::config()['metadata']['repository'] ?? '';
+        return self::optionalString(['metadata', 'repository']) ?? '';
     }
 
     /**
@@ -348,7 +370,7 @@ abstract class JsonConfigConstants
         $basePath = static::getFilesPath();
 
         foreach (static::getCategories() as $category) {
-            $paths[$category] = $basePath . DIRECTORY_SEPARATOR . $category;
+            $paths[(string) $category] = $basePath . DIRECTORY_SEPARATOR . $category;
         }
 
         return $paths;
@@ -365,7 +387,7 @@ abstract class JsonConfigConstants
         $basePath = static::getFilesPath();
 
         foreach (static::getVariants() as $variant) {
-            $paths[$variant] = $basePath . DIRECTORY_SEPARATOR . $variant;
+            $paths[(string) $variant] = $basePath . DIRECTORY_SEPARATOR . $variant;
         }
 
         return $paths;
@@ -376,7 +398,7 @@ abstract class JsonConfigConstants
      */
     public static function getDefaultClass(): string
     {
-        return static::config()['config']['defaults']['class'] ?? '';
+        return self::optionalString(['config', 'defaults', 'class']) ?? '';
     }
 
     /**
@@ -384,15 +406,19 @@ abstract class JsonConfigConstants
      */
     public static function getDefaultStrokeWidth(): int
     {
-        return static::config()['config']['defaults']['stroke_width'] ?? 2;
+        $strokeWidth = self::value(['config', 'defaults', 'stroke_width']);
+
+        return is_int($strokeWidth) ? $strokeWidth : 2;
     }
 
     /**
      * Get default attributes for icons
+     *
+     * @return array<array-key, mixed>
      */
     public static function getDefaultAttributes(): array
     {
-        return static::config()['config']['defaults']['attributes'] ?? [];
+        return self::arrayValue(['config', 'defaults', 'attributes']);
     }
 
     /**
@@ -421,10 +447,12 @@ abstract class JsonConfigConstants
      *   - cdn                { provider => "https://.../{version}/{name}.svg" }
      *   - update_command     { type, path, args[] } -- how to refresh assets
      *   - additional_sources [{ name, type, ... }] -- secondary trackers
+     *
+     * @return array<array-key, mixed>
      */
     public static function getUpstream(): array
     {
-        return static::config()['upstream'] ?? [];
+        return self::arrayValue(['upstream']);
     }
 
     /**
@@ -433,7 +461,9 @@ abstract class JsonConfigConstants
      */
     public static function getUpstreamCurrentVersion(): ?string
     {
-        return static::getUpstream()['current_version'] ?? null;
+        $version = static::getUpstream()['current_version'] ?? null;
+
+        return is_string($version) ? $version : null;
     }
 
     /**
@@ -443,7 +473,9 @@ abstract class JsonConfigConstants
      */
     public static function getUpstreamVersionCheckUrl(): ?string
     {
-        return static::getUpstream()['version_check_url'] ?? null;
+        $url = static::getUpstream()['version_check_url'] ?? null;
+
+        return is_string($url) ? $url : null;
     }
 
     /**
@@ -451,10 +483,14 @@ abstract class JsonConfigConstants
      *
      * Each template MAY contain `{version}`, `{codepoint}`, `{name}`,
      * `{variant}`, `{ratio}`, etc. placeholders that callers substitute.
+     *
+     * @return array<array-key, mixed>
      */
     public static function getUpstreamCdnUrls(): array
     {
-        return static::getUpstream()['cdn'] ?? [];
+        $cdn = static::getUpstream()['cdn'] ?? [];
+
+        return is_array($cdn) ? $cdn : [];
     }
 
     /**
@@ -476,7 +512,17 @@ abstract class JsonConfigConstants
     {
         $command = static::getUpstream()['update_command'] ?? null;
 
-        return is_array($command) ? $command : null;
+        if (! is_array($command)) {
+            return null;
+        }
+
+        $typed = [];
+
+        foreach ($command as $key => $value) {
+            $typed[(string) $key] = $value;
+        }
+
+        return $typed;
     }
 
     /**
@@ -490,11 +536,29 @@ abstract class JsonConfigConstants
     {
         $sources = static::getUpstream()['additional_sources'] ?? [];
 
-        return is_array($sources) ? array_values($sources) : [];
+        if (! is_array($sources)) {
+            return [];
+        }
+
+        $typed = [];
+
+        foreach ($sources as $source) {
+            $entry = [];
+
+            foreach (is_array($source) ? $source : [] as $key => $value) {
+                $entry[(string) $key] = $value;
+            }
+
+            $typed[] = $entry;
+        }
+
+        return $typed;
     }
 
     /**
      * Load and cache config data from config.json for the calling child class.
+     *
+     * @return array<array-key, mixed>
      */
     final protected static function config(): array
     {
@@ -515,4 +579,75 @@ abstract class JsonConfigConstants
      * @return string Absolute path to directory containing config.json
      */
     abstract protected static function getConfigPath(): string;
+
+    /**
+     * Walk a key path through the config, answering null for a missing or
+     * null node -- the same cases the old `?? default` reads treated as absent.
+     *
+     * @param list<string> $keys
+     */
+    private static function value(array $keys): mixed
+    {
+        $node = static::config();
+
+        foreach ($keys as $key) {
+            if (! is_array($node) || ! isset($node[$key])) {
+                return null;
+            }
+
+            $node = $node[$key];
+        }
+
+        return $node;
+    }
+
+    /**
+     * @param list<string> $keys
+     */
+    private static function optionalString(array $keys): ?string
+    {
+        $value = self::value($keys);
+
+        return is_string($value) ? $value : null;
+    }
+
+    /**
+     * A key every pack must declare. A missing or non-string value fails
+     * loudly, as the unguarded read it replaces did.
+     *
+     * @param list<string> $keys
+     */
+    private static function requiredString(array $keys): string
+    {
+        $value = self::value($keys);
+
+        if (! is_string($value)) {
+            throw new UnexpectedValueException(sprintf(
+                '%s: config.json must declare "%s" as a string.',
+                static::class,
+                implode('.', $keys),
+            ));
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param list<string> $keys
+     *
+     * @return array<array-key, mixed>
+     */
+    private static function arrayValue(array $keys): array
+    {
+        $value = self::value($keys);
+
+        return is_array($value) ? $value : [];
+    }
+
+    private static function variantString(string $variant, string $key): ?string
+    {
+        $value = static::getVariantMetadata($variant)[$key] ?? null;
+
+        return is_string($value) ? $value : null;
+    }
 }

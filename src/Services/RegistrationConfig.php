@@ -8,6 +8,7 @@ use Closure;
 use Throwable;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
 /**
  * Registration Configuration Builder
@@ -35,14 +36,17 @@ class RegistrationConfig
 
     protected ?string $version = null;
 
+    /** @var array<int, string> */
     protected array $variants = [];
 
+    /** @var array<int|string, mixed> */
     protected array $categories = [];
 
     protected ?string $providerClass = null;
 
     protected ?IconSetInterface $iconSet = null;
 
+    /** @var array<string, mixed> */
     protected array $metadata = [];
 
     // Callbacks
@@ -73,11 +77,11 @@ class RegistrationConfig
         $config = Helpers::loadConfigJson(dirname($path));
 
         $this->path = dirname($path) . '/files';
-        $this->prefix = $config['config']['icon_prefix'] ?? '';
-        $this->displayName = $config['package']['title'] ?? '';
-        $this->description = $config['package']['description'] ?? '';
-        $this->vendor = $config['config']['vendor'] ?? '';
-        $this->version = $config['package']['version'] ?? '';
+        $this->prefix = self::configString($config, 'config', 'icon_prefix');
+        $this->displayName = self::configString($config, 'package', 'title');
+        $this->description = self::configString($config, 'package', 'description');
+        $this->vendor = self::configString($config, 'config', 'vendor');
+        $this->version = self::configString($config, 'package', 'version');
 
         return $this;
     }
@@ -124,6 +128,9 @@ class RegistrationConfig
         return $this;
     }
 
+    /**
+     * @param array<int, string> $variants
+     */
     public function withVariants(array $variants): static
     {
         $this->variants = $variants;
@@ -131,6 +138,9 @@ class RegistrationConfig
         return $this;
     }
 
+    /**
+     * @param array<int|string, mixed> $categories
+     */
     public function withCategories(array $categories): static
     {
         $this->categories = $categories;
@@ -145,6 +155,9 @@ class RegistrationConfig
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $metadata
+     */
     public function withMetadata(array $metadata): static
     {
         $this->metadata = array_merge($this->metadata, $metadata);
@@ -203,10 +216,17 @@ class RegistrationConfig
         }
 
         try {
+            // Nothing to register without a directory. `setBasePath()` and
+            // `countIconsInDirectory()` take a string, so this used to surface
+            // as a TypeError, caught below like any other failure.
+            $path = $this->path ?? throw IchavaException::invalidConfiguration(
+                "no icon directory was given for '{$this->name}'",
+            );
+
             // Build icon set if not provided
             if ($this->iconSet === null) {
                 $this->iconSet = IconSetBuilder::make($this->name)
-                    ->setBasePath($this->path)
+                    ->setBasePath($path)
                     ->prefix($this->prefix ?? $this->name);
 
                 if (! empty($this->variants)) {
@@ -229,7 +249,7 @@ class RegistrationConfig
                 'icon_set_name'  => $this->name,
                 'provider_class' => $this->providerClass,
                 'prefix'         => $this->prefix ?? $this->name,
-                'total'          => $this->registry->countIconsInDirectory($this->path),
+                'total'          => $this->registry->countIconsInDirectory($path),
             ], $this->metadata);
 
             // Register
@@ -286,5 +306,18 @@ class RegistrationConfig
     public function getName(): string
     {
         return $this->name;
+    }
+
+    /**
+     * A string from one section of a parsed config.json, or '' when absent.
+     *
+     * @param array<string, mixed> $config
+     */
+    private static function configString(array $config, string $section, string $key): string
+    {
+        $values = $config[$section] ?? null;
+        $value = is_array($values) ? ($values[$key] ?? null) : null;
+
+        return is_string($value) ? $value : '';
     }
 }

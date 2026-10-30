@@ -58,14 +58,28 @@ final readonly class DiscoverInstalledPackages
 
             $packages[] = [
                 'name'        => $name,
-                'version'     => $package['version'] ?? 'unknown',
-                'description' => $package['description'] ?? '',
-                'homepage'    => $package['homepage'] ?? null,
-                'type'        => $package['type'] ?? 'library',
-                'time'        => $package['time'] ?? null,
+                'version'     => self::stringOr($package['version'] ?? null, 'unknown'),
+                'description' => self::stringOr($package['description'] ?? null, ''),
+                'homepage'    => self::stringOr($package['homepage'] ?? null, null),
+                'type'        => self::stringOr($package['type'] ?? null, 'library'),
+                'time'        => self::stringOr($package['time'] ?? null, null),
             ];
         }
 
         return $packages;
+    }
+
+    /**
+     * The lock's value when it is a string, the default otherwise.
+     *
+     * @template TDefault of string|null
+     *
+     * @param TDefault $default
+     *
+     * @return string|TDefault
+     */
+    private static function stringOr(mixed $value, ?string $default): ?string
+    {
+        return is_string($value) ? $value : $default;
     }
 }

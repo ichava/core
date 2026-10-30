@@ -43,6 +43,10 @@ final class IconRegistrationEvent
 
     public const MODE_PACKAGE = 'package';
 
+    /**
+     * @param array<string, mixed> $context
+     * @param array<string, mixed> $metadata
+     */
     private function __construct(
         public readonly string $action,
         public readonly string $registrarId,
@@ -283,7 +287,7 @@ final class IconRegistrationEvent
      */
     public function getTotalIconSets(): int
     {
-        return $this->metadata['total_icon_sets'] ?? 0;
+        return $this->intMetadata('total_icon_sets');
     }
 
     /**
@@ -291,7 +295,7 @@ final class IconRegistrationEvent
      */
     public function getMode(): string
     {
-        return $this->metadata['mode'] ?? '';
+        return $this->stringMetadata('mode');
     }
 
     /**
@@ -299,7 +303,7 @@ final class IconRegistrationEvent
      */
     public function getPosition(): int
     {
-        return $this->metadata['position'] ?? 0;
+        return $this->intMetadata('position');
     }
 
     /**
@@ -307,7 +311,7 @@ final class IconRegistrationEvent
      */
     public function getTotal(): int
     {
-        return $this->metadata['total'] ?? 0;
+        return $this->intMetadata('total');
     }
 
     /**
@@ -315,7 +319,7 @@ final class IconRegistrationEvent
      */
     public function getProgress(): float
     {
-        return $this->metadata['progress'] ?? 0.0;
+        return $this->floatMetadata('progress');
     }
 
     /**
@@ -323,7 +327,7 @@ final class IconRegistrationEvent
      */
     public function getDuration(): float
     {
-        return $this->metadata['duration'] ?? 0.0;
+        return $this->floatMetadata('duration');
     }
 
     /**
@@ -331,15 +335,21 @@ final class IconRegistrationEvent
      */
     public function getIconCount(): ?int
     {
-        return $this->metadata['icon_count'] ?? null;
+        $count = $this->metadata['icon_count'] ?? null;
+
+        return is_int($count) ? $count : null;
     }
 
     /**
      * Get statistics (for 'completed' events)
+     *
+     * @return array<array-key, mixed>
      */
     public function getStatistics(): array
     {
-        return $this->metadata['statistics'] ?? [];
+        $statistics = $this->metadata['statistics'] ?? [];
+
+        return is_array($statistics) ? $statistics : [];
     }
 
     /**
@@ -347,7 +357,7 @@ final class IconRegistrationEvent
      */
     public function wasSuccessful(): bool
     {
-        return $this->metadata['was_successful'] ?? false;
+        return ($this->metadata['was_successful'] ?? false) === true;
     }
 
     /**
@@ -355,7 +365,9 @@ final class IconRegistrationEvent
      */
     public function getException(): ?Throwable
     {
-        return $this->metadata['exception'] ?? null;
+        $exception = $this->metadata['exception'] ?? null;
+
+        return $exception instanceof Throwable ? $exception : null;
     }
 
     /**
@@ -363,7 +375,7 @@ final class IconRegistrationEvent
      */
     public function getErrorMessage(): string
     {
-        return $this->metadata['error_message'] ?? '';
+        return $this->stringMetadata('error_message');
     }
 
     /**
@@ -371,7 +383,7 @@ final class IconRegistrationEvent
      */
     public function getErrorType(): string
     {
-        return $this->metadata['error_type'] ?? '';
+        return $this->stringMetadata('error_type');
     }
 
     /**
@@ -392,6 +404,8 @@ final class IconRegistrationEvent
 
     /**
      * Convert event to array for logging
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
@@ -437,5 +451,35 @@ final class IconRegistrationEvent
         };
 
         return array_merge($base, $actionData);
+    }
+
+    /**
+     * An integer metadata entry, or 0 when it is absent or not an integer.
+     */
+    private function intMetadata(string $key): int
+    {
+        $value = $this->metadata[$key] ?? null;
+
+        return is_int($value) ? $value : 0;
+    }
+
+    /**
+     * A numeric metadata entry as a float, or 0.0 when it is absent or not a number.
+     */
+    private function floatMetadata(string $key): float
+    {
+        $value = $this->metadata[$key] ?? null;
+
+        return is_float($value) || is_int($value) ? (float) $value : 0.0;
+    }
+
+    /**
+     * A string metadata entry, or '' when it is absent or not a string.
+     */
+    private function stringMetadata(string $key): string
+    {
+        $value = $this->metadata[$key] ?? null;
+
+        return is_string($value) ? $value : '';
     }
 }

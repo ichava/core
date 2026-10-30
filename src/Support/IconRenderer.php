@@ -29,8 +29,10 @@ final class IconRenderer implements Htmlable
 
     private ?string $category = null;
 
+    /** @var array<array-key, string> */
     private array $classes = [];
 
+    /** @var array<string, mixed> */
     private array $attributes = [];
 
     private ?string $title = null;
@@ -120,7 +122,7 @@ final class IconRenderer implements Htmlable
      * HTML attributes rather than a variant string.
      *
      * @param string $name Icon identifier
-     * @param string|array|null $variantOrAttributes Variant string, or attributes array
+     * @param string|array<string, mixed>|null $variantOrAttributes Variant string, or attributes array
      * @param string|null $category Optional category
      */
     public function name(string $name, string|array|null $variantOrAttributes = null, ?string $category = null): static
@@ -140,7 +142,7 @@ final class IconRenderer implements Htmlable
     /**
      * Add CSS class(es) to the icon
      *
-     * @param string|array $classes Single class string or array of classes
+     * @param string|array<array-key, string> $classes Single class string or array of classes
      */
     public function class(string|array $classes): static
     {
@@ -400,12 +402,15 @@ final class IconRenderer implements Htmlable
 
     /**
      * Render icon in defer mode (using <use> reference)
+     *
+     * @param array<string, mixed> $attributes
      */
     private function renderDeferred(array $attributes): string
     {
         // Generate unique ID for this icon
         $iconPath = $this->pathResolver->parseIconPath($this->name);
-        $set = $iconPath->set ?? config('ichava.ichava-core.default_set');
+        $defaultSet = config('ichava.ichava-core.default_set');
+        $set = $iconPath->set ?? (is_string($defaultSet) ? $defaultSet : '');
         $iconId = $this->deferredRegistry->generateId($set, $iconPath->name, $this->variant ?? $iconPath->variant);
 
         // Register icon if not already registered
@@ -432,6 +437,8 @@ final class IconRenderer implements Htmlable
 
     /**
      * Build attributes array for rendering
+     *
+     * @return array<string, mixed>
      */
     private function buildAttributes(): array
     {
@@ -440,6 +447,7 @@ final class IconRenderer implements Htmlable
         // Add classes
         if (! empty($this->classes)) {
             $existingClass = $attributes['class'] ?? '';
+            $existingClass = is_scalar($existingClass) ? (string) $existingClass : '';
             $newClasses = implode(' ', array_filter($this->classes));
             $attributes['class'] = trim("{$existingClass} {$newClasses}");
         }

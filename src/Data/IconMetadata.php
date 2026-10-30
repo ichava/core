@@ -6,6 +6,9 @@ namespace Simtabi\Laranail\Ichava\Data;
 
 final readonly class IconMetadata
 {
+    /**
+     * @param array<array-key, mixed> $tags
+     */
     public function __construct(
         public ?string $title = null,
         public ?string $description = null,

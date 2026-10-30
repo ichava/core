@@ -64,6 +64,8 @@ class IconTermsSeeder extends Seeder
 
     /**
      * Seed terms for a single package (used by IchavaSeeder)
+     *
+     * @param array<string, mixed> $packageData
      */
     public function seedSinglePackage(string $packageName, array $packageData): void
     {
@@ -101,10 +103,12 @@ class IconTermsSeeder extends Seeder
 
     /**
      * Seed categories for a specific package by scanning filesystem
+     *
+     * @param array<string, mixed> $packageData
      */
     protected function seedPackageCategories(string $packageName, array $packageData): void
     {
-        $basePath = $packageData['base_path'] ?? $packageData['path'] ?? null;
+        $basePath = $this->basePathOf($packageData);
 
         if (! $basePath || ! File::isDirectory($basePath)) {
             $this->output(__('ichava/ichava-core::commands.seeder.terms.base_path_missing', ['path' => $basePath]), 'warning');
@@ -136,10 +140,12 @@ class IconTermsSeeder extends Seeder
 
     /**
      * Seed variants for a specific package from config.json
+     *
+     * @param array<string, mixed> $packageData
      */
     protected function seedPackageVariants(string $packageName, array $packageData): void
     {
-        $basePath = $packageData['base_path'] ?? $packageData['path'] ?? null;
+        $basePath = $this->basePathOf($packageData);
 
         if (! $basePath) {
             return;
@@ -152,17 +158,21 @@ class IconTermsSeeder extends Seeder
         }
 
         $config = json_decode(File::get($configPath), true);
-        $variants = $config['metadata']['data']['variants'] ?? [];
+        $metadata = is_array($config) ? ($config['metadata'] ?? null) : null;
+        $data = is_array($metadata) ? ($metadata['data'] ?? null) : null;
+        $variants = is_array($data) ? ($data['variants'] ?? []) : [];
 
-        if (empty($variants)) {
+        if (empty($variants) || ! is_array($variants)) {
             return;
         }
 
         // Convert variants to seeder format
         $variantTerms = [];
         foreach ($variants as $variantSlug => $variantData) {
+            $variantData = is_array($variantData) ? $variantData : [];
+
             $variantTerms[] = [
-                'name'        => $variantData['name'] ?? ucwords(str_replace(['-', '_'], ' ', $variantSlug)),
+                'name'        => $variantData['name'] ?? ucwords(str_replace(['-', '_'], ' ', (string) $variantSlug)),
                 'slug'        => $variantSlug,
                 'description' => $variantData['description'] ?? null,
             ];
@@ -175,6 +185,8 @@ class IconTermsSeeder extends Seeder
 
     /**
      * Recursively scan folder structure and build category hierarchy
+     *
+     * @return list<array<string, mixed>>
      */
     protected function scanFolderStructure(
         string $basePath,
@@ -190,6 +202,10 @@ class IconTermsSeeder extends Seeder
         $directories = File::directories($basePath);
 
         foreach ($directories as $dir) {
+            if (! is_string($dir)) {
+                continue;
+            }
+
             $folderName = basename($dir);
 
             // Skip common non-icon directories
@@ -272,13 +288,15 @@ class IconTermsSeeder extends Seeder
 
     /**
      * Count total categories including nested
+     *
+     * @param array<array-key, mixed> $categories
      */
     protected function countCategories(array $categories): int
     {
         $count = count($categories);
 
         foreach ($categories as $category) {
-            if (! empty($category['children'])) {
+            if (is_array($category) && ! empty($category['children']) && is_array($category['children'])) {
                 $count += $this->countCategories($category['children']);
             }
         }
@@ -290,16 +308,20 @@ class IconTermsSeeder extends Seeder
      * Insert terms (supports unlimited nesting).
      *
      * @param string $type category, variant, etc.
-     * @param array $items nested term definitions
+     * @param array<array-key, mixed> $items nested term definitions
      * @param int|null $parentId parent term id
      * @param string $package vendor/package name
      */
     protected function insertTerms(string $type, array $items, ?int $parentId, string $package): void
     {
         foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
             $name = $item['name'];
-            $slug = $item['slug'] ?? Str::slug($name);
-            $description = $item['description'] ?? null;
+            $slug = $item['slug'] ?? (is_string($name) ? Str::slug($name) : null);
+            $description = isset($item['description']) && is_string($item['description']) ? $item['description'] : null;
 
             /** @var IconTerm $term */
             $term = IconTerm::firstOrNew(
@@ -337,5 +359,17 @@ class IconTermsSeeder extends Seeder
                 $this->insertTerms($type, $item['children'], $term->id, $package);
             }
         }
+    }
+
+    /**
+     * The package's base path from its registry entry, or null when it has none.
+     *
+     * @param array<string, mixed> $packageData
+     */
+    private function basePathOf(array $packageData): ?string
+    {
+        $basePath = $packageData['base_path'] ?? $packageData['path'] ?? null;
+
+        return is_string($basePath) ? $basePath : null;
     }
 }

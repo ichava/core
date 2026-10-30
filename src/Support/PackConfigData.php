@@ -51,7 +51,9 @@ final class PackConfigData
      */
     private static function section(array $config, string $key): array
     {
-        $documented = $config['metadata']['data'][$key] ?? null;
+        $metadata = $config['metadata'] ?? null;
+        $data = is_array($metadata) ? ($metadata['data'] ?? null) : null;
+        $documented = is_array($data) ? ($data[$key] ?? null) : null;
 
         if (is_array($documented) && $documented !== []) {
             return $documented;

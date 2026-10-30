@@ -67,6 +67,8 @@ class DatabaseOperationsService
 
     /**
      * Get list of missing tables
+     *
+     * @return list<string>
      */
     public function getMissingTables(): array
     {
@@ -98,6 +100,8 @@ class DatabaseOperationsService
 
     /**
      * Drop all Ichava tables (preserves other application tables)
+     *
+     * @return list<string>
      */
     public function dropTables(): array
     {
@@ -164,6 +168,8 @@ class DatabaseOperationsService
 
     /**
      * Fresh migration: drop tables and re-run migrations
+     *
+     * @return array{dropped_tables: list<string>, forgotten: list<string>, migration_exit_code: int, success: bool}
      */
     public function freshMigration(): array
     {
@@ -189,6 +195,8 @@ class DatabaseOperationsService
 
     /**
      * Truncate all Ichava tables (keeps structure, removes data)
+     *
+     * @return list<string>
      */
     public function truncateTables(): array
     {
@@ -215,6 +223,8 @@ class DatabaseOperationsService
 
     /**
      * Remove all data for a specific package
+     *
+     * @return array<string, mixed>
      */
     public function unseedPackage(string $packageName): array
     {
@@ -261,6 +271,8 @@ class DatabaseOperationsService
 
     /**
      * Remove all Ichava data (unseed all packages)
+     *
+     * @return array<string, mixed>
      */
     public function unseedAll(): array
     {
@@ -304,7 +316,7 @@ class DatabaseOperationsService
         $iconMorphClass = (new Icon)->getMorphClass();
 
         // Find terms that have no icons attached
-        $orphanedTermIds = IconTerm::whereNotExists(function ($query) use ($iconMorphClass) {
+        $orphanedTermIds = IconTerm::whereNotExists(function (\Illuminate\Database\Query\Builder $query) use ($iconMorphClass): void {
             $query->select(DB::raw(1))
                 ->from('ichava_icon_termables')
                 ->whereColumn('ichava_icon_termables.term_id', 'ichava_icon_terms.id')
@@ -317,6 +329,7 @@ class DatabaseOperationsService
 
         // Delete orphaned terms (cascade will handle children)
         $deleted = IconTerm::whereIn('id', $orphanedTermIds)->delete();
+        $deleted = is_int($deleted) ? $deleted : 0;
 
         $this->logger->info("Cleaned up {$deleted} orphaned terms");
 
@@ -339,6 +352,8 @@ class DatabaseOperationsService
 
     /**
      * Get database statistics
+     *
+     * @return array<string, mixed>
      */
     public function getStatistics(): array
     {
@@ -368,6 +383,8 @@ class DatabaseOperationsService
 
     /**
      * Get per-package statistics
+     *
+     * @return array<array-key, mixed> package name => icon count
      */
     public function getPackageStatistics(): array
     {
@@ -375,7 +392,7 @@ class DatabaseOperationsService
             ->groupBy('package')
             ->orderByDesc('count')
             ->get()
-            ->mapWithKeys(fn (Icon $row) => [$row->package => (int) $row->getAttribute('count')])
+            ->mapWithKeys(fn (Icon $row): array => [$row->package => is_numeric($count = $row->getAttribute('count')) ? (int) $count : 0])
             ->toArray();
     }
 
@@ -414,7 +431,12 @@ class DatabaseOperationsService
         $forgotten = [];
 
         foreach (File::glob($path . '/*.php') as $file) {
+            if (! is_string($file)) {
+                continue;
+            }
+
             $migration = basename($file, '.php');
+
             $repository->delete((object) ['migration' => $migration]);
             $forgotten[] = $migration;
         }

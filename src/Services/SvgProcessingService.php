@@ -189,10 +189,10 @@ final class SvgProcessingService
             if ($key === 'class') {
                 // Merge class attributes
                 $existing = $dom->documentElement->getAttribute('class');
-                $merged = $this->mergeClasses($existing, (string) $value);
+                $merged = $this->mergeClasses($existing, $this->stringifyAttribute($value));
                 $dom->documentElement->setAttribute('class', $merged);
             } else {
-                $dom->documentElement->setAttribute($key, (string) $value);
+                $dom->documentElement->setAttribute($key, $this->stringifyAttribute($value));
             }
         }
 
@@ -207,7 +207,7 @@ final class SvgProcessingService
      * the allow-list. `class` passes through for merging; everything else
      * must clear the same gate the file-content sanitizer enforces.
      *
-     * @param array<string, mixed> $attributes
+     * @param array<array-key, mixed> $attributes
      *
      * @return array<string, mixed>
      */
@@ -222,7 +222,7 @@ final class SvgProcessingService
 
             $actual = (string) $key;
             $name = mb_strtolower($actual);
-            $stringValue = (string) $value;
+            $stringValue = $this->stringifyAttribute($value);
 
             if ($name === 'class') {
                 $filtered[$actual] = $value;
