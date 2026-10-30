@@ -7,10 +7,13 @@ namespace Simtabi\Laranail\Ichava\Providers;
 use Illuminate\Support\Str;
 use Laravel\Horizon\Horizon;
 use Simtabi\Laranail\Ichava\Ichava;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Blade;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Illuminate\Console\Scheduling\Schedule;
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Package\Tools\Package;
+use Illuminate\Contracts\Container\Container;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Simtabi\Laranail\Ichava\Support\AuditLogger;
 use Simtabi\Laranail\DbTools\Query\PortableQuery;
@@ -48,6 +51,7 @@ use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
 use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
 use Simtabi\Laranail\Ichava\Commands\CheckIconUpdatesCommand;
 use Simtabi\Laranail\Ichava\Commands\CleanupIchavaLogsCommand;
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
 use Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator;
 use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
@@ -180,15 +184,15 @@ class IchavaServiceProvider extends PackageServiceProvider
         $this->app->singleton(IconPackUpdateChecker::class);
 
         // Manifest service
-        $this->app->singleton(IconsManifest::class, function ($app) {
+        $this->app->singleton(IconsManifest::class, function (Container $app) {
             $pathResolver = $app->make(PathResolver::class);
             $manifestPath = $pathResolver->getManifestPathFromConfig();
 
-            return new IconsManifest($app['files'], $manifestPath);
+            return new IconsManifest($app->make(Filesystem::class), $manifestPath);
         });
 
         // Register Ichava facade backing class
-        $this->app->singleton(Ichava::class, function ($app) {
+        $this->app->singleton(Ichava::class, function (Container $app) {
             return new Ichava(
                 $app->make(IconRegistry::class),
                 $app->make(IconBrowserService::class),
@@ -334,12 +338,12 @@ class IchavaServiceProvider extends PackageServiceProvider
         return [
             'Packages' => (string) count($packages),
             'Icons'    => (string) array_sum(array_map(
-                static fn (array $meta): int => (int) ($meta['total'] ?? 0),
+                static fn (array $meta): int => Coerce::int($meta['total'] ?? 0),
                 $packages,
             )),
-            'Cache driver'  => (string) config('cache.default'),
-            'Cache version' => (string) config('ichava.ichava-core.cache.version', '1'),
-            'Queue'         => (string) config('ichava.ichava-core.database.queue', 'ichava-icons'),
+            'Cache driver'  => Coerce::string(config('cache.default')),
+            'Cache version' => Coerce::string(config('ichava.ichava-core.cache.version', '1')),
+            'Queue'         => Coerce::string(config('ichava.ichava-core.database.queue', 'ichava-icons')),
         ];
     }
 
@@ -353,42 +357,43 @@ class IchavaServiceProvider extends PackageServiceProvider
      */
     protected function registerLogChannels(): void
     {
-        $retentionDays = (int) env('ICHAVA_LOG_RETENTION_DAYS', 7);
+        $retentionDays = Coerce::int(self::readEnv('ICHAVA_LOG_RETENTION_DAYS', 7));
+        $config = $this->app->make(ConfigRepository::class);
 
         // General ichava logs (info level to capture registration, warnings, errors)
-        $this->app['config']->set('logging.channels.ichava', [
+        $config->set('logging.channels.ichava', [
             'driver'     => 'daily',
             'path'       => storage_path('logs/ichava.log'),
-            'level'      => env('ICHAVA_LOG_LEVEL', 'info'),
+            'level'      => self::readEnv('ICHAVA_LOG_LEVEL', 'info'),
             'days'       => $retentionDays,
             'permission' => 0644,
         ]);
 
         // Icon seeding logs
-        $this->app['config']->set('logging.channels.ichava-icons', [
+        $config->set('logging.channels.ichava-icons', [
             'driver'     => 'daily',
             'path'       => storage_path('logs/ichava-icons.log'),
-            'level'      => env('ICHAVA_SEEDING_LOG_LEVEL', 'info'),
+            'level'      => self::readEnv('ICHAVA_SEEDING_LOG_LEVEL', 'info'),
             'days'       => $retentionDays,
             'permission' => 0644,
         ]);
 
         // Queue job logs
-        $this->app['config']->set('logging.channels.ichava-queue', [
+        $config->set('logging.channels.ichava-queue', [
             'driver'     => 'daily',
             'path'       => storage_path('logs/ichava-queue.log'),
-            'level'      => env('ICHAVA_QUEUE_LOG_LEVEL', 'info'),
+            'level'      => self::readEnv('ICHAVA_QUEUE_LOG_LEVEL', 'info'),
             'days'       => $retentionDays,
             'permission' => 0644,
         ]);
 
         // Security audit logs (separate channel so SIEM forwarders can scope
         // their tail without seeing operational noise from ichava.log).
-        $this->app['config']->set('logging.channels.ichava-audit', [
+        $config->set('logging.channels.ichava-audit', [
             'driver'     => 'daily',
             'path'       => storage_path('logs/ichava-audit.log'),
-            'level'      => env('ICHAVA_AUDIT_LOG_LEVEL', 'info'),
-            'days'       => (int) env('ICHAVA_AUDIT_LOG_RETENTION_DAYS', 90),
+            'level'      => self::readEnv('ICHAVA_AUDIT_LOG_LEVEL', 'info'),
+            'days'       => Coerce::int(self::readEnv('ICHAVA_AUDIT_LOG_RETENTION_DAYS', 90)),
             'permission' => 0640,
         ]);
     }
@@ -407,8 +412,8 @@ class IchavaServiceProvider extends PackageServiceProvider
             return;
         }
 
-        $this->callAfterResolving(Schedule::class, function ($schedule) {
-            $cleanupTime = config('ichava.ichava-core.logging.cleanup_time', '03:00');
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
+            $cleanupTime = Coerce::string(config('ichava.ichava-core.logging.cleanup_time', '03:00'));
 
             $schedule->command('ichava::ichava-core.cleanup-logs')
                 ->daily()
@@ -438,8 +443,8 @@ class IchavaServiceProvider extends PackageServiceProvider
             return;
         }
 
-        $this->callAfterResolving(Schedule::class, function ($schedule) {
-            $interval = config('ichava.ichava-core.database.sync_interval', 60);
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
+            $interval = Coerce::int(config('ichava.ichava-core.database.sync_interval', 60));
 
             $schedule->command('ichava::ichava-core.watch')
                 ->everyMinute()
@@ -478,9 +483,21 @@ class IchavaServiceProvider extends PackageServiceProvider
     {
         $customIconsConfig = config('ichava.ichava-core.custom-icons.sets', []);
 
-        if (blank($customIconsConfig)) {
+        if (! is_array($customIconsConfig) || blank($customIconsConfig)) {
             return;
         }
+
+        // Each entry is a path string or an array carrying a 'path' key, as
+        // registerFromConfig() reads it; anything else is not a set.
+        $sets = [];
+        foreach ($customIconsConfig as $key => $set) {
+            if (is_string($set)) {
+                $sets[$key] = $set;
+            } elseif (is_array($set)) {
+                $sets[$key] = array_filter($set, is_string(...), ARRAY_FILTER_USE_KEY);
+            }
+        }
+        $customIconsConfig = $sets;
 
         $this->app->booted(function () use ($customIconsConfig) {
             $manager = $this->app->make(IconRegistry::class);
@@ -508,16 +525,16 @@ class IchavaServiceProvider extends PackageServiceProvider
         // Build supervisor configuration with sensible defaults
         // These can be overridden via environment variables
         $supervisorConfig = [
-            'connection'          => env('ICHAVA_HORIZON_CONNECTION', 'redis'),
-            'queue'               => [env('ICHAVA_QUEUE_NAME', 'ichava-icons')],
-            'balance'             => env('ICHAVA_HORIZON_BALANCE', 'simple'),
+            'connection'          => self::readEnv('ICHAVA_HORIZON_CONNECTION', 'redis'),
+            'queue'               => [self::readEnv('ICHAVA_QUEUE_NAME', 'ichava-icons')],
+            'balance'             => self::readEnv('ICHAVA_HORIZON_BALANCE', 'simple'),
             'autoScalingStrategy' => 'time',
-            'maxProcesses'        => (int) env('ICHAVA_HORIZON_MAX_PROCESSES', 3),
+            'maxProcesses'        => Coerce::int(self::readEnv('ICHAVA_HORIZON_MAX_PROCESSES', 3)),
             'maxTime'             => 0,
             'maxJobs'             => 0,
-            'memory'              => (int) env('ICHAVA_HORIZON_MEMORY', 256),
-            'tries'               => (int) env('ICHAVA_QUEUE_RETRIES', 3),
-            'timeout'             => (int) env('ICHAVA_QUEUE_TIMEOUT', 600),
+            'memory'              => Coerce::int(self::readEnv('ICHAVA_HORIZON_MEMORY', 256)),
+            'tries'               => Coerce::int(self::readEnv('ICHAVA_QUEUE_RETRIES', 3)),
+            'timeout'             => Coerce::int(self::readEnv('ICHAVA_QUEUE_TIMEOUT', 600)),
             'nice'                => 0,
         ];
 
@@ -534,7 +551,7 @@ class IchavaServiceProvider extends PackageServiceProvider
             // Add to current environment with appropriate maxProcesses
             $envMaxProcesses = $environment === 'production' ? 5 : 3;
             config(["horizon.environments.{$environment}.supervisor-ichava" => [
-                'maxProcesses' => (int) env('ICHAVA_HORIZON_MAX_PROCESSES', $envMaxProcesses),
+                'maxProcesses' => Coerce::int(self::readEnv('ICHAVA_HORIZON_MAX_PROCESSES', $envMaxProcesses)),
             ]]);
         });
     }
@@ -552,8 +569,8 @@ class IchavaServiceProvider extends PackageServiceProvider
     protected function configureRuntimeSettings(): void
     {
         // Get configured values with sensible defaults
-        $memoryLimit = config('ichava.ichava-core.runtime.memory_limit', '1G');
-        $maxExecutionTime = (int) config('ichava.ichava-core.runtime.max_execution_time', 0);
+        $memoryLimit = Coerce::string(config('ichava.ichava-core.runtime.memory_limit', '1G'));
+        $maxExecutionTime = Coerce::int(config('ichava.ichava-core.runtime.max_execution_time', 0));
         $disableTelescopeInQueue = config('ichava.ichava-core.runtime.disable_telescope_in_queue', true);
 
         // Build runtime configurator with settings from config
@@ -580,9 +597,27 @@ class IchavaServiceProvider extends PackageServiceProvider
         }
 
         $argv = $_SERVER['argv'] ?? [];
-        $isQueueCommand = collect($argv)->contains(fn ($arg) => Str::contains($arg, 'queue:'));
-        $isIchavaQueue = collect($argv)->contains(fn ($arg) => Str::contains($arg, 'ichava'));
+        $argv = is_array($argv) ? array_map(Coerce::string(...), $argv) : [];
+        $isQueueCommand = collect($argv)->contains(fn (string $arg) => Str::contains($arg, 'queue:'));
+        $isIchavaQueue = collect($argv)->contains(fn (string $arg) => Str::contains($arg, 'ichava'));
 
         return $isQueueCommand && $isIchavaQueue;
+    }
+
+    /**
+     * An environment variable, read while the provider registers.
+     *
+     * These ICHAVA_* values are read here rather than through config/ because
+     * their defaults differ from the matching config/ichava-core.php keys
+     * (log level `info` here, `warning` there; Horizon maxProcesses 3 here, 25
+     * there), so routing them through config() would change what an
+     * application that sets neither gets. That move is a decision of its own.
+     * Until then every read goes through this one method, so the larastan rule
+     * is waived at one place rather than at each call.
+     */
+    private static function readEnv(string $key, mixed $default = null): mixed
+    {
+        // @phpstan-ignore larastan.noEnvCallsOutsideOfConfig (behaviour-preserving: see the docblock above)
+        return env($key, $default);
     }
 }

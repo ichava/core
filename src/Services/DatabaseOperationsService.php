@@ -53,6 +53,10 @@ class DatabaseOperationsService
 
     /**
      * Check if all required Ichava tables exist
+     *
+     * Reads the live schema, so two calls either side of a migration differ.
+     *
+     * @phpstan-impure
      */
     public function tablesExist(): bool
     {

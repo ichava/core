@@ -10,6 +10,7 @@ use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
 use function Laravel\Prompts\warning;
 
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Ichava\Services\IconWatcherService;
@@ -48,12 +49,12 @@ class WatchIconFilesCommand extends BaseCommand
         MetricTable::make()
             ->headers(value: __('ichava/ichava-core::commands.watch.count'))
             ->metrics([
-                __('ichava/ichava-core::commands.watch.packages_scanned') => (int) $stats['packages_scanned'],
-                __('ichava/ichava-core::commands.watch.new_icons')        => (int) $stats['new_icons'],
-                __('ichava/ichava-core::commands.watch.updated_icons')    => (int) $stats['updated_icons'],
-                __('ichava/ichava-core::commands.watch.deleted_icons')    => (int) $stats['deleted_icons'],
-                __('ichava/ichava-core::commands.watch.total_changes')    => (int) $stats['total_changes'],
-                __('ichava/ichava-core::commands.watch.duration')         => TimeFormat::fromMillis((float) $stats['duration_ms']),
+                __('ichava/ichava-core::commands.watch.packages_scanned') => Coerce::int($stats['packages_scanned']),
+                __('ichava/ichava-core::commands.watch.new_icons')        => Coerce::int($stats['new_icons']),
+                __('ichava/ichava-core::commands.watch.updated_icons')    => Coerce::int($stats['updated_icons']),
+                __('ichava/ichava-core::commands.watch.deleted_icons')    => Coerce::int($stats['deleted_icons']),
+                __('ichava/ichava-core::commands.watch.total_changes')    => Coerce::int($stats['total_changes']),
+                __('ichava/ichava-core::commands.watch.duration')         => TimeFormat::fromMillis(Coerce::float($stats['duration_ms'])),
             ])
             ->render($this->output);
 

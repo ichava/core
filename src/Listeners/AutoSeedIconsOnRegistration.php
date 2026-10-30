@@ -9,6 +9,7 @@ use Throwable;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
@@ -67,7 +68,8 @@ class AutoSeedIconsOnRegistration
             return;
         }
 
-        $packageName = $event->metadata['package_name'] ?? $event->name;
+        $metadataName = $event->metadata['package_name'] ?? null;
+        $packageName = is_string($metadataName) ? $metadataName : $event->name;
 
         // Skip if package already has icons in database (prevents duplicate seeding)
         if ($this->packageHasIcons($packageName)) {
@@ -83,8 +85,8 @@ class AutoSeedIconsOnRegistration
             return;
         }
 
-        $useQueue = config('ichava.ichava-core.database.use_queue', true);
-        $chunkSize = (int) config('ichava.ichava-core.database.batch_size', IchavaSeeder::DEFAULT_CHUNK_SIZE);
+        $useQueue = (bool) config('ichava.ichava-core.database.use_queue', true);
+        $chunkSize = Coerce::int(config('ichava.ichava-core.database.batch_size', IchavaSeeder::DEFAULT_CHUNK_SIZE));
 
         $this->logger->info("Auto-seeding package: {$packageName}", [
             'method'     => $useQueue ? 'queue' : 'sync',
@@ -157,7 +159,7 @@ class AutoSeedIconsOnRegistration
             // Try fallback from registry data
             $packages = $this->registry->all();
 
-            return $packages[$packageName]['base_path'] ?? null;
+            return Coerce::stringOrNull($packages[$packageName]['base_path'] ?? null);
         }
     }
 
@@ -234,7 +236,7 @@ class AutoSeedIconsOnRegistration
      */
     protected function logMigrationsWarningOnce(string $packageName): void
     {
-        $ttl = (int) config('ichava.ichava-core.logging.deduplication_ttl', 300);
+        $ttl = Coerce::int(config('ichava.ichava-core.logging.deduplication_ttl', 300));
         $cacheKey = "ichava:migration-warning:{$packageName}";
         $shouldLog = true;
 
@@ -269,7 +271,7 @@ class AutoSeedIconsOnRegistration
         }
 
         $argv = $_SERVER['argv'] ?? [];
-        $command = implode(' ', $argv);
+        $command = implode(' ', is_array($argv) ? array_map(Coerce::string(...), $argv) : []);
 
         // Check for database commands where explicit seeding is expected
         return Str::contains($command, 'migrate')

@@ -13,6 +13,7 @@ use function Laravel\Prompts\table;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\confirm;
 
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Console\Tools\Support\FileSize;
@@ -47,6 +48,9 @@ final class CacheCommand extends BaseCommand
 
     protected $description = 'Manage Ichava icon caches (clear, rebuild, manifest, stats)';
 
+    /**
+     * @var list<string>
+     */
     protected array $validActions = ['clear', 'rebuild', 'refresh', 'generate', 'manifest', 'stats'];
 
     public function __construct(
@@ -58,7 +62,7 @@ final class CacheCommand extends BaseCommand
 
     public function handle(): int
     {
-        $action = $this->argument('action');
+        $action = Coerce::string($this->argument('action'));
 
         // If no action provided, prompt user to select
         if (empty($action)) {
@@ -84,7 +88,7 @@ final class CacheCommand extends BaseCommand
             'generate' => $this->handleGenerate(),
             'manifest' => $this->handleManifest(),
             'stats'    => $this->handleStats(),
-            default    => $this->handleInvalidAction($action, $this->validActions),
+            default    => $this->handleInvalidAction((string) $action, $this->validActions),
         };
     }
 
@@ -93,7 +97,7 @@ final class CacheCommand extends BaseCommand
      */
     protected function handleClear(): int
     {
-        $package = $this->option('package');
+        $package = Coerce::stringOrNull($this->option('package'));
 
         intro(__('ichava/ichava-core::commands.cache.clear.intro'));
 
@@ -189,7 +193,7 @@ final class CacheCommand extends BaseCommand
 
         return $this->tryExecute(function () {
             spin(
-                callback: fn () => $this->cacheService->generateProductionCache($this->option('path')),
+                callback: fn () => $this->cacheService->generateProductionCache(Coerce::stringOrNull($this->option('path'))),
                 message: __('ichava/ichava-core::commands.cache.generate.generating'),
             );
 
@@ -206,7 +210,7 @@ final class CacheCommand extends BaseCommand
      */
     protected function handleManifest(): int
     {
-        $path = $this->option('path');
+        $path = Coerce::stringOrNull($this->option('path'));
 
         intro(__('ichava/ichava-core::commands.cache.manifest.intro'));
 
@@ -244,14 +248,14 @@ final class CacheCommand extends BaseCommand
 
             MetricTable::make()
                 ->metrics([
-                    __('ichava/ichava-core::commands.cache.metric.packages')    => (int) $result['packages'],
-                    __('ichava/ichava-core::commands.cache.metric.total_icons') => (int) $result['total_icons'],
-                    __('ichava/ichava-core::commands.cache.metric.file_size')   => FileSize::format((int) $result['file_size']),
-                    __('ichava/ichava-core::commands.cache.metric.build_time')  => TimeFormat::fromMillis((float) $result['build_time_ms']),
+                    __('ichava/ichava-core::commands.cache.metric.packages')    => Coerce::int($result['packages']),
+                    __('ichava/ichava-core::commands.cache.metric.total_icons') => Coerce::int($result['total_icons']),
+                    __('ichava/ichava-core::commands.cache.metric.file_size')   => FileSize::format(Coerce::int($result['file_size'])),
+                    __('ichava/ichava-core::commands.cache.metric.build_time')  => TimeFormat::fromMillis(Coerce::float($result['build_time_ms'])),
                 ])
                 ->render($this->output);
 
-            note(__('ichava/ichava-core::commands.cache.manifest.saved', ['path' => $result['path']]));
+            note(__('ichava/ichava-core::commands.cache.manifest.saved', ['path' => Coerce::string($result['path'])]));
             note(__('ichava/ichava-core::commands.cache.manifest.deploy_tip', ['command' => $this->getName()]));
 
             outro(__('ichava/ichava-core::commands.cache.manifest.done'));
@@ -282,15 +286,17 @@ final class CacheCommand extends BaseCommand
             message: __('ichava/ichava-core::commands.cache.stats.gathering'),
         );
 
+        $cached = is_array($stats['stats'] ?? null) ? $stats['stats'] : [];
+
         $yes = __('ichava/ichava-core::commands.common.yes');
         $no = __('ichava/ichava-core::commands.common.no');
 
         MetricTable::make()
             ->metrics([
-                __('ichava/ichava-core::commands.cache.metric.driver')            => (string) $stats['driver'],
-                __('ichava/ichava-core::commands.cache.metric.cached_packages')   => (int) ($stats['stats']['packages'] ?? 0),
-                __('ichava/ichava-core::commands.cache.metric.cached_categories') => (int) ($stats['stats']['categories'] ?? 0),
-                __('ichava/ichava-core::commands.cache.metric.total_keys')        => (int) ($stats['stats']['total_keys'] ?? 0),
+                __('ichava/ichava-core::commands.cache.metric.driver')            => Coerce::string($stats['driver']),
+                __('ichava/ichava-core::commands.cache.metric.cached_packages')   => Coerce::int($cached['packages'] ?? 0),
+                __('ichava/ichava-core::commands.cache.metric.cached_categories') => Coerce::int($cached['categories'] ?? 0),
+                __('ichava/ichava-core::commands.cache.metric.total_keys')        => Coerce::int($cached['total_keys'] ?? 0),
                 __('ichava/ichava-core::commands.cache.metric.manifest_exists')   => StatusBadge::of((bool) $stats['manifest_exists'])
                     ->label($stats['manifest_exists'] ? $yes : $no)
                     ->render(),

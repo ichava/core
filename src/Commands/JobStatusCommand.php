@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Commands;
 
 use Carbon\Carbon;
+use DateTimeInterface;
 
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\spin;
@@ -14,6 +15,7 @@ use function Laravel\Prompts\table;
 use function Laravel\Prompts\warning;
 
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Console\Tools\Widgets\Gauge;
 use Simtabi\Laranail\Console\Tools\Support\Status;
@@ -43,11 +45,11 @@ class JobStatusCommand extends BaseCommand
 
     public function handle(): int
     {
-        if ($clearPackage = $this->option('clear')) {
+        if ($clearPackage = Coerce::string($this->option('clear'))) {
             return $this->clearProgress($clearPackage);
         }
 
-        $package = $this->argument('package');
+        $package = Coerce::string($this->argument('package'));
 
         if ($package) {
             return $this->displaySinglePackage($package);
@@ -147,11 +149,11 @@ class JobStatusCommand extends BaseCommand
                 return null;
             }
 
-            $status = $progress['status'] ?? 'unknown';
+            $status = Coerce::string($progress['status'] ?? 'unknown');
             $progressPercent = $progress['progress_percent'] ?? 0;
-            $processed = $progress['processed'] ?? 0;
-            $total = $progress['total'] ?? 0;
-            $updatedAt = isset($progress['updated_at']) ? Carbon::parse($progress['updated_at'])->diffForHumans() : '-';
+            $processed = Coerce::string($progress['processed'] ?? 0);
+            $total = Coerce::string($progress['total'] ?? 0);
+            $updatedAt = isset($progress['updated_at']) ? Carbon::parse(self::moment($progress['updated_at']))->diffForHumans() : '-';
 
             match ($status) {
                 'processing' => $activeJobs++,
@@ -163,11 +165,11 @@ class JobStatusCommand extends BaseCommand
             return [
                 $packageName,
                 $this->formatStatus($status),
-                Gauge::make((float) $progressPercent)->width(10)->status($this->statusOf($status))->render(),
+                Gauge::make(Coerce::float($progressPercent))->width(10)->status($this->statusOf($status))->render(),
                 "{$processed}/{$total}",
                 $updatedAt,
             ];
-        })->filter()->values()->toArray();
+        })->filter()->values()->all();
 
         if (empty($rows)) {
             warning(__('ichava/ichava-core::commands.job_status.no_progress'));
@@ -213,10 +215,12 @@ class JobStatusCommand extends BaseCommand
 
     /**
      * Display detailed progress data
+     *
+     * @param array<string, mixed> $progress
      */
     protected function displayProgressData(string $packageName, array $progress): void
     {
-        $status = $progress['status'] ?? 'unknown';
+        $status = Coerce::string($progress['status'] ?? 'unknown');
 
         MetricTable::make()
             ->headers(__('ichava/ichava-core::commands.job_status.table.property'))
@@ -226,17 +230,17 @@ class JobStatusCommand extends BaseCommand
             ])
             ->render($this->output);
 
-        $processed = $progress['processed'] ?? 0;
-        $total = $progress['total'] ?? 0;
+        $processed = Coerce::string($progress['processed'] ?? 0);
+        $total = Coerce::string($progress['total'] ?? 0);
         $progressPercent = $progress['progress_percent'] ?? 0;
 
         $this->newLine();
         info(__('ichava/ichava-core::commands.job_status.progress'));
-        $this->detail(Gauge::make((float) $progressPercent)->width(20)->status($this->statusOf($status))->render());
+        $this->detail(Gauge::make(Coerce::float($progressPercent))->width(20)->status($this->statusOf($status))->render());
         $this->detail(__('ichava/ichava-core::commands.job_status.icons', ['processed' => $processed, 'total' => $total]));
 
         if (isset($progress['started_at'])) {
-            $startedAt = Carbon::parse($progress['started_at']);
+            $startedAt = Carbon::parse(self::moment($progress['started_at']));
             $this->detail(__('ichava/ichava-core::commands.job_status.started', [
                 'at'  => $startedAt->format('Y-m-d H:i:s'),
                 'ago' => $startedAt->diffForHumans(),
@@ -244,7 +248,7 @@ class JobStatusCommand extends BaseCommand
         }
 
         if (($progress['completed_at'] ?? null) !== null) {
-            $completedAt = Carbon::parse($progress['completed_at']);
+            $completedAt = Carbon::parse(self::moment($progress['completed_at']));
             $this->detail(__('ichava/ichava-core::commands.job_status.completed', [
                 'at'  => $completedAt->format('Y-m-d H:i:s'),
                 'ago' => $completedAt->diffForHumans(),
@@ -253,15 +257,15 @@ class JobStatusCommand extends BaseCommand
 
         if (isset($progress['duration_seconds'])) {
             $this->detail(__('ichava/ichava-core::commands.job_status.duration', [
-                'duration' => TimeFormat::duration((float) $progress['duration_seconds']),
+                'duration' => TimeFormat::duration(Coerce::float($progress['duration_seconds'])),
             ]));
         }
 
         if (isset($progress['error'])) {
             $this->newLine();
-            $this->failure($progress['error']);
+            $this->failure(Coerce::string($progress['error']));
             if (isset($progress['exception'])) {
-                $this->detail(__('ichava/ichava-core::commands.job_status.exception', ['class' => $progress['exception']]));
+                $this->detail(__('ichava/ichava-core::commands.job_status.exception', ['class' => Coerce::string($progress['exception'])]));
             }
         }
 
@@ -298,5 +302,16 @@ class JobStatusCommand extends BaseCommand
     protected function countDatabaseIcons(string $packageName): int
     {
         return Icon::where('package', $packageName)->count();
+    }
+
+    /**
+     * A progress timestamp as Carbon::parse() takes it. The tracker stores
+     * strings; anything Carbon cannot read is treated as absent (now).
+     */
+    private static function moment(mixed $value): DateTimeInterface|float|int|string|null
+    {
+        return $value instanceof DateTimeInterface || is_string($value) || is_int($value) || is_float($value)
+            ? $value
+            : null;
     }
 }

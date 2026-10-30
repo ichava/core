@@ -74,6 +74,8 @@ final class InvalidateIconCache
 
     /**
      * Clear all icon-related caches (including Redis)
+     *
+     * @return list<string>
      */
     private function clearAllIconCaches(?string $package = null): array
     {

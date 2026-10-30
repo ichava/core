@@ -90,7 +90,7 @@ trait IconSeederHelpers
      * - files/test-icons/triangle.svg → null
      *
      * @param string $relativePath Relative path to icon
-     * @param array<string, int> $variantMap Declared variant slugs
+     * @param array<array-key, mixed> $variantMap Declared variant slugs (only the keys are read)
      *
      * @return string|null Variant slug or null if not found
      */
@@ -159,13 +159,13 @@ trait IconSeederHelpers
 
         // Extract words from icon name
         $nameWords = preg_split('/[-_\s]+/', $name);
-        $keywords = array_merge($keywords, $nameWords);
+        $keywords = array_merge($keywords, $nameWords ?: []);
 
         // Extract words from path parts
         $pathParts = array_filter(explode('/', $relativePath));
         foreach ($pathParts as $part) {
             $partWords = preg_split('/[-_\s]+/', pathinfo($part, PATHINFO_FILENAME));
-            $keywords = array_merge($keywords, $partWords);
+            $keywords = array_merge($keywords, $partWords ?: []);
         }
 
         // Normalize: lowercase and filter short words

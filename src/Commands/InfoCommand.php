@@ -14,6 +14,7 @@ use function Laravel\Prompts\table;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\warning;
 
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Console\Tools\Widgets\CheckList;
@@ -63,6 +64,9 @@ final class InfoCommand extends BaseCommand
 
     protected $description = 'Display Ichava information (packages, icons, status, stats)';
 
+    /**
+     * @var list<string>
+     */
     protected array $validTypes = ['packages', 'icons', 'status', 'languages', 'discover', 'stats'];
 
     public function __construct(
@@ -74,7 +78,7 @@ final class InfoCommand extends BaseCommand
 
     public function handle(): int
     {
-        $type = $this->argument('type');
+        $type = Coerce::string($this->argument('type'));
 
         // If no type provided, prompt user to select
         if (empty($type)) {
@@ -100,7 +104,7 @@ final class InfoCommand extends BaseCommand
             'languages' => $this->handleLanguages(),
             'discover'  => $this->handleDiscover(),
             'stats'     => $this->handleStats(),
-            default     => $this->handleInvalidType($type, $this->validTypes),
+            default     => $this->handleInvalidType((string) $type, $this->validTypes),
         };
     }
 
@@ -124,7 +128,7 @@ final class InfoCommand extends BaseCommand
         }
 
         // Filter by search
-        $searchTerm = $this->option('search');
+        $searchTerm = Coerce::string($this->option('search'));
         if (empty($searchTerm) && ! $this->isQuiet()) {
             $searchTerm = text(
                 label: __('ichava/ichava-core::commands.info.packages.search'),
@@ -138,7 +142,7 @@ final class InfoCommand extends BaseCommand
         }
 
         if ($this->option('format') === 'json') {
-            $this->line(json_encode($packages, JSON_PRETTY_PRINT));
+            $this->line(json_encode($packages, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
         } else {
             $this->displayPackagesTable($packages);
         }
@@ -184,7 +188,7 @@ final class InfoCommand extends BaseCommand
         }
 
         if ($this->option('format') === 'json') {
-            $this->line(json_encode($icons, JSON_PRETTY_PRINT));
+            $this->line(json_encode($icons, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
         } else {
             $this->displayIconsTable($icons);
             note(__('ichava/ichava-core::commands.info.icons.showing', ['count' => count($icons)]));
@@ -217,17 +221,19 @@ final class InfoCommand extends BaseCommand
             message: __('ichava/ichava-core::commands.info.status.checking'),
         );
 
+        $checks = is_array($status['checks'] ?? null) ? $status['checks'] : [];
+
         $this->line(
             CheckList::make()
-                ->check(__('ichava/ichava-core::commands.info.status.migrations'), (bool) $status['checks']['migrations'])
-                ->check(__('ichava/ichava-core::commands.info.status.seeds'), (bool) $status['checks']['seeds'])
-                ->check(__('ichava/ichava-core::commands.info.status.cache'), (bool) $status['checks']['cache'])
+                ->check(__('ichava/ichava-core::commands.info.status.migrations'), (bool) ($checks['migrations'] ?? false))
+                ->check(__('ichava/ichava-core::commands.info.status.seeds'), (bool) ($checks['seeds'] ?? false))
+                ->check(__('ichava/ichava-core::commands.info.status.cache'), (bool) ($checks['cache'] ?? false))
                 ->render(),
         );
         $this->newLine();
 
         $this->detail(__('ichava/ichava-core::commands.info.status.stage', [
-            'stage' => StatusBadge::fromMap(self::STAGE_MAP, $status['stage'], valueAsLabel: true)->withoutSymbol()->render(),
+            'stage' => StatusBadge::fromMap(self::STAGE_MAP, Coerce::stringOrNull($status['stage']), valueAsLabel: true)->withoutSymbol()->render(),
         ]));
         $this->detail(__('ichava/ichava-core::commands.info.status.ready', [
             'ready' => StatusBadge::of((bool) $status['is_ready'])
@@ -238,17 +244,17 @@ final class InfoCommand extends BaseCommand
 
         // Icon count
         if ($status['icon_count'] !== null) {
-            $iconCount = is_numeric($status['icon_count']) ? $this->formatNumber($status['icon_count']) : $status['icon_count'];
+            $iconCount = $this->formatCount($status['icon_count']);
             $this->detail(__('ichava/ichava-core::commands.info.status.icon_count', ['count' => $iconCount]));
         }
 
         $this->newLine();
 
         // Next steps
-        if (! $status['is_ready'] && ! empty($status['next_steps'])) {
+        if (! $status['is_ready'] && ! empty($status['next_steps']) && is_array($status['next_steps'])) {
             warning(__('ichava/ichava-core::commands.info.status.next_steps'));
-            foreach ($status['next_steps'] as $index => $step) {
-                $this->detail(($index + 1) . ". {$step}");
+            foreach (array_values($status['next_steps']) as $index => $step) {
+                $this->detail(($index + 1) . '. ' . Coerce::string($step));
             }
         } elseif ($status['is_ready']) {
             outro(__('ichava/ichava-core::commands.info.status.operational'));
@@ -281,11 +287,11 @@ final class InfoCommand extends BaseCommand
                 __('ichava/ichava-core::commands.info.languages.table.owner'),
                 __('ichava/ichava-core::commands.info.languages.table.description'),
             ],
-            rows: array_map(fn ($lang) => [
-                $lang['language'],
-                $lang['owner'],
-                $lang['description'] ?? '',
-            ], $languages),
+            rows: array_values(array_map(fn ($lang) => [
+                Coerce::string($lang['language']),
+                Coerce::string($lang['owner']),
+                Coerce::string($lang['description'] ?? ''),
+            ], $languages)),
         );
 
         $currentLang = $this->infoService->getCurrentFtsLanguage();
@@ -366,10 +372,10 @@ final class InfoCommand extends BaseCommand
                     __('ichava/ichava-core::commands.info.table.package'),
                     __('ichava/ichava-core::commands.info.table.icon_count'),
                 ],
-                rows: array_map(fn ($pkg) => [
-                    $pkg['package'],
-                    $this->formatNumber($pkg['count']),
-                ], $topPackages),
+                rows: array_values(array_map(fn ($pkg) => [
+                    Coerce::string(is_array($pkg) ? $pkg['package'] ?? '' : ''),
+                    $this->formatCount(is_array($pkg) ? $pkg['count'] ?? 0 : 0),
+                ], $topPackages)),
             );
         }
 
@@ -378,16 +384,20 @@ final class InfoCommand extends BaseCommand
 
     /**
      * Display packages table
+     *
+     * @param array<array-key, mixed> $packages
      */
     protected function displayPackagesTable(array $packages): void
     {
         $rows = [];
         foreach ($packages as $name => $data) {
+            $data = is_array($data) ? $data : [];
+
             $rows[] = [
-                $data['name'] ?? $name,
-                $this->truncatePath($data['base_path'] ?? '-'),
-                (string) ($data['icon_count'] ?? '-'),
-                $this->formatStatus($data['status'] ?? 'active'),
+                Coerce::string($data['name'] ?? $name),
+                $this->truncatePath(Coerce::string($data['base_path'] ?? '-')),
+                Coerce::string($data['icon_count'] ?? '-'),
+                $this->formatStatus(Coerce::string($data['status'] ?? 'active')),
             ];
         }
 
@@ -404,14 +414,16 @@ final class InfoCommand extends BaseCommand
 
     /**
      * Display icons table
+     *
+     * @param array<array-key, mixed> $icons
      */
     protected function displayIconsTable(array $icons): void
     {
-        $rows = array_map(fn ($icon) => [
-            $icon['name'] ?? '-',
-            $icon['package'] ?? '-',
-            $this->truncatePath($icon['path'] ?? '-'),
-        ], $icons);
+        $rows = array_values(array_map(fn ($icon) => [
+            Coerce::string(is_array($icon) ? $icon['name'] ?? '-' : '-'),
+            Coerce::string(is_array($icon) ? $icon['package'] ?? '-' : '-'),
+            $this->truncatePath(Coerce::string(is_array($icon) ? $icon['path'] ?? '-' : '-')),
+        ], $icons));
 
         table(
             headers: [
@@ -425,10 +437,12 @@ final class InfoCommand extends BaseCommand
 
     /**
      * Handle export option
+     *
+     * @param array<array-key, mixed> $data
      */
     protected function handleExport(array $data): void
     {
-        $exportPath = $this->option('export');
+        $exportPath = Coerce::string($this->option('export'));
 
         if (! $exportPath) {
             return;
@@ -441,5 +455,19 @@ final class InfoCommand extends BaseCommand
         } else {
             $this->exportToJson($data, $exportPath);
         }
+    }
+
+    /**
+     * A count for display: numbers through formatNumber(), whether the driver
+     * returned an int or a numeric string, and anything else (an error
+     * marker) as it is.
+     */
+    private function formatCount(mixed $count): string
+    {
+        if (is_int($count) || is_float($count)) {
+            return $this->formatNumber($count);
+        }
+
+        return is_numeric($count) ? $this->formatNumber((float) $count) : Coerce::string($count);
     }
 }
