@@ -43,7 +43,7 @@ final class IchavaLogger
     /**
      * Log an informational message to the main ichava channel.
      *
-     * Silently no-ops if logging is disabled via ichava.logging.enabled.
+     * Silently no-ops if logging is disabled via ichava.ichava-core.logging.enabled.
      *
      * @param string $message Human-readable message
      * @param array<string, mixed> $context Additional structured context
@@ -128,7 +128,7 @@ final class IchavaLogger
      * Log a security event with automatic request context enrichment.
      *
      * Prepends [SECURITY] to the message and adds user_id, client IP, and
-     * User-Agent to the context automatically. Gated by ichava.logging.security.
+     * User-Agent to the context automatically. Gated by ichava.ichava-core.logging.security.
      *
      * @param string $message Description of the security event
      * @param array<string, mixed> $context Additional structured context
@@ -152,7 +152,7 @@ final class IchavaLogger
     /**
      * Log a performance metric for an operation.
      *
-     * Prepends [PERFORMANCE] to the operation name. Gated by ichava.logging.performance
+     * Prepends [PERFORMANCE] to the operation name. Gated by ichava.ichava-core.logging.performance
      * (disabled by default to avoid noisy logs in production).
      *
      * @param string $operation Human-readable operation name (e.g. 'Icon discovery')
@@ -171,7 +171,7 @@ final class IchavaLogger
      * Log a cache hit/miss/flush operation.
      *
      * Prepends [CACHE] to the operation name. Like performance(), this is gated
-     * by ichava.logging.performance to keep production logs clean.
+     * by ichava.ichava-core.logging.performance to keep production logs clean.
      *
      * @param string $operation Description of the cache event (e.g. 'hit: outline/home')
      * @param array<string, mixed> $context Additional context (e.g. ['key' => '...', 'ttl' => 300])
@@ -189,7 +189,7 @@ final class IchavaLogger
      * Log an SVG sanitization event (dangerous content removed).
      *
      * Silently skipped when $removed is empty (clean SVG, nothing to report).
-     * Gated by ichava.logging.security. Written as a WARNING because removal
+     * Gated by ichava.ichava-core.logging.security. Written as a WARNING because removal
      * of unexpected content may indicate a supply-chain or content-injection issue.
      *
      * @param string $iconName Path of the icon that was sanitized
@@ -365,7 +365,7 @@ final class IchavaLogger
     }
 
     /**
-     * Whether logging is globally enabled (ichava.logging.enabled).
+     * Whether logging is globally enabled (ichava.ichava-core.logging.enabled).
      */
     public function isEnabled(): bool
     {
@@ -373,7 +373,7 @@ final class IchavaLogger
     }
 
     /**
-     * Whether performance logging is enabled (ichava.logging.performance).
+     * Whether performance logging is enabled (ichava.ichava-core.logging.performance).
      */
     public function isPerformanceEnabled(): bool
     {
@@ -381,7 +381,7 @@ final class IchavaLogger
     }
 
     /**
-     * Whether security event logging is enabled (ichava.logging.security).
+     * Whether security event logging is enabled (ichava.ichava-core.logging.security).
      */
     public function isSecurityEnabled(): bool
     {

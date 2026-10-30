@@ -47,7 +47,7 @@ class CacheOperationsService
      * - each registered pack's SVG-count cache, keyed by its base path;
      * - the directory-watcher fingerprints.
      *
-     * Rendered SVG content is cached under `ichava.core.cache.version` and is
+     * Rendered SVG content is cached under `ichava.ichava-core.cache.version` and is
      * deliberately not flushed here: IconCacheService::flush() empties the
      * host's whole store. Bump the version to abandon those entries.
      *
