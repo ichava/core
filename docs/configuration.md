@@ -28,6 +28,15 @@ return [
         ],
     ],
 
+    // The host's user: which guard, what the browser sees, which Gates
+    'auth' => [
+        'guard'            => env('ICHAVA_AUTH_GUARD'),
+        'name_attribute'   => 'name',
+        'avatar_attribute' => null,
+        'expose'           => [],
+        'abilities'        => ['ichava.admin', 'ichava.manage-cache'],
+    ],
+
     // Shared route prefix (used by both core API and browser SPA)
     'prefix' => env('ICHAVA_BROWSER_PREFIX', 'ichava'),
 
@@ -111,6 +120,7 @@ return [
 | Stop the file watcher | `database.auto_sync=false` |
 | Force-disable seeding via queue | `database.use_queue=false` |
 | Change the log retention | `logging.retention_days=14` |
+| Read users from another guard | `auth.guard='admin'`; see [Host user](host-user.md) |
 | Allow larger illustrations | `kinds.max_file_size.illustration` (bytes); see [Icons and illustrations](kinds.md) |
 | Override the icon storage path | use `ICHAVA_LOG_PATH` for logs; icon paths come from each pack's `setPathFrom` |
 

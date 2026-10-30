@@ -276,11 +276,30 @@ final class IconRegistry
             return (new RegistrationConfig($name, $this))->markRegistered();
         }
 
-        // Validate metadata
-        $this->validateMetadata($name, $metadata);
+        // The lifecycle a listener sees: processing, then registered and
+        // completed, or failed. Announced at most once per deduplication
+        // window, as `registered` always was: the registry is rebuilt on every
+        // request, and a listener must not hear the same pack every time.
+        $registrarId = Str::uuid()->toString();
+        $announce = ! $this->recentlyAnnounced($name);
+        $startedAt = microtime(true);
 
-        // Check conflicts
-        $this->checkConflicts($name, $metadata);
+        if ($announce) {
+            Event::dispatch(IconRegistrationEvent::processing($registrarId, $name, $metadata, 1, 1));
+        }
+
+        try {
+            // Validate metadata
+            $this->validateMetadata($name, $metadata);
+
+            // Check conflicts
+            $this->checkConflicts($name, $metadata);
+        } catch (Throwable $e) {
+            // A failure is announced every time: it is never routine.
+            Event::dispatch(IconRegistrationEvent::failed($registrarId, $name, $metadata, $e));
+
+            throw $e;
+        }
 
         // Store icon set
         $this->sets[$name] = $set;
@@ -299,8 +318,17 @@ final class IconRegistry
         // Log only if not recently logged (cache-based deduplication across requests)
         $this->logRegistrationOnce($name, $metadata);
 
-        // Fire event only if not recently fired (prevents duplicate listeners)
-        $this->dispatchRegistrationEventOnce($name, $metadata);
+        // Fire events only if not recently fired (prevents duplicate listeners)
+        if ($announce) {
+            $this->markAnnounced($name);
+            Event::dispatch(IconRegistrationEvent::registered($registrarId, $name, $metadata, 0));
+            Event::dispatch(IconRegistrationEvent::completed(
+                $registrarId,
+                $name,
+                ['registered' => 1, 'failed' => 0],
+                round((microtime(true) - $startedAt) * 1000, 2),
+            ));
+        }
 
         // Return config for chaining
         $config = new RegistrationConfig($name, $this);
@@ -868,49 +896,39 @@ final class IconRegistry
     }
 
     /**
-     * Dispatch an IconRegistrationEvent at most once per cache TTL.
+     * Whether this package's registration was announced within the cache TTL.
      *
-     * Uses a cache key `ichava:event:{name}` to suppress duplicate events within
-     * the TTL window. Falls back to always dispatching if the cache is unavailable.
-     *
-     * @param string $name Icon set name
-     * @param array<string, mixed> $metadata Package metadata
+     * Reads `ichava:event:{name}`; markAnnounced() writes it once the
+     * registration succeeded, so a failed attempt never suppresses the next
+     * one. A TTL of 0 disables deduplication, and an unavailable cache
+     * announces every time rather than never.
      */
-    private function dispatchRegistrationEventOnce(string $name, array $metadata): void
+    private function recentlyAnnounced(string $name): bool
+    {
+        if ($this->deduplicationTtl() === 0) {
+            return false;
+        }
+
+        try {
+            return cache()->has("ichava:event:{$name}");
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    private function markAnnounced(string $name): void
     {
         $ttl = $this->deduplicationTtl();
 
-        // TTL of 0 disables deduplication
         if ($ttl === 0) {
-            Event::dispatch(IconRegistrationEvent::registered(
-                Str::uuid()->toString(),
-                $name,
-                $metadata,
-                0,
-            ));
-
             return;
         }
 
-        // Try cache-based deduplication, fallback to always dispatching if cache unavailable
         try {
-            $cacheKey = "ichava:event:{$name}";
-
-            if (cache()->has($cacheKey)) {
-                return;
-            }
-
-            cache()->put($cacheKey, true, $ttl);
+            cache()->put("ichava:event:{$name}", true, $ttl);
         } catch (Throwable) {
-            // Cache unavailable, dispatch anyway
+            // Cache unavailable: the next registration announces again.
         }
-
-        Event::dispatch(IconRegistrationEvent::registered(
-            Str::uuid()->toString(),
-            $name,
-            $metadata,
-            0,
-        ));
     }
 
     /**

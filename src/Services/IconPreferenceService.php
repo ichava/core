@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services;
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Events\FavoriteToggled;
+use Simtabi\Laranail\Ichava\Events\CollectionChanged;
 use Simtabi\Laranail\Ichava\Contracts\PreferenceStore;
+use Simtabi\Laranail\Ichava\Events\PreferencesChanged;
 
 /**
  * IconPreferenceService - Self-Contained Preferences Manager
@@ -30,6 +34,9 @@ final class IconPreferenceService
 {
     /** Session key for preferences */
     private const string SESSION_KEY = 'preferences';
+
+    /** Top-level keys that hold the user's library rather than preferences. */
+    private const array LIBRARY_KEYS = ['favorites', 'collections', 'history', 'command_history'];
 
     public function __construct(
         private IchavaLogger $logger,
@@ -81,6 +88,13 @@ final class IconPreferenceService
             'user_agent' => request()->userAgent(),
         ]);
 
+        // Library writes announce themselves with their own, more specific
+        // events (FavoriteToggled, CollectionChanged); everything else is a
+        // preference.
+        if (! in_array(Str::before($key, '.'), self::LIBRARY_KEYS, true)) {
+            PreferencesChanged::dispatch([$key], PreferencesChanged::UPDATED, $persisted);
+        }
+
         return $persisted;
     }
 
@@ -103,6 +117,8 @@ final class IconPreferenceService
             'ip'        => request()->ip(),
         ]);
 
+        PreferencesChanged::dispatch(array_map(strval(...), array_keys($data)), PreferencesChanged::UPDATED, $persisted);
+
         // `persisted` travels with the payload rather than replacing the return
         // type: callers read the merged preferences back, and a bool return
         // would have been a silent breaking change for every one of them.
@@ -122,7 +138,9 @@ final class IconPreferenceService
     public function clear(): array
     {
         $defaults = $this->getDefaults();
-        $this->sessionManager->put($this->getSessionKey(), $defaults);
+        $persisted = $this->sessionManager->put($this->getSessionKey(), $defaults);
+
+        PreferencesChanged::dispatch(array_map(strval(...), array_keys($defaults)), PreferencesChanged::CLEARED, $persisted);
 
         // Log for audit trail
         $this->logger->info('🧹 Preferences cleared', [
@@ -323,8 +341,9 @@ final class IconPreferenceService
         $favorites = $this->getFavorites();
         if (! in_array($iconId, $favorites)) {
             $favorites[] = $iconId;
-            $this->set('favorites', $favorites);
+            $persisted = $this->set('favorites', $favorites);
             $this->logger->debug('⭐ Icon added to favorites', ['icon_id' => $iconId]);
+            FavoriteToggled::dispatch($iconId, true, $persisted);
         }
     }
 
@@ -335,8 +354,9 @@ final class IconPreferenceService
     {
         $favorites = $this->getFavorites();
         $favorites = array_values(Arr::where($favorites, fn ($id) => $id !== $iconId));
-        $this->set('favorites', $favorites);
+        $persisted = $this->set('favorites', $favorites);
         $this->logger->debug('⭐ Icon removed from favorites', ['icon_id' => $iconId]);
+        FavoriteToggled::dispatch($iconId, false, $persisted);
     }
 
     /**
@@ -391,8 +411,9 @@ final class IconPreferenceService
             'created_at' => now()->toIso8601String(),
         ];
         $collections[] = $collection;
-        $this->set('collections', $collections);
+        $persisted = $this->set('collections', $collections);
         $this->logger->debug('📁 Collection created', ['collection_id' => $collection['id'], 'name' => $name]);
+        CollectionChanged::dispatch(CollectionChanged::CREATED, $collection['id'], null, $persisted);
 
         return $collection;
     }
@@ -411,8 +432,9 @@ final class IconPreferenceService
             if (is_array($collection) && ($collection['id'] ?? null) === $collectionId) {
                 $updated = array_merge($collection, $data);
                 $collections[$index] = $updated;
-                $this->set('collections', $collections);
+                $persisted = $this->set('collections', $collections);
                 $this->logger->debug('📁 Collection updated', ['collection_id' => $collectionId]);
+                CollectionChanged::dispatch(CollectionChanged::UPDATED, $collectionId, null, $persisted);
 
                 return $updated;
             }
@@ -431,8 +453,9 @@ final class IconPreferenceService
             $collections,
             fn (mixed $c): bool => ! is_array($c) || ($c['id'] ?? null) !== $collectionId,
         ));
-        $this->set('collections', $collections);
+        $persisted = $this->set('collections', $collections);
         $this->logger->debug('🗑️ Collection deleted', ['collection_id' => $collectionId]);
+        CollectionChanged::dispatch(CollectionChanged::DELETED, $collectionId, null, $persisted);
     }
 
     /**
@@ -466,11 +489,12 @@ final class IconPreferenceService
                     $iconIds[] = $iconId;
                     $collection['icon_ids'] = $iconIds;
                     $collections[$index] = $collection;
-                    $this->set('collections', $collections);
+                    $persisted = $this->set('collections', $collections);
                     $this->logger->debug('📁 Icon added to collection', [
                         'collection_id' => $collectionId,
                         'icon_id'       => $iconId,
                     ]);
+                    CollectionChanged::dispatch(CollectionChanged::ICON_ADDED, $collectionId, $iconId, $persisted);
                 }
                 break;
             }
@@ -490,11 +514,12 @@ final class IconPreferenceService
                     Arr::where($iconIds, fn (mixed $id): bool => $id !== $iconId),
                 );
                 $collections[$index] = $collection;
-                $this->set('collections', $collections);
+                $persisted = $this->set('collections', $collections);
                 $this->logger->debug('📁 Icon removed from collection', [
                     'collection_id' => $collectionId,
                     'icon_id'       => $iconId,
                 ]);
+                CollectionChanged::dispatch(CollectionChanged::ICON_REMOVED, $collectionId, $iconId, $persisted);
                 break;
             }
         }
