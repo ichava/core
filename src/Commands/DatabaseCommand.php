@@ -13,6 +13,7 @@ use function Laravel\Prompts\table;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\warning;
 
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
@@ -53,6 +54,9 @@ final class DatabaseCommand extends BaseCommand
 
     protected $description = 'Manage Ichava icon database (migrate, seed, unseed, stats)';
 
+    /**
+     * @var list<string>
+     */
     protected array $validActions = ['seed', 'seed:icons', 'seed:terms', 'migrate', 'unseed', 'refresh', 'truncate', 'stats'];
 
     public function __construct(
@@ -66,7 +70,7 @@ final class DatabaseCommand extends BaseCommand
 
     public function handle(): int
     {
-        $action = $this->argument('action');
+        $action = Coerce::string($this->argument('action'));
 
         // If no action provided, prompt user to select
         if (empty($action)) {
@@ -105,7 +109,7 @@ final class DatabaseCommand extends BaseCommand
             'refresh'    => $this->handleRefresh(),
             'truncate'   => $this->handleTruncate(),
             'stats'      => $this->handleStats(),
-            default      => $this->handleInvalidAction($action, $this->validActions),
+            default      => $this->handleInvalidAction((string) $action, $this->validActions),
         };
     }
 
@@ -291,7 +295,7 @@ final class DatabaseCommand extends BaseCommand
      */
     protected function handleUnseed(): int
     {
-        $package = $this->option('package');
+        $package = Coerce::stringOrNull($this->option('package'));
 
         if ($package) {
             return $this->unseedPackage($package);
@@ -354,9 +358,9 @@ final class DatabaseCommand extends BaseCommand
             MetricTable::make()
                 ->headers(value: __('ichava/ichava-core::commands.database.unseed.count'))
                 ->metrics([
-                    __('ichava/ichava-core::commands.database.unseed.icons_deleted')          => (int) $stats['icons_deleted'],
-                    __('ichava/ichava-core::commands.database.unseed.term_relations_deleted') => (int) $stats['term_relations_deleted'],
-                    __('ichava/ichava-core::commands.database.unseed.orphaned_terms_deleted') => (int) $stats['orphaned_terms_deleted'],
+                    __('ichava/ichava-core::commands.database.unseed.icons_deleted')          => Coerce::int($stats['icons_deleted']),
+                    __('ichava/ichava-core::commands.database.unseed.term_relations_deleted') => Coerce::int($stats['term_relations_deleted']),
+                    __('ichava/ichava-core::commands.database.unseed.orphaned_terms_deleted') => Coerce::int($stats['orphaned_terms_deleted']),
                 ])
                 ->render($this->output);
 
@@ -389,9 +393,9 @@ final class DatabaseCommand extends BaseCommand
             MetricTable::make()
                 ->headers(value: __('ichava/ichava-core::commands.database.unseed.count'))
                 ->metrics([
-                    __('ichava/ichava-core::commands.database.unseed.icons_deleted')          => (int) $stats['icons_deleted'],
-                    __('ichava/ichava-core::commands.database.unseed.term_relations_deleted') => (int) $stats['term_relations_deleted'],
-                    __('ichava/ichava-core::commands.database.unseed.terms_deleted')          => (int) $stats['terms_deleted'],
+                    __('ichava/ichava-core::commands.database.unseed.icons_deleted')          => Coerce::int($stats['icons_deleted']),
+                    __('ichava/ichava-core::commands.database.unseed.term_relations_deleted') => Coerce::int($stats['term_relations_deleted']),
+                    __('ichava/ichava-core::commands.database.unseed.terms_deleted')          => Coerce::int($stats['terms_deleted']),
                 ])
                 ->render($this->output);
 
@@ -479,6 +483,8 @@ final class DatabaseCommand extends BaseCommand
 
     /**
      * Log seeding operation
+     *
+     * @param array<string, mixed> $context
      */
     protected function logOperation(string $operation, array $context = []): void
     {

@@ -18,6 +18,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\DbTools\Query\ChunkedWriter;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
@@ -71,9 +72,9 @@ class SeedIconsJob implements ShouldQueue
         public int $totalJobs,
         public bool $force = false,
     ) {
-        $this->tries = (int) config('ichava.ichava-core.queue.retries', 3);
-        $this->timeout = (int) config('ichava.ichava-core.queue.timeout', 300);
-        $this->onQueue(config('ichava.ichava-core.queue.name', 'ichava-icons'));
+        $this->tries = Coerce::int(config('ichava.ichava-core.queue.retries', 3));
+        $this->timeout = Coerce::int(config('ichava.ichava-core.queue.timeout', 300));
+        $this->onQueue(Coerce::stringOrNull(config('ichava.ichava-core.queue.name', 'ichava-icons')));
     }
 
     /**
@@ -152,7 +153,7 @@ class SeedIconsJob implements ShouldQueue
             throw new RuntimeException("Package {$this->packageName} not found in registry");
         }
 
-        $basePath = rtrim($packageData['base_path'], '/');
+        $basePath = rtrim(Coerce::string($packageData['base_path']), '/');
         $stats = ['processed' => 0, 'skipped' => 0, 'new' => 0, 'updated' => 0];
 
         // Build list of relative paths for this chunk
@@ -174,7 +175,7 @@ class SeedIconsJob implements ShouldQueue
             $fileDataMap[$relativePath] = [
                 'absolute_path'    => $absolutePath,
                 'file_hash'        => $fileHash,
-                'file_modified_at' => date('Y-m-d H:i:s', filemtime($absolutePath)),
+                'file_modified_at' => date('Y-m-d H:i:s', filemtime($absolutePath) ?: null),
                 'name'             => $name,
                 'tags'             => $this->extractTags($relativePath, $name),
                 'keywords'         => $this->extractKeywords($relativePath, $name),
@@ -288,6 +289,8 @@ class SeedIconsJob implements ShouldQueue
      *
      * Duplicate attachments are ignored by the (term_id, termable_id,
      * termable_type) unique key.
+     *
+     * @param array<int, array<string, mixed>> $iconData
      */
     protected function bulkAttachCategories(array $iconData): void
     {
@@ -304,9 +307,10 @@ class SeedIconsJob implements ShouldQueue
         // Build path to category slug mapping
         $pathToCategory = [];
         foreach ($iconData as $data) {
-            $categorySlug = $this->extractCategorySlug($data['path']);
+            $path = Coerce::string($data['path'] ?? '');
+            $categorySlug = $this->extractCategorySlug($path);
             if ($categorySlug && isset($categoryMap[$categorySlug])) {
-                $pathToCategory[$data['path']] = $categoryMap[$categorySlug];
+                $pathToCategory[$path] = $categoryMap[$categorySlug];
             }
         }
 
@@ -320,6 +324,8 @@ class SeedIconsJob implements ShouldQueue
      * variant term the pack declares (e.g. tabler's `outline`/`filled`); plain
      * folders that are not declared variants stay categories only, so a path
      * like `files/test-icons/triangle.svg` never gains a bogus variant.
+     *
+     * @param array<int, array<string, mixed>> $iconData
      */
     protected function bulkAttachVariants(array $iconData): void
     {
@@ -334,9 +340,10 @@ class SeedIconsJob implements ShouldQueue
 
         $pathToVariant = [];
         foreach ($iconData as $data) {
-            $variantSlug = $this->extractVariantSlug($data['path'], $variantMap);
+            $path = Coerce::string($data['path'] ?? '');
+            $variantSlug = $this->extractVariantSlug($path, $variantMap);
             if ($variantSlug && isset($variantMap[$variantSlug])) {
-                $pathToVariant[$data['path']] = $variantMap[$variantSlug];
+                $pathToVariant[$path] = $variantMap[$variantSlug];
             }
         }
 
@@ -350,6 +357,8 @@ class SeedIconsJob implements ShouldQueue
      * reader -- Eloquent relations and the `getMorphClass()` joins in the
      * browser services -- queries the alias, so FQCN rows are invisible to the
      * whole taxonomy (null categories/variants, empty tree counts).
+     *
+     * @param array<array-key, mixed> $pathToTermId icon path => term id
      */
     protected function insertTermables(array $pathToTermId): void
     {
@@ -394,6 +403,8 @@ class SeedIconsJob implements ShouldQueue
 
     /**
      * Rebuild the search text the suspended trigger did not maintain.
+     *
+     * @param array<int, array<string, mixed>> $iconData
      */
     protected function refreshSearchText(array $iconData): void
     {
@@ -424,7 +435,7 @@ class SeedIconsJob implements ShouldQueue
      * 3. keywords - Keyword extraction logic may have changed
      *
      * @param Icon $existing Existing icon from database
-     * @param array $newData New data from file
+     * @param array<string, mixed> $newData New data from file
      *
      * @return bool True if any changes detected
      */
@@ -437,14 +448,14 @@ class SeedIconsJob implements ShouldQueue
 
         // 2. Tags changed (extraction logic updated)
         $existingTags = $existing->tags ?? [];
-        $newTags = $newData['tags'] ?? [];
+        $newTags = is_array($newData['tags'] ?? null) ? $newData['tags'] : [];
         if ($this->arraysDiffer($existingTags, $newTags)) {
             return true;
         }
 
         // 3. Keywords changed (extraction logic updated)
         $existingKeywords = $existing->keywords ?? [];
-        $newKeywords = $newData['keywords'] ?? [];
+        $newKeywords = is_array($newData['keywords'] ?? null) ? $newData['keywords'] : [];
         if ($this->arraysDiffer($existingKeywords, $newKeywords)) {
             return true;
         }
@@ -454,12 +465,17 @@ class SeedIconsJob implements ShouldQueue
 
     /**
      * Check if two arrays have different contents (order-insensitive).
+     *
+     * Tags and keywords are lists of strings; each entry is read as one.
+     *
+     * @param array<array-key, mixed> $a
+     * @param array<array-key, mixed> $b
      */
     protected function arraysDiffer(array $a, array $b): bool
     {
         // Normalize: sort and remove duplicates
-        $a = array_unique($a);
-        $b = array_unique($b);
+        $a = array_unique(array_map(Coerce::string(...), $a));
+        $b = array_unique(array_map(Coerce::string(...), $b));
         sort($a);
         sort($b);
 

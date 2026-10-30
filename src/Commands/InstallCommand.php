@@ -15,6 +15,7 @@ use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
 
 use Symfony\Component\Process\Process;
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IconSetCatalogService;
@@ -87,8 +88,8 @@ final class InstallCommand extends BaseCommand
 
         if ($set['installed'] === true) {
             warning($set['installed_version']
-                ? __('ichava/ichava-core::commands.install.already_installed_version', ['title' => $set['title'], 'version' => $set['installed_version']])
-                : __('ichava/ichava-core::commands.install.already_installed', ['title' => $set['title']]));
+                ? __('ichava/ichava-core::commands.install.already_installed_version', ['title' => Coerce::string($set['title']), 'version' => Coerce::string($set['installed_version'])])
+                : __('ichava/ichava-core::commands.install.already_installed', ['title' => Coerce::string($set['title'])]));
             note(__('ichava/ichava-core::commands.install.reinstall_note'));
 
             if (! $this->confirmDestructive(__('ichava/ichava-core::commands.install.reinstall_confirm'))) {
@@ -96,12 +97,12 @@ final class InstallCommand extends BaseCommand
             }
         }
 
-        $package = (string) $set['package'];
+        $package = Coerce::string($set['package']);
 
         $latest = $set['latest_version'] ?? null;
 
         if ($latest !== null) {
-            $this->detail(__('ichava/ichava-core::commands.install.latest', ['version' => $latest]));
+            $this->detail(__('ichava/ichava-core::commands.install.latest', ['version' => Coerce::string($latest)]));
         } else {
             note(__('ichava/ichava-core::commands.install.latest_unknown'));
         }
@@ -122,7 +123,7 @@ final class InstallCommand extends BaseCommand
 
         if ($this->option('no-seed')) {
             note(__('ichava/ichava-core::commands.install.seed_skipped', ['command' => CommandName::of(DatabaseCommand::class), 'package' => $package]));
-            outro(__('ichava/ichava-core::commands.install.required', ['title' => $set['title']]));
+            outro(__('ichava/ichava-core::commands.install.required', ['title' => Coerce::string($set['title'])]));
 
             return self::SUCCESS;
         }
@@ -144,7 +145,7 @@ final class InstallCommand extends BaseCommand
             return self::FAILURE;
         }
 
-        outro(__('ichava/ichava-core::commands.install.installed', ['title' => $set['title']]));
+        outro(__('ichava/ichava-core::commands.install.installed', ['title' => Coerce::string($set['title'])]));
 
         return self::SUCCESS;
     }
@@ -164,7 +165,7 @@ final class InstallCommand extends BaseCommand
             if ($found === null) {
                 $this->failure(__('ichava/ichava-core::commands.install.unknown_set', ['set' => $requested]));
                 note(__('ichava/ichava-core::commands.install.available', ['sets' => implode(', ', array_map(
-                    fn (array $set) => (string) $set['key'],
+                    fn (array $set) => Coerce::string($set['key']),
                     $sets,
                 ))]));
 
@@ -187,14 +188,14 @@ final class InstallCommand extends BaseCommand
                 : Status::Pending->symbol() . ' ' . __('ichava/ichava-core::commands.install.state.not_installed');
             $seeded = ($set['seeded'] ?? null) === true
                 ? Status::Success->symbol() . ' ' . (isset($set['seeded_count'])
-                    ? __('ichava/ichava-core::commands.install.state.seeded_count', ['count' => $this->formatNumber((int) $set['seeded_count'])])
+                    ? __('ichava/ichava-core::commands.install.state.seeded_count', ['count' => $this->formatNumber(Coerce::int($set['seeded_count']))])
                     : __('ichava/ichava-core::commands.install.state.seeded'))
                 : Status::Pending->symbol() . ' ' . __('ichava/ichava-core::commands.install.state.not_seeded');
 
-            $options[(string) $set['key']] = __('ichava/ichava-core::commands.install.option', [
-                'title'     => $set['title'],
-                'count'     => $this->formatNumber((int) $set['icon_count']),
-                'variants'  => implode(' + ', (array) $set['variants']),
+            $options[Coerce::string($set['key'])] = __('ichava/ichava-core::commands.install.option', [
+                'title'     => Coerce::string($set['title']),
+                'count'     => $this->formatNumber(Coerce::int($set['icon_count'])),
+                'variants'  => implode(' + ', array_map(Coerce::string(...), (array) $set['variants'])),
                 'installed' => $installed,
                 'seeded'    => $seeded,
             ]);
@@ -206,7 +207,7 @@ final class InstallCommand extends BaseCommand
             hint: __('ichava/ichava-core::commands.install.select_hint'),
         );
 
-        return $this->catalog->find($key);
+        return $this->catalog->find((string) $key);
     }
 
     /**

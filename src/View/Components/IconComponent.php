@@ -8,6 +8,7 @@ use Throwable;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
 use Illuminate\Contracts\Support\Htmlable;
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Traits\HasIconSizing;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -163,14 +164,19 @@ class IconComponent extends Component
         $a11yAttrs = $this->parseAccessibilityAttributes();
 
         // Collect additional attributes from the component's attributes bag
-        $additionalAttrs = $this->attributes?->getAttributes() ?? [];
+        // The bag's keys are attribute names; keep the string-keyed shape render() takes.
+        $additionalAttrs = array_filter(
+            $this->attributes?->getAttributes() ?? [],
+            is_string(...),
+            ARRAY_FILTER_USE_KEY,
+        );
 
         // Smart merge: size props override class width/height, but preserve other classes
         if (! empty($sizeAttrs) && isset($additionalAttrs['class'])) {
             // Remove width/height classes from additional attributes if size props are set
-            $classString = $additionalAttrs['class'];
-            $classString = preg_replace('/\b(w-\S+|h-\S+|size-\S+)\b/', '', $classString);
-            $additionalAttrs['class'] = trim(preg_replace('/\s+/', ' ', $classString));
+            $classString = Coerce::string($additionalAttrs['class']);
+            $classString = (string) preg_replace('/\b(w-\S+|h-\S+|size-\S+)\b/', '', $classString);
+            $additionalAttrs['class'] = trim((string) preg_replace('/\s+/', ' ', $classString));
         }
 
         // Merge attributes in order of precedence:
@@ -189,7 +195,7 @@ class IconComponent extends Component
         try {
             return $this->iconRegistry->render($iconPath, null, null, $attributes);
         } catch (Throwable $e) {
-            $fallback = $this->fallback ?? config('ichava.ichava-core.fallback_icon');
+            $fallback = $this->fallback ?? Coerce::stringOrNull(config('ichava.ichava-core.fallback_icon'));
 
             if ($fallback && $fallback !== $iconPath) {
                 return $this->iconRegistry->render($fallback, null, null, $attributes);

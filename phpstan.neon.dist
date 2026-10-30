@@ -8,15 +8,23 @@ parameters:
     tmpDir: .phpstan.cache
     treatPhpDocTypesAsCertain: false
 
+    # Every directory under src/ is analysed; nothing is excluded. The two
+    # entries below are PHPStan limitations, each pinned to one file and one
+    # occurrence, so a second hit fails rather than being absorbed.
     ignoreErrors:
-        # These traits are used by classes under the excluded paths below (View, Commands),
-        # so from inside `src` PHPStan sees no user. Lift this with those exclusions.
-        - identifier: trait.unused
+        # Used only by the icon packs' enums, which live in other repositories.
+        # PHPStan analyses a trait solely through the classes that use it, so
+        # with no user inside src/ it cannot analyse this one at all.
+        -
+            identifier: trait.unused
+            path: src/Traits/HasIconSetVariants.php
+            count: 1
 
-    excludePaths:
-        - src/Providers
-        - src/Commands
-        - src/Jobs
-        - src/Listeners
-        - src/View
-        - src/Facades
+        # A trait is analysed in the context of each class that uses it. Here
+        # that is IconComponent, whose $lockAspectRatio is a non-null bool, so
+        # the `?? true` default the trait keeps for any other user (one without
+        # the property, or with a nullable one) reads as redundant.
+        -
+            identifier: nullCoalesce.property
+            path: src/Traits/HasIconSizing.php
+            count: 1

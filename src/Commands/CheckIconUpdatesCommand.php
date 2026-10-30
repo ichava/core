@@ -10,6 +10,7 @@ use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
 use function Laravel\Prompts\table;
 
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
 use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
@@ -68,7 +69,7 @@ final class CheckIconUpdatesCommand extends BaseCommand
         // and would otherwise capture whatever singleton was first resolved.
         $checker = $this->laravel->make(IconPackUpdateChecker::class);
 
-        $packageFilter = $this->option('package');
+        $packageFilter = Coerce::stringOrNull($this->option('package'));
         $format = $this->option('format');
         $failOnStale = (bool) $this->option('fail-on-stale');
 
@@ -90,7 +91,7 @@ final class CheckIconUpdatesCommand extends BaseCommand
             );
 
         if ($json) {
-            $this->line(json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            $this->line(json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
         } elseif (empty($results)) {
             note(__('ichava/ichava-core::commands.check_updates.none'));
 

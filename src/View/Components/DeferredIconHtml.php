@@ -19,6 +19,9 @@ use Illuminate\Contracts\Support\Htmlable;
  */
 final class DeferredIconHtml implements Htmlable
 {
+    /**
+     * @param Closure(): string $builder
+     */
     public function __construct(
         private readonly Closure $builder,
     ) {}

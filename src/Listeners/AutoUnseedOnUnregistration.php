@@ -55,7 +55,8 @@ class AutoUnseedOnUnregistration
             return;
         }
 
-        $packageName = $event->metadata['package_name'] ?? $event->name;
+        $metadataName = $event->metadata['package_name'] ?? null;
+        $packageName = is_string($metadataName) ? $metadataName : $event->name;
 
         $this->logger->debug("Auto-unseeding icons for package: {$packageName}");
 

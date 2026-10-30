@@ -6,6 +6,7 @@ namespace Simtabi\Laranail\Ichava\Commands;
 
 use Closure;
 use Exception;
+use Stringable;
 use RuntimeException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -18,6 +19,7 @@ use function Laravel\Prompts\select;
 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Console\Tools\Commands\Command;
@@ -86,6 +88,8 @@ abstract class BaseCommand extends Command
 
     /**
      * Ichava table names for existence checks
+     *
+     * @var list<string>
      */
     protected array $ichavaTables = [
         'ichava_icons',
@@ -203,10 +207,10 @@ abstract class BaseCommand extends Command
 
             $value = $stats[$key];
 
-            $table->metric($label, match (true) {
+            $table->metric(Coerce::string($label), match (true) {
                 is_int($value)  => $value,
-                $value === null => __('ichava/ichava-core::commands.common.not_available'),
-                default         => (string) $value,
+                $value === null => Coerce::string(__('ichava/ichava-core::commands.common.not_available')),
+                default         => Coerce::string($value),
             });
         }
 
@@ -229,13 +233,15 @@ abstract class BaseCommand extends Command
             placeholder: $placeholder,
             default: $default,
             required: $required,
-            hint: $hint,
+            hint: $hint ?? '',
             validate: $validate,
         );
     }
 
     /**
      * Handle invalid action argument using Laravel Prompts
+     *
+     * @param list<string> $validActions
      */
     protected function handleInvalidAction(string $action, array $validActions): int
     {
@@ -252,6 +258,8 @@ abstract class BaseCommand extends Command
 
     /**
      * Handle invalid type argument using Laravel Prompts
+     *
+     * @param list<string> $validTypes
      */
     protected function handleInvalidType(string $type, array $validTypes): int
     {
@@ -268,12 +276,14 @@ abstract class BaseCommand extends Command
 
     /**
      * Export data to JSON file
+     *
+     * @param array<mixed> $data
      */
     protected function exportToJson(array $data, string $filename): bool
     {
         try {
             $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-            File::put($filename, $json);
+            File::put($filename, (string) $json);
             $this->success(__('ichava/ichava-core::commands.common.exported', ['path' => $filename]));
 
             return true;
@@ -286,6 +296,9 @@ abstract class BaseCommand extends Command
 
     /**
      * Export data to CSV file
+     *
+     * @param array<mixed> $data
+     * @param list<string> $headers
      */
     protected function exportToCsv(array $data, string $filename, array $headers = []): bool
     {
@@ -305,7 +318,7 @@ abstract class BaseCommand extends Command
 
             // Write data
             foreach ($data as $row) {
-                fputcsv($handle, is_array($row) ? $row : [$row]);
+                fputcsv($handle, array_map(self::csvField(...), is_array($row) ? $row : [$row]));
             }
 
             fclose($handle);
@@ -335,6 +348,8 @@ abstract class BaseCommand extends Command
 
     /**
      * Get list of missing Ichava tables
+     *
+     * @return array<int, string>
      */
     protected function getMissingIchavaTables(): array
     {
@@ -385,6 +400,8 @@ abstract class BaseCommand extends Command
      * only from -vvv. Traces can carry call arguments -- credentials handed to
      * a connector, tokens in a URL -- so ExceptionRenderer holds them back
      * below debug verbosity.
+     *
+     * @param callable(): int $callback
      */
     protected function tryExecute(callable $callback, ?string $failureMessage = null): int
     {
@@ -424,6 +441,19 @@ abstract class BaseCommand extends Command
     }
 
     /**
+     * A CSV cell for one exported value: scalars and null as fputcsv writes
+     * them, a Stringable as its string, and anything else empty.
+     */
+    private static function csvField(mixed $value): bool|float|int|string|null
+    {
+        if (is_scalar($value) || $value === null) {
+            return $value;
+        }
+
+        return $value instanceof Stringable ? (string) $value : '';
+    }
+
+    /**
      * Offer the valid values for an argument, and re-run with the one chosen.
      * Quiet runs cannot answer, so they return INVALID without asking.
      *
@@ -448,6 +478,13 @@ abstract class BaseCommand extends Command
 
         $this->input->setArgument($argument, $selected);
 
-        return $this->handle();
+        // Every concrete command declares handle(); this base class cannot, because
+        // a subclass may take injected dependencies. So it is run through the
+        // container, as Command::execute() runs it.
+        if (! method_exists($this, 'handle')) {
+            return self::FAILURE;
+        }
+
+        return Coerce::int($this->laravel->call([$this, 'handle']));
     }
 }

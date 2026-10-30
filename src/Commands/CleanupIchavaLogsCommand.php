@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\File;
 use function Laravel\Prompts\warning;
 use function Laravel\Prompts\progress;
 
+use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
@@ -51,7 +52,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
     public function handle(): int
     {
         $retentionDays = $this->getRetentionDays();
-        $dryRun = $this->option('dry-run');
+        $dryRun = (bool) $this->option('dry-run');
 
         intro(__('ichava/ichava-core::commands.cleanup_logs.intro', ['days' => $retentionDays]));
 
@@ -75,8 +76,8 @@ class CleanupIchavaLogsCommand extends BaseCommand
             File::glob($logPath . '/ichava-queue-*.log'),
         );
 
-        // Remove duplicates
-        $logFiles = array_unique($logFiles);
+        // Remove duplicates (File::glob() is untyped; every entry is a path string)
+        $logFiles = array_unique(array_filter($logFiles, is_string(...)));
 
         if (empty($logFiles)) {
             $this->success(__('ichava/ichava-core::commands.cleanup_logs.none_found'));
@@ -99,7 +100,7 @@ class CleanupIchavaLogsCommand extends BaseCommand
         $days = $this->option('days');
 
         if ($days !== null) {
-            return (int) $days;
+            return Coerce::int($days);
         }
 
         // Ask user if not provided
@@ -108,8 +109,8 @@ class CleanupIchavaLogsCommand extends BaseCommand
 
             $days = text(
                 label: __('ichava/ichava-core::commands.cleanup_logs.retention_ask'),
-                placeholder: (string) $configDefault,
-                default: (string) $configDefault,
+                placeholder: Coerce::string($configDefault),
+                default: Coerce::string($configDefault),
                 validate: fn (string $value) => ! is_numeric($value) || (int) $value < 1
                     ? __('ichava/ichava-core::commands.cleanup_logs.retention_invalid')
                     : null,
@@ -119,11 +120,15 @@ class CleanupIchavaLogsCommand extends BaseCommand
             return (int) $days;
         }
 
-        return (int) config('ichava.ichava-core.logging.retention_days', 7);
+        return Coerce::int(config('ichava.ichava-core.logging.retention_days', 7));
     }
 
     /**
      * Process log files and return statistics
+     *
+     * @param array<string> $logFiles
+     *
+     * @return array{total: int, deleted: int, failed: int, kept: int, files: list<array{file: string, age: float|int, action: string, error?: string}>}
      */
     protected function processLogFiles(array $logFiles, Carbon $cutoffDate, bool $dryRun): array
     {
@@ -139,9 +144,20 @@ class CleanupIchavaLogsCommand extends BaseCommand
         $results = progress(
             label: $dryRun ? __('ichava/ichava-core::commands.cleanup_logs.analyzing') : __('ichava/ichava-core::commands.cleanup_logs.processing'),
             steps: $logFiles,
-            callback: function ($file) use ($cutoffDate, $dryRun, &$stats) {
+            callback: function (string $file) use ($cutoffDate, $dryRun, &$stats) {
                 $fileName = basename($file);
                 $fileTime = filemtime($file);
+
+                // The file went away (or became unreadable) between the glob and
+                // here: nothing to delete, and nothing an age could be read from.
+                if ($fileTime === false) {
+                    $result = ['file' => $fileName, 'age' => 0, 'action' => 'failed'];
+                    $stats['failed']++;
+                    $stats['files'][] = $result;
+
+                    return $result;
+                }
+
                 $fileDate = Carbon::createFromTimestamp($fileTime);
                 $age = $fileDate->diffInDays(now());
 
@@ -186,6 +202,8 @@ class CleanupIchavaLogsCommand extends BaseCommand
 
     /**
      * Display cleanup summary using Laravel Prompts table
+     *
+     * @param array{total: int, deleted: int, failed: int, kept: int, files: list<array{file: string, age: float|int, action: string, error?: string}>} $stats
      */
     protected function displaySummary(array $stats, bool $dryRun): void
     {
