@@ -19,11 +19,42 @@ use Illuminate\Support\Facades\DB;
 final class IconSearchTextFunctions
 {
     /**
+     * Create, or replace, every function that compares `termable_type`.
+     *
+     * Pass the morph alias the termables rows actually hold, which is
+     * `Icon::MORPH_ALIAS` while core's morph map is registered.
+     */
+    public static function install(string $iconMorphType): void
+    {
+        self::createRefreshFunction($iconMorphType);
+        self::createTermRefreshFunction($iconMorphType);
+        self::createTermableTriggerFunction($iconMorphType);
+    }
+
+    /**
+     * Rebuild `search_text` for every icon, row by row, through the refresh
+     * function. Holds row locks on `ichava_icons` for its duration.
+     */
+    public static function rebuildAll(): void
+    {
+        DB::statement('
+            DO $$
+            DECLARE
+                rec record;
+            BEGIN
+                FOR rec IN SELECT id FROM ichava_icons LOOP
+                    PERFORM refresh_ichava_icon_search_text(rec.id);
+                END LOOP;
+            END $$;
+        ');
+    }
+
+    /**
      * The function that rebuilds one icon's search text from its name, keywords, tags and attached terms.
      */
     public static function createRefreshFunction(string $iconMorphType): void
     {
-        $escapedMorphType = addslashes($iconMorphType);
+        $escapedMorphType = self::quoted($iconMorphType);
 
         DB::statement("
         CREATE OR REPLACE FUNCTION refresh_ichava_icon_search_text(p_icon_id bigint)
@@ -88,7 +119,7 @@ final class IconSearchTextFunctions
      */
     public static function createTermRefreshFunction(string $iconMorphType): void
     {
-        $escapedMorphType = addslashes($iconMorphType);
+        $escapedMorphType = self::quoted($iconMorphType);
 
         DB::statement("
         CREATE OR REPLACE FUNCTION refresh_ichava_icons_search_text_for_term(p_term_id bigint)
@@ -114,7 +145,7 @@ final class IconSearchTextFunctions
      */
     public static function createTermableTriggerFunction(string $iconMorphType): void
     {
-        $escapedMorphType = addslashes($iconMorphType);
+        $escapedMorphType = self::quoted($iconMorphType);
 
         DB::statement("
         CREATE OR REPLACE FUNCTION trg_refresh_ichava_icon_search_text_from_termable()
@@ -154,5 +185,16 @@ final class IconSearchTextFunctions
         END;
         \$\$ LANGUAGE plpgsql
     ");
+    }
+
+    /**
+     * The value as the body of a standard SQL string literal. PostgreSQL treats
+     * backslashes in a standard string as ordinary characters, so only the
+     * single quote needs doubling. `addslashes()`, used here before, doubled the
+     * backslashes in a class name and so could never match one either.
+     */
+    private static function quoted(string $value): string
+    {
+        return str_replace("'", "''", $value);
     }
 }

@@ -66,11 +66,10 @@ final class Icon extends Model
     public const TABLE = 'ichava_icons';
 
     /**
-     * `addslashes(self::class)`, spelled out as a literal for the same reason.
-     * The search SQL quotes it as a string, so it has to stay byte-identical to
-     * what `addslashes()` produced.
+     * The morph alias core registers for this model, and so the value every
+     * `termable_type` row holds. A literal so raw search SQL can quote it.
      */
-    private const SQL_MORPH_TYPE = 'Simtabi\\\\Laranail\\\\Ichava\\\\Models\\\\Icon';
+    public const MORPH_ALIAS = 'icon';
 
     /** @var string */
     protected $table = self::TABLE;
@@ -235,7 +234,7 @@ final class Icon extends Model
 
         if (self::driverOf($query) === 'pgsql') {
             $languages = FtsLanguageHelper::getLanguages();
-            $whereClause = FtsLanguageHelper::buildComprehensiveSearchQuery(self::SQL_MORPH_TYPE, self::TABLE);
+            $whereClause = FtsLanguageHelper::buildComprehensiveSearchQuery(self::MORPH_ALIAS, self::TABLE);
 
             $bindings = array_fill(0, count($languages), $search);
 

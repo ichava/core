@@ -31,8 +31,6 @@ use Simtabi\Laranail\Ichava\Support\Database\IconSearchTextFunctions;
  */
 return new class extends Migration
 {
-    private const string ICON_MORPH_TYPE = Icon::class;
-
     /**
      * Run the migrations.
      */
@@ -232,7 +230,7 @@ return new class extends Migration
     /**
      * Setup PostgreSQL FTS helpers, triggers, and indexes
      */
-    protected function setupIconSearchText(string $iconMorphType = self::ICON_MORPH_TYPE): void
+    protected function setupIconSearchText(string $iconMorphType = Icon::MORPH_ALIAS): void
     {
         if (! Helpers::dbDriverIsPgSql()) {
             return;
