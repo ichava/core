@@ -114,14 +114,6 @@ final class IconCacheService
     }
 
     /**
-     * Clear discovery cache only
-     */
-    public function clearDiscovery(): bool
-    {
-        return $this->safeForget(IconDiscoveryService::CACHE_PREFIX . '.packages');
-    }
-
-    /**
      * Clear manifest cache for specific path
      */
     public function clearManifest(string $basePath): bool
@@ -157,16 +149,6 @@ final class IconCacheService
     public function updateDirectoryFingerprint(string $path): void
     {
         $this->watcher()->updateFingerprint($path);
-    }
-
-    /**
-     * Warm up cache for all packages
-     *
-     * @return array{rebuilt: int, skipped: int, errors: int, total: int, exit_code: int, success: bool}
-     */
-    public function warmUp(): array
-    {
-        return $this->rebuild(force: true);
     }
 
     /**
@@ -422,26 +404,6 @@ final class IconCacheService
     }
 
     /**
-     * Format bytes to human-readable format
-     */
-    public function formatSize(int $bytes, int $precision = 2): string
-    {
-        if ($bytes === 0) {
-            return '0 B';
-        }
-
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        $i = 0;
-
-        while ($bytes >= 1024 && $i < count($units) - 1) {
-            $bytes /= 1024;
-            $i++;
-        }
-
-        return round($bytes, $precision) . ' ' . $units[$i];
-    }
-
-    /**
      * Refresh/rebuild cache file
      *
      * @param Closure(): (string|false|null) $buildCallback
@@ -459,26 +421,6 @@ final class IconCacheService
         } catch (Exception $e) {
             return false;
         }
-    }
-
-    /**
-     * Clear and optionally rebuild cache
-     *
-     * @param (Closure(): (string|false|null))|null $rebuildCallback
-     */
-    public function clearAndRefresh(string $path, ?Closure $rebuildCallback = null): bool
-    {
-        $cleared = $this->clear($path);
-
-        if (! $cleared) {
-            return false;
-        }
-
-        if ($rebuildCallback) {
-            return $this->refresh($path, $rebuildCallback);
-        }
-
-        return true;
     }
 
     /**
@@ -517,34 +459,6 @@ final class IconCacheService
         }
 
         return touch($path);
-    }
-
-    /**
-     * Set cache TTL
-     */
-    public function setTtl(int $ttl): self
-    {
-        $this->ttl = $ttl;
-
-        return $this;
-    }
-
-    /**
-     * Get cache TTL
-     */
-    public function getTtl(): int
-    {
-        return $this->ttl;
-    }
-
-    /**
-     * Set cache prefix
-     */
-    public function setPrefix(string $prefix): self
-    {
-        $this->prefix = $prefix;
-
-        return $this;
     }
 
     /**

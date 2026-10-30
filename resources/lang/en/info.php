@@ -13,6 +13,4 @@ declare(strict_types=1);
 
 return [
 
-    'dry_run_notice' => 'DRY RUN MODE - No files will be deleted',
-
 ];

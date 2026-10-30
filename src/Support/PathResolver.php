@@ -70,28 +70,6 @@ class PathResolver
     }
 
     /**
-     * Get the package root path from a service provider
-     *
-     * @param string|object $provider The service provider class or instance
-     * @param int $levelsUp Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
-     */
-    public static function packageRootFromProvider(string|object $provider, int $levelsUp = 3): string
-    {
-        return self::resolvePackagePath($provider, $levelsUp);
-    }
-
-    /**
-     * Get the SVG assets path from a service provider
-     *
-     * @param string|object $provider The service provider class or instance
-     * @param int $levelsUp Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
-     */
-    public static function svgPathFromProvider(string|object $provider, int $levelsUp = 3): string
-    {
-        return self::resolvePackagePath($provider, $levelsUp, self::SVG_PATH);
-    }
-
-    /**
      * Get the SVG assets path from an IconSet or absolute path
      *
      * Accepts:

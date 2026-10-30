@@ -655,22 +655,6 @@ final class IconRegistry
     }
 
     /**
-     * Get package by icon set name
-     *
-     * @return array<string, mixed>|null
-     */
-    public function getByIconSet(string $iconSetName): ?array
-    {
-        foreach ($this->packages as $package) {
-            if (($package['icon_set_name'] ?? null) === $iconSetName) {
-                return $package;
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Record the Blade component alias a package actually registered.
      *
      * `checkConflicts()` has always had a `blade_component` detector, and it

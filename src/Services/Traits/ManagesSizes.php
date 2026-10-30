@@ -65,37 +65,6 @@ trait ManagesSizes
     }
 
     /**
-     * Convert size to inline style
-     */
-    public function toInlineStyle(
-        string|int|null $width = null,
-        string|int|null $height = null,
-        bool $lockAspectRatio = true,
-    ): string {
-        $styles = [];
-
-        if ($width !== null) {
-            $parsedWidth = $this->parseFixedSize((string) $width);
-            if ($parsedWidth) {
-                $styles[] = "width: {$parsedWidth}";
-
-                if ($lockAspectRatio && $height === null) {
-                    $styles[] = "height: {$parsedWidth}";
-                }
-            }
-        }
-
-        if ($height !== null && ! $lockAspectRatio) {
-            $parsedHeight = $this->parseFixedSize((string) $height);
-            if ($parsedHeight) {
-                $styles[] = "height: {$parsedHeight}";
-            }
-        }
-
-        return implode('; ', $styles);
-    }
-
-    /**
      * Merge size attributes with existing
      *
      * @param array<array-key, mixed> $sizeAttrs

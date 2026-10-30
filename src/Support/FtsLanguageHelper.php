@@ -272,40 +272,6 @@ final class FtsLanguageHelper
     }
 
     /**
-     * Build a multilingual FTS query (legacy, kept for compatibility)
-     *
-     * Creates a query that searches across multiple language configurations
-     */
-    public static function buildMultilingualQuery(string $searchTerm): string
-    {
-        $languages = self::getLanguages();
-
-        if (count($languages) === 1) {
-            return self::buildSingleLanguageQuery($searchTerm, $languages[0]);
-        }
-
-        // Build OR conditions for each language
-        $conditions = array_map(
-            fn ($lang) => self::buildSingleLanguageQuery($searchTerm, $lang),
-            $languages,
-        );
-
-        return '(' . implode(' OR ', $conditions) . ')';
-    }
-
-    /**
-     * Build a single language FTS query (legacy)
-     */
-    public static function buildSingleLanguageQuery(string $searchTerm, string $language): string
-    {
-        return sprintf(
-            "to_tsvector('%s', COALESCE(array_to_string(ARRAY(SELECT json_array_elements_text(search_text::json)), ' '), '')) @@ plainto_tsquery('%s', ?)",
-            $language,
-            $language,
-        );
-    }
-
-    /**
      * Get language-specific stemming example
      *
      * @return array<string, mixed>
@@ -361,27 +327,6 @@ final class FtsLanguageHelper
             $this->logger->error("❌ Failed to validate FTS language: {$e->getMessage()}");
 
             return 'simple';
-        }
-    }
-
-    /**
-     * Get list of available FTS languages from database
-     *
-     * @return array<mixed>
-     */
-    public function getAvailableLanguages(): array
-    {
-        try {
-            $configs = DB::select(
-                'SELECT cfgname FROM pg_ts_config ORDER BY cfgname',
-            );
-
-            return array_map(fn (mixed $config): mixed => $config instanceof stdClass ? $config->cfgname : null, $configs);
-
-        } catch (Exception $e) {
-            $this->logger->error("❌ Failed to fetch available FTS languages: {$e->getMessage()}");
-
-            return self::AVAILABLE_LANGUAGES;
         }
     }
 }

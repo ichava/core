@@ -141,20 +141,6 @@ class IconWatcherService
     }
 
     /**
-     * Get all watched directories
-     *
-     * @return list<array-key>
-     */
-    public function getWatchedDirectories(): array
-    {
-        try {
-            return array_keys($this->storedFingerprints());
-        } catch (IchavaException $e) {
-            return [];
-        }
-    }
-
-    /**
      * Get fingerprint statistics
      *
      * @return array{total_watched: int, directories: list<array-key>, error?: string}
@@ -231,15 +217,6 @@ class IconWatcherService
         }
 
         return false;
-    }
-
-    /**
-     * Force clear fingerprint cache
-     */
-    public function clearFingerprints(): void
-    {
-        Cache::forget(self::CHANGE_DETECTOR_KEY);
-        $this->clearAll();
     }
 
     /**
@@ -759,23 +736,6 @@ class IconWatcherService
         }
 
         return $size;
-    }
-
-    /**
-     * Extract category from path
-     */
-    protected function extractCategory(string $path): ?string
-    {
-        $path = trim($path, '/\\');
-
-        if ($path === '') {
-            return null;
-        }
-
-        $parts = explode('/', str_replace('\\', '/', $path));
-        $last = end($parts);
-
-        return $last === false || $last === '' ? null : $last;
     }
 
     /**

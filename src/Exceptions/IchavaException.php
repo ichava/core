@@ -102,33 +102,6 @@ class IchavaException extends RuntimeException
     }
 
     /**
-     * Missing required method implementation
-     */
-    public static function missingMethodImplementation(string $providerClass, string $methodName): static
-    {
-        return new static(
-            "Ichava package configuration failed for '{$providerClass}'.\n\n" .
-            "Required abstract method not implemented: {$methodName}()\n\n" .
-            'Implement this method in your service provider.',
-        );
-    }
-
-    /**
-     * Invalid icon set class - doesn't implement required interface
-     *
-     * @param string $class The class name that failed validation
-     * @param string $expectedInterface The required interface (default: IconSetInterface)
-     */
-    public static function invalidIconSetClass(string $class, string $expectedInterface = 'IconSetInterface'): static
-    {
-        return new static(
-            "Invalid icon set class '{$class}'.\n\n" .
-            "The class does not implement {$expectedInterface}.\n\n" .
-            "Ensure your icon set class implements {$expectedInterface} and provides all required methods (config(), get(), has(), all()).",
-        );
-    }
-
-    /**
      * Icon not found
      */
     public static function iconNotFound(string $name, ?string $package = null): static
@@ -263,14 +236,6 @@ class IchavaException extends RuntimeException
     public static function filesystemFailure(string $operation, string $path): static
     {
         return new static("Filesystem {$operation} failed for: '{$path}'");
-    }
-
-    /**
-     * File operation failed with reason
-     */
-    public static function fileOperationFailed(string $operation, string $path, string $reason): static
-    {
-        return new static("File {$operation} failed for '{$path}': {$reason}");
     }
 
     /**
@@ -429,14 +394,6 @@ class IchavaException extends RuntimeException
     }
 
     /**
-     * Cache operation failed
-     */
-    public static function cacheFailure(string $operation, string $reason): static
-    {
-        return new static("Cache {$operation} failed: {$reason}");
-    }
-
-    /**
      * Seeding operation failed
      */
     public static function seedingFailed(string $package, string $reason): static
@@ -465,62 +422,11 @@ class IchavaException extends RuntimeException
     }
 
     /**
-     * Service unavailable or failed
-     */
-    public static function serviceFailure(string $service, string $operation, string $reason): static
-    {
-        return new static("{$service} service {$operation} failed: {$reason}");
-    }
-
-    /**
-     * Discovery operation failed
-     */
-    public static function discoveryFailed(string $operation, string $reason): static
-    {
-        return new static("Icon discovery {$operation} failed: {$reason}");
-    }
-
-    /**
-     * Browser operation failed
-     */
-    public static function browserOperationFailed(string $operation, string $reason): static
-    {
-        return new static("Icon browser {$operation} failed: {$reason}");
-    }
-
-    /**
-     * HTTP request failed
-     */
-    public static function httpRequestFailed(string $url, string $reason): static
-    {
-        return new static("HTTP request to '{$url}' failed: {$reason}");
-    }
-
-    /**
-     * Invalid data received
-     */
-    public static function invalidData(string $dataType, string $reason): static
-    {
-        return new static("Invalid {$dataType} data: {$reason}");
-    }
-
-    /**
      * Generic operation failed (use specific methods when possible)
      */
     public static function operationFailed(string $operation, string $reason): static
     {
         return new static("{$operation} failed: {$reason}");
-    }
-
-    /**
-     * Class not found
-     */
-    public static function classNotFound(string $className): static
-    {
-        return new static(
-            "Class not found: '{$className}'.\n\n" .
-            'Ensure the class exists and is properly autoloaded.',
-        );
     }
 
     /**

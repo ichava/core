@@ -205,14 +205,6 @@ abstract class JsonConfigConstants
     }
 
     /**
-     * Get variant icon suffix (e.g., "-outline", "-filled")
-     */
-    public static function getVariantSuffix(string $variant): string
-    {
-        return self::variantString($variant, 'icon_suffix') ?? '';
-    }
-
-    /**
      * Get variant preview icon name
      */
     public static function getVariantPreviewIcon(string $variant): ?string
@@ -349,14 +341,6 @@ abstract class JsonConfigConstants
     }
 
     /**
-     * Get the base SVG path (where config.json is located)
-     */
-    public static function getBaseSvgPath(): string
-    {
-        return static::getConfigPath();
-    }
-
-    /**
      * Get the files directory path (where SVG files are stored)
      */
     public static function getFilesPath(): string
@@ -380,40 +364,6 @@ abstract class JsonConfigConstants
         }
 
         return $basePath . DIRECTORY_SEPARATOR . $subfolder;
-    }
-
-    /**
-     * Get all category paths
-     *
-     * @return array<string, string> Map of category slug to full path
-     */
-    public static function getCategoryPaths(): array
-    {
-        $paths = [];
-        $basePath = static::getFilesPath();
-
-        foreach (static::getCategories() as $category) {
-            $paths[(string) $category] = $basePath . DIRECTORY_SEPARATOR . $category;
-        }
-
-        return $paths;
-    }
-
-    /**
-     * Get all variant paths
-     *
-     * @return array<string, string> Map of variant slug to full path
-     */
-    public static function getVariantPaths(): array
-    {
-        $paths = [];
-        $basePath = static::getFilesPath();
-
-        foreach (static::getVariants() as $variant) {
-            $paths[(string) $variant] = $basePath . DIRECTORY_SEPARATOR . $variant;
-        }
-
-        return $paths;
     }
 
     /**

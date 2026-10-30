@@ -118,7 +118,7 @@ If `ICHAVA_LOG_PATH` is unset *and* `storage_path()` is unavailable (tests boots
 | `ICHAVA_QUEUE_STAGGER_DELAY` | constant | Seconds between consecutive job dispatches | `ichava.ichava-core.queue.stagger_delay` |
 | `ICHAVA_QUEUE_TIMEOUT` | `600` | Per-job timeout (seconds) | `ichava.ichava-core.queue.timeout` |
 | `ICHAVA_QUEUE_RETRIES` | `3` | Per-job retry count | `ichava.ichava-core.queue.retries` |
-| `ICHAVA_PROGRESS_TTL` | constant | TTL for cached `JobProgressTracker` state | `ichava.ichava-core.queue.progress_ttl` |
+| `ICHAVA_PROGRESS_TTL` | constant | TTL for cached seeding-progress state | `ichava.ichava-core.queue.progress_ttl` |
 
 ## Horizon supervisor
 

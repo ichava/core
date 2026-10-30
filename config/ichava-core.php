@@ -209,11 +209,11 @@ return [
     |--------------------------------------------------------------------------
     | SVG security
     |--------------------------------------------------------------------------
-    | Always keep `sanitize` enabled in production.
+    | Sanitising is not configurable: every SVG served goes through the
+    | allow-list below. A switch that turned it off used to sit here and was
+    | read by nothing; it is gone so nobody trusts it.
     */
     'security' => [
-        'sanitize' => true,
-
         // The SVG allow/deny lists live under the `svg` key below and are read
         // from there by SanitizesSvg. They were mirrored here as
         // config('ichava.svg.*') lookups, which a config file cannot perform on
@@ -402,9 +402,6 @@ return [
     | extend to match the surface area you actually need.
     */
     'svg' => [
-        'tag'        => 'svg',
-        'extensions' => ['.svg'],
-
         /*
         | These lists ARE the effective policy, and they now come from ONE file:
         | resources/security/svg-policy.json, which the Vue client, the React

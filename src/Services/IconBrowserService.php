@@ -27,8 +27,6 @@ final class IconBrowserService
 {
     public function __construct(
         private IconRegistry $registry,
-        // @phpstan-ignore property.onlyWritten (injected for subclasses and kept; removing a constructor dependency needs its own decision)
-        private IconDiscoveryService $discoveryService,
         private IconCacheService $cacheManager,
         private IchavaLogger $logger,
     ) {}

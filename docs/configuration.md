@@ -104,7 +104,6 @@ return [
 
     // SVG sanitisation policy
     'security' => [
-        'sanitize'           => true,
         'allowed_tags'       => [...],
         'allowed_attributes' => [...],
         'forbidden_tags'     => [...],

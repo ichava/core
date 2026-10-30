@@ -87,22 +87,6 @@ class DatabaseOperationsService
     }
 
     /**
-     * Ensure all required tables exist with proper columns
-     */
-    public function ensureTablesExist(): bool
-    {
-        if (! Schema::hasTable('ichava_icons')) {
-            return false;
-        }
-
-        if (! Schema::hasTable('ichava_icon_terms')) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
      * Drop all Ichava tables (preserves other application tables)
      *
      * @return list<string>

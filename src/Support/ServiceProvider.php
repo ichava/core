@@ -30,14 +30,6 @@ use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
 abstract class ServiceProvider extends PackageServiceProvider
 {
     /**
-     * The Ichava icon ecosystem identifier.
-     *
-     * Used throughout the ecosystem for namespacing and identification.
-     * Do not change this value in child packages.
-     */
-    public const string ICON_ECOSYSTEM_NAME = 'ichava';
-
-    /**
      * Build the Package with every resource type it ships already switched on.
      *
      * `package-tools` defaults all of them to false, so a pack got nothing

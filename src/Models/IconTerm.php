@@ -179,18 +179,6 @@ class IconTerm extends Model
     }
 
     /**
-     * Filter terms with icon counts
-     *
-     * @param Builder<IconTerm> $query
-     *
-     * @return Builder<IconTerm>
-     */
-    public function scopeWithIconCount(Builder $query): Builder
-    {
-        return $query->withCount('icons');
-    }
-
-    /**
      * Filter terms that have icons
      *
      * @param Builder<IconTerm> $query
@@ -238,14 +226,6 @@ class IconTerm extends Model
     public function descendants(): Collection
     {
         return static::descendantsOf($this->id);
-    }
-
-    /**
-     * Get the depth level of this term in the hierarchy
-     */
-    public function getDepth(): int
-    {
-        return $this->ancestors()->count();
     }
 
     /**

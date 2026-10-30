@@ -39,8 +39,6 @@ use Simtabi\Laranail\Console\Tools\Commands\Concerns\ConfirmsDestructiveActions;
  * widgets and support classes, so it is defined once for every command in the
  * family. What stays here is what is specific to Ichava: its tables, its
  * invalid-argument recovery and the handful of helpers the commands share.
- *
- * Helpers nothing called were parked in `.parked/Commands/` on 2026-09-26.
  */
 abstract class BaseCommand extends Command
 {

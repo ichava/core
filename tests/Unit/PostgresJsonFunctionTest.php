@@ -27,7 +27,6 @@ it('never applies a jsonb function to a json column', function (string $sql): vo
     }
 })->with([
     'comprehensive'   => fn () => FtsLanguageHelper::buildComprehensiveSearchQuery('Simtabi\Laranail\Ichava\Models\Icon'),
-    'single language' => fn () => FtsLanguageHelper::buildSingleLanguageQuery('arrow', 'english'),
 ]);
 
 it('expands keywords and tags when those scopes are enabled', function (): void {

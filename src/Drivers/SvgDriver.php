@@ -102,39 +102,6 @@ class SvgDriver
     }
 
     /**
-     * Extract the viewBox attribute from an SVG string.
-     */
-    public function getViewBox(string $svg): ?string
-    {
-        if (preg_match('/viewBox=["\']([^"\']+)["\']/', $svg, $matches)) {
-            return $matches[1];
-        }
-
-        return null;
-    }
-
-    /**
-     * Extract width and height dimensions from an SVG string.
-     *
-     * @return array{width: string|null, height: string|null}
-     */
-    public function getDimensions(string $svg): array
-    {
-        $width = null;
-        $height = null;
-
-        if (preg_match('/width=["\']([^"\']+)["\']/', $svg, $matches)) {
-            $width = $matches[1];
-        }
-
-        if (preg_match('/height=["\']([^"\']+)["\']/', $svg, $matches)) {
-            $height = $matches[1];
-        }
-
-        return compact('width', 'height');
-    }
-
-    /**
      * Read an SVG file from the local filesystem with security and size enforcement.
      *
      * Performs checks before reading:
