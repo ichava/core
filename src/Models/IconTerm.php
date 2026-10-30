@@ -324,7 +324,7 @@ class IconTerm extends Model
 
         return DB::table('ichava_icon_termables')
             ->whereIn('term_id', $termIds)
-            ->where('termable_type', Icon::class)
+            ->where('termable_type', (new Icon)->getMorphClass())
             ->distinct('termable_id')
             ->count('termable_id');
     }

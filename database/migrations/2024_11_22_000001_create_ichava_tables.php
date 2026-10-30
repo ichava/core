@@ -9,6 +9,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Illuminate\Database\Migrations\Migration;
 use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
+use Simtabi\Laranail\Ichava\Support\Database\IconSearchTextFunctions;
 
 /**
  * Create Ichava Icon Tables with Performance Optimizations
@@ -30,8 +31,6 @@ use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
  */
 return new class extends Migration
 {
-    private const string ICON_MORPH_TYPE = Icon::class;
-
     /**
      * Run the migrations.
      */
@@ -231,13 +230,12 @@ return new class extends Migration
     /**
      * Setup PostgreSQL FTS helpers, triggers, and indexes
      */
-    protected function setupIconSearchText(string $iconMorphType = self::ICON_MORPH_TYPE): void
+    protected function setupIconSearchText(string $iconMorphType = Icon::MORPH_ALIAS): void
     {
         if (! Helpers::dbDriverIsPgSql()) {
             return;
         }
 
-        $escapedMorphType = addslashes($iconMorphType);
         $language = FtsLanguageHelper::getPrimaryLanguage();
         $isMultilingual = FtsLanguageHelper::isMultilingual();
         $languages = FtsLanguageHelper::getLanguages();
@@ -246,84 +244,13 @@ return new class extends Migration
         // 1. CORE REFRESH FUNCTION FOR A SINGLE ICON
         // =====================================================================
 
-        DB::statement("
-        CREATE OR REPLACE FUNCTION refresh_ichava_icon_search_text(p_icon_id bigint)
-        RETURNS void AS \$\$
-        DECLARE
-            v_search_parts text[];
-            v_term_names text[];
-            v_search_json json;
-            v_search_plain text;
-        BEGIN
-            -- Collect search components from icon and related terms
-            WITH RECURSIVE term_tree AS (
-                SELECT t.id, t.name, t.parent_id
-                FROM ichava_icon_termables it
-                JOIN ichava_icon_terms t ON t.id = it.term_id
-                WHERE it.termable_type = '{$escapedMorphType}'
-                  AND it.termable_id = p_icon_id
-                UNION ALL
-                SELECT parent.id, parent.name, parent.parent_id
-                FROM ichava_icon_terms parent
-                JOIN term_tree child ON child.parent_id = parent.id
-            )
-            SELECT array_agg(DISTINCT term_tree.name)
-            INTO v_term_names
-            FROM term_tree;
-
-            -- Build search text array from all components
-            SELECT ARRAY[
-                i.name,
-                COALESCE((
-                    SELECT string_agg(value::text, ' ')
-                    FROM json_array_elements_text(i.keywords::json)
-                ), ''),
-                COALESCE((
-                    SELECT string_agg(value::text, ' ')
-                    FROM json_array_elements_text(i.tags::json)
-                ), ''),
-                COALESCE(array_to_string(v_term_names, ' '), '')
-            ]
-            INTO v_search_parts
-            FROM ichava_icons i
-            WHERE i.id = p_icon_id;
-
-            -- Convert to JSON
-            v_search_json := array_to_json(array_remove(v_search_parts, ''));
-
-            -- Convert to plain text for FTS
-            v_search_plain := array_to_string(array_remove(v_search_parts, ''), ' ');
-
-            -- Update both columns
-            UPDATE ichava_icons
-            SET search_text = v_search_json,
-                search_text_plain = v_search_plain
-            WHERE id = p_icon_id;
-        END;
-        \$\$ LANGUAGE plpgsql
-    ");
+        IconSearchTextFunctions::createRefreshFunction($iconMorphType);
 
         // =====================================================================
         // 2. HELPER: REFRESH ALL ICONS FOR A GIVEN TERM
         // =====================================================================
 
-        DB::statement("
-        CREATE OR REPLACE FUNCTION refresh_ichava_icons_search_text_for_term(p_term_id bigint)
-        RETURNS void AS \$\$
-        DECLARE
-            r record;
-        BEGIN
-            FOR r IN
-                SELECT termable_id
-                FROM ichava_icon_termables
-                WHERE term_id = p_term_id
-                  AND termable_type = '{$escapedMorphType}'
-            LOOP
-                PERFORM refresh_ichava_icon_search_text(r.termable_id);
-            END LOOP;
-        END;
-        \$\$ LANGUAGE plpgsql
-    ");
+        IconSearchTextFunctions::createTermRefreshFunction($iconMorphType);
 
         // =====================================================================
         // 3. TRIGGER FUNCTION ON ICHAVA_ICONS
@@ -351,44 +278,7 @@ return new class extends Migration
         // 4. TRIGGER FUNCTION ON PIVOT TABLE
         // =====================================================================
 
-        DB::statement("
-        CREATE OR REPLACE FUNCTION trg_refresh_ichava_icon_search_text_from_termable()
-        RETURNS trigger AS \$\$
-        DECLARE
-            v_icon_id bigint;
-        BEGIN
-            IF (TG_OP = 'INSERT') THEN
-                IF NEW.termable_type = '{$escapedMorphType}' THEN
-                    v_icon_id := NEW.termable_id;
-                ELSE
-                    RETURN NEW;
-                END IF;
-            ELSIF (TG_OP = 'UPDATE') THEN
-                IF NEW.termable_type = '{$escapedMorphType}' THEN
-                    v_icon_id := NEW.termable_id;
-                ELSIF OLD.termable_type = '{$escapedMorphType}' THEN
-                    v_icon_id := OLD.termable_id;
-                ELSE
-                    RETURN NEW;
-                END IF;
-            ELSE
-                IF OLD.termable_type = '{$escapedMorphType}' THEN
-                    v_icon_id := OLD.termable_id;
-                ELSE
-                    RETURN OLD;
-                END IF;
-            END IF;
-
-            PERFORM refresh_ichava_icon_search_text(v_icon_id);
-
-            IF TG_OP = 'DELETE' THEN
-                RETURN OLD;
-            ELSE
-                RETURN NEW;
-            END IF;
-        END;
-        \$\$ LANGUAGE plpgsql
-    ");
+        IconSearchTextFunctions::createTermableTriggerFunction($iconMorphType);
 
         DB::statement('
         CREATE TRIGGER trg_ichava_icon_termables_search_text

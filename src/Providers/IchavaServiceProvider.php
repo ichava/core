@@ -124,7 +124,7 @@ class IchavaServiceProvider extends PackageServiceProvider
 
         // Register morph map for polymorphic relationships
         Relation::morphMap([
-            'icon' => Icon::class,
+            Icon::MORPH_ALIAS => Icon::class,
         ]);
 
         // Dynamically register Horizon supervisor for ichava-icons queue
