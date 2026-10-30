@@ -319,7 +319,7 @@ final class IconBrowserService
                 'variants'   => $variants,
                 'empty'      => false,
             ];
-        });
+        }, expects: 'array');
     }
 
     /**
@@ -364,7 +364,7 @@ final class IconBrowserService
                 ],
                 'empty' => false,
             ];
-        });
+        }, expects: 'array');
     }
 
     /**
@@ -501,7 +501,7 @@ final class IconBrowserService
             usort($tree, fn ($a, $b) => strcasecmp($a['label'], $b['label']));
 
             return $tree;
-        });
+        }, expects: 'array');
     }
 
     /**

@@ -142,9 +142,11 @@ return [
     | Drivers honoured: file, redis, memcached, array.
     */
     'cache' => [
-        'ttl'     => IchavaConstants::DEFAULT_CACHE_TTL,
-        'prefix'  => 'ichava',
-        'version' => 'v2',
+        'ttl'    => IchavaConstants::DEFAULT_CACHE_TTL,
+        'prefix' => 'ichava',
+        // Part of every key IconCacheService builds. Bump it to abandon every
+        // existing entry at once, e.g. after a cached value changes shape.
+        'version' => env('ICHAVA_CACHE_VERSION', 'v2'),
     ],
 
     /*
