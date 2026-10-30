@@ -10,6 +10,9 @@ use Throwable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Support\Coerce;
+use Simtabi\Laranail\Ichava\Data\StatusData;
+use Simtabi\Laranail\Ichava\Listeners\RecordCacheRebuild;
 
 /**
  * InformationService
@@ -29,7 +32,43 @@ class InformationService
         protected IchavaLifecycleManager $lifecycle,
         protected DatabaseOperationsService $databaseService,
         protected IchavaLogger $logger,
+        protected IconDiscoveryService $discovery,
+        protected SvgProcessingService $svg,
     ) {}
+
+    /**
+     * Operational health in one shape (see StatusData): lifecycle, registry
+     * conflicts, orphaned rows, discovery, watcher, logging, the last cache
+     * rebuild and the render pipeline. No absolute paths.
+     */
+    public function status(): StatusData
+    {
+        $stats = $this->discovery->getDiscoveryStats();
+
+        return new StatusData(
+            lifecycle: $this->getLifecycleStatus(),
+            packages: $this->registry->count(),
+            conflicts: $this->registry->getConflicts(),
+            orphans: $this->discovery->getOrphanedPackages(),
+            discovery: [
+                'total_discovered'   => Coerce::int($stats['total_discovered'] ?? 0),
+                'total_registered'   => Coerce::int($stats['total_registered'] ?? 0),
+                'total_unregistered' => Coerce::int($stats['total_unregistered'] ?? 0),
+                'unregistered_list'  => array_values(array_filter(is_array($stats['unregistered_list'] ?? null) ? $stats['unregistered_list'] : [], is_string(...))),
+            ],
+            lastScan: IconWatcherService::getLastScanTime()?->toIso8601String(),
+            logging: [
+                'enabled'         => $this->logger->isEnabled(),
+                'performance'     => $this->logger->isPerformanceEnabled(),
+                'security'        => $this->logger->isSecurityEnabled(),
+                'channel'         => $this->logger->getChannel(),
+                'seeding_channel' => $this->logger->getSeedingChannel(),
+            ],
+            lastRebuild: RecordCacheRebuild::last(),
+            optimizationLevel: $this->svg->getOptimizationLevel()->value,
+            renderFingerprint: $this->svg->renderFingerprint(),
+        );
+    }
 
     /**
      * Get all registered packages with statistics

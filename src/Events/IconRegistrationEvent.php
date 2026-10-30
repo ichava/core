@@ -34,15 +34,6 @@ final class IconRegistrationEvent
 
     public const ACTION_UNREGISTERED = 'unregistered';
 
-    // Registration mode constants
-    public const MODE_SINGLE = 'single';
-
-    public const MODE_BULK = 'bulk';
-
-    public const MODE_ICONSET = 'iconset';
-
-    public const MODE_PACKAGE = 'package';
-
     /**
      * @param array<string, mixed> $context
      * @param array<string, mixed> $metadata

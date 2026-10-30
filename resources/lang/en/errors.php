@@ -14,6 +14,4 @@ declare(strict_types=1);
 
 return [
 
-    'log_dir_missing' => 'Log directory not found: :path',
-
 ];

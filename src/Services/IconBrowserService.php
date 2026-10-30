@@ -12,8 +12,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\JoinClause;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
+use Simtabi\Laranail\Ichava\Models\IconTerm;
+use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Data\VariantData;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -27,10 +32,9 @@ final class IconBrowserService
 {
     public function __construct(
         private IconRegistry $registry,
-        // @phpstan-ignore property.onlyWritten (injected for subclasses and kept; removing a constructor dependency needs its own decision)
-        private IconDiscoveryService $discoveryService,
         private IconCacheService $cacheManager,
         private IchavaLogger $logger,
+        private DatabaseOperationsService $database,
     ) {}
 
     /**
@@ -52,53 +56,7 @@ final class IconBrowserService
             return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage, $page);
         }
 
-        $query = Icon::query();
-
-        /*
-         * Search NARROWS the filtered set; it does not replace it.
-         *
-         * These filters used to sit in an `else` branch behind `if (search)`, under the
-         * comment "Apply filters only when not searching". Selecting a package and then
-         * typing a query returned matches from every package -- the filter was not
-         * outranked by a better match, it was discarded. The same held for category and
-         * variant. It was easy to miss because each half works in isolation: filtering
-         * alone is correct, and searching alone is correct.
-         */
-        $search = $filters['search'] ?? null;
-
-        if (! empty($search) && is_scalar($search)) {
-            // The scope takes the search alone; a second argument (once a limit) was ignored.
-            // A scalar is passed as the string the scope's `string` parameter coerced it to.
-            $query = Icon::fuzzySearch((string) $search);
-        }
-
-        if (! empty($filters['packages'])) {
-            $query->whereIn('package', $filters['packages']);
-        }
-
-        // Kind: icons or illustrations. A value that names no kind matches
-        // nothing, so a bad query parameter cannot widen the result.
-        $kind = $filters['kind'] ?? null;
-
-        if ($kind instanceof IconKind || (is_string($kind) && $kind !== '')) {
-            $query->ofKind($kind);
-        }
-
-        // Categories - filter by terms relationship
-        if (! empty($filters['categories'])) {
-            $query->whereHas('terms', function ($q) use ($filters) {
-                $q->where('type', 'category')
-                    ->whereIn('slug', $filters['categories']);
-            });
-        }
-
-        // Variants - filter by terms relationship
-        if (! empty($filters['variants'])) {
-            $query->whereHas('terms', function ($q) use ($filters) {
-                $q->where('type', 'variant')
-                    ->whereIn('slug', $filters['variants']);
-            });
-        }
+        $query = $this->filteredQuery($filters);
 
         // Apply sorting. The query builder accepts "asc" or "desc" in any case and
         // throws this exact exception for anything else.
@@ -279,94 +237,30 @@ final class IconBrowserService
     }
 
     /**
-     * Get filter options (packages, categories, variants)
+     * Get filter options (packages, categories, variants, kinds), with counts.
+     *
+     * Without filters the answer is corpus-wide and cached. With filters each
+     * facet is counted over the icons the OTHER filters select (a facet does
+     * not narrow itself), so ticking a category still shows its siblings'
+     * counts while the variant and kind counts follow the selection.
+     *
+     * @param array<string, mixed> $filters The filters getIcons() takes
      *
      * @return array<array-key, mixed>
      */
-    public function getFilters(): array
+    public function getFilters(array $filters = []): array
     {
-        $filters = $this->cacheManager->remember('browser.filters', function () {
-            // Check if database has any icons
-            if (! $this->hasIcons()) {
-                return [
-                    'packages'   => [],
-                    'categories' => [],
-                    'variants'   => [],
-                    'kinds'      => $this->kindFacet([]),
-                    'empty'      => true,
-                ];
-            }
+        if (self::hasFilters($filters)) {
+            return $this->hasIcons() ? $this->buildFilters($filters) : $this->emptyFilters();
+        }
 
-            $packages = $this->registry->all();
+        $cached = $this->cacheManager->remember(
+            'browser.filters',
+            fn (): array => $this->hasIcons() ? $this->buildFilters([]) : $this->emptyFilters(),
+            expects: 'array',
+        );
 
-            // The count is the number of icons SEEDED for the pack, not the
-            // number of SVG files the pack ships: a pack that is registered but
-            // not yet seeded reads 0 instead of its file count, and one whose
-            // files are absent from disk still reports its seeded icons.
-            $iconCounts = DB::table('ichava_icons')
-                ->selectRaw('package, COUNT(*) as icon_count')
-                ->groupBy('package')
-                ->pluck('icon_count', 'package')
-                ->map(fn (mixed $count): int => is_numeric($count) ? (int) $count : 0)
-                ->all();
-
-            $transformedPackages = collect($packages)->map(function ($pkg, $key) use ($iconCounts) {
-                return [
-                    'name'        => $key,
-                    'label'       => $pkg['name'] ?? $key,
-                    'count'       => $iconCounts[$key] ?? 0,
-                    'description' => $pkg['description'] ?? '',
-                    'vendor'      => $pkg['vendor'] ?? '',
-                ];
-            })->values()->toArray();
-
-            // Get the morph alias for Icon model (registered as 'icon' in morphMap)
-            $iconMorphAlias = (new Icon)->getMorphClass();
-
-            // Get categories from terms table
-            $categories = DB::table('ichava_icon_termables')
-                ->join('ichava_icon_terms', 'ichava_icon_termables.term_id', '=', 'ichava_icon_terms.id')
-                ->where('ichava_icon_terms.type', 'category')
-                ->where('ichava_icon_termables.termable_type', $iconMorphAlias)
-                ->select('ichava_icon_terms.slug', 'ichava_icon_terms.name')
-                ->selectRaw('COUNT(*) as count')
-                ->groupBy('ichava_icon_terms.slug', 'ichava_icon_terms.name')
-                ->get()
-                ->map(function ($category) {
-                    return [
-                        'name'  => $category->slug,
-                        'label' => $category->name,
-                        'count' => $category->count,
-                    ];
-                })->values()->toArray();
-
-            // Get variants from terms table
-            $variants = DB::table('ichava_icon_termables')
-                ->join('ichava_icon_terms', 'ichava_icon_termables.term_id', '=', 'ichava_icon_terms.id')
-                ->where('ichava_icon_terms.type', 'variant')
-                ->where('ichava_icon_termables.termable_type', $iconMorphAlias)
-                ->select('ichava_icon_terms.slug', 'ichava_icon_terms.name')
-                ->selectRaw('COUNT(*) as count')
-                ->groupBy('ichava_icon_terms.slug', 'ichava_icon_terms.name')
-                ->get()
-                ->map(function ($variant) {
-                    return [
-                        'name'  => $variant->slug,
-                        'label' => $variant->name,
-                        'count' => $variant->count,
-                    ];
-                })->values()->toArray();
-
-            return [
-                'packages'   => $transformedPackages,
-                'categories' => $categories,
-                'variants'   => $variants,
-                'kinds'      => $this->kindFacet($this->kindCounts()),
-                'empty'      => false,
-            ];
-        }, expects: 'array');
-
-        return is_array($filters) ? $filters : [];
+        return is_array($cached) ? $cached : [];
     }
 
     /**
@@ -438,135 +332,21 @@ final class IconBrowserService
      * whose counts were then added on top of it), and a pack whose files were
      * missing from disk disappeared entirely even with its icons seeded.
      *
+     * @param array<string, mixed> $filters The filters getIcons() takes; none builds the cached corpus-wide tree
+     *
      * @return list<array{pack: string, label: string, count: int, icon_count: int, cats: list<array<string, mixed>>}>
      */
-    public function buildIconTree(): array
+    public function buildIconTree(array $filters = []): array
     {
-        $tree = $this->cacheManager->remember('browser.tree', function (): array {
-            if (! $this->hasIcons()) {
-                return [];
-            }
-
-            $iconMorphAlias = (new Icon)->getMorphClass();
-
-            // One row per (package, term) with the number of icons carrying it.
-            $rows = DB::table('ichava_icon_terms')
-                ->join('ichava_icon_termables', 'ichava_icon_termables.term_id', '=', 'ichava_icon_terms.id')
-                ->join('ichava_icons', function (JoinClause $join) use ($iconMorphAlias): void {
-                    $join->on('ichava_icon_termables.termable_id', '=', 'ichava_icons.id')
-                        ->where('ichava_icon_termables.termable_type', '=', $iconMorphAlias);
-                })
-                ->whereIn('ichava_icon_terms.type', ['category', 'variant'])
-                ->select([
-                    'ichava_icons.package',
-                    'ichava_icon_terms.id',
-                    'ichava_icon_terms.type',
-                    'ichava_icon_terms.slug',
-                    'ichava_icon_terms.name',
-                ])
-                ->selectRaw('COUNT(*) as icon_count')
-                ->groupBy(
-                    'ichava_icons.package',
-                    'ichava_icon_terms.id',
-                    'ichava_icon_terms.type',
-                    'ichava_icon_terms.slug',
-                    'ichava_icon_terms.name',
-                )
-                ->get();
-
-            if ($rows->isEmpty()) {
-                return [];
-            }
-
-            $iconTotals = DB::table('ichava_icons')
-                ->selectRaw('package, COUNT(*) as icon_count')
-                ->groupBy('package')
-                ->pluck('icon_count', 'package')
-                ->map(fn (mixed $count): int => is_numeric($count) ? (int) $count : 0)
-                ->all();
-
-            // Variants per category: icons carrying BOTH terms. A pack-wide
-            // variant count would put every variant under every category, and
-            // report icons under a category that none of its icons belong to.
-            $variantsByCategory = DB::table('ichava_icon_termables as tc')
-                ->join('ichava_icon_terms as c', 'c.id', '=', 'tc.term_id')
-                ->join('ichava_icon_termables as tv', function (JoinClause $join): void {
-                    $join->on('tv.termable_id', '=', 'tc.termable_id')
-                        ->on('tv.termable_type', '=', 'tc.termable_type');
-                })
-                ->join('ichava_icon_terms as v', 'v.id', '=', 'tv.term_id')
-                ->where('tc.termable_type', $iconMorphAlias)
-                ->where('c.type', 'category')
-                ->where('v.type', 'variant')
-                ->select(['tc.term_id as category_id', 'v.slug', 'v.name'])
-                ->selectRaw('COUNT(*) as icon_count')
-                ->groupBy('tc.term_id', 'v.slug', 'v.name')
-                ->get()
-                ->groupBy('category_id');
-
-            $labels = $this->getPackageLabels();
-
-            $tree = [];
-
-            foreach ($rows->groupBy('package') as $package => $packageRows) {
-                $categories = [];
-
-                foreach ($packageRows->where('type', 'category') as $row) {
-                    $rowId = $row->id;
-
-                    $variants = collect(is_int($rowId) || is_string($rowId) ? $variantsByCategory->get($rowId, []) : [])
-
-                        ->where('slug', '!=', $row->slug)
-                        ->filter(fn (mixed $variant): bool => $variant instanceof stdClass)
-                        ->map(fn (stdClass $variant): array => [
-                            'slug'  => $variant->slug,
-                            'name'  => $variant->name,
-                            'count' => is_numeric($variant->icon_count) ? (int) $variant->icon_count : 0,
-                        ])
-
-                        ->sortBy('name')
-                        ->values()
-                        ->all();
-
-                    $categories[] = array_filter([
-                        'name'  => $row->slug,
-                        'label' => $row->name,
-                        'kind'  => $this->registry->kindFor((string) $package, is_string($row->slug) ? $row->slug : null)->value,
-                        'count' => is_numeric($row->icon_count) ? (int) $row->icon_count : 0,
-                        // Only present when the category actually has variants
-                        // of its own; a pack whose variant slugs are the same as
-                        // its categories (tabler: outline/filled) gains nothing
-                        // from a second, identical level.
-                        'sub' => $variants === [] ? null : $variants,
-                    ], fn ($value) => $value !== null);
-                }
-
-                if ($categories === []) {
-                    continue;
-                }
-
-                usort($categories, fn (array $a, array $b): int => strcasecmp(self::labelOf($a), self::labelOf($b)));
-
-                $iconCount = $iconTotals[$package] ?? 0;
-
-                $tree[] = [
-                    'pack'  => $package,
-                    'label' => $labels[$package] ?? $package,
-                    // The pack badge in the browser reads `count`, and it has
-                    // always shown the pack's ICON count, so it stays the icon
-                    // count. `category_count` is the number of facets below it.
-                    'count'          => $iconCount,
-                    'icon_count'     => $iconCount,
-                    'category_count' => count($categories),
-                    'kind'           => $this->registry->kindFor((string) $package)->value,
-                    'cats'           => $categories,
-                ];
-            }
-
-            usort($tree, fn ($a, $b) => strcasecmp($a['label'], $b['label']));
-
-            return $tree;
-        }, expects: 'array');
+        // A filtered tree is built live: the selection is per request, and a
+        // cache key per selection would only fill the store.
+        $tree = self::hasFilters($filters)
+            ? ($this->hasIcons() ? $this->buildTree($this->filteredIds($filters)) : [])
+            : $this->cacheManager->remember(
+                'browser.tree',
+                fn (): array => $this->hasIcons() ? $this->buildTree(null) : [],
+                expects: 'array',
+            );
 
         if (! is_array($tree)) {
             return [];
@@ -591,6 +371,106 @@ final class IconBrowserService
         $this->cacheManager->forget('browser.filters');
         $this->cacheManager->forget('browser.statistics');
         $this->cacheManager->forget('browser.tree');
+    }
+
+    /**
+     * The one filter path: every listing, facet count and tree count narrows
+     * the icon set through here, so the grid, the counts beside it and the
+     * tree can never disagree.
+     *
+     * Search NARROWS the filtered set; it does not replace it. The filters
+     * used to sit in an `else` branch behind `if (search)`, so selecting a
+     * package and then typing returned matches from every package.
+     *
+     * Filters: `search` (+ `language`, PostgreSQL only), `packages`, `kind`,
+     * `categories`, `subs` (child categories, or variants within a category),
+     * `variants`, `tags`, `keywords`.
+     *
+     * @param array<string, mixed> $filters
+     *
+     * @return Builder<Icon>
+     */
+    public function filteredQuery(array $filters): Builder
+    {
+        $query = Icon::query();
+        $search = $filters['search'] ?? null;
+
+        if (! empty($search) && is_scalar($search)) {
+            $language = $filters['language'] ?? null;
+
+            // A chosen language means full-text search, which only PostgreSQL
+            // has; everywhere else, and without one, the portable LIKE path.
+            $query = is_string($language) && $language !== '' && Helpers::dbDriverIsPgSql()
+                ? Icon::search((string) $search, $language)
+                : Icon::fuzzySearch((string) $search);
+        }
+
+        $packages = self::stringList($filters['packages'] ?? null);
+
+        if ($packages !== []) {
+            $query->whereIn('package', $packages);
+        }
+
+        // Kind: icons or illustrations. A value that names no kind matches
+        // nothing, so a bad query parameter cannot widen the result.
+        $kind = $filters['kind'] ?? null;
+
+        if ($kind instanceof IconKind || (is_string($kind) && $kind !== '')) {
+            $query->ofKind($kind);
+        }
+
+        $categories = self::stringList($filters['categories'] ?? null);
+
+        if ($categories !== []) {
+            $query->whereHas('terms', fn (Builder $q) => $q->where('type', IconTerm::TYPE_CATEGORY)->whereIn('slug', $categories));
+        }
+
+        // Subcategories: a nested category (a term with a parent) or a variant
+        // within the selected category -- the tree shows both under `sub`.
+        $subs = self::stringList($filters['subs'] ?? null);
+
+        if ($subs !== []) {
+            $query->whereHas('terms', fn (Builder $q) => $q->whereIn('slug', $subs)->where(
+                fn (Builder $w) => $w->where(fn (Builder $c) => $c->where('type', IconTerm::TYPE_CATEGORY)->whereNotNull('parent_id'))
+                    ->orWhere('type', IconTerm::TYPE_VARIANT),
+            ));
+        }
+
+        $variants = self::stringList($filters['variants'] ?? null);
+
+        if ($variants !== []) {
+            $query->whereHas('terms', fn (Builder $q) => $q->where('type', IconTerm::TYPE_VARIANT)->whereIn('slug', $variants));
+        }
+
+        $tags = self::stringList($filters['tags'] ?? null);
+
+        if ($tags !== []) {
+            $query->whereHasTag($tags);
+        }
+
+        $keywords = self::stringList($filters['keywords'] ?? null);
+
+        if ($keywords !== []) {
+            $query->whereHasKeyword($keywords);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function stringMap(mixed $value): array
+    {
+        $map = [];
+
+        foreach (is_array($value) ? $value : [] as $key => $item) {
+            if (is_string($item)) {
+                $map[(string) $key] = $item;
+            }
+        }
+
+        return $map;
     }
 
     /**
@@ -636,15 +516,338 @@ final class IconBrowserService
     }
 
     /**
+     * Whether any filter is set, so callers can skip the scoped query (and
+     * keep the cached corpus-wide answer) when nothing narrows it.
+     *
+     * @param array<string, mixed> $filters
+     */
+    private static function hasFilters(array $filters): bool
+    {
+        foreach (['search', 'packages', 'kind', 'categories', 'subs', 'variants', 'tags', 'keywords'] as $key) {
+            $value = $filters[$key] ?? null;
+
+            if ($value !== null && $value !== '' && $value !== []) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function stringList(mixed $value): array
+    {
+        if (is_string($value) && $value !== '') {
+            return [$value];
+        }
+
+        return is_array($value) ? array_values(array_filter($value, static fn (mixed $v): bool => is_string($v) && $v !== '')) : [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyFilters(): array
+    {
+        return [
+            'packages'            => [],
+            'categories'          => [],
+            'variants'            => [],
+            'variants_by_package' => [],
+            'kinds'               => $this->kindFacet([]),
+            'empty'               => true,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     *
+     * @return array<string, mixed>
+     */
+    private function buildFilters(array $filters): array
+    {
+        $scoped = self::hasFilters($filters);
+        $packages = $this->registry->all();
+        $default = $this->registry->getDefault();
+
+        // The count is the number of icons SEEDED for the pack, not the
+        // number of SVG files the pack ships: a pack that is registered but
+        // not yet seeded reads 0 instead of its file count, and one whose
+        // files are absent from disk still reports its seeded icons.
+        $iconCounts = $scoped
+            ? $this->packageCounts($this->filteredIds(array_diff_key($filters, ['packages' => true])))
+            : $this->database->getPackageStatistics();
+
+        $transformedPackages = collect($packages)->map(fn (array $pkg, string $key): array => [
+            'name'        => $key,
+            'label'       => $pkg['name'] ?? $key,
+            'count'       => $iconCounts[$key] ?? 0,
+            'description' => $pkg['description'] ?? '',
+            'vendor'      => $pkg['vendor'] ?? '',
+            'kind'        => $pkg['kind'] ?? IconKind::Icon->value,
+            // The pack the browser opens on: the registry's default set.
+            'default' => $key === $default,
+        ])->values()->toArray();
+
+        return [
+            'packages'            => $transformedPackages,
+            'categories'          => $this->termFacet(IconTerm::TYPE_CATEGORY, $scoped ? $this->filteredIds(array_diff_key($filters, ['categories' => true, 'subs' => true])) : null),
+            'variants'            => $this->termFacet(IconTerm::TYPE_VARIANT, $scoped ? $this->filteredIds(array_diff_key($filters, ['variants' => true])) : null),
+            'variants_by_package' => $this->variantsByPackage($packages),
+            'kinds'               => $this->kindFacet($this->kindCounts($scoped ? $this->filteredIds(array_diff_key($filters, ['kind' => true])) : null)),
+            'empty'               => false,
+        ];
+    }
+
+    /**
+     * Icons per pack, optionally over a selection.
+     *
+     * @return array<string, int>
+     */
+    private function packageCounts(?QueryBuilder $ids = null): array
+    {
+        $query = DB::table(Icon::TABLE)->selectRaw('package, COUNT(*) as icon_count')->groupBy('package');
+
+        if ($ids !== null) {
+            $query->whereIn(Icon::TABLE . '.id', $ids);
+        }
+
+        $counts = [];
+
+        foreach ($query->get() as $row) {
+            if (is_string($row->package ?? null)) {
+                $counts[$row->package] = is_numeric($row->icon_count ?? null) ? (int) $row->icon_count : 0;
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Categories or variants with the number of icons carrying each.
+     *
+     * @return array<int, array{name: mixed, label: mixed, count: int}>
+     */
+    private function termFacet(string $type, ?QueryBuilder $ids): array
+    {
+        $query = DB::table('ichava_icon_termables')
+            ->join('ichava_icon_terms', 'ichava_icon_termables.term_id', '=', 'ichava_icon_terms.id')
+            ->where('ichava_icon_terms.type', $type)
+            ->where('ichava_icon_termables.termable_type', (new Icon)->getMorphClass())
+            ->select('ichava_icon_terms.slug', 'ichava_icon_terms.name')
+            ->selectRaw('COUNT(*) as count')
+            ->groupBy('ichava_icon_terms.slug', 'ichava_icon_terms.name');
+
+        if ($ids !== null) {
+            $query->whereIn('ichava_icon_termables.termable_id', $ids);
+        }
+
+        return $query->get()
+            ->map(fn (stdClass $term): array => [
+                'name'  => $term->slug,
+                'label' => $term->name,
+                'count' => is_numeric($term->count) ? (int) $term->count : 0,
+            ])->values()->all();
+    }
+
+    /**
+     * Each pack's variants as the variant picker shows them, in display
+     * order, with the pack's translated label and description winning over
+     * config.json's English.
+     *
+     * @param array<string, array<string, mixed>> $packages
+     *
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function variantsByPackage(array $packages): array
+    {
+        $byPackage = [];
+
+        foreach ($packages as $name => $package) {
+            $metadata = is_array($package['variant_metadata'] ?? null) ? $package['variant_metadata'] : [];
+
+            if ($metadata === []) {
+                continue;
+            }
+
+            $labels = is_array($package['labels'] ?? null) ? $package['labels'] : [];
+
+            $byPackage[$name] = array_map(
+                static fn (VariantData $variant): array => $variant->toArray(),
+                VariantData::listFromMetadata(
+                    $metadata,
+                    self::stringMap($labels['variants'] ?? null),
+                    self::stringMap($labels['variant_descriptions'] ?? null),
+                ),
+            );
+        }
+
+        return $byPackage;
+    }
+
+    /**
+     * The tree over the icons `$ids` selects, or over every icon when null.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function buildTree(?QueryBuilder $ids): array
+    {
+        $iconMorphAlias = (new Icon)->getMorphClass();
+
+        // One row per (package, term) with the number of icons carrying it.
+        $rows = DB::table('ichava_icon_terms')
+            ->join('ichava_icon_termables', 'ichava_icon_termables.term_id', '=', 'ichava_icon_terms.id')
+            ->join('ichava_icons', function (JoinClause $join) use ($iconMorphAlias): void {
+                $join->on('ichava_icon_termables.termable_id', '=', 'ichava_icons.id')
+                    ->where('ichava_icon_termables.termable_type', '=', $iconMorphAlias);
+            })
+            ->whereIn('ichava_icon_terms.type', ['category', 'variant'])
+            ->when($ids !== null, fn ($q) => $q->whereIn('ichava_icons.id', $ids))
+            ->select([
+                'ichava_icons.package',
+                'ichava_icon_terms.id',
+                'ichava_icon_terms.type',
+                'ichava_icon_terms.slug',
+                'ichava_icon_terms.name',
+            ])
+            ->selectRaw('COUNT(*) as icon_count')
+            ->groupBy(
+                'ichava_icons.package',
+                'ichava_icon_terms.id',
+                'ichava_icon_terms.type',
+                'ichava_icon_terms.slug',
+                'ichava_icon_terms.name',
+            )
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $iconTotals = $ids === null ? $this->database->getPackageStatistics() : $this->packageCounts($ids);
+
+        // A category with nested categories also reports the icons of
+        // its whole subtree. Corpus-wide only: getTotalIconCount() does
+        // not take a selection, and few categories nest, so it is one
+        // query per parent category rather than per node.
+        $subtreeTotals = $ids === null
+            ? IconTerm::query()->whereIn('id', $rows->where('type', 'category')->pluck('id'))->has('children')->get()
+                ->mapWithKeys(fn (IconTerm $term): array => [$term->id => $term->getTotalIconCount()])
+                ->all()
+            : [];
+
+        // Variants per category: icons carrying BOTH terms. A pack-wide
+        // variant count would put every variant under every category, and
+        // report icons under a category that none of its icons belong to.
+        $variantsByCategory = DB::table('ichava_icon_termables as tc')
+            ->join('ichava_icon_terms as c', 'c.id', '=', 'tc.term_id')
+            ->join('ichava_icon_termables as tv', function (JoinClause $join): void {
+                $join->on('tv.termable_id', '=', 'tc.termable_id')
+                    ->on('tv.termable_type', '=', 'tc.termable_type');
+            })
+            ->join('ichava_icon_terms as v', 'v.id', '=', 'tv.term_id')
+            ->where('tc.termable_type', $iconMorphAlias)
+            ->when($ids !== null, fn ($q) => $q->whereIn('tc.termable_id', $ids))
+            ->where('c.type', 'category')
+            ->where('v.type', 'variant')
+            ->select(['tc.term_id as category_id', 'v.slug', 'v.name'])
+            ->selectRaw('COUNT(*) as icon_count')
+            ->groupBy('tc.term_id', 'v.slug', 'v.name')
+            ->get()
+            ->groupBy('category_id');
+
+        $labels = $this->getPackageLabels();
+
+        $tree = [];
+
+        foreach ($rows->groupBy('package') as $package => $packageRows) {
+            $categories = [];
+
+            foreach ($packageRows->where('type', 'category') as $row) {
+                $rowId = $row->id;
+
+                $variants = collect(is_int($rowId) || is_string($rowId) ? $variantsByCategory->get($rowId, []) : [])
+
+                    ->where('slug', '!=', $row->slug)
+                    ->filter(fn (mixed $variant): bool => $variant instanceof stdClass)
+                    ->map(fn (stdClass $variant): array => [
+                        'slug'  => $variant->slug,
+                        'name'  => $variant->name,
+                        'count' => is_numeric($variant->icon_count) ? (int) $variant->icon_count : 0,
+                    ])
+
+                    ->sortBy('name')
+                    ->values()
+                    ->all();
+
+                $categories[] = array_filter([
+                    'name'  => $row->slug,
+                    'label' => $row->name,
+                    'kind'  => $this->registry->kindFor((string) $package, is_string($row->slug) ? $row->slug : null)->value,
+                    'count' => is_numeric($row->icon_count) ? (int) $row->icon_count : 0,
+                    'total' => is_int($rowId) || is_string($rowId) ? ($subtreeTotals[$rowId] ?? null) : null,
+                    // Only present when the category actually has variants
+                    // of its own; a pack whose variant slugs are the same as
+                    // its categories (tabler: outline/filled) gains nothing
+                    // from a second, identical level.
+                    'sub' => $variants === [] ? null : $variants,
+                ], fn ($value) => $value !== null);
+            }
+
+            if ($categories === []) {
+                continue;
+            }
+
+            usort($categories, fn (array $a, array $b): int => strcasecmp(self::labelOf($a), self::labelOf($b)));
+
+            $iconCount = $iconTotals[$package] ?? 0;
+
+            $tree[] = [
+                'pack'  => $package,
+                'label' => $labels[$package] ?? $package,
+                // The pack badge in the browser reads `count`, and it has
+                // always shown the pack's ICON count, so it stays the icon
+                // count. `category_count` is the number of facets below it.
+                'count'          => $iconCount,
+                'icon_count'     => $iconCount,
+                'category_count' => count($categories),
+                'kind'           => $this->registry->kindFor((string) $package)->value,
+                'cats'           => $categories,
+            ];
+        }
+
+        usort($tree, fn ($a, $b) => strcasecmp($a['label'], $b['label']));
+
+        return $tree;
+    }
+
+    /**
+     * The ids of the icons a filter set selects, as a subquery.
+     *
+     * @param array<string, mixed> $filters
+     */
+    private function filteredIds(array $filters): QueryBuilder
+    {
+        return $this->filteredQuery($filters)->select(Icon::TABLE . '.id')->toBase();
+    }
+
+    /**
      * Seeded icons per kind, keyed by kind value. Kinds with no rows are absent.
      *
      * @return array<string, int>
      */
-    private function kindCounts(): array
+    private function kindCounts(?QueryBuilder $ids = null): array
     {
         $counts = [];
+        $query = DB::table(Icon::TABLE)->selectRaw('kind, COUNT(*) as icon_count')->groupBy('kind');
 
-        foreach (DB::table(Icon::TABLE)->selectRaw('kind, COUNT(*) as icon_count')->groupBy('kind')->get() as $row) {
+        if ($ids !== null) {
+            $query->whereIn(Icon::TABLE . '.id', $ids);
+        }
+
+        foreach ($query->get() as $row) {
             if (is_string($row->kind ?? null)) {
                 $counts[$row->kind] = is_numeric($row->icon_count) ? (int) $row->icon_count : 0;
             }

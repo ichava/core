@@ -15,11 +15,15 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\warning;
 
 use Simtabi\Laranail\Ichava\Support\Coerce;
+use Simtabi\Laranail\Ichava\Data\StatusData;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Console\Tools\Widgets\CheckList;
+use Simtabi\Laranail\Ichava\Support\Auth\IchavaGates;
 use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
 use Simtabi\Laranail\Ichava\Services\InformationService;
+use Illuminate\Contracts\Auth\Access\Gate as GateContract;
+use Simtabi\Laranail\Ichava\Support\IconPathStructureDetector;
 
 /**
  * Unified Icon Information Command
@@ -53,7 +57,7 @@ final class InfoCommand extends BaseCommand
     ];
 
     protected $signature = 'ichava::ichava-core.info
-                            {type? : Type: packages, icons, status, languages, discover, stats}
+                            {type? : Type: packages, icons, status, doctor, languages, discover, stats}
                             {--search= : Search filter}
                             {--package= : Filter by package}
                             {--limit=50 : Limit results}
@@ -67,7 +71,7 @@ final class InfoCommand extends BaseCommand
     /**
      * @var list<string>
      */
-    protected array $validTypes = ['packages', 'icons', 'status', 'languages', 'discover', 'stats'];
+    protected array $validTypes = ['packages', 'icons', 'status', 'doctor', 'languages', 'discover', 'stats'];
 
     public function __construct(
         protected InformationService $infoService,
@@ -89,6 +93,7 @@ final class InfoCommand extends BaseCommand
                     'packages'  => __('ichava/ichava-core::commands.info.options.packages'),
                     'icons'     => __('ichava/ichava-core::commands.info.options.icons'),
                     'status'    => __('ichava/ichava-core::commands.info.options.status'),
+                    'doctor'    => __('ichava/ichava-core::commands.info.options.doctor'),
                     'languages' => __('ichava/ichava-core::commands.info.options.languages'),
                     'discover'  => __('ichava/ichava-core::commands.info.options.discover'),
                 ],
@@ -101,6 +106,7 @@ final class InfoCommand extends BaseCommand
             'packages'  => $this->handlePackages(),
             'icons'     => $this->handleIcons(),
             'status'    => $this->handleStatus(),
+            'doctor'    => $this->handleDoctor(),
             'languages' => $this->handleLanguages(),
             'discover'  => $this->handleDiscover(),
             'stats'     => $this->handleStats(),
@@ -260,7 +266,74 @@ final class InfoCommand extends BaseCommand
             outro(__('ichava/ichava-core::commands.info.status.operational'));
         }
 
+        $this->displayHealth($this->infoService->status());
+
         return self::SUCCESS;
+    }
+
+    /**
+     * The health block `status` ends with: what StatusData knows beyond the
+     * lifecycle stage.
+     */
+    protected function displayHealth(StatusData $health): void
+    {
+        $never = __('ichava/ichava-core::commands.info.health.never');
+        $logging = $health->logging;
+
+        $this->newLine();
+        $this->line('<options=bold>' . __('ichava/ichava-core::commands.info.health.title') . '</>');
+        $this->detail(__('ichava/ichava-core::commands.info.health.packages', ['count' => $health->packages]));
+        $this->detail(__('ichava/ichava-core::commands.info.health.conflicts', ['count' => count($health->conflicts, COUNT_RECURSIVE) - count($health->conflicts)]));
+        $this->detail(__('ichava/ichava-core::commands.info.health.orphans', ['list' => $health->orphans === [] ? '-' : implode(', ', $health->orphans)]));
+        $this->detail(__('ichava/ichava-core::commands.info.health.unregistered', ['count' => $health->discovery['total_unregistered']]));
+        $this->detail(__('ichava/ichava-core::commands.info.health.last_scan', ['time' => $health->lastScan ?? $never]));
+        $this->detail(__('ichava/ichava-core::commands.info.health.last_rebuild', ['time' => Coerce::stringOrNull($health->lastRebuild['at'] ?? null) ?? $never]));
+        $this->detail(__('ichava/ichava-core::commands.info.health.logging', [
+            'state'   => $logging['enabled'] ? __('ichava/ichava-core::commands.common.yes') : __('ichava/ichava-core::commands.common.no'),
+            'channel' => $logging['channel'],
+            'seeding' => $logging['seeding_channel'],
+        ]));
+        $this->detail(__('ichava/ichava-core::commands.info.health.render', ['level' => $health->optimizationLevel, 'fingerprint' => $health->renderFingerprint]));
+    }
+
+    /**
+     * A pass/fail check of what a working install needs, ending non-zero
+     * when something is broken. Warnings (an orphan, an undefined Gate) do
+     * not fail it.
+     */
+    protected function handleDoctor(): int
+    {
+        intro(__('ichava/ichava-core::commands.info.doctor.intro'));
+
+        $health = $this->infoService->status();
+        $checks = is_array($health->lifecycle['checks'] ?? null) ? $health->lifecycle['checks'] : [];
+        $queueConnection = Coerce::stringOrNull(config('ichava.ichava-core.queue.connection')) ?? Coerce::string(config('queue.default'));
+        $queueOk = is_array(config("queue.connections.{$queueConnection}"));
+        $gateDefined = app()->bound(GateContract::class) && app(GateContract::class)->has(IchavaGates::ADMIN);
+        $routes = app()->bound('router')
+            ? array_filter(array_keys(app('router')->getRoutes()->getRoutesByName()), static fn (string $name): bool => str_starts_with($name, 'ichava.'))
+            : [];
+
+        $list = CheckList::make()
+            ->check(__('ichava/ichava-core::commands.info.doctor.packages'), $health->packages > 0, (string) $health->packages)
+            ->check(__('ichava/ichava-core::commands.info.status.migrations'), (bool) ($checks['migrations'] ?? false))
+            ->check(__('ichava/ichava-core::commands.info.status.seeds'), (bool) ($checks['seeds'] ?? false))
+            ->check(__('ichava/ichava-core::commands.info.status.cache'), (bool) ($checks['cache'] ?? false))
+            ->check(__('ichava/ichava-core::commands.info.doctor.queue'), $queueOk, $queueConnection)
+            ->check(__('ichava/ichava-core::commands.info.doctor.auth'), app()->bound('auth') ? true : Status::Warning, Coerce::stringOrNull(config('ichava.ichava-core.auth.guard')) ?? __('ichava/ichava-core::commands.info.doctor.default_guard'))
+            ->check(__('ichava/ichava-core::commands.info.doctor.gates'), $gateDefined ? true : Status::Warning)
+            ->check(__('ichava/ichava-core::commands.info.doctor.routes'), $routes !== [] ? true : Status::Warning, (string) count($routes))
+            ->check(__('ichava/ichava-core::commands.info.doctor.orphans'), $health->orphans === [] ? true : Status::Warning, $health->orphans === [] ? null : implode(', ', $health->orphans));
+
+        $this->line($list->render());
+
+        $failed = $health->packages === 0 || ! ($checks['migrations'] ?? false) || ! $queueOk;
+
+        $failed
+            ? warning(__('ichava/ichava-core::commands.info.doctor.failed'))
+            : outro(__('ichava/ichava-core::commands.info.doctor.passed'));
+
+        return $failed ? self::FAILURE : self::SUCCESS;
     }
 
     /**
@@ -327,6 +400,9 @@ final class InfoCommand extends BaseCommand
             $rows[] = [
                 $name,
                 $this->truncatePath($data['path']),
+                // CLI only: the structure info carries absolute paths, which
+                // never belong in an HTTP payload.
+                IconPathStructureDetector::getStructureInfo($data['path'])['type'],
                 StatusBadge::of((bool) $data['registered'])->label($data['registered'] ? $yes : $no)->render(),
             ];
         }
@@ -335,6 +411,7 @@ final class InfoCommand extends BaseCommand
             headers: [
                 __('ichava/ichava-core::commands.info.table.package'),
                 __('ichava/ichava-core::commands.info.table.path'),
+                __('ichava/ichava-core::commands.info.table.layout'),
                 __('ichava/ichava-core::commands.info.table.registered'),
             ],
             rows: $rows,

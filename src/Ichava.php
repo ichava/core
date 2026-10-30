@@ -8,6 +8,7 @@ use Closure;
 use Throwable;
 use Illuminate\Support\Collection;
 use Simtabi\Laranail\Ichava\Data\UserData;
+use Simtabi\Laranail\Ichava\Data\StatusData;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Simtabi\Laranail\Ichava\Facades\IchavaFacade;
 use Simtabi\Laranail\Ichava\Support\IconRenderer;
@@ -18,6 +19,7 @@ use Simtabi\Laranail\Ichava\Services\IconsManifest;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\IconBrowserService;
+use Simtabi\Laranail\Ichava\Services\InformationService;
 use Simtabi\Laranail\Ichava\Services\RegistrationConfig;
 use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
 use Simtabi\Laranail\Ichava\Support\DeferredIconsRegistry;
@@ -46,7 +48,17 @@ final class Ichava
         private DeferredIconsRegistry $deferredRegistry,
         private IconRenderer $iconRenderer,
         private ?HostUser $hostUser = null,
+        private ?InformationService $information = null,
     ) {}
+
+    /**
+     * Operational health: lifecycle, conflicts, orphaned rows, discovery,
+     * watcher, logging, the last cache rebuild and the render pipeline.
+     */
+    public function status(): StatusData
+    {
+        return ($this->information ?? throw IchavaException::dependencyNotInjected('InformationService', self::class))->status();
+    }
 
     /**
      * Read the host's signed-in user through a closure instead of the guard.

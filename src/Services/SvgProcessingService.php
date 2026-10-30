@@ -55,11 +55,42 @@ final class SvgProcessingService
      */
     public const RENDER_PIPELINE_VERSION = 2;
 
+    /**
+     * @param array<string, bool> $optimizationOverrides Per-pass overrides of the level's
+     *                                                   defaults: `remove_comments`, `remove_xml_declaration`,
+     *                                                   `remove_metadata`, `minify`. A pass left out follows the level.
+     */
     public function __construct(
         protected OptimizationLevel $optimizationLevel = OptimizationLevel::BASIC,
+        protected array $optimizationOverrides = [],
     ) {
         $this->initializeSanitizer();
         $this->initializeOptimizer();
+    }
+
+    /**
+     * Build the service from `ichava.ichava-core.optimization`.
+     *
+     * `level` picks the defaults (`none`, `basic`, `aggressive`); each of
+     * `remove_comments`, `remove_xml_declaration`, `remove_metadata` and
+     * `minify` set to a boolean overrides that one pass, and null leaves it to
+     * the level. An unknown level falls back to `basic`, as before.
+     */
+    public static function fromConfig(): self
+    {
+        $config = config('ichava.ichava-core.optimization', []);
+        $config = is_array($config) ? $config : [];
+        $level = is_string($config['level'] ?? null) ? OptimizationLevel::tryFrom($config['level']) : null;
+
+        $overrides = [];
+
+        foreach (['remove_comments', 'remove_xml_declaration', 'remove_metadata', 'minify'] as $pass) {
+            if (is_bool($config[$pass] ?? null)) {
+                $overrides[$pass] = $config[$pass];
+            }
+        }
+
+        return new self($level ?? OptimizationLevel::BASIC, $overrides);
     }
 
     /**
@@ -93,6 +124,15 @@ final class SvgProcessingService
          * Appended only when on, so the default leaves every existing
          * fingerprint -- and every host's icon cache -- exactly as it was.
          */
+        // Also appended only when set: an override changes the bytes the
+        // optimiser emits, so it must change the key, but the default (no
+        // overrides) keeps every existing fingerprint.
+        if ($this->optimizationOverrides !== []) {
+            $overrides = $this->optimizationOverrides;
+            ksort($overrides);
+            $parts[] = 'optimize:' . json_encode($overrides);
+        }
+
         if ($this->convertsMonochromeToCurrentColor()) {
             // `-2`: the pass also rewrites near-black greys now, so icons cached by
             // the black-only rule must not be served. Only hosts with the flag on
@@ -150,6 +190,24 @@ final class SvgProcessingService
         $this->optimizationLevel = $level;
 
         return $this;
+    }
+
+    /**
+     * Whether one optimiser pass runs: its override when set, else the level's default.
+     */
+    public function runsOptimizerPass(string $pass): bool
+    {
+        if (isset($this->optimizationOverrides[$pass])) {
+            return $this->optimizationOverrides[$pass];
+        }
+
+        return match ($pass) {
+            'remove_xml_declaration' => $this->optimizationLevel !== OptimizationLevel::NONE,
+            'remove_comments'        => $this->optimizationLevel->shouldRemoveComments(),
+            'remove_metadata'        => $this->optimizationLevel->shouldRemoveMetadata(),
+            'minify'                 => $this->optimizationLevel->shouldMinify(),
+            default                  => false,
+        };
     }
 
     /**

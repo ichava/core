@@ -203,15 +203,6 @@ final class IchavaConstants
     public const RATE_LIMIT_API = 600;
 
     /**
-     * Cache operation rate limit (requests per minute)
-     *
-     * Lower limit for cache-heavy operations.
-     *
-     * @var int 10 requests/min
-     */
-    public const RATE_LIMIT_CACHE = 10;
-
-    /**
      * Database auto-sync interval in seconds
      *
      * How often to check for icon file changes and sync to database.
@@ -219,49 +210,4 @@ final class IchavaConstants
      * @var int 60 seconds = 1 minute
      */
     public const DB_SYNC_INTERVAL = 60;
-
-    /**
-     * Get cache TTL based on environment
-     *
-     * Returns longer TTL for production, shorter for development.
-     *
-     * @param string|null $environment Laravel environment name
-     *
-     * @return int Cache TTL in seconds
-     */
-    public static function getCacheTTL(?string $environment = null): int
-    {
-        $env = $environment ?? app()->environment();
-
-        return $env === 'production'
-            ? self::PRODUCTION_CACHE_TTL
-            : self::DEFAULT_CACHE_TTL;
-    }
-
-    /**
-     * Get SVG file size limits as array
-     *
-     * @return array{min: int, max: int}
-     */
-    public static function getSvgSizeLimits(): array
-    {
-        return [
-            'min' => self::MIN_SVG_FILE_SIZE,
-            'max' => self::MAX_SVG_FILE_SIZE,
-        ];
-    }
-
-    /**
-     * Get path validation limits as array
-     *
-     * @return array{max_length: int, max_depth: int, max_segment: int}
-     */
-    public static function getPathLimits(): array
-    {
-        return [
-            'max_length'  => self::MAX_PATH_LENGTH,
-            'max_depth'   => self::MAX_NESTING_DEPTH,
-            'max_segment' => self::MAX_PATH_SEGMENT_LENGTH,
-        ];
-    }
 }

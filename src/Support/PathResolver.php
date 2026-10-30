@@ -33,10 +33,29 @@ class PathResolver
     /** @var non-empty-string */
     protected string $variantSeparator;
 
+    /** @var non-empty-string */
+    protected string $categorySeparator;
+
+    protected ?string $iconPathPattern;
+
+    protected ?string $iconNamePattern;
+
     public function __construct()
     {
         $this->pathSeparator = self::separator(config('ichava.ichava-core.separators.path', '::'), '::');
         $this->variantSeparator = self::separator(config('ichava.ichava-core.separators.variant', '/'), '/');
+        $this->categorySeparator = self::separator(config('ichava.ichava-core.separators.category', '/'), '/');
+
+        // A category separator equal to the package separator would make
+        // `vendor/pack::a::b` ambiguous between a package and a category.
+        if ($this->categorySeparator === $this->pathSeparator) {
+            throw IchavaException::invalidConfiguration(
+                'ichava.ichava-core.separators.category must differ from separators.path',
+            );
+        }
+
+        $this->iconPathPattern = self::pattern(config('ichava.ichava-core.validation.icon_path_pattern'));
+        $this->iconNamePattern = self::pattern(config('ichava.ichava-core.validation.icon_name_pattern'));
     }
 
     /**
@@ -67,28 +86,6 @@ class PathResolver
         }
 
         return $basePath;
-    }
-
-    /**
-     * Get the package root path from a service provider
-     *
-     * @param string|object $provider The service provider class or instance
-     * @param int $levelsUp Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
-     */
-    public static function packageRootFromProvider(string|object $provider, int $levelsUp = 3): string
-    {
-        return self::resolvePackagePath($provider, $levelsUp);
-    }
-
-    /**
-     * Get the SVG assets path from a service provider
-     *
-     * @param string|object $provider The service provider class or instance
-     * @param int $levelsUp Number of directory levels to go up from provider file (default: 3 for src/Providers/ServiceProvider.php)
-     */
-    public static function svgPathFromProvider(string|object $provider, int $levelsUp = 3): string
-    {
-        return self::resolvePackagePath($provider, $levelsUp, self::SVG_PATH);
     }
 
     /**
@@ -179,6 +176,19 @@ class PathResolver
             throw IchavaException::missingPackageInPath($path);
         }
 
+        // A configured category separator reads as the variant separator.
+        // The default for both is `/`, so this changes nothing unless set.
+        if ($this->categorySeparator !== $this->variantSeparator) {
+            [$head, $tail] = explode($this->pathSeparator, $path, 2);
+            $path = $head . $this->pathSeparator . str_replace($this->categorySeparator, $this->variantSeparator, $tail);
+        }
+
+        // Configured narrowing, on top of (never instead of) the checks above
+        // and below.
+        if ($this->iconPathPattern !== null && preg_match($this->iconPathPattern, $path) !== 1) {
+            throw IchavaException::invalidIconPath($path);
+        }
+
         $vendor = null;
         $package = null;
         $set = null;
@@ -225,7 +235,8 @@ class PathResolver
         $iconName = array_pop($parts);
 
         // SECURITY: Validate icon name
-        if (! $this->isValidIconName($iconName)) {
+        if (! $this->isValidIconName($iconName)
+            || ($this->iconNamePattern !== null && preg_match($this->iconNamePattern, $iconName) !== 1)) {
             throw IchavaException::invalidIconName($iconName);
         }
 
@@ -274,7 +285,7 @@ class PathResolver
 
         // Add category
         if ($category !== null && $category !== '') {
-            $parts[] = $category . $this->variantSeparator;
+            $parts[] = $category . $this->categorySeparator;
         }
 
         // Add icon name
@@ -431,7 +442,7 @@ class PathResolver
         $this->ensureExists($path, $context);
 
         if (! File::isDirectory($path)) {
-            throw IchavaException::invalidConfiguration("{$context} is not a directory: {$path}");
+            throw IchavaException::directoryNotFound($path);
         }
 
         return $path;
@@ -481,6 +492,20 @@ class PathResolver
         }
 
         return $path;
+    }
+
+    /**
+     * A configured validation pattern, or null when none is set or it does
+     * not compile. A pattern that does not compile is ignored rather than
+     * allowed to reject every path; the built-in checks still apply.
+     */
+    private static function pattern(mixed $configured): ?string
+    {
+        if (! is_string($configured) || $configured === '') {
+            return null;
+        }
+
+        return @preg_match($configured, '') === false ? null : $configured;
     }
 
     /**

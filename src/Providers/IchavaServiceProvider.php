@@ -127,9 +127,6 @@ class IchavaServiceProvider extends PackageServiceProvider
         // Configure runtime settings for heavy operations (seeding, processing)
         $this->configureRuntimeSettings();
 
-        // Register Ichava log channels FIRST - before any services that might log
-        $this->registerLogChannels();
-
         // Register morph map for polymorphic relationships
         Relation::morphMap([
             Icon::MORPH_ALIAS => Icon::class,
@@ -142,7 +139,9 @@ class IchavaServiceProvider extends PackageServiceProvider
         $this->app->register(EventServiceProvider::class);
 
         // 1. Base services (no dependencies)
-        $this->app->singleton(SvgProcessingService::class);
+        // Built from `optimization.*`; the level and any per-pass override
+        // are part of renderFingerprint(), so changing them re-keys caches.
+        $this->app->singleton(SvgProcessingService::class, fn (): SvgProcessingService => SvgProcessingService::fromConfig());
 
         // 2. Services with minimal dependencies
         $this->app->singleton(IchavaLogger::class);
@@ -228,6 +227,7 @@ class IchavaServiceProvider extends PackageServiceProvider
                 $app->make(DeferredIconsRegistry::class),
                 $app->make(IconRenderer::class),
                 $app->make(HostUser::class),
+                $app->make(InformationService::class),
             );
         });
 
@@ -246,6 +246,11 @@ class IchavaServiceProvider extends PackageServiceProvider
      */
     public function packageRegistered(): void
     {
+        // Log channels and the Horizon supervisor read config, so they are
+        // registered here, once the package config has merged. Services are
+        // only bound (not built) before this point, so nothing has logged yet.
+        $this->registerLogChannels();
+
         // Icon::scopeFuzzySearch() builds on laranail/db-tools' portable LIKE
         // macros. Registered here as well as by db-tools' own provider, because a
         // host that turns off package discovery would otherwise lose search with a
@@ -326,11 +331,11 @@ class IchavaServiceProvider extends PackageServiceProvider
         // API/test suite; multi-set structure: svg/{set-name}/config.json +
         // files/{set-name}/*.svg). The browser package's `ui-icons` set is
         // registered by IconBrowserServiceProvider when installed.
-        $registry = $this->app->make(IconRegistry::class);
-        $registry->fromDirectory(
-            $this->package->basePath('resources/assets/svg/test-icons'),
-            self::class,
-        );
+        //
+        // `test.enabled` turns it off and `test.path` points it elsewhere.
+        // With it off, `default_set` must name a real pack, or every
+        // unqualified icon fails to resolve (the shipped default is `test`).
+        $this->registerTestIconSet();
 
         // Register custom icon sets from config
         $this->registerCustomIconSets();
@@ -349,6 +354,24 @@ class IchavaServiceProvider extends PackageServiceProvider
                 IchavaGates::define($this->app->make(GateContract::class));
             }
         });
+    }
+
+    /**
+     * Register core's bundled test set, unless `test.enabled` is false;
+     * `test.path` points it at another directory.
+     */
+    protected function registerTestIconSet(): void
+    {
+        if (! config('ichava.ichava-core.test.enabled', true)) {
+            return;
+        }
+
+        $testPath = config('ichava.ichava-core.test.path');
+
+        $this->app->make(IconRegistry::class)->fromDirectory(
+            is_string($testPath) && $testPath !== '' ? $testPath : $this->package->basePath('resources/assets/svg/test-icons'),
+            self::class,
+        );
     }
 
     /**
@@ -381,54 +404,23 @@ class IchavaServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Register Ichava log channels dynamically
+     * Register Ichava's log channels from `ichava.ichava-core.logging.channels`.
      *
-     * Creates dedicated daily log files prefixed with 'ichava':
-     * - ichava-2025-12-06.log (general)
-     * - ichava-icons-2025-12-06.log (icon seeding)
-     * - ichava-queue-2025-12-06.log (queue jobs)
+     * Each channel is copied into `logging.channels.<name>` verbatim, so a host
+     * changes a driver, path, level, retention or permission by publishing the
+     * config. This used to call env() here, which returns null under
+     * `config:cache` and silently dropped every host override in production.
      */
     protected function registerLogChannels(): void
     {
-        $retentionDays = Coerce::int(self::readEnv('ICHAVA_LOG_RETENTION_DAYS', 7));
         $config = $this->app->make(ConfigRepository::class);
+        $channels = $config->get('ichava.ichava-core.logging.channels', []);
 
-        // General ichava logs (info level to capture registration, warnings, errors)
-        $config->set('logging.channels.ichava', [
-            'driver'     => 'daily',
-            'path'       => storage_path('logs/ichava.log'),
-            'level'      => self::readEnv('ICHAVA_LOG_LEVEL', 'info'),
-            'days'       => $retentionDays,
-            'permission' => 0644,
-        ]);
-
-        // Icon seeding logs
-        $config->set('logging.channels.ichava-icons', [
-            'driver'     => 'daily',
-            'path'       => storage_path('logs/ichava-icons.log'),
-            'level'      => self::readEnv('ICHAVA_SEEDING_LOG_LEVEL', 'info'),
-            'days'       => $retentionDays,
-            'permission' => 0644,
-        ]);
-
-        // Queue job logs
-        $config->set('logging.channels.ichava-queue', [
-            'driver'     => 'daily',
-            'path'       => storage_path('logs/ichava-queue.log'),
-            'level'      => self::readEnv('ICHAVA_QUEUE_LOG_LEVEL', 'info'),
-            'days'       => $retentionDays,
-            'permission' => 0644,
-        ]);
-
-        // Security audit logs (separate channel so SIEM forwarders can scope
-        // their tail without seeing operational noise from ichava.log).
-        $config->set('logging.channels.ichava-audit', [
-            'driver'     => 'daily',
-            'path'       => storage_path('logs/ichava-audit.log'),
-            'level'      => self::readEnv('ICHAVA_AUDIT_LOG_LEVEL', 'info'),
-            'days'       => Coerce::int(self::readEnv('ICHAVA_AUDIT_LOG_RETENTION_DAYS', 90)),
-            'permission' => 0640,
-        ]);
+        foreach (is_array($channels) ? $channels : [] as $name => $channel) {
+            if (is_string($name) && is_array($channel)) {
+                $config->set("logging.channels.{$name}", $channel);
+            }
+        }
     }
 
     /**
@@ -552,41 +544,38 @@ class IchavaServiceProvider extends PackageServiceProvider
             return;
         }
 
-        // Get the current environment
         $environment = $this->app->environment();
 
-        // Build supervisor configuration with sensible defaults
-        // These can be overridden via environment variables
-        $supervisorConfig = [
-            'connection'          => self::readEnv('ICHAVA_HORIZON_CONNECTION', 'redis'),
-            'queue'               => [self::readEnv('ICHAVA_QUEUE_NAME', 'ichava-icons')],
-            'balance'             => self::readEnv('ICHAVA_HORIZON_BALANCE', 'simple'),
-            'autoScalingStrategy' => 'time',
-            'maxProcesses'        => Coerce::int(self::readEnv('ICHAVA_HORIZON_MAX_PROCESSES', 3)),
-            'maxTime'             => 0,
-            'maxJobs'             => 0,
-            'memory'              => Coerce::int(self::readEnv('ICHAVA_HORIZON_MEMORY', 256)),
-            'tries'               => Coerce::int(self::readEnv('ICHAVA_QUEUE_RETRIES', 3)),
-            'timeout'             => Coerce::int(self::readEnv('ICHAVA_QUEUE_TIMEOUT', 600)),
-            'nice'                => 0,
-        ];
-
-        // Merge into Horizon's defaults and environment config
-        $this->app->booted(function () use ($supervisorConfig, $environment) {
-            // Skip if auto-registration is disabled (check after config is loaded)
+        // Read once config has loaded. The supervisor comes from
+        // `queue.horizon.supervisor` and the queue from `queue.name`, so
+        // `config:cache` keeps every host override (env() here did not).
+        $this->app->booted(function () use ($environment) {
             if (! config('ichava.ichava-core.queue.horizon.auto_register', true)) {
                 return;
             }
 
-            // Add to defaults
-            config(['horizon.defaults.supervisor-ichava' => $supervisorConfig]);
+            $supervisor = $this->horizonSupervisorConfig();
 
-            // Add to current environment with appropriate maxProcesses
-            $envMaxProcesses = $environment === 'production' ? 5 : 3;
+            config(['horizon.defaults.supervisor-ichava' => $supervisor]);
             config(["horizon.environments.{$environment}.supervisor-ichava" => [
-                'maxProcesses' => Coerce::int(self::readEnv('ICHAVA_HORIZON_MAX_PROCESSES', $envMaxProcesses)),
+                'maxProcesses' => Coerce::int($supervisor['maxProcesses'] ?? 3),
             ]]);
         });
+    }
+
+    /**
+     * The Horizon supervisor Ichava registers: `queue.horizon.supervisor`,
+     * listening on `queue.name`.
+     *
+     * @return array<array-key, mixed>
+     */
+    protected function horizonSupervisorConfig(): array
+    {
+        $supervisor = config('ichava.ichava-core.queue.horizon.supervisor', []);
+        $supervisor = is_array($supervisor) ? $supervisor : [];
+        $supervisor['queue'] = [Coerce::string(config('ichava.ichava-core.queue.name', 'ichava-icons'))];
+
+        return $supervisor;
     }
 
     /**
@@ -635,22 +624,5 @@ class IchavaServiceProvider extends PackageServiceProvider
         $isIchavaQueue = collect($argv)->contains(fn (string $arg) => Str::contains($arg, 'ichava'));
 
         return $isQueueCommand && $isIchavaQueue;
-    }
-
-    /**
-     * An environment variable, read while the provider registers.
-     *
-     * These ICHAVA_* values are read here rather than through config/ because
-     * their defaults differ from the matching config/ichava-core.php keys
-     * (log level `info` here, `warning` there; Horizon maxProcesses 3 here, 25
-     * there), so routing them through config() would change what an
-     * application that sets neither gets. That move is a decision of its own.
-     * Until then every read goes through this one method, so the larastan rule
-     * is waived at one place rather than at each call.
-     */
-    private static function readEnv(string $key, mixed $default = null): mixed
-    {
-        // @phpstan-ignore larastan.noEnvCallsOutsideOfConfig (behaviour-preserving: see the docblock above)
-        return env($key, $default);
     }
 }

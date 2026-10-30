@@ -44,14 +44,17 @@ php artisan ichava::ichava-core.info icons --search=home      # Search icons
 php artisan ichava::ichava-core.info languages                # List FTS languages
 php artisan ichava::ichava-core.info discover                 # Discover packages
 php artisan ichava::ichava-core.info stats                    # Full stats
-php artisan ichava::ichava-core.info status                   # Lifecycle status
+php artisan ichava::ichava-core.info status                   # Lifecycle status, then health (conflicts, orphans, last scan/rebuild, logging, render)
+php artisan ichava::ichava-core.info doctor                   # Pass/fail check of a working install; non-zero when something is missing
 ```
 
 ### Other Commands
 
 ```bash
-php artisan ichava::ichava-core.job-status                    # Check seeding-job progress (reads JobProgressTracker)
+php artisan ichava::ichava-core.job-status                    # Check seeding-job progress (reads SeederRunTracker)
 php artisan ichava::ichava-core.watch                         # Watch icon files for changes (dev)
+php artisan ichava::ichava-core.watch --package=vendor/pack   # Rescan one pack now
+php artisan ichava::ichava-core.watch --refresh               # Record every pack's fingerprint after the scan
 ```
 
 ### Scaffolding a new pack moved out of core
@@ -110,16 +113,14 @@ php artisan ichava::icon-browser.inject-scripts --force                         
 
 ### Programmatic seeding progress
 
-`JobProgressTracker` is a small cache-backed counter readable by the browser UI and `ichava::ichava-core.job-status`. The seeding pipeline writes to it automatically; consumers normally only read.
+Seeding records its progress through laranail/package-tools' `SeederRunTracker`, counted in icons, under `IchavaSeeder::trackingKey($package)`. `ichava::ichava-core.job-status` reads it; read it yourself the same way:
 
 ```php
-use Simtabi\Laranail\Ichava\Support\JobProgressTracker;
+use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
+use Simtabi\Laranail\Package\Tools\Services\Database\SeederRunTracker;
 
-JobProgressTracker::start('vendor/your-icons', total: 5963);
-JobProgressTracker::update('vendor/your-icons', processed: 1500);
-JobProgressTracker::complete('vendor/your-icons', meta: ['duration_seconds' => 120]);
-
-$state = JobProgressTracker::status('vendor/your-icons'); // ['total' => …, 'processed' => …, 'state' => …]
+$state = app(SeederRunTracker::class)->get(IchavaSeeder::trackingKey('vendor/your-icons'));
+// ['status' => SeederRunStatus::…, 'total' => …, 'processed' => …, 'failed' => …]
 ```
 
 ---

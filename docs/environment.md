@@ -118,7 +118,7 @@ If `ICHAVA_LOG_PATH` is unset *and* `storage_path()` is unavailable (tests boots
 | `ICHAVA_QUEUE_STAGGER_DELAY` | constant | Seconds between consecutive job dispatches | `ichava.ichava-core.queue.stagger_delay` |
 | `ICHAVA_QUEUE_TIMEOUT` | `600` | Per-job timeout (seconds) | `ichava.ichava-core.queue.timeout` |
 | `ICHAVA_QUEUE_RETRIES` | `3` | Per-job retry count | `ichava.ichava-core.queue.retries` |
-| `ICHAVA_PROGRESS_TTL` | constant | TTL for cached `JobProgressTracker` state | `ichava.ichava-core.queue.progress_ttl` |
+| `ICHAVA_PROGRESS_TTL` | constant | TTL for cached seeding-progress state | `ichava.ichava-core.queue.progress_ttl` |
 
 ## Horizon supervisor
 
@@ -126,11 +126,11 @@ The engine auto-registers a Horizon supervisor for the `ichava-icons` queue when
 
 | Key | Default | Effect | Config |
 |---|---|---|---|
-| `ICHAVA_HORIZON_AUTO_REGISTER` | `true` | Automatic supervisor registration | `ichava.ichava-core.horizon.auto_register` |
-| `ICHAVA_HORIZON_CONNECTION` | `redis` | Queue connection used by the supervisor | `ichava.ichava-core.horizon.connection` |
-| `ICHAVA_HORIZON_BALANCE` | `simple` | Balance strategy | `ichava.ichava-core.horizon.balance` |
-| `ICHAVA_HORIZON_MAX_PROCESSES` | `25` | Max parallel worker processes | `ichava.ichava-core.horizon.maxProcesses` |
-| `ICHAVA_HORIZON_MEMORY` | `256` | Memory ceiling per worker (MiB) | `ichava.ichava-core.horizon.memory` |
+| `ICHAVA_HORIZON_AUTO_REGISTER` | `true` | Automatic supervisor registration | `ichava.ichava-core.queue.horizon.auto_register` |
+| `ICHAVA_HORIZON_CONNECTION` | `redis` | Queue connection used by the supervisor | `ichava.ichava-core.queue.horizon.supervisor.connection` |
+| `ICHAVA_HORIZON_BALANCE` | `simple` | Balance strategy | `ichava.ichava-core.queue.horizon.supervisor.balance` |
+| `ICHAVA_HORIZON_MAX_PROCESSES` | `3` | Max parallel worker processes, in every environment | `ichava.ichava-core.queue.horizon.supervisor.maxProcesses` |
+| `ICHAVA_HORIZON_MEMORY` | `256` | Memory ceiling per worker (MiB) | `ichava.ichava-core.queue.horizon.supervisor.memory` |
 
 ## See also
 

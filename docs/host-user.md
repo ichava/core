@@ -57,6 +57,10 @@ The `PreferenceStore` core binds is `Support\OwnerAwarePreferenceStore`:
 - with one bound, a signed-in user's preferences go to their owner store, and guests keep the session store;
 - on the host's `Login` event, the guest's session preferences merge into the owner's store (`Actions\MergeGuestPreferences`): the owner's values win, lists are unioned, collections are unioned by id, and the guest store is cleared only after the owner store accepted the write.
 
+## Writing preferences
+
+`Actions\UpdatePreferences::handle($changes)` is the one write path for browser preferences (`packages`, `categories`, `search`, `sorting`, `preferences`, `tree`). Unknown sections are ignored, and the result is cleaned by `IconPreferenceService::validate()`. Whichever store is bound (session, or the owner's) receives the write.
+
 ## Events for the host
 
 | Event | Fires when |

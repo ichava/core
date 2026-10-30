@@ -500,16 +500,6 @@ class IconSetBuilder implements IconSetInterface
     }
 
     /**
-     * Get the merged sets (if applicable)
-     *
-     * @return IconSetInterface[]
-     */
-    public function getMergedSets(): array
-    {
-        return $this->mergedSets;
-    }
-
-    /**
      * Check if this is a merged set
      */
     public function isMerged(): bool

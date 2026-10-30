@@ -52,6 +52,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Registry
+    |--------------------------------------------------------------------------
+    | `strict_conflicts`: throw when two packs claim the same set name,
+    | prefix or Blade component, instead of logging a warning and recording
+    | the conflict (which `info status` reports either way).
+    */
+    'registry' => [
+        'strict_conflicts' => env('ICHAVA_STRICT_CONFLICTS', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Host user
     |--------------------------------------------------------------------------
     | Ichava has no auth of its own. It reads the host application's signed-in
@@ -198,22 +210,24 @@ return [
     | Levels: none | basic (recommended) | aggressive.
     */
     'optimization' => [
-        'level'                  => OptimizationLevel::BASIC->value,
-        'remove_comments'        => true,
-        'remove_xml_declaration' => true,
-        'remove_metadata'        => false, // true under 'aggressive'
-        'minify'                 => false, // true under 'aggressive'
+        'level' => OptimizationLevel::BASIC->value,
+        // Each pass: true or false to override the level, null to follow it.
+        // none: no pass; basic: xml declaration + comments; aggressive: all four.
+        'remove_comments'        => null,
+        'remove_xml_declaration' => null,
+        'remove_metadata'        => null,
+        'minify'                 => null,
     ],
 
     /*
     |--------------------------------------------------------------------------
     | SVG security
     |--------------------------------------------------------------------------
-    | Always keep `sanitize` enabled in production.
+    | Sanitising is not configurable: every SVG served goes through the
+    | allow-list below. A switch that turned it off used to sit here and was
+    | read by nothing; it is gone so nobody trusts it.
     */
     'security' => [
-        'sanitize' => true,
-
         // The SVG allow/deny lists live under the `svg` key below and are read
         // from there by SanitizesSvg. They were mirrored here as
         // config('ichava.svg.*') lookups, which a config file cannot perform on
@@ -340,7 +354,7 @@ return [
             'ichava' => [
                 'driver'     => 'daily',
                 'path'       => Helpers::logPath('ichava.log'),
-                'level'      => env('ICHAVA_LOG_LEVEL', 'info'),
+                'level'      => env('ICHAVA_LOG_LEVEL', 'warning'),
                 'days'       => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
                 'permission' => 0644,
             ],
@@ -357,6 +371,15 @@ return [
                 'level'      => env('ICHAVA_QUEUE_LOG_LEVEL', 'info'),
                 'days'       => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
                 'permission' => 0644,
+            ],
+            // Security audit trail: its own file, so SIEM forwarders can tail
+            // it without operational noise, with longer retention.
+            'ichava-audit' => [
+                'driver'     => 'daily',
+                'path'       => Helpers::logPath('ichava-audit.log'),
+                'level'      => env('ICHAVA_AUDIT_LOG_LEVEL', 'info'),
+                'days'       => env('ICHAVA_AUDIT_LOG_RETENTION_DAYS', 90),
+                'permission' => 0640,
             ],
         ],
     ],
@@ -383,7 +406,7 @@ return [
                 'connection'          => env('ICHAVA_HORIZON_CONNECTION', 'redis'),
                 'balance'             => env('ICHAVA_HORIZON_BALANCE', 'simple'),
                 'autoScalingStrategy' => 'time',
-                'maxProcesses'        => (int) env('ICHAVA_HORIZON_MAX_PROCESSES', 25),
+                'maxProcesses'        => (int) env('ICHAVA_HORIZON_MAX_PROCESSES', 3),
                 'maxTime'             => 0,
                 'maxJobs'             => 0,
                 'memory'              => (int) env('ICHAVA_HORIZON_MEMORY', 256),
@@ -402,9 +425,6 @@ return [
     | extend to match the surface area you actually need.
     */
     'svg' => [
-        'tag'        => 'svg',
-        'extensions' => ['.svg'],
-
         /*
         | These lists ARE the effective policy, and they now come from ONE file:
         | resources/security/svg-policy.json, which the Vue client, the React
@@ -447,10 +467,15 @@ return [
     |--------------------------------------------------------------------------
     | Validation patterns
     |--------------------------------------------------------------------------
+    | Applied by PathResolver AFTER its built-in checks, which stay in force
+    | (they are the traversal guard), so a pattern can only narrow what is
+    | accepted, never widen it. The shipped patterns accept every real path:
+    | `vendor/package::category/icon` in slash or dot form, and names with
+    | `_` and `.`. Set either to null to rely on the built-in checks alone.
     */
     'validation' => [
-        'icon_path_pattern' => '/^([a-z0-9-]+):([a-z0-9-\/]+)$/i',
-        'icon_name_pattern' => '/^[a-z0-9-]+$/i',
+        'icon_path_pattern' => '/^[a-z0-9_-]+\/[a-z0-9_-]+::[a-z0-9._\/-]+$/i',
+        'icon_name_pattern' => '/^[a-z0-9._-]+$/i',
     ],
 
     /*

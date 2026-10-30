@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services;
 
 use Generator;
+use Throwable;
 use SplFileInfo;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -73,16 +74,6 @@ class IconDiscoveryService
     }
 
     /**
-     * Get all registered packages (alias for getPackages)
-     *
-     * @return list<string>
-     */
-    public function getRegisteredPackages(): array
-    {
-        return array_keys($this->packages());
-    }
-
-    /**
      * Get packages that are installed but not registered
      *
      * @return list<array<string, mixed>>
@@ -102,17 +93,31 @@ class IconDiscoveryService
     /**
      * Get packages that are registered but missing from composer.lock
      *
-     * @return array<int, string>
+     * @return list<string>
      */
     public function getOrphanedPackages(): array
     {
-        $installed = collect($this->discoverInstalledPackages())->pluck('name');
-        $registered = collect($this->registry->all());
+        // Rows left behind after a pack is removed: packages that still have
+        // seeded icons but that no registered pack owns. This used to compare
+        // the registry with installed Composer packages, which only ever
+        // reported sets registered outside Composer (the test set, app-local
+        // sets) and never the leftover rows it was named for.
+        try {
+            $packages = Icon::query()->distinct()->pluck('package')->all();
+        } catch (Throwable) {
+            return [];
+        }
 
-        return $registered
-            ->filter(fn ($meta, $name) => ! $installed->contains($name))
-            ->keys()
-            ->all();
+        $registered = $this->registry->all();
+        $orphans = [];
+
+        foreach ($packages as $package) {
+            if (is_string($package) && ! isset($registered[$package])) {
+                $orphans[] = $package;
+            }
+        }
+
+        return $orphans;
     }
 
     /**
@@ -261,27 +266,6 @@ class IconDiscoveryService
         $categories = $this->remember($cacheKey, self::CACHE_DURATION, $build);
 
         return self::isListOfRecords($categories) ? $categories : $build();
-    }
-
-    /**
-     * Get SVG content for an icon
-     */
-    public function getIconSvg(string $package, string $name, ?string $variant = null): ?string
-    {
-        $iconSet = $this->registry->set($package);
-
-        // @phpstan-ignore booleanNot.alwaysFalse (defensive: kept for registries that return null for an unknown set)
-        if (! $iconSet) {
-            return null;
-        }
-
-        $iconData = $iconSet->get($name, $variant);
-
-        if (! $iconData || ! File::exists($iconData->path)) {
-            return null;
-        }
-
-        return File::get($iconData->path);
     }
 
     /**
@@ -853,72 +837,6 @@ class IconDiscoveryService
         }
 
         return false;
-    }
-
-    /**
-     * Render an icon's SVG content
-     */
-    protected function renderIconSvg(string $path): string
-    {
-        if (! File::exists($path) || ! File::isReadable($path)) {
-            return '<svg viewBox="0 0 24 24"><text x="12" y="12" text-anchor="middle">?</text></svg>';
-        }
-
-        try {
-            return File::get($path);
-        } catch (IchavaException $e) {
-            return '<svg viewBox="0 0 24 24"><text x="12" y="12" text-anchor="middle">!</text></svg>';
-        }
-    }
-
-    /**
-     * Scan icon directory for SVG files
-     *
-     * @param string $basePath Base path to scan
-     * @param int $limit Maximum number of icons to scan (0 = unlimited)
-     *
-     * @return list<array{name: string, variant: null, category: string|null, path: string}>
-     */
-    protected function scanIconDirectory(string $basePath, int $limit = 100): array
-    {
-        if (! File::isDirectory($basePath)) {
-            return [];
-        }
-
-        $icons = [];
-        $files = File::allFiles($basePath);
-        $count = 0;
-
-        foreach ($files as $file) {
-            if ($limit > 0 && $count >= $limit) {
-                break;
-            }
-
-            if ($file->getExtension() !== 'svg') {
-                continue;
-            }
-
-            $relativePath = str_replace($basePath . '/', '', $file->getPathname());
-            $parts = explode('/', $relativePath);
-            $filename = array_pop($parts);
-            $name = pathinfo($filename, PATHINFO_FILENAME);
-
-            // If icon is in any folder(s), treat the complete folder path as category
-            // This supports nested folders: "brand-logos/social/facebook.svg"
-            // becomes category "brand-logos/social"
-            $category = count($parts) > 0 ? implode('/', $parts) : null;
-
-            $icons[] = [
-                'name'     => $name,
-                'variant'  => null, // Variants are handled by icon set configuration
-                'category' => $category,
-                'path'     => $file->getPathname(),
-            ];
-
-            $count++;
-        }
-
-        return $icons;
     }
 
     /**

@@ -111,16 +111,6 @@ HTML;
     }
 
     /**
-     * Get all registered icon IDs
-     *
-     * @return array<int, string>
-     */
-    public function getRegisteredIds(): array
-    {
-        return array_keys($this->icons);
-    }
-
-    /**
      * Generate unique icon ID
      */
     public function generateId(string $set, string $name, ?string $variant = null): string

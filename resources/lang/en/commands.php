@@ -109,6 +109,10 @@ return [
         'duration'         => 'Duration',
         'synchronized'     => '✅ Database synchronized with file system!',
         'no_changes'       => '✨ No changes detected, database up to date.',
+        'last_scan'        => 'Last scan: :time',
+        'unknown_package'  => 'No registered pack is called :package.',
+        'rescanned'        => 'Rescanned :package: :new new, :updated updated, :deleted deleted.',
+        'refreshed'        => 'Fingerprints recorded for :count pack directories.',
     ],
 
     'check_updates' => [
@@ -261,6 +265,7 @@ return [
             'packages'  => 'Packages - List registered icon packages',
             'icons'     => 'Icons - Browse icons',
             'status'    => 'Status - Lifecycle and health status',
+            'doctor'    => 'Doctor - Check everything a working install needs',
             'languages' => 'Languages - PostgreSQL FTS languages',
             'discover'  => 'Discover - Find unregistered packages',
         ],
@@ -314,6 +319,32 @@ return [
             ],
         ],
 
+        'health' => [
+            'title'        => 'Health',
+            'never'        => 'never',
+            'packages'     => 'Registered packs:  :count',
+            'conflicts'    => 'Conflicts:         :count',
+            'orphans'      => 'Orphaned rows:     :list',
+            'unregistered' => 'Unregistered packs: :count',
+            'last_scan'    => 'Last watcher scan: :time',
+            'last_rebuild' => 'Last cache rebuild: :time',
+            'logging'      => 'Logging:           :state (:channel, seeding :seeding)',
+            'render'       => 'Render pipeline:   :level (:fingerprint)',
+        ],
+
+        'doctor' => [
+            'intro'         => '🩺 Ichava Doctor',
+            'packages'      => 'Icon packs registered',
+            'queue'         => 'Queue connection configured',
+            'auth'          => 'Host auth available',
+            'default_guard' => 'default guard',
+            'gates'         => 'ichava.admin Gate defined',
+            'routes'        => 'Browser routes mounted',
+            'orphans'       => 'No orphaned icon rows',
+            'passed'        => '✅ Nothing is broken.',
+            'failed'        => 'Something a working install needs is missing.',
+        ],
+
         'discover' => [
             'intro'    => '🔍 Discovering Icon Packages',
             'scanning' => 'Scanning filesystem...',
@@ -334,6 +365,7 @@ return [
             'status'     => 'Status',
             'name'       => 'Name',
             'registered' => 'Registered',
+            'layout'     => 'Layout',
             'icon_count' => 'Icon Count',
         ],
     ],

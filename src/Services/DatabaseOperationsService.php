@@ -87,22 +87,6 @@ class DatabaseOperationsService
     }
 
     /**
-     * Ensure all required tables exist with proper columns
-     */
-    public function ensureTablesExist(): bool
-    {
-        if (! Schema::hasTable('ichava_icons')) {
-            return false;
-        }
-
-        if (! Schema::hasTable('ichava_icon_terms')) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
      * Drop all Ichava tables (preserves other application tables)
      *
      * @return list<string>
@@ -351,7 +335,8 @@ class DatabaseOperationsService
 
         $threshold = config('ichava.ichava-core.database.smart_queue_threshold', self::SMART_QUEUE_THRESHOLD);
 
-        return $iconCount >= $threshold;
+        // env() hands the threshold over as a string; compare it as a number.
+        return $iconCount >= (is_numeric($threshold) ? (int) $threshold : self::SMART_QUEUE_THRESHOLD);
     }
 
     /**

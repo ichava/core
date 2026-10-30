@@ -40,7 +40,7 @@ it('reports an invalid type and returns INVALID when the offered select is cance
     $this->assertSame(2, $exit);
     $this->assertDisplayContains($display, [
         'Invalid type: bogus',
-        'Valid types: packages, icons, status, languages, discover, stats',
+        'Valid types: packages, icons, status, doctor, languages, discover, stats',
         'Would you like to select a valid type? [Cancel operation]',
     ]);
 });

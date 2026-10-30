@@ -39,6 +39,7 @@ Full documentation is at **[opensource.simtabi.com/documentation/ichava/core](ht
 - [Blade components](docs/tools/blade-components.md) — `<x-ichava::icon>` and its attributes
 - [Global helper](docs/tools/global-helper.md) — the fluent `ichava()` API
 - [Artisan commands](docs/tools/artisan-commands.md) — every command core registers
+- [Query and model API](docs/tools/query-api.md) — scopes, filters, events, status and the extension interfaces
 
 ### Recipes
 

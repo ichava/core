@@ -64,34 +64,9 @@ trait ManagesAttributes
         return $this;
     }
 
-    /**
-     * @param array<string, mixed> $attributes
-     */
-    public function setAttributes(array $attributes): self
-    {
-        $this->attributes = array_merge($this->attributes, $attributes);
-
-        return $this;
-    }
-
-    public function addClass(string $class): self
-    {
-        $existing = $this->attributes['class'] ?? '';
-        $this->attributes['class'] = $this->mergeClasses($this->stringifyAttribute($existing), $class);
-
-        return $this;
-    }
-
     public function removeAttribute(string $key): self
     {
         unset($this->attributes[$key]);
-
-        return $this;
-    }
-
-    public function clearAttributes(): self
-    {
-        $this->attributes = [];
 
         return $this;
     }
@@ -102,11 +77,6 @@ trait ManagesAttributes
     public function getAttributes(): array
     {
         return $this->attributes;
-    }
-
-    public function renderAttributes(): string
-    {
-        return $this->buildHtml($this->attributes);
     }
 
     /**

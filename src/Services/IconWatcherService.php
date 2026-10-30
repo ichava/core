@@ -141,20 +141,6 @@ class IconWatcherService
     }
 
     /**
-     * Get all watched directories
-     *
-     * @return list<array-key>
-     */
-    public function getWatchedDirectories(): array
-    {
-        try {
-            return array_keys($this->storedFingerprints());
-        } catch (IchavaException $e) {
-            return [];
-        }
-    }
-
-    /**
      * Get fingerprint statistics
      *
      * @return array{total_watched: int, directories: list<array-key>, error?: string}
@@ -234,15 +220,6 @@ class IconWatcherService
     }
 
     /**
-     * Force clear fingerprint cache
-     */
-    public function clearFingerprints(): void
-    {
-        Cache::forget(self::CHANGE_DETECTOR_KEY);
-        $this->clearAll();
-    }
-
-    /**
      * Watch for file changes and sync database
      *
      * @return array<string, mixed>
@@ -275,6 +252,52 @@ class IconWatcherService
         } finally {
             $this->releaseLock();
         }
+    }
+
+    /**
+     * Rescan one pack now: forget its fingerprint, sync its rows, and record
+     * the new fingerprint.
+     *
+     * @return array{package: string, new: int, updated: int, deleted: int, found: bool}
+     */
+    public function rescanPackage(string $package): array
+    {
+        $metadata = $this->registry->all()[$package] ?? null;
+        $path = is_array($metadata) ? ($metadata['base_path'] ?? $metadata['path'] ?? null) : null;
+
+        if (! is_array($metadata) || ! is_string($path)) {
+            return ['package' => $package, 'new' => 0, 'updated' => 0, 'deleted' => 0, 'found' => false];
+        }
+
+        $this->clearFingerprint($path);
+        $stats = $this->syncPackage($package, $metadata);
+        $this->updateFingerprint($path);
+        Cache::put(self::LAST_SCAN_KEY, now(), now()->addDays(7));
+
+        return ['package' => $package, ...$stats, 'found' => true];
+    }
+
+    /**
+     * Record every registered pack's current fingerprint, so the next change
+     * detection compares against the tree as it is now.
+     *
+     * @return int The number of pack directories fingerprinted
+     */
+    public function refreshFingerprints(): int
+    {
+        $paths = [];
+
+        foreach ($this->registry->all() as $metadata) {
+            $path = $metadata['base_path'] ?? $metadata['path'] ?? null;
+
+            if (is_string($path) && File::isDirectory($path)) {
+                $paths[] = $path;
+            }
+        }
+
+        $this->updateAll($paths);
+
+        return count($paths);
     }
 
     /**
@@ -461,6 +484,11 @@ class IconWatcherService
         $dbIcons = Icon::where('package', $package)
             ->get()
             ->keyBy('path');
+
+        // A pack's config.json may have changed with its files (a category
+        // re-filed as illustrations, a new theme twin); drop the cached copy
+        // so the next read sees it.
+        app(ConfigurationService::class)->forgetPackageConfig($basePath);
 
         // Scan file system
         $diskIcons = $this->scanDiskIcons($basePath, $package);
@@ -759,23 +787,6 @@ class IconWatcherService
         }
 
         return $size;
-    }
-
-    /**
-     * Extract category from path
-     */
-    protected function extractCategory(string $path): ?string
-    {
-        $path = trim($path, '/\\');
-
-        if ($path === '') {
-            return null;
-        }
-
-        $parts = explode('/', str_replace('\\', '/', $path));
-        $last = end($parts);
-
-        return $last === false || $last === '' ? null : $last;
     }
 
     /**

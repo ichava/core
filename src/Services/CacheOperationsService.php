@@ -239,16 +239,6 @@ class CacheOperationsService
     }
 
     /**
-     * Get manifest data
-     *
-     * @return array<mixed>|null
-     */
-    public function getManifest(?string $path = null): ?array
-    {
-        return $this->manifestFor($path)->load();
-    }
-
-    /**
      * Get cache statistics
      *
      * @return array<string, mixed>

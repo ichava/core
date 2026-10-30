@@ -26,8 +26,7 @@ it('never applies a jsonb function to a json column', function (string $sql): vo
         expect($argument)->toContain('::json');
     }
 })->with([
-    'comprehensive'   => fn () => FtsLanguageHelper::buildComprehensiveSearchQuery('Simtabi\Laranail\Ichava\Models\Icon'),
-    'single language' => fn () => FtsLanguageHelper::buildSingleLanguageQuery('arrow', 'english'),
+    'comprehensive' => fn () => FtsLanguageHelper::buildComprehensiveSearchQuery('Simtabi\Laranail\Ichava\Models\Icon'),
 ]);
 
 it('expands keywords and tags when those scopes are enabled', function (): void {

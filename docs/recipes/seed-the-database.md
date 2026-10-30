@@ -235,11 +235,12 @@ echo "Processed: {$result['processed']} icons";
 $result = $seeder->seedSync('vendor/your-icons', '/path/to/svg', 1000, true);
 // Last parameter: force = true
 
-// Check job status
-$status = $seeder->getStatus($batchId);
+// Check progress (counted in icons)
+$state = app(\Simtabi\Laranail\Package\Tools\Services\Database\SeederRunTracker::class)
+    ->get(\Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder::trackingKey('vendor/your-icons'));
 
-// Cancel running seeding
-$seeder->cancel($batchId);
+// Cancel a queued run through Laravel's batch API
+\Illuminate\Support\Facades\Bus::findBatch($batch->id)?->cancel();
 
 // Set modes before running
 $seeder->setSyncMode(true);      // Force synchronous
