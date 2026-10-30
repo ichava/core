@@ -14,6 +14,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **The config key core registers is pinned, and the docs name it** (C-F2). Core merges its config at `ichava.ichava-core.*`, which every read site in `src/` uses, but `docs/environment.md`, `architecture.md`, `troubleshooting.md`, two recipes, the Artisan reference and a dozen source comments still named `ichava.core.*` or a bare `ichava.<section>.*`, and following them in `tinker` returned null. All now say `ichava.ichava-core.*`. `tests/Feature/ConfigKeyNamespaceTest.php` asserts the shipped keys resolve there, that `ichava.core` is empty, and that every `config('ichava…')` literal under `src/` starts with `ichava.ichava-core`, with floors on the files and reads it inspected.
 
 - **Search results carry their category and variant.** `SearchIconsInDatabase`, behind `Ichava::search()` and `IconDiscoveryService::searchIcons()`, read `category` and `variant` off the icons table, which has no such columns, so both were null in every result and in the usage syntax. They now come from the eager-loaded terms.
 - **Filtering a search by category works.** It ran `whereIn('category', …)` against that missing column, an SQL error on every driver. It now matches term slugs through `whereHas('categories')`.

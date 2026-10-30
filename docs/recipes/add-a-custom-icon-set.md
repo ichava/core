@@ -2,7 +2,7 @@
 
 *How-to guide.*
 
-For icon sets that live **inside your own application** (rather than a distributed composer package), use the `ichava.custom-icons.sets` config key. Ichava loads each entry on boot and registers it with the `IconRegistry`, no service provider or package scaffolding required.
+For icon sets that live **inside your own application** (rather than a distributed composer package), use the `ichava.ichava-core.custom-icons.sets` config key. Ichava loads each entry on boot and registers it with the `IconRegistry`, no service provider or package scaffolding required.
 
 ### Publish the config
 

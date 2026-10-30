@@ -140,7 +140,7 @@ class SvgDriver
      * 3. `realpath()` containment, resolved path must stay within the given base
      *    directory when one is provided, otherwise within its own directory
      * 4. File size bounds, rejects files smaller than MIN_SVG_FILE_SIZE or larger
-     *    than `ichava.max_file_size` (falls back to MAX_SVG_FILE_SIZE)
+     *    than `ichava.ichava-core.max_file_size` (falls back to MAX_SVG_FILE_SIZE)
      *
      * @param string $path Absolute path to the SVG file
      * @param string|null $baseDir Package base directory the path must stay within

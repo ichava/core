@@ -71,7 +71,7 @@ this page covers the commands `ichava/core` itself registers.
 
 ### `ichava::ichava-core.cleanup-logs`
 
-Removes Ichava log files older than the configured retention period (`ichava.logging.retention_days`, default 7). The package's scheduler entry runs it daily at the configured `cleanup_time` (default `03:00`); it can also be triggered manually.
+Removes Ichava log files older than the configured retention period (`ichava.ichava-core.logging.retention_days`, default 7). The package's scheduler entry runs it daily at the configured `cleanup_time` (default `03:00`); it can also be triggered manually.
 
 ```bash
 php artisan ichava::ichava-core.cleanup-logs                  # delete logs older than retention_days
