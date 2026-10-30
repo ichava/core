@@ -997,7 +997,7 @@ final class Icon extends Model
 
                 if ($terms instanceof Collection
                     && $terms->every(fn (mixed $t): bool => $t instanceof IconTerm && array_key_exists('parent_id', $t->getAttributes()))) {
-                    $term = $terms->first(fn (IconTerm $t): bool => $t->type === IconTerm::TYPE_CATEGORY && $t->parent_id !== null);
+                    $term = $terms->first(fn (mixed $t): bool => $t instanceof IconTerm && $t->type === IconTerm::TYPE_CATEGORY && $t->parent_id !== null);
 
                     return $term instanceof IconTerm ? $term : null;
                 }
