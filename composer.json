@@ -31,6 +31,7 @@
         "symfony/finder": "^7.4 || ^8.0"
     },
     "require-dev": {
+        "composer/semver": "^3.4",
         "ichava/icon-sets-package-scaffolder": "^0.1.0",
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.18",
