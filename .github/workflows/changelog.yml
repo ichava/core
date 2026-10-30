@@ -8,16 +8,14 @@
 # Measured on ichava/core#63, a release PR touching only CHANGELOG.md: **0
 # checks ran**. The guard could not fire on the one change it exists to guard.
 #
-# Its own workflow, triggered on the file it reads. Pint and PHPStan keep their
-# paths-ignore, since they genuinely have nothing to say about markdown.
+# Its own workflow. Since 2026-10-30 no workflow here is path-filtered: every
+# check runs on every pull request, so each one can be a required status check
+# (a path-filtered check never reports on a pull request it skips).
 name: Changelog
 
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'CHANGELOG.md'
-      - '.github/workflows/changelog.yml'
   workflow_dispatch:
 
 permissions:
