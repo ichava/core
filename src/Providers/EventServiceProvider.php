@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Providers;
 
+use Illuminate\Auth\Events\Login;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
 use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
 use Simtabi\Laranail\Ichava\Listeners\InvalidateIconCache;
 use Simtabi\Laranail\Ichava\Listeners\AutoUnseedOnUnregistration;
 use Simtabi\Laranail\Ichava\Listeners\AutoSeedIconsOnRegistration;
+use Simtabi\Laranail\Ichava\Listeners\MergeGuestPreferencesOnLogin;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 /**
@@ -37,6 +39,12 @@ final class EventServiceProvider extends ServiceProvider
         // OPERATIONAL EVENT: Only runs when system is READY
         IconCacheEvent::class => [
             InvalidateIconCache::class,  // Guarded: hasCache()
+        ],
+
+        // HOST EVENTS: the host's sign-in folds a guest's preferences into
+        // the user's owner-keyed store (a no-op without one bound)
+        Login::class => [
+            MergeGuestPreferencesOnLogin::class,
         ],
 
         // SETUP EVENTS: Always run (track core setup)

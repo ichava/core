@@ -24,12 +24,16 @@ use Simtabi\Laranail\Ichava\Support\PathResolver;
 use Simtabi\Laranail\Ichava\Commands\CacheCommand;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\Auth\HostUser;
 use Simtabi\Laranail\Ichava\Support\SecurityNonce;
+use Simtabi\Laranail\Ichava\Contracts\PresentsUser;
+use Simtabi\Laranail\Ichava\Contracts\ResolvesUser;
 use Simtabi\Laranail\Ichava\Services\IconsManifest;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Simtabi\Laranail\Ichava\Commands\InstallCommand;
 use Simtabi\Laranail\Ichava\Support\ServiceProvider;
 use Simtabi\Laranail\Ichava\Commands\DatabaseCommand;
+use Simtabi\Laranail\Ichava\Support\Auth\IchavaGates;
 use Simtabi\Laranail\Ichava\Commands\JobStatusCommand;
 use Simtabi\Laranail\Ichava\Contracts\PreferenceStore;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
@@ -38,6 +42,7 @@ use Simtabi\Laranail\Ichava\Services\IconWatcherService;
 use Simtabi\Laranail\Ichava\Services\InformationService;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Support\IchavaSessionManager;
+use Illuminate\Contracts\Auth\Access\Gate as GateContract;
 use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
@@ -47,10 +52,13 @@ use Simtabi\Laranail\Ichava\Commands\WatchIconFilesCommand;
 use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
 use Simtabi\Laranail\Ichava\Services\IconPreferenceService;
 use Simtabi\Laranail\Ichava\Services\IconSetCatalogService;
+use Simtabi\Laranail\Ichava\Support\Auth\GuardUserResolver;
 use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
 use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
 use Simtabi\Laranail\Ichava\Commands\CheckIconUpdatesCommand;
 use Simtabi\Laranail\Ichava\Commands\CleanupIchavaLogsCommand;
+use Simtabi\Laranail\Ichava\Support\Auth\DefaultUserPresenter;
+use Simtabi\Laranail\Ichava\Support\OwnerAwarePreferenceStore;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
 use Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator;
@@ -151,7 +159,23 @@ class IchavaServiceProvider extends PackageServiceProvider
         // substituted. Without this the service would depend on a `final`
         // class that decides its own availability, which is why preference
         // behaviour could not be tested at all.
-        $this->app->singleton(PreferenceStore::class, IchavaSessionManager::class);
+        //
+        // The store is owner-aware: a signed-in user's preferences go to an
+        // OwnerPreferenceStore when one is bound (ichava/icon-browser binds
+        // its owner-keyed table), and guests keep the session store. With no
+        // owner store bound every call reaches the session store, as before.
+        $this->app->singleton(PreferenceStore::class, fn (Container $app): PreferenceStore => new OwnerAwarePreferenceStore(
+            $app->make(IchavaSessionManager::class),
+            $app->make(HostUser::class),
+            $app,
+        ));
+
+        // The host's user. Ichava has no auth of its own: the default resolver
+        // reads the guard named by `auth.guard`, and a host rebinds either
+        // contract, or calls Ichava::resolveUserUsing(), to change that.
+        $this->app->singleton(ResolvesUser::class, GuardUserResolver::class);
+        $this->app->singleton(PresentsUser::class, DefaultUserPresenter::class);
+        $this->app->singleton(HostUser::class);
 
         $this->app->singleton(PathResolver::class);
         $this->app->singleton(SvgDriver::class);
@@ -203,6 +227,7 @@ class IchavaServiceProvider extends PackageServiceProvider
                 $app->make(IchavaLogger::class),
                 $app->make(DeferredIconsRegistry::class),
                 $app->make(IconRenderer::class),
+                $app->make(HostUser::class),
             );
         });
 
@@ -316,6 +341,14 @@ class IchavaServiceProvider extends PackageServiceProvider
 
         // Schedule automatic log cleanup
         $this->scheduleLogCleanup();
+
+        // Default-deny Gates, defined after every provider has booted so a
+        // host's own definitions are seen first and never overwritten.
+        $this->app->booted(function (): void {
+            if ($this->app->bound(GateContract::class)) {
+                IchavaGates::define($this->app->make(GateContract::class));
+            }
+        });
     }
 
     /**

@@ -52,6 +52,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Host user
+    |--------------------------------------------------------------------------
+    | Ichava has no auth of its own. It reads the host application's signed-in
+    | user from `guard` (null = the default guard), or from a resolver the host
+    | registers with `Ichava::resolveUserUsing()`.
+    |
+    | The user shape the browser sees carries `id`, `name`, `avatarUrl` and
+    | `abilities` only. Email, passwords and tokens never leave the server;
+    | `expose` is an explicit opt-in list of extra model attributes.
+    |
+    | `abilities` are the Gates checked for that user. Ichava defines
+    | `ichava.admin` as a default-deny Gate when the host has not, and
+    | `ichava.manage-cache` falls back to it.
+    */
+    'auth' => [
+        'guard'            => env('ICHAVA_AUTH_GUARD'),
+        'name_attribute'   => 'name',
+        'avatar_attribute' => null,
+        'expose'           => [],
+        'abilities'        => ['ichava.admin', 'ichava.manage-cache'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | PHP runtime
     |--------------------------------------------------------------------------
     | Applied at provider registration so heavy operations (seeding 100k+
