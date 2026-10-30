@@ -191,14 +191,14 @@ Middleware groups:
 | `ichava.api` | hybrid: `web` (Sanctum) or `StartSession` (sessions only) or none, plus `ichava.guard`, `ichava.session`, `ichava.security`, `ichava.json`, `ichava.log`, `throttle:N,1` |
 | `ichava.web` | `web`, `ichava.validate` |
 
-Per-middleware aliases: `ichava.guard`, `ichava.session`, `ichava.security`, `ichava.json`, `ichava.log`, `ichava.validate`. Plus the legacy `ichava.api.security` alias.
+Per-middleware aliases: `ichava.guard`, `ichava.session`, `ichava.security`, `ichava.json`, `ichava.log`, `ichava.validate`.
 
 The middleware stack uses **hybrid detection** via `HostCapabilities`. Adds the `web` middleware only when Laravel Sanctum + sessions are available; otherwise falls back to a minimal stateless stack. This means `ichava/icon-browser` works in any Laravel application without configuration.
 
 Browser provider also publishes:
 
 - Browser config: `config/ichava/icon-browser.php` (`--tag=ichava::icon-browser-config`)
-- SPA dist assets: `public/vendor/ichava/` (`--tag=ichava-assets`)
+- SPA dist assets: `public/vendor/ichava/` (`--tag=ichava::icon-browser-assets`)
 - Browser-only Blade components: `<x-ichava::layouts.app>`, `<x-ichava::layouts.browser>`, `<x-ichava::ichava-test-icons>`, `<x-ichava::ichava-ui-icons>`
 - Anonymous Blade component path under the `ichava::` namespace
 - Browser's bundled `ui-icons` set (registered with core's `IconRegistry`)
@@ -238,7 +238,7 @@ Common bug: logging in `registeringPackage()` throws `Log [ichava] not defined` 
 
 Migrations are auto-discovered through `discoversMigrations()`, which uses the smart default `database/migrations` resolved from the package's calculated `basePath`. `runsMigrations()` ensures they run on `migrate` without an explicit publish step.
 
-Public asset publishing for the SPA happens in `IconBrowserServiceProvider::bootingPackage()`, not core. The browser package's `public/` directory is copied to `public/vendor/ichava/` under the `ichava-assets` tag.
+Public asset publishing for the SPA happens in `IconBrowserServiceProvider::bootingPackage()`, not core. The browser package's `public/` directory is copied to `public/vendor/ichava/` under the `ichava::icon-browser-assets` tag.
 
 ## RuntimeConfigurator (PHP runtime tuning)
 

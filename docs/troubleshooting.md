@@ -141,7 +141,7 @@ Confirm three things:
 
 1. At least one icon pack is installed and seeded: `php artisan ichava::ichava-core.info packages`
 2. The browser config picks up the right prefix: `php artisan tinker`, then `config('ichava.core.prefix')` should match `/{prefix}/icons` in the URL.
-3. The Vite dist assets were published: `ls public/vendor/ichava/assets/`. If empty, run `php artisan vendor:publish --tag=ichava-assets`.
+3. The Vite dist assets were published: `ls public/vendor/ichava/assets/`. If empty, run `php artisan vendor:publish --tag=ichava::icon-browser-assets`.
 
 ## See also
 
