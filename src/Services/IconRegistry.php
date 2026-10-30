@@ -199,7 +199,7 @@ final class IconRegistry
             'base_path'       => $path,
             'icon_set_name'   => $packageName,
             'provider_class'  => $providerClass,
-            'blade_component' => $this->bladeComponents[$providerClass] ?? null,
+            'blade_component' => $providerClass === null ? null : ($this->bladeComponents[$providerClass] ?? null),
             'prefix'          => $iconPrefix,
         ];
 
