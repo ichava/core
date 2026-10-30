@@ -54,6 +54,7 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * @property-read string|null $height
  * @property-read IconTerm|null $primary_category
  * @property-read IconTerm|null $primary_variant
+ * @property-read IconTerm|null $primary_subcategory
  * @property-read array<int, mixed> $category_slugs
  * @property-read array<int, mixed> $variant_slugs
  * @property-read Collection<int, IconTerm> $terms
@@ -972,6 +973,36 @@ final class Icon extends Model
         return Attribute::make(
             get: function (): ?IconTerm {
                 $term = $this->categories()->whereNull('parent_id')->first() ?? $this->categories()->first();
+
+                return $term instanceof IconTerm ? $term : null;
+            },
+        );
+    }
+
+    /**
+     * Get the subcategory: the nested category (a category term with a
+     * parent) the icon sits in, below its top-level one. Null when the icon
+     * is filed only at the top level.
+     *
+     * Reads the loaded `terms` when they carry `parent_id` (the grid page
+     * loads them so), and queries otherwise.
+     *
+     * @return Attribute<IconTerm|null, never>
+     */
+    protected function primarySubcategory(): Attribute
+    {
+        return Attribute::make(
+            get: function (): ?IconTerm {
+                $terms = $this->relationLoaded('terms') ? $this->getRelation('terms') : null;
+
+                if ($terms instanceof Collection
+                    && $terms->every(fn (mixed $t): bool => $t instanceof IconTerm && array_key_exists('parent_id', $t->getAttributes()))) {
+                    $term = $terms->first(fn (mixed $t): bool => $t instanceof IconTerm && $t->type === IconTerm::TYPE_CATEGORY && $t->parent_id !== null);
+
+                    return $term instanceof IconTerm ? $term : null;
+                }
+
+                $term = $this->categories()->whereNotNull('parent_id')->first();
 
                 return $term instanceof IconTerm ? $term : null;
             },

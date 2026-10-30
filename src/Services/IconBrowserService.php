@@ -76,9 +76,10 @@ final class IconBrowserService
             'created_at', 'updated_at',
         ]);
 
-        // Load relationships for categories and variants
+        // Load relationships for categories and variants. `parent_id` tells a
+        // nested category from a top-level one, which is the icon's `sub`.
         $query->with(['terms' => function ($q) {
-            $q->select('ichava_icon_terms.id', 'type', 'slug', 'name');
+            $q->select('ichava_icon_terms.id', 'type', 'slug', 'name', 'parent_id');
         }]);
 
         // Paginate with timeout protection
@@ -107,13 +108,15 @@ final class IconBrowserService
             'themes'      => $icon->themes(),
             'category'    => $icon->primary_category?->slug,
             'variant'     => $icon->primary_variant?->slug,
+            'sub'         => $icon->primary_subcategory?->slug,
             'path'        => $icon->icon_path,
             'svg_content' => $icon->svg_content,
             // The SVG endpoint lives in the browser package's (optionally disabled)
-            // REST API. Fall back to null when those routes are not registered —
+            // REST API, mounted under `/api/v1` with `ichava.api.v1.*` route
+            // names. Fall back to null when those routes are not registered —
             // Inertia pages already carry `svg_content`, so tiles render anyway.
-            'svg_url' => Route::has('ichava.api.icons.svg')
-                ? route('ichava.api.icons.svg', ['id' => $icon->id], false)
+            'svg_url' => Route::has('ichava.api.v1.icons.svg')
+                ? route('ichava.api.v1.icons.svg', ['id' => $icon->id], false)
                 : null,
             'viewbox'   => $icon->viewbox,
             'width'     => $icon->width,

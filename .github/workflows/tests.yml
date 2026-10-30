@@ -46,10 +46,22 @@ jobs:
           echo "::add-matcher::${{ runner.tool_cache }}/php.json"
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
+      - name: Test against the siblings' main
+        # The committed constraints stay on the 0.1 line the released 0.1.0 satisfies
+        # (SiblingConstraintsTest). CI aliases the siblings' main into that line so
+        # this repository is tested against what it will ship beside, and restores
+        # composer.json after the install so tests read the committed constraints.
+        run: composer require --dev "ichava/icon-sets-package-scaffolder:dev-main as 0.1.99" --no-update --no-interaction
+
       - name: Install dependencies
         run: |
           composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Report the resolved siblings and restore composer.json
+        run: |
+          for p in ichava/icon-sets-package-scaffolder; do composer show "$p" | grep -E '^(name|versions|source) '; done
+          git checkout -- composer.json
 
       - name: List Installed Dependencies
         run: composer show -D
@@ -153,10 +165,22 @@ jobs:
           echo "::add-matcher::${{ runner.tool_cache }}/php.json"
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
+      - name: Test against the siblings' main
+        # The committed constraints stay on the 0.1 line the released 0.1.0 satisfies
+        # (SiblingConstraintsTest). CI aliases the siblings' main into that line so
+        # this repository is tested against what it will ship beside, and restores
+        # composer.json after the install so tests read the committed constraints.
+        run: composer require --dev "ichava/icon-sets-package-scaffolder:dev-main as 0.1.99" --no-update --no-interaction
+
       - name: Install dependencies
         run: |
           composer require "laravel/framework:13.*" "orchestra/testbench:^11.0" --no-interaction --no-update
           composer update --prefer-stable --prefer-dist --no-interaction
+
+      - name: Report the resolved siblings and restore composer.json
+        run: |
+          for p in ichava/icon-sets-package-scaffolder; do composer show "$p" | grep -E '^(name|versions|source) '; done
+          git checkout -- composer.json
 
       - name: Execute tests
         env:

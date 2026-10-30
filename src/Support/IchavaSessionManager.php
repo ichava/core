@@ -156,6 +156,14 @@ final class IchavaSessionManager implements PreferenceStore
 
     /**
      * Get all Ichava preferences from session
+     *
+     * Keyed as `put()` stored them. Laravel's session nests a dotted key, so
+     * `put('preferences', ...)` is held as `['ichava' => ['preferences' => ...]]`
+     * and the preferences are the children of the `ichava` entry. A literal
+     * top-level `ichava.<key>` (written past this class) is still read, with
+     * the nested value winning a clash.
+     *
+     * @return array<string, mixed>
      */
     public function all(): array
     {
@@ -164,16 +172,20 @@ final class IchavaSessionManager implements PreferenceStore
         }
 
         try {
-            $allSession = session()->all();
             $ichavaPrefs = [];
-
-            // Filter only Ichava keys
             $prefix = self::SESSION_PREFIX . '.';
-            foreach ($allSession as $key => $value) {
-                if (Str::startsWith($key, $prefix)) {
-                    // Remove prefix for clean keys
-                    $cleanKey = substr($key, strlen($prefix));
-                    $ichavaPrefs[$cleanKey] = $value;
+
+            foreach (session()->all() as $key => $value) {
+                if (is_string($key) && Str::startsWith($key, $prefix)) {
+                    $ichavaPrefs[substr($key, strlen($prefix))] = $value;
+                }
+            }
+
+            $nested = session()->get(self::SESSION_PREFIX, []);
+
+            if (is_array($nested)) {
+                foreach ($nested as $key => $value) {
+                    $ichavaPrefs[(string) $key] = $value;
                 }
             }
 
@@ -189,6 +201,9 @@ final class IchavaSessionManager implements PreferenceStore
 
     /**
      * Clear all Ichava preferences from session
+     *
+     * Removes the nested `ichava` entry `put()` writes into, and any literal
+     * top-level `ichava.<key>`. Nothing else in the host's session is touched.
      */
     public function clear(): bool
     {
@@ -197,15 +212,15 @@ final class IchavaSessionManager implements PreferenceStore
         }
 
         try {
-            $allSession = session()->all();
             $prefix = self::SESSION_PREFIX . '.';
 
-            // Remove all Ichava keys
-            foreach (array_keys($allSession) as $key) {
-                if (Str::startsWith($key, $prefix)) {
+            foreach (array_keys(session()->all()) as $key) {
+                if (is_string($key) && Str::startsWith($key, $prefix)) {
                     session()->forget($key);
                 }
             }
+
+            session()->forget(self::SESSION_PREFIX);
 
             return true;
         } catch (Exception $e) {
