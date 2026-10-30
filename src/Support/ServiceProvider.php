@@ -8,12 +8,14 @@ use SplFileInfo;
 use FilesystemIterator;
 use Illuminate\Support\Str;
 use RecursiveIteratorIterator;
+use Composer\InstalledVersions;
 use RecursiveDirectoryIterator;
 use Illuminate\Support\Facades\Blade;
 use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Providers\IchavaServiceProvider;
+use Simtabi\Laranail\Ichava\Contracts\IchavaPackageInterface;
 use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
 
 /**
@@ -27,8 +29,54 @@ use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
  * @see IchavaServiceProvider
  * @see IconRegistry
  */
-abstract class ServiceProvider extends PackageServiceProvider
+abstract class ServiceProvider extends PackageServiceProvider implements IchavaPackageInterface
 {
+    /**
+     * The composer name of the pack this provider registered, e.g.
+     * `ichava/icon-sets-tabler`, as the registry recorded it from config.json.
+     * Empty until the pack has registered (in `bootingPackage()`).
+     */
+    public function getPackageName(): string
+    {
+        $name = $this->registeredMetadata()['package_name'] ?? null;
+
+        return is_string($name) ? $name : '';
+    }
+
+    /**
+     * The installed version, from Composer -- never a second read of
+     * config.json, whose `package.version` is not maintained per release.
+     * `dev` when Composer does not know the package (a path checkout, a test).
+     */
+    public function getPackageVersion(): string
+    {
+        $name = $this->getPackageName();
+
+        if ($name === '' || ! InstalledVersions::isInstalled($name)) {
+            return 'dev';
+        }
+
+        return InstalledVersions::getPrettyVersion($name) ?? 'dev';
+    }
+
+    public function getIconSetName(): string
+    {
+        $name = $this->registeredMetadata()['icon_set_name'] ?? null;
+
+        return is_string($name) ? $name : $this->getPackageName();
+    }
+
+    /**
+     * The registry's metadata for this pack: one reader of config.json, the
+     * registry's, so this cannot drift from what the browser shows.
+     *
+     * @return array<string, mixed>
+     */
+    public function getPackageMetadata(): array
+    {
+        return $this->registeredMetadata();
+    }
+
     /**
      * Build the Package with every resource type it ships already switched on.
      *
@@ -320,5 +368,23 @@ abstract class ServiceProvider extends PackageServiceProvider
         }
 
         return false;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function registeredMetadata(): array
+    {
+        if (! $this->app->bound(IconRegistry::class)) {
+            return [];
+        }
+
+        foreach ($this->app->make(IconRegistry::class)->all() as $metadata) {
+            if (($metadata['provider_class'] ?? null) === static::class) {
+                return $metadata;
+            }
+        }
+
+        return [];
     }
 }
