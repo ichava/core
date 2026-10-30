@@ -6,6 +6,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Changed
 
+- **The package names Simtabi LLC as its author** (W-20, XR-3). The `composer.json` author was a person with a personal address; it is now `Simtabi LLC <ichava@simtabi.com>`, following the 2026-10-28 decision that no personal name or email is published. `tests/Unit/NoPersonalIdentityTest.php` reads `composer.json`, `README.md`, `LICENSE`, `docs/` and `src/` and fails on a personal name or address, with a floor on the files it read.
 - **PHPStan runs at level 5, with Larastan** (C3; it ran at level 0). Larastan teaches PHPStan Eloquent, which took the level-5 findings from 101 to 60. The rest are fixed: Eloquent relation generics, `@property` docs for the accessors, and a typed driver lookup for the scopes. Six were real bugs, listed under Fixed. Where PHPStan calls code redundant that the preserve rule keeps (a public constant, fluent properties nothing reads yet, defensive guards, and two `catch` blocks whose widening would change failure behaviour), a one-line `@phpstan-ignore` gives the reason in place. The traits used only from the excluded `View` and `Commands` paths are ignored in config until those paths are analysed.
 
 ### Removed
