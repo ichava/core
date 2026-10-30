@@ -8,7 +8,8 @@ declare(strict_types=1);
  *
  * For every set pinned in icon-sets.json (key/package/repository) this
  * script resolves the latest release tag, reads the pack's config.json at
- * that tag, counts the committed SVGs via the git-trees API, and writes
+ * that tag, counts the committed SVGs (in all, and per kind as icon_counts)
+ * via the git-trees API, and writes
  * the snapshot back — so `ichava:install` stays fully local with zero
  * runtime network calls.
  *
@@ -143,13 +144,16 @@ function snapshot(string $repository, string $configPath, array $previous): ?arr
     }
 
     $variants = $config['metadata']['data']['variants'] ?? null;
-    $count = $tag !== null ? iconCount($repository, $tag, $configPath) : null;
+    $tree = $tag !== null ? svgPaths($repository, $tag, $configPath) : null;
+    $count = $tree !== null ? count($tree) : null;
+    $counts = $tree !== null ? countsByKind($tree, $config) : null;
 
     return [
         'title'          => (string) ($config['package']['title'] ?? $previous['title'] ?? $previous['key']),
         'description'    => $config['package']['description'] ?? ($previous['description'] ?? null),
         'license'        => $config['package']['license'] ?? ($previous['license'] ?? null),
         'icon_count'     => $count ?? ($previous['icon_count'] ?? null),
+        'icon_counts'    => $counts ?? ($previous['icon_counts'] ?? null),
         'variants'       => is_array($variants) ? array_keys($variants) : ($previous['variants'] ?? null),
         'latest_version' => $tag !== null ? ltrim($tag, 'vV') : ($previous['latest_version'] ?? null),
     ];
@@ -193,26 +197,86 @@ function highestVersionTag(array $tags): ?string
 
 function iconCount(string $repository, string $tag, string $configPath): ?int
 {
-    $filesDir = rtrim(dirname($configPath), '/') . '/files/';
+    $paths = svgPaths($repository, $tag, $configPath);
+
+    return $paths !== null ? count($paths) : null;
+}
+
+/**
+ * The committed SVG paths under the pack's `files/` directory at a tag, relative to it.
+ *
+ * @return list<string>|null null when the tree cannot be read, is truncated, or holds no SVG
+ */
+function svgPaths(string $repository, string $tag, string $configPath): ?array
+{
     $tree = getJson("https://api.github.com/repos/{$repository}/git/trees/{$tag}?recursive=1");
 
-    if (! is_array($tree) || ($tree['truncated'] ?? false) === true || ! is_array($tree['tree'] ?? null)) {
+    return is_array($tree) ? svgPathsInTree($tree, $configPath) : null;
+}
+
+/**
+ * @param array<mixed> $tree a git-trees API response
+ *
+ * @return list<string>|null
+ */
+function svgPathsInTree(array $tree, string $configPath): ?array
+{
+    $filesDir = rtrim(dirname($configPath), '/') . '/files/';
+
+    if (($tree['truncated'] ?? false) === true || ! is_array($tree['tree'] ?? null)) {
         return null;
     }
 
-    $count = 0;
+    $paths = [];
 
     foreach ($tree['tree'] as $entry) {
-        $path = (string) ($entry['path'] ?? '');
+        $path = is_array($entry) ? (string) ($entry['path'] ?? '') : '';
 
-        if (($entry['type'] ?? null) === 'blob'
+        if (is_array($entry) && ($entry['type'] ?? null) === 'blob'
             && str_starts_with($path, $filesDir)
             && str_ends_with($path, '.svg')) {
-            $count++;
+            $paths[] = substr($path, strlen($filesDir));
         }
     }
 
-    return $count > 0 ? $count : null;
+    return $paths !== [] ? $paths : null;
+}
+
+/**
+ * SVG files per kind, by the registry's rule (IconClassifier::categoryOf() + IconRegistry::kindFor()):
+ * the category is the first directory under `files/`, and its kind is the category's own `kind`,
+ * else the pack's `package.kind`, else `icon`. Counts are files, like `icon_count`, so the two
+ * always add up; a dark twin counts as a file.
+ *
+ * @param list<string> $paths SVG paths relative to `files/`
+ * @param array<mixed> $config the pack's config.json
+ *
+ * @return array{icon: int, illustration: int}
+ */
+function countsByKind(array $paths, array $config): array
+{
+    $packKind = kindOf($config['package']['kind'] ?? null) ?? 'icon';
+    $categories = $config['metadata']['data']['categories'] ?? [];
+    $categories = is_array($categories) ? $categories : [];
+    $counts = ['icon' => 0, 'illustration' => 0];
+
+    foreach ($paths as $path) {
+        $segments = explode('/', $path);
+        $category = count($segments) > 1 ? ($categories[$segments[0]] ?? null) : null;
+        $kind = is_array($category) ? (kindOf($category['kind'] ?? null) ?? $packKind) : $packKind;
+
+        $counts[$kind]++;
+    }
+
+    return $counts;
+}
+
+/**
+ * @return 'icon'|'illustration'|null
+ */
+function kindOf(mixed $value): ?string
+{
+    return $value === 'icon' || $value === 'illustration' ? $value : null;
 }
 
 /**
