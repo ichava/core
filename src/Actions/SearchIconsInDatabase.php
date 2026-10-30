@@ -71,7 +71,7 @@ final class SearchIconsInDatabase
             $sortDirection,
             $packageMetadata,
             $usageSyntax,
-        ));
+        ), expects: 'array');
     }
 
     /**

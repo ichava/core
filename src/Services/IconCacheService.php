@@ -6,6 +6,7 @@ namespace Simtabi\Laranail\Ichava\Services;
 
 use Closure;
 use Exception;
+use __PHP_Incomplete_Class;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Artisan;
@@ -194,15 +195,27 @@ final class IconCacheService
      * Only caches after Laravel has fully booted to avoid serializing host
      * paths during package discovery. Gracefully handles cache failures.
      *
-     * Pass $ttl by name. This method took exactly two parameters for its whole
-     * life, and PHP accepts surplus arguments to a userland function without
-     * complaint, so a third positional argument was silently discarded rather
-     * than rejected -- which is how Icon::getPackageCounts() spent its life
-     * believing it had asked for a 24-hour TTL.
+     * Pass $ttl and $expects by name. This method took exactly two parameters
+     * for its whole life, and PHP accepts surplus arguments to a userland
+     * function without complaint, so a third positional argument was silently
+     * discarded rather than rejected -- which is how Icon::getPackageCounts()
+     * spent its life believing it had asked for a 24-hour TTL.
+     *
+     * The store is untrusted input. Whatever it hands back was written by another
+     * process, possibly running a different build of this package, and
+     * `unserialize()` answers with `__PHP_Incomplete_Class` -- raising nothing --
+     * when the class a payload names cannot be resolved. A hit is therefore
+     * checked before it is returned: an incomplete object is always refused, and
+     * when $expects is given the value must be an instance of that class, or have
+     * that `get_debug_type()` (`array`, `string`, `int`, ...). A refused entry is
+     * evicted and rebuilt from $callback, so a poisoned key repairs itself on the
+     * next read instead of failing at the first typed boundary until its TTL runs
+     * out.
      *
      * @param int|null $ttl Lifetime in seconds; defaults to the configured TTL.
+     * @param string|null $expects A class name, or a `get_debug_type()` name, the value must have.
      */
-    public function remember(string $key, callable $callback, ?int $ttl = null): mixed
+    public function remember(string $key, callable $callback, ?int $ttl = null, ?string $expects = null): mixed
     {
         // Only cache after Laravel has fully booted
         if (! app()->hasBeenBootstrapped()) {
@@ -212,6 +225,22 @@ final class IconCacheService
         $fullKey = $this->buildKey($key);
 
         try {
+            $cached = cache()->get($fullKey);
+
+            if ($cached !== null) {
+                if (self::satisfies($cached, $expects)) {
+                    return $cached;
+                }
+
+                $this->logger->warning('Ichava cache entry failed validation, rebuilding', [
+                    'key'      => $fullKey,
+                    'expected' => $expects ?? 'a resolvable value',
+                    'actual'   => get_debug_type($cached),
+                ]);
+
+                cache()->forget($fullKey);
+            }
+
             return cache()->remember(
                 key: $fullKey,
                 ttl: now()->addSeconds($ttl ?? $this->ttl),
@@ -545,6 +574,30 @@ final class IconCacheService
         } catch (Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * Whether a value read back from the store can be served.
+     *
+     * `__PHP_Incomplete_Class` is refused whatever $expects says. Only the top
+     * level is inspected: a whole-set payload holds thousands of rows, and the
+     * callers that cache nested data rebuild typed objects from it themselves.
+     */
+    private static function satisfies(mixed $value, ?string $expects): bool
+    {
+        if ($value instanceof __PHP_Incomplete_Class) {
+            return false;
+        }
+
+        if ($expects === null) {
+            return true;
+        }
+
+        if (class_exists($expects) || interface_exists($expects)) {
+            return $value instanceof $expects;
+        }
+
+        return get_debug_type($value) === $expects;
     }
 
     /**

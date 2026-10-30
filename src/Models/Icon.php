@@ -150,6 +150,7 @@ final class Icon extends Model
                 ->pluck('count', 'package')
                 ->toArray(),
             ttl: 60 * 60 * 24, // 24 hours, in seconds
+            expects: 'array',
         );
     }
 
@@ -854,6 +855,7 @@ final class Icon extends Model
                             return '';
                         }
                     },
+                    expects: 'string',
                 );
             },
         );
