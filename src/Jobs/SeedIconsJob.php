@@ -76,6 +76,13 @@ class SeedIconsJob implements ShouldQueue
         $this->tries = Coerce::int(config('ichava.ichava-core.queue.retries', 3));
         $this->timeout = Coerce::int(config('ichava.ichava-core.queue.timeout', 300));
         $this->onQueue(Coerce::stringOrNull(config('ichava.ichava-core.queue.name', 'ichava-icons')));
+
+        // Null (the default) keeps the application's default connection.
+        $connection = Coerce::stringOrNull(config('ichava.ichava-core.queue.connection'));
+
+        if ($connection !== null && $connection !== '') {
+            $this->onConnection($connection);
+        }
     }
 
     /**
@@ -128,8 +135,9 @@ class SeedIconsJob implements ShouldQueue
                 app(SeederRunTracker::class)->advance(IchavaSeeder::trackingKey($this->packageName), failed: true, by: $fileCount);
             }
 
-            $logger->error("Job {$this->jobIndex} failed: {$e->getMessage()}", $e, [
-                'package' => $this->packageName,
+            $logger->jobFailed(self::class, $e, [
+                'package'   => $this->packageName,
+                'job_index' => $this->jobIndex,
             ]);
             throw $e;
         }
@@ -171,6 +179,10 @@ class SeedIconsJob implements ShouldQueue
         foreach ($this->files as $absolutePath) {
             if (! File::exists($absolutePath)) {
                 $stats['skipped']++;
+                $logger->seedingWarning('Icon file vanished before it was seeded', [
+                    'package' => $this->packageName,
+                    'file'    => $absolutePath,
+                ]);
 
                 continue;
             }

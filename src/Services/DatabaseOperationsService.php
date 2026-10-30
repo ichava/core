@@ -335,7 +335,8 @@ class DatabaseOperationsService
 
         $threshold = config('ichava.ichava-core.database.smart_queue_threshold', self::SMART_QUEUE_THRESHOLD);
 
-        return $iconCount >= $threshold;
+        // env() hands the threshold over as a string; compare it as a number.
+        return $iconCount >= (is_numeric($threshold) ? (int) $threshold : self::SMART_QUEUE_THRESHOLD);
     }
 
     /**

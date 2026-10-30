@@ -98,7 +98,7 @@ return [
     'horizon' => [
         'auto_register' => env('ICHAVA_HORIZON_AUTO_REGISTER', true),
         'connection'    => env('ICHAVA_HORIZON_CONNECTION', 'redis'),
-        'maxProcesses'  => env('ICHAVA_HORIZON_MAX_PROCESSES', 25),
+        'maxProcesses'  => env('ICHAVA_HORIZON_MAX_PROCESSES', 3),
         'memory'        => env('ICHAVA_HORIZON_MEMORY', 256),
     ],
 
@@ -110,6 +110,22 @@ return [
     ],
 ];
 ```
+
+## Keys that take effect at runtime
+
+Every key below is read where it claims to act, so a published (and `config:cache`d) config is honoured:
+
+| Key | Effect |
+|---|---|
+| `logging.channels.*` | copied verbatim into `logging.channels.<name>`, including the `ichava-audit` channel; the main channel defaults to `warning` |
+| `queue.horizon.supervisor.*`, `queue.name` | the Horizon supervisor, with `maxProcesses` 3 in every environment |
+| `queue.connection` | the connection seeding jobs are pushed to; null keeps the default |
+| `database.smart_queue_threshold` | packs with fewer icons seed synchronously without `--sync` |
+| `optimization.level` and the four pass flags | the SVG optimiser; a flag set to `true`/`false` overrides that pass, null follows the level; both are part of the render cache key |
+| `test.enabled`, `test.path` | whether, and from where, the bundled test set registers (keep `default_set` pointing at a real pack when it is off) |
+| `defaults.class`, `defaults.attributes` | attributes on every `<x-ichava::icon>`; the class only when the caller passes no class and no size |
+| `separators.category` | the separator between category and icon; must differ from `separators.path` |
+| `validation.icon_path_pattern`, `icon_name_pattern` | extra patterns that can only narrow the built-in path checks; null to rely on the built-ins |
 
 ## Common changes
 

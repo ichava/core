@@ -35,6 +35,7 @@ use Simtabi\Laranail\Ichava\Commands\DatabaseCommand;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
 use Simtabi\Laranail\Package\Tools\Services\Database\ChunkedBatchDispatcher;
 
 /**
@@ -283,7 +284,9 @@ class IchavaSeeder extends Seeder
             return null;
         }
 
-        $this->logger->info('🚀 Seeding jobs dispatched', [
+        // On the seeding channel, beside the batch's own lifecycle lines,
+        // through the logger's one job-dispatch path.
+        $this->logger->jobDispatched(SeedIconsJob::class, [
             'package'    => $packageName,
             'batch_id'   => $batch->id,
             'total_jobs' => $batch->totalJobs,
@@ -464,13 +467,19 @@ class IchavaSeeder extends Seeder
                 // Step 3: Seed icons
                 $forceMsg = $this->forceUpdate ? __('ichava/ichava-core::commands.seeder.force_suffix') : '';
 
-                if ($this->syncMode || ! config('ichava.ichava-core.database.use_queue', true)) {
+                // Synchronous when asked (--sync), when queueing is off, or
+                // when the pack is small enough that a queue only adds
+                // latency (`database.smart_queue_threshold`, 5,000 icons).
+                $useQueue = config('ichava.ichava-core.database.use_queue', true)
+                    && app(DatabaseOperationsService::class)->shouldUseQueue($iconCount, forceSync: $this->isSyncMode());
+
+                if (! $useQueue) {
                     $this->console()->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.seeding_sync', ['force' => $forceMsg, 'size' => $chunkSize]) . '</>');
 
                     $result = $this->seedSync($packageName, $packageData['svg_path'], $chunkSize, $this->forceUpdate);
 
                     if (isset($result['error'])) {
-                        throw new IchavaException($result['error']);
+                        throw IchavaException::seedingFailed($packageName, $result['error']);
                     }
 
                     $packageStats['jobs'] = $result['jobs'];

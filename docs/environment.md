@@ -126,11 +126,11 @@ The engine auto-registers a Horizon supervisor for the `ichava-icons` queue when
 
 | Key | Default | Effect | Config |
 |---|---|---|---|
-| `ICHAVA_HORIZON_AUTO_REGISTER` | `true` | Automatic supervisor registration | `ichava.ichava-core.horizon.auto_register` |
-| `ICHAVA_HORIZON_CONNECTION` | `redis` | Queue connection used by the supervisor | `ichava.ichava-core.horizon.connection` |
-| `ICHAVA_HORIZON_BALANCE` | `simple` | Balance strategy | `ichava.ichava-core.horizon.balance` |
-| `ICHAVA_HORIZON_MAX_PROCESSES` | `25` | Max parallel worker processes | `ichava.ichava-core.horizon.maxProcesses` |
-| `ICHAVA_HORIZON_MEMORY` | `256` | Memory ceiling per worker (MiB) | `ichava.ichava-core.horizon.memory` |
+| `ICHAVA_HORIZON_AUTO_REGISTER` | `true` | Automatic supervisor registration | `ichava.ichava-core.queue.horizon.auto_register` |
+| `ICHAVA_HORIZON_CONNECTION` | `redis` | Queue connection used by the supervisor | `ichava.ichava-core.queue.horizon.supervisor.connection` |
+| `ICHAVA_HORIZON_BALANCE` | `simple` | Balance strategy | `ichava.ichava-core.queue.horizon.supervisor.balance` |
+| `ICHAVA_HORIZON_MAX_PROCESSES` | `3` | Max parallel worker processes, in every environment | `ichava.ichava-core.queue.horizon.supervisor.maxProcesses` |
+| `ICHAVA_HORIZON_MEMORY` | `256` | Memory ceiling per worker (MiB) | `ichava.ichava-core.queue.horizon.supervisor.memory` |
 
 ## See also
 

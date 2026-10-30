@@ -18,30 +18,31 @@ trait OptimizesSvg
      */
     public function optimize(string $content): string
     {
-        if ($this->optimizationLevel === OptimizationLevel::NONE) {
-            return $content;
+        // Remove XML declaration
+        if ($this->runsOptimizerPass('remove_xml_declaration')) {
+            $content = preg_replace('/^<\?xml.+?\?>\s*/i', '', $content) ?? $content;
         }
 
-        // Remove XML declaration
-        $content = preg_replace('/^<\?xml.+?\?>\s*/i', '', $content) ?? $content;
-
         // Remove comments
-        if ($this->optimizationLevel->shouldRemoveComments()) {
+        if ($this->runsOptimizerPass('remove_comments')) {
             $content = preg_replace('/<!--.*?-->/s', '', $content) ?? $content;
         }
 
-        // Remove metadata
-        if ($this->optimizationLevel->shouldRemoveMetadata()) {
+        // Remove <metadata> (editor provenance). <title> and <desc> carry the
+        // accessible name and are never touched.
+        if ($this->runsOptimizerPass('remove_metadata')) {
             $content = preg_replace('/<metadata.*?<\/metadata>/is', '', $content) ?? $content;
         }
 
         // Minify
-        if ($this->optimizationLevel->shouldMinify()) {
+        if ($this->runsOptimizerPass('minify')) {
             $content = preg_replace('/\s+/', ' ', $content) ?? $content;
             $content = preg_replace('/>\s+</', '><', $content) ?? $content;
         }
 
-        return trim($content);
+        return $this->optimizationLevel === OptimizationLevel::NONE && $this->optimizationOverrides === []
+            ? $content
+            : trim($content);
     }
 
     /**

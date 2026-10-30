@@ -182,16 +182,20 @@ class IconComponent extends Component
         }
 
         // Merge attributes in order of precedence:
-        // 1. Default attributes (lowest priority)
-        // 2. Additional attributes (medium priority)
-        // 3. Accessibility attributes (high priority)
-        // 4. Size attributes (highest priority)
-        $attributes = array_merge(
+        // 1. Core defaults from config (lowest priority)
+        // 2. The component's own defaults (a pack's subclass)
+        // 3. Additional attributes (medium priority)
+        // 4. Accessibility attributes (high priority)
+        // 5. Size attributes (highest priority), merged rather than replaced,
+        //    so a size preset's class joins the caller's class instead of
+        //    discarding it
+        // Only named attributes can be rendered onto the element.
+        $attributes = array_filter($this->svgProcessor->mergeWithAttributes($sizeAttrs, array_merge(
+            $this->coreDefaultAttributes($additionalAttrs, $sizeAttrs),
             $this->getDefaultAttributes(),
             $additionalAttrs,
             $a11yAttrs,
-            $sizeAttrs,
-        );
+        )), is_string(...), ARRAY_FILTER_USE_KEY);
 
         // Render, fall back to $fallback icon on exception, otherwise re-throw
         try {
@@ -261,6 +265,35 @@ class IconComponent extends Component
     protected function getDefaultAttributes(): array
     {
         return [];
+    }
+
+    /**
+     * `ichava.ichava-core.defaults`: `attributes` always, and `class` only when
+     * the caller passed no class and no size.
+     *
+     * The shipped class is a sizing class (`w-6 h-6`). Applied regardless, it
+     * would land on every icon in every host and fight both the caller's own
+     * class and a `size`/`width`/`height` prop, so it fills the gap only.
+     *
+     * @param array<string, mixed> $additionalAttrs
+     * @param array<string, mixed> $sizeAttrs
+     *
+     * @return array<string, mixed>
+     */
+    protected function coreDefaultAttributes(array $additionalAttrs, array $sizeAttrs): array
+    {
+        $configured = config('ichava.ichava-core.defaults.attributes', []);
+        $defaults = is_array($configured)
+            ? array_filter($configured, is_string(...), ARRAY_FILTER_USE_KEY)
+            : [];
+
+        $class = config('ichava.ichava-core.defaults.class');
+
+        if (is_string($class) && trim($class) !== '' && ! isset($additionalAttrs['class']) && $sizeAttrs === []) {
+            $defaults['class'] = trim($class);
+        }
+
+        return $defaults;
     }
 
     /**
