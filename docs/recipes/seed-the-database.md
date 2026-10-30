@@ -31,7 +31,7 @@ flowchart TD
     cmd["php artisan ichava::ichava-core.database seed"]
     lock{"cache lock<br/>ichava:seeding:&lt;pkg&gt;<br/>(10 min TTL)"}
     scan["Scan SVG directory<br/>(IconRegistry resolves path)"]
-    chunk["Split into chunks<br/>(ichava.database.batch_size, default 1000)"]
+    chunk["Split into chunks<br/>(ichava.ichava-core.database.batch_size, default 1000)"]
     queue["Dispatch to queue<br/>'ichava-icons'"]
     workers["Queue workers<br/>(parallel, configurable count)"]
     job["SeedIconsJob"]

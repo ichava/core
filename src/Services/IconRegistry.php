@@ -125,7 +125,7 @@ final class IconRegistry
      *
      * Each entry may be a plain path string or an associative array with a 'path' key.
      * Invalid or empty paths are silently skipped. Useful for registering custom icon
-     * sets declared in ichava.custom-icons.sets config.
+     * sets declared in ichava.ichava-core.custom-icons.sets config.
      *
      * @param array<int|string, string|array<string, mixed>> $sets
      *                                                             Example: ['/path/to/set', ['path' => '/other/set', 'label' => 'Custom']]

@@ -240,7 +240,7 @@ class IchavaServiceProvider extends PackageServiceProvider
      * Execution sequence:
      * 1. Blade::componentNamespace()    , 'ichava' component namespace (the entire HTTP layer, routes, middleware, controllers, layouts, lives in IconBrowserServiceProvider in ichava/icon-browser)
      * 2. IconRegistry::fromDirectory() , register bundled test-icons set (core test fixtures)
-     * 3. registerCustomIconSets()      , user-defined sets from ichava.custom-icons.sets
+     * 3. registerCustomIconSets()      , user-defined sets from ichava.ichava-core.custom-icons.sets
      * 4. registerCoreIconComponent()   , register the generic <x-ichava::icon> Blade component
      * 5. registerFileWatcher()         , schedule ichava:watch if database.auto_sync enabled
      * 6. scheduleLogCleanup()          , schedule ichava:cleanup-logs if logging.auto_cleanup enabled
@@ -396,8 +396,8 @@ class IchavaServiceProvider extends PackageServiceProvider
     /**
      * Schedule the ichava:cleanup-logs command to run daily.
      *
-     * Only schedules if ichava.logging.auto_cleanup is true (default).
-     * Run time is controlled by ichava.logging.cleanup_time (default '03:00').
+     * Only schedules if ichava.ichava-core.logging.auto_cleanup is true (default).
+     * Run time is controlled by ichava.ichava-core.logging.cleanup_time (default '03:00').
      * Runs with withoutOverlapping() to prevent concurrent cleanup jobs.
      * Logs success/failure via IchavaLogger on the 'ichava' channel.
      */
@@ -427,10 +427,10 @@ class IchavaServiceProvider extends PackageServiceProvider
     /**
      * Schedule the ichava:watch command to run every minute.
      *
-     * Only schedules if ichava.database.auto_sync is true (default).
+     * Only schedules if ichava.ichava-core.database.auto_sync is true (default).
      * The command monitors SVG file changes and syncs them to the database.
      * Runs in the background with withoutOverlapping() using the configured
-     * sync interval (ichava.database.sync_interval, default 60 seconds).
+     * sync interval (ichava.ichava-core.database.sync_interval, default 60 seconds).
      */
     protected function registerFileWatcher(): void
     {
@@ -467,7 +467,7 @@ class IchavaServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Register user-defined icon sets from the ichava.custom-icons.sets config.
+     * Register user-defined icon sets from the ichava.ichava-core.custom-icons.sets config.
      *
      * Each entry in the array may be a plain path string or an associative array
      * with a 'path' key. Registration is deferred to app()->booted() to ensure

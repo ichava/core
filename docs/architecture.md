@@ -254,7 +254,7 @@ RuntimeConfigurator::make()
     ->apply();
 ```
 
-`IchavaServiceProvider::configureRuntimeSettings()` calls this automatically during `registeringPackage()`, reading `ichava.runtime.memory_limit`, `ichava.runtime.max_execution_time`, and `ichava.runtime.disable_telescope_in_queue` from config. No manual setup required.
+`IchavaServiceProvider::configureRuntimeSettings()` calls this automatically during `registeringPackage()`, reading `ichava.ichava-core.runtime.memory_limit`, `ichava.ichava-core.runtime.max_execution_time`, and `ichava.ichava-core.runtime.disable_telescope_in_queue` from config. No manual setup required.
 
 See `Simtabi\Laranail\Packager\Package\Support\RuntimeConfigurator` for the full fluent API (preset factories like `forQueueJob()`, `forBatchProcessing()`, scoped `scope()` callbacks, Xdebug and Debugbar toggles).
 
@@ -318,7 +318,7 @@ Two unified event classes cover Ichava's runtime signals. Listeners can branch o
 
 Three built-in listeners react to these events:
 
-- `AutoSeedIconsOnRegistration`, seeds icons on `registered` events. Disabled by default; enable via `ichava.database.auto_seed = true`. Only seeds if the package has zero rows in the database.
+- `AutoSeedIconsOnRegistration`, seeds icons on `registered` events. Disabled by default; enable via `ichava.ichava-core.database.auto_seed = true`. Only seeds if the package has zero rows in the database.
 - `AutoUnseedOnUnregistration`, removes a package's icon rows plus orphaned terms on `unregistered`.
 - `InvalidateIconCache`, flushes icon caches on `IconCacheEvent`. Guarded by `IchavaLifecycleManager`: only runs after the four-stage lifecycle (`uninitialized` → `migrated` → `seeded` → `ready`) reaches `ready`. Setup-time events (registration) are unguarded.
 
