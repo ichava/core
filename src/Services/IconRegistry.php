@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Data\IconData;
+use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Illuminate\Contracts\Foundation\Application;
@@ -201,6 +202,15 @@ final class IconRegistry
             'provider_class'  => $providerClass,
             'blade_component' => $providerClass === null ? null : ($this->bladeComponents[$providerClass] ?? null),
             'prefix'          => $iconPrefix,
+            // What the pack's SVGs are. Read here, from the one config.json
+            // read registration already makes, so the seeder and the browser
+            // never need a second reader of the same file.
+            'kind'           => (PackConfigData::packageKind($configData) ?? IconKind::Icon)->value,
+            'category_kinds' => array_map(
+                static fn (IconKind $kind): string => $kind->value,
+                PackConfigData::categoryKinds($configData),
+            ),
+            'theme_variants' => PackConfigData::themeVariants($configData),
         ];
 
         // Register immediately
@@ -266,11 +276,30 @@ final class IconRegistry
             return (new RegistrationConfig($name, $this))->markRegistered();
         }
 
-        // Validate metadata
-        $this->validateMetadata($name, $metadata);
+        // The lifecycle a listener sees: processing, then registered and
+        // completed, or failed. Announced at most once per deduplication
+        // window, as `registered` always was: the registry is rebuilt on every
+        // request, and a listener must not hear the same pack every time.
+        $registrarId = Str::uuid()->toString();
+        $announce = ! $this->recentlyAnnounced($name);
+        $startedAt = microtime(true);
 
-        // Check conflicts
-        $this->checkConflicts($name, $metadata);
+        if ($announce) {
+            Event::dispatch(IconRegistrationEvent::processing($registrarId, $name, $metadata, 1, 1));
+        }
+
+        try {
+            // Validate metadata
+            $this->validateMetadata($name, $metadata);
+
+            // Check conflicts
+            $this->checkConflicts($name, $metadata);
+        } catch (Throwable $e) {
+            // A failure is announced every time: it is never routine.
+            Event::dispatch(IconRegistrationEvent::failed($registrarId, $name, $metadata, $e));
+
+            throw $e;
+        }
 
         // Store icon set
         $this->sets[$name] = $set;
@@ -289,8 +318,17 @@ final class IconRegistry
         // Log only if not recently logged (cache-based deduplication across requests)
         $this->logRegistrationOnce($name, $metadata);
 
-        // Fire event only if not recently fired (prevents duplicate listeners)
-        $this->dispatchRegistrationEventOnce($name, $metadata);
+        // Fire events only if not recently fired (prevents duplicate listeners)
+        if ($announce) {
+            $this->markAnnounced($name);
+            Event::dispatch(IconRegistrationEvent::registered($registrarId, $name, $metadata, 0));
+            Event::dispatch(IconRegistrationEvent::completed(
+                $registrarId,
+                $name,
+                ['registered' => 1, 'failed' => 0],
+                round((microtime(true) - $startedAt) * 1000, 2),
+            ));
+        }
 
         // Return config for chaining
         $config = new RegistrationConfig($name, $this);
@@ -435,7 +473,89 @@ final class IconRegistry
         $metadata = $this->packages[$setName] ?? [];
         $baseDir = $metadata['base_path'] ?? $metadata['path'] ?? null;
 
-        return $this->driver->render($icon, $attributes, is_string($baseDir) ? $baseDir : null);
+        // The file-size ceiling follows the kind, so an illustration is not
+        // refused by a limit sized for icons.
+        $maxBytes = $this->kindFor($setName, self::topFolder($iconPath->fullPath ?? $iconPath->name))->maxFileSize();
+
+        return $this->driver->render($icon, $attributes, is_string($baseDir) ? $baseDir : null, $maxBytes);
+    }
+
+    /**
+     * The kind of the SVGs in one category of a pack.
+     *
+     * Resolution order: the category's own `kind`, then the pack's
+     * `package.kind`, then {@see IconKind::Icon}. An unregistered pack, or one
+     * registered without a config.json, is all icons.
+     */
+    public function kindFor(string $packageName, ?string $categorySlug = null): IconKind
+    {
+        $metadata = $this->packages[$packageName] ?? [];
+        $categoryKinds = is_array($metadata['category_kinds'] ?? null) ? $metadata['category_kinds'] : [];
+
+        if ($categorySlug !== null && isset($categoryKinds[$categorySlug])) {
+            $kind = IconKind::fromConfig($categoryKinds[$categorySlug]);
+
+            if ($kind !== null) {
+                return $kind;
+            }
+        }
+
+        return IconKind::fromConfig($metadata['kind'] ?? null) ?? IconKind::Icon;
+    }
+
+    /**
+     * The kind of the icon a renderable path names, e.g.
+     * `vendor/pack::illustrations/scene` → the `illustrations` category's kind.
+     *
+     * The category is the first folder of the in-pack path, which is how the
+     * seeder files icons under categories too. Never throws: a path that does
+     * not parse is reported as an icon, and rendering reports the real error.
+     */
+    public function kindOf(string $name): IconKind
+    {
+        try {
+            $iconPath = $this->pathResolver->parseIconPath($name);
+        } catch (Throwable) {
+            return IconKind::Icon;
+        }
+
+        $setName = $iconPath->set ?? $this->defaultSet;
+
+        if ($setName === null) {
+            return IconKind::Icon;
+        }
+
+        return $this->kindFor($setName, self::topFolder($iconPath->fullPath ?? $iconPath->name));
+    }
+
+    /**
+     * The theme twins a pack's category declares, as theme => filename suffix.
+     *
+     * @return array<string, string>
+     */
+    public function themeVariantsFor(string $packageName, ?string $categorySlug): array
+    {
+        if ($categorySlug === null) {
+            return [];
+        }
+
+        $metadata = $this->packages[$packageName] ?? [];
+        $variants = is_array($metadata['theme_variants'] ?? null) ? $metadata['theme_variants'] : [];
+        $forCategory = $variants[$categorySlug] ?? [];
+
+        if (! is_array($forCategory)) {
+            return [];
+        }
+
+        $typed = [];
+
+        foreach ($forCategory as $theme => $suffix) {
+            if (is_string($theme) && is_string($suffix) && $suffix !== '') {
+                $typed[$theme] = $suffix;
+            }
+        }
+
+        return $typed;
     }
 
     /**
@@ -611,6 +731,17 @@ final class IconRegistry
     }
 
     /**
+     * The first folder of an in-pack path, which is the category the seeder
+     * files the icon under, or null for an icon at the root of the pack.
+     */
+    private static function topFolder(string $relativePath): ?string
+    {
+        $relativePath = trim($relativePath, '/');
+
+        return str_contains($relativePath, '/') ? Str::before($relativePath, '/') : null;
+    }
+
+    /**
      * The icon an old name now points at, once the name itself has missed.
      */
     private function aliasedIcon(string $setName, IconSetInterface $set, string $name, ?string $variant, ?string $category): ?IconData
@@ -765,49 +896,39 @@ final class IconRegistry
     }
 
     /**
-     * Dispatch an IconRegistrationEvent at most once per cache TTL.
+     * Whether this package's registration was announced within the cache TTL.
      *
-     * Uses a cache key `ichava:event:{name}` to suppress duplicate events within
-     * the TTL window. Falls back to always dispatching if the cache is unavailable.
-     *
-     * @param string $name Icon set name
-     * @param array<string, mixed> $metadata Package metadata
+     * Reads `ichava:event:{name}`; markAnnounced() writes it once the
+     * registration succeeded, so a failed attempt never suppresses the next
+     * one. A TTL of 0 disables deduplication, and an unavailable cache
+     * announces every time rather than never.
      */
-    private function dispatchRegistrationEventOnce(string $name, array $metadata): void
+    private function recentlyAnnounced(string $name): bool
+    {
+        if ($this->deduplicationTtl() === 0) {
+            return false;
+        }
+
+        try {
+            return cache()->has("ichava:event:{$name}");
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    private function markAnnounced(string $name): void
     {
         $ttl = $this->deduplicationTtl();
 
-        // TTL of 0 disables deduplication
         if ($ttl === 0) {
-            Event::dispatch(IconRegistrationEvent::registered(
-                Str::uuid()->toString(),
-                $name,
-                $metadata,
-                0,
-            ));
-
             return;
         }
 
-        // Try cache-based deduplication, fallback to always dispatching if cache unavailable
         try {
-            $cacheKey = "ichava:event:{$name}";
-
-            if (cache()->has($cacheKey)) {
-                return;
-            }
-
-            cache()->put($cacheKey, true, $ttl);
+            cache()->put("ichava:event:{$name}", true, $ttl);
         } catch (Throwable) {
-            // Cache unavailable, dispatch anyway
+            // Cache unavailable: the next registration announces again.
         }
-
-        Event::dispatch(IconRegistrationEvent::registered(
-            Str::uuid()->toString(),
-            $name,
-            $metadata,
-            0,
-        ));
     }
 
     /**

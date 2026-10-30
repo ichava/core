@@ -34,6 +34,48 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | SVG kinds: icons and illustrations
+    |--------------------------------------------------------------------------
+    | A pack declares what its SVGs are in config.json, per category
+    | (`metadata.data.categories.<slug>.kind`) with `package.kind` as the
+    | pack-wide default and `icon` after that. `default` is the kind a browser
+    | opens on. `max_file_size` overrides the global limit above per kind;
+    | illustrations get a larger budget because a scene routinely outweighs
+    | any icon. A kind with no entry here uses the global limit.
+    */
+    'kinds' => [
+        'default'       => env('ICHAVA_DEFAULT_KIND', 'icon'),
+        'max_file_size' => [
+            'illustration' => env('ICHAVA_ILLUSTRATION_MAX_FILE_SIZE', 5 * 1024 * 1024),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Host user
+    |--------------------------------------------------------------------------
+    | Ichava has no auth of its own. It reads the host application's signed-in
+    | user from `guard` (null = the default guard), or from a resolver the host
+    | registers with `Ichava::resolveUserUsing()`.
+    |
+    | The user shape the browser sees carries `id`, `name`, `avatarUrl` and
+    | `abilities` only. Email, passwords and tokens never leave the server;
+    | `expose` is an explicit opt-in list of extra model attributes.
+    |
+    | `abilities` are the Gates checked for that user. Ichava defines
+    | `ichava.admin` as a default-deny Gate when the host has not, and
+    | `ichava.manage-cache` falls back to it.
+    */
+    'auth' => [
+        'guard'            => env('ICHAVA_AUTH_GUARD'),
+        'name_attribute'   => 'name',
+        'avatar_attribute' => null,
+        'expose'           => [],
+        'abilities'        => ['ichava.admin', 'ichava.manage-cache'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | PHP runtime
     |--------------------------------------------------------------------------
     | Applied at provider registration so heavy operations (seeding 100k+

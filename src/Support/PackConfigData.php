@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use Simtabi\Laranail\Ichava\Enums\IconKind;
+
 /**
  * Reads the variants and categories a pack declares in its config.json.
  *
@@ -42,6 +44,78 @@ final class PackConfigData
     public static function categories(array $config): array
     {
         return self::section($config, 'categories');
+    }
+
+    /**
+     * The pack-wide kind from `package.kind`, or null when the pack names none.
+     *
+     * @param array<string, mixed> $config Parsed config.json data
+     */
+    public static function packageKind(array $config): ?IconKind
+    {
+        $package = $config['package'] ?? null;
+
+        return IconKind::fromConfig(is_array($package) ? ($package['kind'] ?? null) : null);
+    }
+
+    /**
+     * The kind each category declares, keyed by category slug.
+     *
+     * Only categories that name a valid kind appear; the rest inherit the
+     * pack's kind, so they are left out rather than copied in.
+     *
+     * @param array<string, mixed> $config Parsed config.json data
+     *
+     * @return array<string, IconKind>
+     */
+    public static function categoryKinds(array $config): array
+    {
+        $kinds = [];
+
+        foreach (self::categories($config) as $slug => $category) {
+            if (! is_string($slug) || ! is_array($category)) {
+                continue;
+            }
+
+            $kind = IconKind::fromConfig($category['kind'] ?? null);
+
+            if ($kind !== null) {
+                $kinds[$slug] = $kind;
+            }
+        }
+
+        return $kinds;
+    }
+
+    /**
+     * Theme twins each category declares, keyed by category slug.
+     *
+     * A category that ships `scene.svg` and `scene-dark.svg` declares
+     * `"theme_variants": { "dark": "-dark" }`: the dark file is then a variant
+     * of the light one rather than an item of its own. The value is the
+     * filename suffix, before `.svg`.
+     *
+     * @param array<string, mixed> $config Parsed config.json data
+     *
+     * @return array<string, array<string, string>> slug => theme => suffix
+     */
+    public static function themeVariants(array $config): array
+    {
+        $variants = [];
+
+        foreach (self::categories($config) as $slug => $category) {
+            if (! is_string($slug) || ! is_array($category) || ! is_array($category['theme_variants'] ?? null)) {
+                continue;
+            }
+
+            foreach ($category['theme_variants'] as $theme => $suffix) {
+                if (is_string($theme) && $theme !== '' && is_string($suffix) && $suffix !== '') {
+                    $variants[$slug][$theme] = $suffix;
+                }
+            }
+        }
+
+        return $variants;
     }
 
     /**

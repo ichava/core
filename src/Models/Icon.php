@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Illuminate\Database\Eloquent\Collection;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Support\AuditLogger;
@@ -38,6 +39,8 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * @property array<array-key, mixed>|null $search_text
  * @property array<array-key, mixed>|null $attributes
  * @property array<array-key, mixed>|null $metadata
+ * @property IconKind $kind
+ * @property array<string, array{path: string, file_hash: string}>|null $theme_variants
  * @property Carbon|null $file_modified_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -85,6 +88,8 @@ final class Icon extends Model
         'search_text',
         'attributes',
         'metadata',
+        'kind',
+        'theme_variants',
         'file_modified_at',
     ];
 
@@ -99,6 +104,7 @@ final class Icon extends Model
         'keywords'   => '[]',
         'attributes' => '{}',
         'metadata'   => '{}',
+        'kind'       => 'icon',
     ];
 
     /***********************************************************************
@@ -301,6 +307,26 @@ final class Icon extends Model
         return is_array($package)
             ? $query->whereIn('package', $package)
             : $query->where('package', $package);
+    }
+
+    /**
+     * Filter by kind: icons or illustrations.
+     *
+     * `Icon::query()->ofKind(IconKind::Illustration)` or `->ofKind('illustration')`.
+     * A string that names no kind matches nothing rather than everything, so a
+     * typo cannot widen a query.
+     *
+     * @param Builder<self> $query
+     *
+     * @return Builder<self>
+     */
+    public function scopeOfKind(Builder $query, IconKind|string $kind): Builder
+    {
+        $resolved = $kind instanceof IconKind ? $kind : IconKind::fromConfig($kind);
+
+        return $resolved === null
+            ? $query->whereRaw('1 = 0')
+            : $query->where('kind', $resolved->value);
     }
 
     /**
@@ -611,6 +637,50 @@ final class Icon extends Model
         }
     }
 
+    /**
+     * The themes this icon has a twin for, e.g. `['dark']`.
+     *
+     * A theme twin (`scene-dark.svg` beside `scene.svg`, declared by the
+     * pack's category) is a variant of this icon, not an item of its own.
+     *
+     * @return list<string>
+     */
+    public function themes(): array
+    {
+        return array_keys($this->themeVariantMap());
+    }
+
+    public function hasTheme(string $theme): bool
+    {
+        return isset($this->themeVariantMap()[$theme]);
+    }
+
+    /**
+     * The served SVG of one theme twin, sanitised exactly as the icon is, or
+     * null when this icon has no twin for that theme or its file is missing.
+     */
+    public function themeSvgContent(string $theme): ?string
+    {
+        $twin = $this->themeVariantMap()[$theme] ?? null;
+
+        if ($twin === null) {
+            return null;
+        }
+
+        $path = $this->containedPath($twin['path']);
+
+        if ($path === null || ! File::exists($path)) {
+            return null;
+        }
+
+        $version = mb_substr(hash(
+            'sha256',
+            $twin['file_hash'] . '|' . app(SvgProcessingService::class)->renderFingerprint(),
+        ), 0, 16);
+
+        return $this->processedSvg($path, $twin['path'], 'svg:' . $this->id . ':' . $theme . ':' . $version);
+    }
+
     /***********************************************************************
      * Model Events
      **********************************************************************/
@@ -643,6 +713,8 @@ final class Icon extends Model
             'search_text'      => 'array',
             'attributes'       => 'array',
             'metadata'         => 'array',
+            'kind'             => IconKind::class,
+            'theme_variants'   => 'array',
             'file_modified_at' => 'datetime',
             'created_at'       => 'datetime',
             'updated_at'       => 'datetime',
@@ -739,11 +811,21 @@ final class Icon extends Model
      */
     protected function containedAbsolutePath(): ?string
     {
+        return $this->containedPath($this->path);
+    }
+
+    /**
+     * Resolve any stored path of this icon's package against its base
+     * directory, contained, as containedAbsolutePath() does for the icon's
+     * own path.
+     */
+    protected function containedPath(string $storedPath): ?string
+    {
         $packageBasePath = $this->getPackageBasePath();
 
-        $candidate = $this->isAbsolutePath($this->path)
-            ? $this->path
-            : $packageBasePath . DIRECTORY_SEPARATOR . ltrim($this->path, '/\\');
+        $candidate = $this->isAbsolutePath($storedPath)
+            ? $storedPath
+            : $packageBasePath . DIRECTORY_SEPARATOR . ltrim($storedPath, '/\\');
 
         $candidate = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $candidate);
 
@@ -842,95 +924,7 @@ final class Icon extends Model
                  * gone on serving bytes produced by a policy that no longer
                  * existed, making the widening look like it had not worked.
                  */
-                $cacheKey = 'svg:' . $this->id . ':' . $this->render_version;
-
-                /*
-                 * Sanitise here, at the single point every consumer reads through.
-                 *
-                 * This used to be a bare `File::get()`. The SVG endpoint's own comment
-                 * claimed the content "has been sanitised by SvgProcessingService" and
-                 * added nosniff plus a restrictive CSP as defence in depth -- but nothing
-                 * had sanitised it, so those headers were the only defence, and they only
-                 * apply to that one route.
-                 *
-                 * The path that mattered more is JSON: `IconBrowserService` puts
-                 * `svg_content` straight into an API payload, where no response header
-                 * helps, and the client injects it into the DOM. A pack shipping a hostile
-                 * file reached the browser verbatim -- and packs do contain
-                 * `foreignObject`, `script` and `image` elements today.
-                 *
-                 * The result is cached post-sanitisation, so this costs one pass per icon
-                 * per cache lifetime rather than one per request.
-                 */
-                $content = app(IconCacheService::class)->remember(
-                    $cacheKey,
-                    function () use ($path): string {
-                        $raw = File::get($path);
-
-                        try {
-                            $svg = app(SvgProcessingService::class);
-
-                            /*
-                             * Namespace ids before sanitising, and inside the cache,
-                             * so it costs one pass per icon per cache lifetime.
-                             *
-                             * SVG ids are page-scoped in practice. 2,157 files in the
-                             * corpus share `_Transparent_Rectangle_` and 261 share
-                             * `Layer_1`; render two of them together and the second
-                             * icon's `url(#Layer_1)` resolves to the first one's
-                             * definition, silently. The browser renders 60+ at once.
-                             * The prefix is derived from the path, not the content, so
-                             * it survives an upstream refresh and stays deterministic
-                             * for the content-addressed cache (CR1).
-                             */
-                            $raw = $svg->namespaceIds($raw, $this->path);
-
-                            /*
-                             * Hand sizing back to the component. An icon shipping
-                             * both a viewBox and hard width/height ignores the size
-                             * it is asked for; 6,146 tabler icons alone ship that
-                             * pair. An icon with neither is
-                             * reported rather than dropped -- it still renders, it
-                             * just has no intrinsic size to scale against.
-                             */
-                            $raw = $svg->normaliseSizing($raw, function (string $reason): void {
-                                app(AuditLogger::class)->warning('svg.unusable_sizing', [
-                                    'path'    => $this->path,
-                                    'package' => $this->package,
-                                    'reason'  => $reason,
-                                ]);
-                            });
-
-                            /*
-                             * Opt-in (B7): a monochrome icon that hardcodes black
-                             * vanishes on a dark background. Off by default; the flag
-                             * is part of render_version, so turning it on re-keys this
-                             * cache entry by itself.
-                             */
-                            if ($svg->convertsMonochromeToCurrentColor()) {
-                                $raw = $svg->monochromeToCurrentColor($raw);
-                            }
-
-                            return $svg->process($raw, [], false);
-                        } catch (Throwable $e) {
-                            /*
-                             * A file the sanitiser rejects is not served raw as a
-                             * fallback. Failing closed is the point: the rejection means
-                             * it could not be made safe.
-                             */
-                            app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
-                                'path'    => $this->path,
-                                'package' => $this->package,
-                                'reason'  => $e->getMessage(),
-                            ]);
-
-                            return '';
-                        }
-                    },
-                    expects: 'string',
-                );
-
-                return is_string($content) ? $content : null;
+                return $this->processedSvg($path, $this->path, 'svg:' . $this->id . ':' . $this->render_version);
             },
         );
     }
@@ -1069,6 +1063,127 @@ final class Icon extends Model
         $connection = $query->getConnection();
 
         return $connection->getDriverName();
+    }
+
+    /**
+     * The theme twins with a usable path, keyed by theme.
+     *
+     * @return array<string, array{path: string, file_hash: string}>
+     */
+    private function themeVariantMap(): array
+    {
+        $variants = $this->theme_variants;
+
+        if (! is_array($variants)) {
+            return [];
+        }
+
+        $map = [];
+
+        foreach ($variants as $theme => $twin) {
+            if (is_string($theme) && is_array($twin) && is_string($twin['path'] ?? null) && $twin['path'] !== '') {
+                $map[$theme] = ['path' => $twin['path'], 'file_hash' => is_string($twin['file_hash'] ?? null) ? $twin['file_hash'] : ''];
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * The served form of one SVG file of this icon, cached under `$cacheKey`.
+     *
+     * Every file this icon serves goes through here, so a theme twin is
+     * namespaced, normalised and sanitised exactly as the icon itself is.
+     */
+    private function processedSvg(string $path, string $storedPath, string $cacheKey): ?string
+    {
+        /*
+         * Sanitise here, at the single point every consumer reads through.
+         *
+         * This used to be a bare `File::get()`. The SVG endpoint's own comment
+         * claimed the content "has been sanitised by SvgProcessingService" and
+         * added nosniff plus a restrictive CSP as defence in depth -- but nothing
+         * had sanitised it, so those headers were the only defence, and they only
+         * apply to that one route.
+         *
+         * The path that mattered more is JSON: `IconBrowserService` puts
+         * `svg_content` straight into an API payload, where no response header
+         * helps, and the client injects it into the DOM. A pack shipping a hostile
+         * file reached the browser verbatim -- and packs do contain
+         * `foreignObject`, `script` and `image` elements today.
+         *
+         * The result is cached post-sanitisation, so this costs one pass per icon
+         * per cache lifetime rather than one per request.
+         */
+        $content = app(IconCacheService::class)->remember(
+            $cacheKey,
+            function () use ($path, $storedPath): string {
+                $raw = File::get($path);
+
+                try {
+                    $svg = app(SvgProcessingService::class);
+
+                    /*
+                     * Namespace ids before sanitising, and inside the cache,
+                     * so it costs one pass per icon per cache lifetime.
+                     *
+                     * SVG ids are page-scoped in practice. 2,157 files in the
+                     * corpus share `_Transparent_Rectangle_` and 261 share
+                     * `Layer_1`; render two of them together and the second
+                     * icon's `url(#Layer_1)` resolves to the first one's
+                     * definition, silently. The browser renders 60+ at once.
+                     * The prefix is derived from the path, not the content, so
+                     * it survives an upstream refresh and stays deterministic
+                     * for the content-addressed cache (CR1).
+                     */
+                    $raw = $svg->namespaceIds($raw, $storedPath);
+
+                    /*
+                     * Hand sizing back to the component. An icon shipping
+                     * both a viewBox and hard width/height ignores the size
+                     * it is asked for; 6,146 tabler icons alone ship that
+                     * pair. An icon with neither is
+                     * reported rather than dropped -- it still renders, it
+                     * just has no intrinsic size to scale against.
+                     */
+                    $raw = $svg->normaliseSizing($raw, function (string $reason) use ($storedPath): void {
+                        app(AuditLogger::class)->warning('svg.unusable_sizing', [
+                            'path'    => $storedPath,
+                            'package' => $this->package,
+                            'reason'  => $reason,
+                        ]);
+                    });
+
+                    /*
+                     * Opt-in (B7): a monochrome icon that hardcodes black
+                     * vanishes on a dark background. Off by default; the flag
+                     * is part of render_version, so turning it on re-keys this
+                     * cache entry by itself.
+                     */
+                    if ($svg->convertsMonochromeToCurrentColor()) {
+                        $raw = $svg->monochromeToCurrentColor($raw);
+                    }
+
+                    return $svg->process($raw, [], false);
+                } catch (Throwable $e) {
+                    /*
+                     * A file the sanitiser rejects is not served raw as a
+                     * fallback. Failing closed is the point: the rejection means
+                     * it could not be made safe.
+                     */
+                    app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
+                        'path'    => $storedPath,
+                        'package' => $this->package,
+                        'reason'  => $e->getMessage(),
+                    ]);
+
+                    return '';
+                }
+            },
+            expects: 'string',
+        );
+
+        return is_string($content) ? $content : null;
     }
 
     /**

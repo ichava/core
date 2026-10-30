@@ -48,6 +48,10 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Simtabi\Laranail\Ichava\Drivers\SvgDriver driver()
  * @method static \Simtabi\Laranail\Ichava\Ichava setDefaultSet(string $name)
  * @method static void registerFromConfig(array<int|string, string|array<string, mixed>> $sets)
+ * @method static \Simtabi\Laranail\Ichava\Ichava resolveUserUsing(\Closure $resolver)
+ * @method static \Simtabi\Laranail\Ichava\Ichava presentUserUsing(\Closure $presenter)
+ * @method static \Illuminate\Contracts\Auth\Authenticatable|null user()
+ * @method static \Simtabi\Laranail\Ichava\Data\UserData|null currentUser()
  *
  * @see Ichava
  */

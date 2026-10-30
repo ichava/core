@@ -19,12 +19,3 @@ parameters:
             identifier: trait.unused
             path: src/Traits/HasIconSetVariants.php
             count: 1
-
-        # A trait is analysed in the context of each class that uses it. Here
-        # that is IconComponent, whose $lockAspectRatio is a non-null bool, so
-        # the `?? true` default the trait keeps for any other user (one without
-        # the property, or with a nullable one) reads as redundant.
-        -
-            identifier: nullCoalesce.property
-            path: src/Traits/HasIconSizing.php
-            count: 1

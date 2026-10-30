@@ -308,6 +308,8 @@ Two unified event classes cover Ichava's runtime signals. Listeners can branch o
 | `completed` | `IconRegistrationEvent::completed($registrarId, $name, $statistics, $duration)` | The whole bulk run finishes |
 | `unregistered` | `IconRegistrationEvent::unregistered($registrarId, $name, $metadata)` | A package is unregistered |
 
+Since this release a single `fromDirectory()` registration dispatches `processing`, `registered` and `completed`, once per deduplication window (`logging.deduplication_ttl`), and `failed` whenever registration throws. Host hooks for the browser library (`FavoriteToggled`, `CollectionChanged`, `PreferencesChanged`) are listed in [Host user](host-user.md).
+
 `IconCacheEvent`, dispatched on cache state changes:
 
 | Action | Constructor | Fires when |

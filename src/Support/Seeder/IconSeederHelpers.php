@@ -6,6 +6,7 @@ namespace Simtabi\Laranail\Ichava\Support\Seeder;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Simtabi\Laranail\Ichava\Support\IconClassifier;
 
 /**
  * Path/tag/keyword extraction helpers shared by SeedIconsJob.
@@ -50,31 +51,9 @@ trait IconSeederHelpers
      */
     protected function extractCategorySlug(string $relativePath): ?string
     {
-        $parts = array_values(array_filter(explode('/', $relativePath)));
-
-        if (empty($parts)) {
-            return null;
-        }
-
-        // Find 'files' in the path and get the next part as category
-        $filesIndex = array_search('files', $parts);
-
-        if ($filesIndex !== false && isset($parts[$filesIndex + 1])) {
-            $categoryPart = $parts[$filesIndex + 1];
-            // Don't return the filename itself
-            if (pathinfo($categoryPart, PATHINFO_EXTENSION) !== 'svg') {
-                return Str::slug($categoryPart);
-            }
-        }
-
-        // Fallback: use first non-file part
-        foreach ($parts as $part) {
-            if (pathinfo($part, PATHINFO_EXTENSION) !== 'svg') {
-                return Str::slug($part);
-            }
-        }
-
-        return null;
+        // One rule, shared with the file watcher through IconClassifier, so
+        // the two writers file the same path under the same category.
+        return IconClassifier::categoryOf($relativePath);
     }
 
     /**

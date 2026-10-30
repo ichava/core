@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava;
 
+use Closure;
 use Throwable;
 use Illuminate\Support\Collection;
+use Simtabi\Laranail\Ichava\Data\UserData;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Simtabi\Laranail\Ichava\Facades\IchavaFacade;
 use Simtabi\Laranail\Ichava\Support\IconRenderer;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\Auth\HostUser;
 use Simtabi\Laranail\Ichava\Services\IconsManifest;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -41,7 +45,51 @@ final class Ichava
         private IchavaLogger $logger,
         private DeferredIconsRegistry $deferredRegistry,
         private IconRenderer $iconRenderer,
+        private ?HostUser $hostUser = null,
     ) {}
+
+    /**
+     * Read the host's signed-in user through a closure instead of the guard.
+     *
+     * ```php
+     * Ichava::resolveUserUsing(fn () => auth('admin')->user());
+     * ```
+     *
+     * @param Closure(): ?Authenticatable $resolver
+     */
+    public function resolveUserUsing(Closure $resolver): self
+    {
+        $this->hostUser()->resolveUsing($resolver);
+
+        return $this;
+    }
+
+    /**
+     * Shape the user the browser receives through a closure.
+     *
+     * @param Closure(Authenticatable): UserData $presenter
+     */
+    public function presentUserUsing(Closure $presenter): self
+    {
+        $this->hostUser()->presentUsing($presenter);
+
+        return $this;
+    }
+
+    /** The host's signed-in user, or null for a guest. */
+    public function user(): ?Authenticatable
+    {
+        return $this->hostUser()->user();
+    }
+
+    /**
+     * The signed-in user as the browser sees it (`id`, `name`, `avatarUrl`,
+     * `abilities`), or null for a guest.
+     */
+    public function currentUser(): ?UserData
+    {
+        return $this->hostUser()->current();
+    }
 
     /**
      * Start a fluent icon render chain.
@@ -320,5 +368,10 @@ final class Ichava
         $this->registry->setDefault($name);
 
         return $this;
+    }
+
+    private function hostUser(): HostUser
+    {
+        return $this->hostUser ?? throw IchavaException::dependencyNotInjected('HostUser', self::class);
     }
 }

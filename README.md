@@ -27,6 +27,8 @@ Full documentation is at **[opensource.simtabi.com/documentation/ichava/core](ht
 - [Configuration](docs/configuration.md) — every config key and what it changes
 - [Environment variables](docs/environment.md) — the `ICHAVA_*` surface
 - [Database support](docs/databases.md) — the four drivers, and what only PostgreSQL does
+- [Icons and illustrations](docs/kinds.md) — SVG kind, theme twins, and querying by kind
+- [Host user](docs/host-user.md) — the host's signed-in user, Gates, owner-keyed preferences and host events
 - [Architecture](docs/architecture.md) — what core provides, topology, boot order, extension seams
 - [Troubleshooting](docs/troubleshooting.md) — the failures that look like something else
 - [Release](docs/release.md) — how a version is cut, and what a release carries

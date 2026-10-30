@@ -15,9 +15,10 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
+use Simtabi\Laranail\Ichava\Support\IconClassifier;
 use Simtabi\Laranail\Ichava\Traits\ContainsFilePaths;
-use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Symfony\Component\Finder\SplFileInfo as FinderFile;
 use Simtabi\Laranail\Ichava\Support\IconPathStructureDetector;
@@ -45,6 +46,7 @@ class IconWatcherService
     public function __construct(
         protected IconRegistry $registry,
         protected IchavaLogger $logger,
+        protected ?IconClassifier $classifier = null,
     ) {}
 
     /**
@@ -477,7 +479,7 @@ class IconWatcherService
                     'name'    => $iconData['name'],
                     'path'    => $path,
                 ]);
-            } elseif ($existing->file_hash !== $iconData['file_hash']) {
+            } elseif ($existing->file_hash !== $iconData['file_hash'] || $this->classificationChanged($existing, $iconData)) {
                 // Updated icon
                 $existing->update($iconData);
                 $stats['updated']++;
@@ -511,9 +513,32 @@ class IconWatcherService
     }
 
     /**
+     * Whether a file's kind or theme twins changed while its own bytes did not.
+     *
+     * @param array<string, mixed> $iconData
+     */
+    protected function classificationChanged(Icon $existing, array $iconData): bool
+    {
+        if ($existing->kind->value !== ($iconData['kind'] ?? IconKind::Icon->value)) {
+            return true;
+        }
+
+        $existingThemes = is_array($existing->theme_variants) ? $existing->theme_variants : [];
+        $newThemes = is_array($iconData['theme_variants'] ?? null) ? $iconData['theme_variants'] : [];
+        ksort($existingThemes);
+
+        return $existingThemes !== $newThemes;
+    }
+
+    protected function classifier(): IconClassifier
+    {
+        return $this->classifier ??= new IconClassifier($this->registry);
+    }
+
+    /**
      * Scan disk for icons
      *
-     * @return array<string, array{package: string, name: string, path: string, file_hash: string|false, tags: list<string>, keywords: list<string>, attributes: array<string, int|string>, metadata: array{file_size: int|false, file_modified_at: string, category: string|null}, file_modified_at: Carbon, updated_at: \Illuminate\Support\Carbon}>
+     * @return array<string, array{package: string, name: string, path: string, file_hash: string|false, tags: list<string>, keywords: list<string>, attributes: array<string, int|string>, metadata: array{file_size: int|false, file_modified_at: string, category: string|null}, file_modified_at: Carbon, updated_at: \Illuminate\Support\Carbon, kind: string, theme_variants: array<string, array{path: string, file_hash: string}>|null}>
      */
     protected function scanDiskIcons(string $basePath, string $package): array
     {
@@ -547,6 +572,16 @@ class IconWatcherService
 
             try {
                 $iconData = $this->extractIconData($file, $package, $basePath);
+
+                // A declared theme twin is a variant of its light file, not a
+                // row of its own -- the same rule the seeder applies.
+                if ($this->classifier()->twinOf($package, $basePath, $iconData['path']) !== null) {
+                    continue;
+                }
+
+                $themes = $this->classifier()->themeVariants($package, $basePath, $iconData['path']);
+                $iconData['kind'] = $this->classifier()->kind($package, $iconData['path'])->value;
+                $iconData['theme_variants'] = $themes === [] ? null : $themes;
 
                 // Keyed by the STORED path -- relative to the pack's base
                 // path -- because syncPackage() compares these keys with the
@@ -605,8 +640,9 @@ class IconWatcherService
         // than in the caller that happens to be safe right now.
         $this->assertPathContained($absolutePath, $basePath);
 
-        $configuredMaxSize = config('ichava.ichava-core.max_file_size', IchavaConstants::MAX_SVG_FILE_SIZE);
-        $maxSize = is_numeric($configuredMaxSize) ? $configuredMaxSize + 0 : IchavaConstants::MAX_SVG_FILE_SIZE;
+        // The ceiling follows the kind: an illustration gets its own budget,
+        // and an icon keeps the global `max_file_size`.
+        $maxSize = $this->classifier()->kind($package, $relativePath)->maxFileSize();
 
         if ($file->getSize() > $maxSize) {
             throw IchavaException::invalidSvg("File exceeds maximum size of {$maxSize} bytes: {$absolutePath}");
