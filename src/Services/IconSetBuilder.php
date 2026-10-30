@@ -400,7 +400,7 @@ class IconSetBuilder implements IconSetInterface
 
         $cached = $this->cache->remember($cacheKey, function () use ($name, $variant, $category) {
             return $this->discoverIcon($name, $variant, $category)?->toArray();
-        });
+        }, expects: 'array');
 
         if ($cached === null) {
             return null;
@@ -445,7 +445,7 @@ class IconSetBuilder implements IconSetInterface
             $icons = $this->discoverAllIcons($variant, $category);
 
             return array_map(fn (IconData $icon) => $icon->toArray(), $icons);
-        });
+        }, expects: 'array');
 
         if (is_array($cached)) {
             try {
