@@ -428,8 +428,8 @@ class IchavaSeeder extends Seeder
             'jobs_dispatched'  => 0,
             'total_icons'      => 0,
             'chunk_size'       => $chunkSize,
-            'mode'             => $this->syncMode ? 'sync' : 'queue',
-            'force_update'     => $this->forceUpdate,
+            'mode'             => $this->isSyncMode() ? 'sync' : 'queue',
+            'force_update'     => $this->isForceUpdate(),
             'package_details'  => [],
         ];
 
@@ -465,7 +465,7 @@ class IchavaSeeder extends Seeder
                 }
 
                 // Step 3: Seed icons
-                $forceMsg = $this->forceUpdate ? __('ichava/ichava-core::commands.seeder.force_suffix') : '';
+                $forceMsg = $this->isForceUpdate() ? __('ichava/ichava-core::commands.seeder.force_suffix') : '';
 
                 // Synchronous when asked (--sync), when queueing is off, or
                 // when the pack is small enough that a queue only adds
@@ -476,7 +476,7 @@ class IchavaSeeder extends Seeder
                 if (! $useQueue) {
                     $this->console()->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.seeding_sync', ['force' => $forceMsg, 'size' => $chunkSize]) . '</>');
 
-                    $result = $this->seedSync($packageName, $packageData['svg_path'], $chunkSize, $this->forceUpdate);
+                    $result = $this->seedSync($packageName, $packageData['svg_path'], $chunkSize, $this->isForceUpdate());
 
                     if (isset($result['error'])) {
                         throw IchavaException::seedingFailed($packageName, $result['error']);
@@ -490,7 +490,7 @@ class IchavaSeeder extends Seeder
                 } else {
                     $this->console()->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.dispatching', ['force' => $forceMsg, 'size' => $chunkSize]) . '</>');
 
-                    $batch = $this->seed($packageName, $packageData['svg_path'], $chunkSize, null, $this->forceUpdate);
+                    $batch = $this->seed($packageName, $packageData['svg_path'], $chunkSize, null, $this->isForceUpdate());
 
                     if ($batch) {
                         $totalJobs = $batch->totalJobs;
@@ -503,7 +503,7 @@ class IchavaSeeder extends Seeder
                             'batch_id'     => $batch->id,
                             'total_jobs'   => $totalJobs,
                             'icon_count'   => $iconCount,
-                            'force_update' => $this->forceUpdate,
+                            'force_update' => $this->isForceUpdate(),
                         ]);
                     }
                 }
@@ -662,7 +662,7 @@ class IchavaSeeder extends Seeder
         $this->console()->newLine();
         $this->console()->line('<options=bold;fg=green>' . __('ichava/ichava-core::commands.seeder.completed') . '</>');
 
-        if ($this->syncMode) {
+        if ($this->isSyncMode()) {
             try {
                 $totalIcons = Icon::count();
                 info(__('ichava/ichava-core::commands.seeder.total_in_database', ['count' => number_format($totalIcons)]));

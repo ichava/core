@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Constants;
 
-use Illuminate\Support\Str;
 use UnexpectedValueException;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Data\VariantData;
 use Simtabi\Laranail\Ichava\Support\PackConfigData;
 use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 
@@ -154,7 +154,7 @@ abstract class JsonConfigConstants
      */
     public static function getVariantName(string $variant): string
     {
-        return self::variantString($variant, 'name') ?? Str::ucfirst($variant);
+        return static::getVariantData($variant)->label;
     }
 
     /**
@@ -162,7 +162,7 @@ abstract class JsonConfigConstants
      */
     public static function getVariantDescription(string $variant): string
     {
-        return self::variantString($variant, 'description') ?? '';
+        return static::getVariantData($variant)->description;
     }
 
     /**
@@ -172,9 +172,7 @@ abstract class JsonConfigConstants
      */
     public static function getVariantAttributes(string $variant): array
     {
-        $attributes = static::getVariantMetadata($variant)['attributes'] ?? [];
-
-        return is_array($attributes) ? $attributes : [];
+        return static::getVariantData($variant)->attributes;
     }
 
     /**
@@ -192,16 +190,29 @@ abstract class JsonConfigConstants
      */
     public static function getVariantsSorted(): array
     {
-        $variants = static::getVariantsWithMetadata();
+        return array_map(
+            static fn (VariantData $variant): string => $variant->slug,
+            static::getVariantDataList(),
+        );
+    }
 
-        uasort($variants, function (mixed $a, mixed $b): int {
-            $orderA = is_array($a) ? ($a['display_order'] ?? 999) : 999;
-            $orderB = is_array($b) ? ($b['display_order'] ?? 999) : 999;
+    /**
+     * One variant as the browser shows it: label, description, attributes,
+     * preview icon and colour scheme, parsed by VariantData.
+     */
+    public static function getVariantData(string $variant): VariantData
+    {
+        return VariantData::fromMetadata($variant, static::getVariantMetadata($variant) ?? []);
+    }
 
-            return $orderA <=> $orderB;
-        });
-
-        return array_keys($variants);
+    /**
+     * Every variant, in display order.
+     *
+     * @return list<VariantData>
+     */
+    public static function getVariantDataList(): array
+    {
+        return VariantData::listFromMetadata(static::getVariantsWithMetadata());
     }
 
     /**
@@ -209,7 +220,7 @@ abstract class JsonConfigConstants
      */
     public static function getVariantPreviewIcon(string $variant): ?string
     {
-        return self::variantString($variant, 'preview_icon');
+        return static::getVariantData($variant)->previewIcon;
     }
 
     /**
@@ -217,7 +228,7 @@ abstract class JsonConfigConstants
      */
     public static function getVariantColorScheme(string $variant): ?string
     {
-        return self::variantString($variant, 'color_scheme');
+        return static::getVariantData($variant)->colorScheme;
     }
 
     /**
@@ -631,12 +642,5 @@ abstract class JsonConfigConstants
         }
 
         return $typed;
-    }
-
-    private static function variantString(string $variant, string $key): ?string
-    {
-        $value = static::getVariantMetadata($variant)[$key] ?? null;
-
-        return is_string($value) ? $value : null;
     }
 }

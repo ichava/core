@@ -230,7 +230,7 @@ final class Icon extends Model
      *
      * @return Builder<self>
      */
-    public function scopeSearch(Builder $query, string $search): Builder
+    public function scopeSearch(Builder $query, string $search, ?string $language = null): Builder
     {
         $search = trim($search);
 
@@ -239,8 +239,12 @@ final class Icon extends Model
         }
 
         if (self::driverOf($query) === 'pgsql') {
-            $languages = FtsLanguageHelper::getLanguages();
-            $whereClause = FtsLanguageHelper::buildComprehensiveSearchQuery(self::MORPH_ALIAS, self::TABLE);
+            // A chosen language replaces the configured set, after the guard
+            // has reduced it to a known configuration the database has.
+            $languages = $language !== null && $language !== ''
+                ? [app(FtsLanguageHelper::class)->guardLanguage($language)]
+                : FtsLanguageHelper::getLanguages();
+            $whereClause = FtsLanguageHelper::buildComprehensiveSearchQuery(self::MORPH_ALIAS, self::TABLE, $languages);
 
             $bindings = array_fill(0, count($languages), $search);
 

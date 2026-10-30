@@ -44,6 +44,7 @@ final class IconCacheService
             'discovery' => 0,
             'manifests' => 0,
             'watcher'   => 0,
+            'configs'   => 0,
             'manager'   => false,
         ];
 
@@ -74,6 +75,17 @@ final class IconCacheService
             // Clear directory watcher fingerprints
             $this->watcher()->clearAll();
             $cleared['watcher'] = 1;
+
+            // Each pack's cached config.json. rememberPackageConfig() had no
+            // invalidator at all, so an edited config.json was served stale
+            // until the TTL ran out.
+            foreach (app(IconRegistry::class)->all() as $metadata) {
+                $path = $metadata['base_path'] ?? null;
+
+                if (is_string($path) && app(ConfigurationService::class)->forgetPackageConfig($path)) {
+                    $cleared['configs']++;
+                }
+            }
 
             // Clear via generic flush
             $this->flush();

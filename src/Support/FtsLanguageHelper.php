@@ -179,10 +179,12 @@ final class FtsLanguageHelper
      *
      * @param literal-string $iconMorphType
      * @param literal-string $table
+     * @param array<literal-string>|null $languages Overrides the configured languages; each must be
+     *                                              one of AVAILABLE_LANGUAGES (see validateLanguage())
      *
      * @return literal-string
      */
-    public static function buildComprehensiveSearchQuery(string $iconMorphType, string $table = 'ichava_icons'): string
+    public static function buildComprehensiveSearchQuery(string $iconMorphType, string $table = 'ichava_icons', ?array $languages = null): string
     {
         // Qualify with the real table, not a bare `i` alias.
         //
@@ -194,7 +196,7 @@ final class FtsLanguageHelper
         // used it hand-wrote its own query instead, so this branch was never
         // reached until that duplication was removed.
         $i = $table;
-        $languages = self::getLanguages();
+        $languages ??= self::getLanguages();
         $scope = self::getSearchScope();
 
         $searchComponents = [];
@@ -300,6 +302,51 @@ final class FtsLanguageHelper
     /**
      * Validate and sanitize FTS language
      */
+    /**
+     * The languages a user may choose for search: the known configurations
+     * the database actually has. Empty on every driver but PostgreSQL, where
+     * a selector has nothing to select.
+     *
+     * @return list<string>
+     */
+    public static function selectableLanguages(): array
+    {
+        if (! Helpers::dbDriverIsPgSql()) {
+            return [];
+        }
+
+        try {
+            $installed = DB::table('pg_ts_config')->pluck('cfgname')->all();
+        } catch (Exception) {
+            return [];
+        }
+
+        return array_values(array_filter(self::AVAILABLE_LANGUAGES, static fn (string $language): bool => in_array($language, $installed, true)));
+    }
+
+    /**
+     * A user-chosen search language, made safe to interpolate into SQL:
+     * a known configuration the database has, or `simple`.
+     *
+     * The FTS SQL embeds the language as a literal, so this allow-list is the
+     * only thing between a request parameter and the query string.
+     *
+     * @return literal-string
+     */
+    public function guardLanguage(string $language): string
+    {
+        $validated = $this->validateLanguage($language);
+
+        // Returned from the constant, so the value is a literal by construction.
+        foreach (self::AVAILABLE_LANGUAGES as $known) {
+            if ($known === $validated) {
+                return $known;
+            }
+        }
+
+        return 'simple';
+    }
+
     public function validateLanguage(string $language): string
     {
         // Check if language is in our known list

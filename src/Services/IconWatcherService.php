@@ -255,6 +255,52 @@ class IconWatcherService
     }
 
     /**
+     * Rescan one pack now: forget its fingerprint, sync its rows, and record
+     * the new fingerprint.
+     *
+     * @return array{package: string, new: int, updated: int, deleted: int, found: bool}
+     */
+    public function rescanPackage(string $package): array
+    {
+        $metadata = $this->registry->all()[$package] ?? null;
+        $path = is_array($metadata) ? ($metadata['base_path'] ?? $metadata['path'] ?? null) : null;
+
+        if (! is_array($metadata) || ! is_string($path)) {
+            return ['package' => $package, 'new' => 0, 'updated' => 0, 'deleted' => 0, 'found' => false];
+        }
+
+        $this->clearFingerprint($path);
+        $stats = $this->syncPackage($package, $metadata);
+        $this->updateFingerprint($path);
+        Cache::put(self::LAST_SCAN_KEY, now(), now()->addDays(7));
+
+        return ['package' => $package, ...$stats, 'found' => true];
+    }
+
+    /**
+     * Record every registered pack's current fingerprint, so the next change
+     * detection compares against the tree as it is now.
+     *
+     * @return int The number of pack directories fingerprinted
+     */
+    public function refreshFingerprints(): int
+    {
+        $paths = [];
+
+        foreach ($this->registry->all() as $metadata) {
+            $path = $metadata['base_path'] ?? $metadata['path'] ?? null;
+
+            if (is_string($path) && File::isDirectory($path)) {
+                $paths[] = $path;
+            }
+        }
+
+        $this->updateAll($paths);
+
+        return count($paths);
+    }
+
+    /**
      * Force scan (bypass lock)
      *
      * @return array<string, mixed>
@@ -438,6 +484,11 @@ class IconWatcherService
         $dbIcons = Icon::where('package', $package)
             ->get()
             ->keyBy('path');
+
+        // A pack's config.json may have changed with its files (a category
+        // re-filed as illustrations, a new theme twin); drop the cached copy
+        // so the next read sees it.
+        app(ConfigurationService::class)->forgetPackageConfig($basePath);
 
         // Scan file system
         $diskIcons = $this->scanDiskIcons($basePath, $package);

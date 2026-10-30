@@ -329,7 +329,7 @@ class SeedIconsJob implements ShouldQueue
     protected function bulkAttachCategories(array $iconData): void
     {
         // Build category map
-        $categoryMap = IconTerm::where('package', $this->packageName)
+        $categoryMap = IconTerm::inPackage($this->packageName)
             ->where('type', IconTerm::TYPE_CATEGORY)
             ->pluck('id', 'slug')
             ->toArray();
@@ -363,7 +363,7 @@ class SeedIconsJob implements ShouldQueue
      */
     protected function bulkAttachVariants(array $iconData): void
     {
-        $variantMap = IconTerm::where('package', $this->packageName)
+        $variantMap = IconTerm::inPackage($this->packageName)
             ->where('type', IconTerm::TYPE_VARIANT)
             ->pluck('id', 'slug')
             ->toArray();

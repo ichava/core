@@ -227,6 +227,7 @@ class IchavaServiceProvider extends PackageServiceProvider
                 $app->make(DeferredIconsRegistry::class),
                 $app->make(IconRenderer::class),
                 $app->make(HostUser::class),
+                $app->make(InformationService::class),
             );
         });
 

@@ -25,13 +25,40 @@ use Simtabi\Laranail\Ichava\Services\IconWatcherService;
 class WatchIconFilesCommand extends BaseCommand
 {
     protected $signature = 'ichava::ichava-core.watch
-                            {--force : Force scan even if already running}';
+                            {--force : Force scan even if already running}
+                            {--package= : Rescan one pack now, by package name}
+                            {--refresh : Record every pack\'s current fingerprint after the scan}';
 
     protected $description = 'Watch icon files for changes and auto-sync database';
 
     public function handle(IconWatcherService $watcher): int
     {
         intro(__('ichava/ichava-core::commands.watch.intro'));
+
+        $this->line('  ' . __('ichava/ichava-core::commands.watch.last_scan', [
+            'time' => IconWatcherService::getLastScanTime()?->toDateTimeString() ?? __('ichava/ichava-core::commands.info.health.never'),
+        ]));
+
+        $package = Coerce::stringOrNull($this->option('package'));
+
+        if ($package !== null && $package !== '') {
+            $result = $watcher->rescanPackage($package);
+
+            if (! $result['found']) {
+                warning(__('ichava/ichava-core::commands.watch.unknown_package', ['package' => $package]));
+
+                return self::FAILURE;
+            }
+
+            info(__('ichava/ichava-core::commands.watch.rescanned', [
+                'package' => $package,
+                'new'     => $result['new'],
+                'updated' => $result['updated'],
+                'deleted' => $result['deleted'],
+            ]));
+
+            return self::SUCCESS;
+        }
 
         $stats = spin(
             callback: fn () => $this->forced()
@@ -57,6 +84,10 @@ class WatchIconFilesCommand extends BaseCommand
                 __('ichava/ichava-core::commands.watch.duration')         => TimeFormat::fromMillis(Coerce::float($stats['duration_ms'])),
             ])
             ->render($this->output);
+
+        if ($this->option('refresh')) {
+            info(__('ichava/ichava-core::commands.watch.refreshed', ['count' => $watcher->refreshFingerprints()]));
+        }
 
         if ($stats['total_changes'] > 0) {
             outro(__('ichava/ichava-core::commands.watch.synchronized'));

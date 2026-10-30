@@ -52,6 +52,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Simtabi\Laranail\Ichava\Ichava presentUserUsing(\Closure $presenter)
  * @method static \Illuminate\Contracts\Auth\Authenticatable|null user()
  * @method static \Simtabi\Laranail\Ichava\Data\UserData|null currentUser()
+ * @method static \Simtabi\Laranail\Ichava\Data\StatusData status()
  *
  * @see Ichava
  */

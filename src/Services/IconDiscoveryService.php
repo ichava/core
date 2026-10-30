@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services;
 
 use Generator;
+use Throwable;
 use SplFileInfo;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -92,17 +93,31 @@ class IconDiscoveryService
     /**
      * Get packages that are registered but missing from composer.lock
      *
-     * @return array<int, string>
+     * @return list<string>
      */
     public function getOrphanedPackages(): array
     {
-        $installed = collect($this->discoverInstalledPackages())->pluck('name');
-        $registered = collect($this->registry->all());
+        // Rows left behind after a pack is removed: packages that still have
+        // seeded icons but that no registered pack owns. This used to compare
+        // the registry with installed Composer packages, which only ever
+        // reported sets registered outside Composer (the test set, app-local
+        // sets) and never the leftover rows it was named for.
+        try {
+            $packages = Icon::query()->distinct()->pluck('package')->all();
+        } catch (Throwable) {
+            return [];
+        }
 
-        return $registered
-            ->filter(fn ($meta, $name) => ! $installed->contains($name))
-            ->keys()
-            ->all();
+        $registered = $this->registry->all();
+        $orphans = [];
+
+        foreach ($packages as $package) {
+            if (is_string($package) && ! isset($registered[$package])) {
+                $orphans[] = $package;
+            }
+        }
+
+        return $orphans;
     }
 
     /**

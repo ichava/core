@@ -125,6 +125,7 @@ Every key below is read where it claims to act, so a published (and `config:cach
 | `test.enabled`, `test.path` | whether, and from where, the bundled test set registers (keep `default_set` pointing at a real pack when it is off) |
 | `defaults.class`, `defaults.attributes` | attributes on every `<x-ichava::icon>`; the class only when the caller passes no class and no size |
 | `separators.category` | the separator between category and icon; must differ from `separators.path` |
+| `registry.strict_conflicts` | throw on a set-name, prefix or Blade-component clash instead of warning (default off) |
 | `validation.icon_path_pattern`, `icon_name_pattern` | extra patterns that can only narrow the built-in path checks; null to rely on the built-ins |
 
 ## Common changes

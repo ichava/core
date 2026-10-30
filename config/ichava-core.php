@@ -52,6 +52,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Registry
+    |--------------------------------------------------------------------------
+    | `strict_conflicts`: throw when two packs claim the same set name,
+    | prefix or Blade component, instead of logging a warning and recording
+    | the conflict (which `info status` reports either way).
+    */
+    'registry' => [
+        'strict_conflicts' => env('ICHAVA_STRICT_CONFLICTS', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Host user
     |--------------------------------------------------------------------------
     | Ichava has no auth of its own. It reads the host application's signed-in

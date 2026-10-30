@@ -211,6 +211,9 @@ final class IconRegistry
                 PackConfigData::categoryKinds($configData),
             ),
             'theme_variants' => PackConfigData::themeVariants($configData),
+            // The variant blocks as declared (name, description, attributes,
+            // preview icon, colour scheme, order), for VariantData.
+            'variant_metadata' => array_filter(PackConfigData::variants($configData), is_array(...)),
         ];
 
         // Register immediately
@@ -808,7 +811,9 @@ final class IconRegistry
 
         $labels = [];
 
-        foreach (['variants', 'categories', 'sets'] as $group) {
+        // `*_descriptions` are the packs' translated descriptions, the
+        // localised counterpart of config.json's English `description`.
+        foreach (['variants', 'categories', 'sets', 'variant_descriptions', 'category_descriptions', 'set_descriptions'] as $group) {
             $translated = $this->line("{$packageName}::icons.{$group}");
 
             if (is_array($translated) && $translated !== []) {
@@ -955,8 +960,9 @@ final class IconRegistry
     /**
      * Check for icon set name, prefix, and Blade component conflicts.
      *
-     * Conflicts are non-fatal (logged as warnings, stored in $this->conflicts)
-     * rather than exceptions, since partial overlap is acceptable in some setups.
+     * Conflicts are non-fatal by default (logged as warnings, stored in
+     * $this->conflicts), since partial overlap is acceptable in some setups;
+     * `registry.strict_conflicts` turns each into its named exception.
      * Three conflict vectors are checked:
      * - icon_set_name, two packages share the same internal set name
      * - prefix       , two packages use the same icon prefix (ambiguous lookups)
@@ -986,6 +992,10 @@ final class IconRegistry
                         'icon_set' => $iconSetName,
                         'packages' => [$existingPackage, $packageName],
                     ]);
+
+                    if ($this->strictConflicts()) {
+                        throw IchavaException::iconSetAlreadyRegistered($iconSetName);
+                    }
                 }
             }
         }
@@ -1007,6 +1017,10 @@ final class IconRegistry
                     'prefix'   => $prefix,
                     'packages' => $prefixConflicts,
                 ]);
+
+                if ($this->strictConflicts()) {
+                    throw IchavaException::prefixConflict($prefix, $prefixConflicts);
+                }
             }
         }
 
@@ -1027,8 +1041,24 @@ final class IconRegistry
                     'component' => $bladeComponent,
                     'packages'  => $componentConflicts,
                 ]);
+
+                if ($this->strictConflicts()) {
+                    throw IchavaException::bladeComponentConflict($bladeComponent, $componentConflicts);
+                }
             }
         }
+    }
+
+    /**
+     * `registry.strict_conflicts`: throw on a conflict instead of warning.
+     *
+     * Off by default, which keeps the warning-and-record behaviour. On, a
+     * clash fails the registration loudly: a silently shared prefix or Blade
+     * alias is the flat-map replacement the naming rule warns about.
+     */
+    private function strictConflicts(): bool
+    {
+        return (bool) config('ichava.ichava-core.registry.strict_conflicts', false);
     }
 
     /**

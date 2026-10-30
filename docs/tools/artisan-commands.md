@@ -44,7 +44,8 @@ php artisan ichava::ichava-core.info icons --search=home      # Search icons
 php artisan ichava::ichava-core.info languages                # List FTS languages
 php artisan ichava::ichava-core.info discover                 # Discover packages
 php artisan ichava::ichava-core.info stats                    # Full stats
-php artisan ichava::ichava-core.info status                   # Lifecycle status
+php artisan ichava::ichava-core.info status                   # Lifecycle status, then health (conflicts, orphans, last scan/rebuild, logging, render)
+php artisan ichava::ichava-core.info doctor                   # Pass/fail check of a working install; non-zero when something is missing
 ```
 
 ### Other Commands
@@ -52,6 +53,8 @@ php artisan ichava::ichava-core.info status                   # Lifecycle status
 ```bash
 php artisan ichava::ichava-core.job-status                    # Check seeding-job progress (reads SeederRunTracker)
 php artisan ichava::ichava-core.watch                         # Watch icon files for changes (dev)
+php artisan ichava::ichava-core.watch --package=vendor/pack   # Rescan one pack now
+php artisan ichava::ichava-core.watch --refresh               # Record every pack's fingerprint after the scan
 ```
 
 ### Scaffolding a new pack moved out of core
