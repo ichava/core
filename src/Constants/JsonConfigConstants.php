@@ -6,7 +6,9 @@ namespace Simtabi\Laranail\Ichava\Constants;
 
 use Illuminate\Support\Str;
 use UnexpectedValueException;
+use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Support\PackConfigData;
 use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 
 /**
@@ -224,6 +226,27 @@ abstract class JsonConfigConstants
     public static function getVariantColorScheme(string $variant): ?string
     {
         return self::variantString($variant, 'color_scheme');
+    }
+
+    /**
+     * The pack-wide kind from `package.kind`, else {@see IconKind::Icon}.
+     */
+    public static function getPackageKind(): IconKind
+    {
+        return PackConfigData::packageKind(self::stringKeyed(static::config())) ?? IconKind::Icon;
+    }
+
+    /**
+     * The kind of one category: its own `kind`, else the pack's.
+     *
+     * Parsed by PackConfigData, the same reader the registry uses at
+     * registration, so a pack's constants class and the seeder cannot
+     * disagree about what a category holds.
+     */
+    public static function getCategoryKind(string $category): IconKind
+    {
+        return PackConfigData::categoryKinds(self::stringKeyed(static::config()))[$category]
+            ?? static::getPackageKind();
     }
 
     /**
@@ -642,6 +665,22 @@ abstract class JsonConfigConstants
         $value = self::value($keys);
 
         return is_array($value) ? $value : [];
+    }
+
+    /**
+     * @param array<array-key, mixed> $config
+     *
+     * @return array<string, mixed>
+     */
+    private static function stringKeyed(array $config): array
+    {
+        $typed = [];
+
+        foreach ($config as $key => $value) {
+            $typed[(string) $key] = $value;
+        }
+
+        return $typed;
     }
 
     private static function variantString(string $variant, string $key): ?string

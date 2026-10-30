@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Data\IconData;
+use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Illuminate\Contracts\Foundation\Application;
@@ -201,6 +202,15 @@ final class IconRegistry
             'provider_class'  => $providerClass,
             'blade_component' => $providerClass === null ? null : ($this->bladeComponents[$providerClass] ?? null),
             'prefix'          => $iconPrefix,
+            // What the pack's SVGs are. Read here, from the one config.json
+            // read registration already makes, so the seeder and the browser
+            // never need a second reader of the same file.
+            'kind'           => (PackConfigData::packageKind($configData) ?? IconKind::Icon)->value,
+            'category_kinds' => array_map(
+                static fn (IconKind $kind): string => $kind->value,
+                PackConfigData::categoryKinds($configData),
+            ),
+            'theme_variants' => PackConfigData::themeVariants($configData),
         ];
 
         // Register immediately
@@ -435,7 +445,89 @@ final class IconRegistry
         $metadata = $this->packages[$setName] ?? [];
         $baseDir = $metadata['base_path'] ?? $metadata['path'] ?? null;
 
-        return $this->driver->render($icon, $attributes, is_string($baseDir) ? $baseDir : null);
+        // The file-size ceiling follows the kind, so an illustration is not
+        // refused by a limit sized for icons.
+        $maxBytes = $this->kindFor($setName, self::topFolder($iconPath->fullPath ?? $iconPath->name))->maxFileSize();
+
+        return $this->driver->render($icon, $attributes, is_string($baseDir) ? $baseDir : null, $maxBytes);
+    }
+
+    /**
+     * The kind of the SVGs in one category of a pack.
+     *
+     * Resolution order: the category's own `kind`, then the pack's
+     * `package.kind`, then {@see IconKind::Icon}. An unregistered pack, or one
+     * registered without a config.json, is all icons.
+     */
+    public function kindFor(string $packageName, ?string $categorySlug = null): IconKind
+    {
+        $metadata = $this->packages[$packageName] ?? [];
+        $categoryKinds = is_array($metadata['category_kinds'] ?? null) ? $metadata['category_kinds'] : [];
+
+        if ($categorySlug !== null && isset($categoryKinds[$categorySlug])) {
+            $kind = IconKind::fromConfig($categoryKinds[$categorySlug]);
+
+            if ($kind !== null) {
+                return $kind;
+            }
+        }
+
+        return IconKind::fromConfig($metadata['kind'] ?? null) ?? IconKind::Icon;
+    }
+
+    /**
+     * The kind of the icon a renderable path names, e.g.
+     * `vendor/pack::illustrations/scene` → the `illustrations` category's kind.
+     *
+     * The category is the first folder of the in-pack path, which is how the
+     * seeder files icons under categories too. Never throws: a path that does
+     * not parse is reported as an icon, and rendering reports the real error.
+     */
+    public function kindOf(string $name): IconKind
+    {
+        try {
+            $iconPath = $this->pathResolver->parseIconPath($name);
+        } catch (Throwable) {
+            return IconKind::Icon;
+        }
+
+        $setName = $iconPath->set ?? $this->defaultSet;
+
+        if ($setName === null) {
+            return IconKind::Icon;
+        }
+
+        return $this->kindFor($setName, self::topFolder($iconPath->fullPath ?? $iconPath->name));
+    }
+
+    /**
+     * The theme twins a pack's category declares, as theme => filename suffix.
+     *
+     * @return array<string, string>
+     */
+    public function themeVariantsFor(string $packageName, ?string $categorySlug): array
+    {
+        if ($categorySlug === null) {
+            return [];
+        }
+
+        $metadata = $this->packages[$packageName] ?? [];
+        $variants = is_array($metadata['theme_variants'] ?? null) ? $metadata['theme_variants'] : [];
+        $forCategory = $variants[$categorySlug] ?? [];
+
+        if (! is_array($forCategory)) {
+            return [];
+        }
+
+        $typed = [];
+
+        foreach ($forCategory as $theme => $suffix) {
+            if (is_string($theme) && is_string($suffix) && $suffix !== '') {
+                $typed[$theme] = $suffix;
+            }
+        }
+
+        return $typed;
     }
 
     /**
@@ -608,6 +700,17 @@ final class IconRegistry
     public function driver(): SvgDriver
     {
         return $this->driver;
+    }
+
+    /**
+     * The first folder of an in-pack path, which is the category the seeder
+     * files the icon under, or null for an icon at the root of the pack.
+     */
+    private static function topFolder(string $relativePath): ?string
+    {
+        $relativePath = trim($relativePath, '/');
+
+        return str_contains($relativePath, '/') ? Str::before($relativePath, '/') : null;
     }
 
     /**

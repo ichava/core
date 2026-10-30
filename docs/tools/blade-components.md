@@ -27,6 +27,8 @@ The single component that renders icons from any registered package.
 <x-ichava::icon name="vendor/your-icons::category/icon-name" />
 ```
 
+Size presets square an icon. An illustration keeps its viewBox aspect: `size` sets the width and the height follows. Pass `:lock-aspect-ratio="true"` or `"false"` to choose explicitly; see [Icons and illustrations](../kinds.md).
+
 ### Bundled test components
 
 The core ships two pre-registered Blade components used internally by the icon browser and available to any host application:

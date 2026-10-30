@@ -34,6 +34,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | SVG kinds: icons and illustrations
+    |--------------------------------------------------------------------------
+    | A pack declares what its SVGs are in config.json, per category
+    | (`metadata.data.categories.<slug>.kind`) with `package.kind` as the
+    | pack-wide default and `icon` after that. `default` is the kind a browser
+    | opens on. `max_file_size` overrides the global limit above per kind;
+    | illustrations get a larger budget because a scene routinely outweighs
+    | any icon. A kind with no entry here uses the global limit.
+    */
+    'kinds' => [
+        'default'       => env('ICHAVA_DEFAULT_KIND', 'icon'),
+        'max_file_size' => [
+            'illustration' => env('ICHAVA_ILLUSTRATION_MAX_FILE_SIZE', 5 * 1024 * 1024),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | PHP runtime
     |--------------------------------------------------------------------------
     | Applied at provider registration so heavy operations (seeding 100k+

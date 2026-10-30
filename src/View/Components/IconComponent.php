@@ -81,7 +81,9 @@ class IconComponent extends Component
      * @param string|null $size Named size preset handled by HasIconSizing (xs, sm, md, lg, xl, 2xl, …).
      * @param string|null $width Explicit pixel width (overrides $size width).
      * @param string|null $height Explicit pixel height (overrides $size height).
-     * @param bool $lockAspectRatio Whether to enforce a 1:1 aspect ratio when only one dimension is set.
+     * @param bool|null $lockAspectRatio Whether to enforce a 1:1 aspect ratio when only one dimension is set.
+     *                                   Null (the default) follows the icon's kind: icons lock, illustrations
+     *                                   keep their viewBox aspect and scale from the width.
      * @param string|null $title Accessibility title injected as `<title>` inside the SVG (WCAG 2.1).
      * @param string|null $aria Value for the `aria-label` attribute (screen-reader accessible name).
      * @param string|null $role ARIA role attribute (default: 'img'; use 'presentation' for decorative icons).
@@ -99,7 +101,7 @@ class IconComponent extends Component
         public ?string $size = null,
         public ?string $width = null,
         public ?string $height = null,
-        public bool $lockAspectRatio = true,
+        public ?bool $lockAspectRatio = null,
         public ?string $title = null,
         public ?string $aria = null,
         public ?string $role = 'img',
@@ -203,6 +205,24 @@ class IconComponent extends Component
 
             throw $e;
         }
+    }
+
+    /**
+     * Whether a size preset squares the rendered element.
+     *
+     * An explicit `lock-aspect-ratio` always wins. Otherwise the icon's kind
+     * decides: icons are drawn on a square grid and lock, illustrations are
+     * not and keep their viewBox aspect, so `size="lg"` sets their width only
+     * instead of squashing them into a square.
+     */
+    protected function shouldLockAspectRatio(): bool
+    {
+        if ($this->lockAspectRatio !== null) {
+            return $this->lockAspectRatio;
+        }
+
+        return $this->iconRegistry === null
+            || $this->iconRegistry->kindOf($this->buildIconPath())->locksAspectRatio();
     }
 
     /**

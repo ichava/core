@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Illuminate\Database\Query\JoinClause;
+use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -75,6 +76,14 @@ final class IconBrowserService
             $query->whereIn('package', $filters['packages']);
         }
 
+        // Kind: icons or illustrations. A value that names no kind matches
+        // nothing, so a bad query parameter cannot widen the result.
+        $kind = $filters['kind'] ?? null;
+
+        if ($kind instanceof IconKind || (is_string($kind) && $kind !== '')) {
+            $query->ofKind($kind);
+        }
+
         // Categories - filter by terms relationship
         if (! empty($filters['categories'])) {
             $query->whereHas('terms', function ($q) use ($filters) {
@@ -105,6 +114,7 @@ final class IconBrowserService
         $query->select([
             'id', 'package', 'name', 'path', 'file_hash',
             'tags', 'keywords', 'attributes', 'metadata',
+            'kind', 'theme_variants',
             'created_at', 'updated_at',
         ]);
 
@@ -135,6 +145,8 @@ final class IconBrowserService
             'id'          => $icon->id,
             'package'     => $icon->package,
             'name'        => $icon->name,
+            'kind'        => $icon->kind->value,
+            'themes'      => $icon->themes(),
             'category'    => $icon->primary_category?->slug,
             'variant'     => $icon->primary_variant?->slug,
             'path'        => $icon->icon_path,
@@ -280,6 +292,7 @@ final class IconBrowserService
                     'packages'   => [],
                     'categories' => [],
                     'variants'   => [],
+                    'kinds'      => $this->kindFacet([]),
                     'empty'      => true,
                 ];
             }
@@ -348,6 +361,7 @@ final class IconBrowserService
                 'packages'   => $transformedPackages,
                 'categories' => $categories,
                 'variants'   => $variants,
+                'kinds'      => $this->kindFacet($this->kindCounts()),
                 'empty'      => false,
             ];
         }, expects: 'array');
@@ -372,7 +386,8 @@ final class IconBrowserService
                         'categories' => 0,
                         'variants'   => 0,
                     ],
-                    'empty' => true,
+                    'by_kind' => array_fill_keys(array_column(IconKind::cases(), 'value'), 0),
+                    'empty'   => true,
                 ];
             }
 
@@ -397,6 +412,12 @@ final class IconBrowserService
                     'categories' => $totalCategories,
                     'variants'   => $totalVariants,
                 ],
+                // Every kind is present, zero included, so a client can tell
+                // "no illustrations installed" from "field missing".
+                'by_kind' => array_merge(
+                    array_fill_keys(array_column(IconKind::cases(), 'value'), 0),
+                    $this->kindCounts(),
+                ),
                 'empty' => false,
             ];
         }, expects: 'array');
@@ -510,6 +531,7 @@ final class IconBrowserService
                     $categories[] = array_filter([
                         'name'  => $row->slug,
                         'label' => $row->name,
+                        'kind'  => $this->registry->kindFor((string) $package, is_string($row->slug) ? $row->slug : null)->value,
                         'count' => is_numeric($row->icon_count) ? (int) $row->icon_count : 0,
                         // Only present when the category actually has variants
                         // of its own; a pack whose variant slugs are the same as
@@ -536,6 +558,7 @@ final class IconBrowserService
                     'count'          => $iconCount,
                     'icon_count'     => $iconCount,
                     'category_count' => count($categories),
+                    'kind'           => $this->registry->kindFor((string) $package)->value,
                     'cats'           => $categories,
                 ];
             }
@@ -610,6 +633,44 @@ final class IconBrowserService
     private static function labelOf(array $node): string
     {
         return isset($node['label']) && is_string($node['label']) ? $node['label'] : '';
+    }
+
+    /**
+     * Seeded icons per kind, keyed by kind value. Kinds with no rows are absent.
+     *
+     * @return array<string, int>
+     */
+    private function kindCounts(): array
+    {
+        $counts = [];
+
+        foreach (DB::table(Icon::TABLE)->selectRaw('kind, COUNT(*) as icon_count')->groupBy('kind')->get() as $row) {
+            if (is_string($row->kind ?? null)) {
+                $counts[$row->kind] = is_numeric($row->icon_count) ? (int) $row->icon_count : 0;
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * The kind facet: every kind, in declaration order, with its count.
+     *
+     * Every kind is listed even at zero. Whether to show an empty kind is the
+     * client's decision (the browser hides Illustrations until a set is
+     * installed); the data says what exists either way.
+     *
+     * @param array<string, int> $counts
+     *
+     * @return list<array{name: string, label: string, count: int}>
+     */
+    private function kindFacet(array $counts): array
+    {
+        return array_map(static fn (IconKind $kind): array => [
+            'name'  => $kind->value,
+            'label' => $kind->label(),
+            'count' => $counts[$kind->value] ?? 0,
+        ], IconKind::cases());
     }
 
     /**

@@ -23,6 +23,7 @@ use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\DbTools\Query\ChunkedWriter;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\IconClassifier;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconSeederHelpers;
 use Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator;
@@ -155,10 +156,17 @@ class SeedIconsJob implements ShouldQueue
 
         $basePath = rtrim(Coerce::string($packageData['base_path']), '/');
         $stats = ['processed' => 0, 'skipped' => 0, 'new' => 0, 'updated' => 0];
+        $classifier = new IconClassifier($registry);
 
         // Build list of relative paths for this chunk
         $relativePaths = [];
         $fileDataMap = [];
+
+        // Theme twins (`scene-dark.svg` beside `scene.svg`, when the category
+        // declares them) are recorded on the light file's row, not as rows of
+        // their own. Decided from disk rather than from this chunk, so a twin
+        // and its light file landing in different jobs still agree.
+        $twinPaths = [];
 
         foreach ($this->files as $absolutePath) {
             if (! File::exists($absolutePath)) {
@@ -168,6 +176,14 @@ class SeedIconsJob implements ShouldQueue
             }
 
             $relativePath = $this->extractRelativePath($absolutePath, $basePath);
+
+            if ($classifier->twinOf($this->packageName, $basePath, $relativePath) !== null) {
+                $twinPaths[] = $relativePath;
+                $stats['skipped']++;
+
+                continue;
+            }
+
             $fileHash = md5_file($absolutePath);
             $name = pathinfo($absolutePath, PATHINFO_FILENAME);
 
@@ -179,13 +195,17 @@ class SeedIconsJob implements ShouldQueue
                 'name'             => $name,
                 'tags'             => $this->extractTags($relativePath, $name),
                 'keywords'         => $this->extractKeywords($relativePath, $name),
+                'kind'             => $classifier->kind($this->packageName, $relativePath)->value,
+                'theme_variants'   => $classifier->themeVariants($this->packageName, $basePath, $relativePath),
             ];
         }
+
+        $this->removeTwinRows($twinPaths);
 
         // DEDUPLICATION LEVEL 2: Get existing icons for comparison
         $existingIcons = Icon::where('package', $this->packageName)
             ->whereIn('path', $relativePaths)
-            ->get(['path', 'file_hash', 'tags', 'keywords'])
+            ->get(['path', 'file_hash', 'tags', 'keywords', 'kind', 'theme_variants'])
             ->keyBy('path');
 
         // Determine which files need processing
@@ -243,6 +263,8 @@ class SeedIconsJob implements ShouldQueue
                 'file_modified_at' => $data['file_modified_at'],
                 'tags'             => Icon::prepareAttributeForDatabase('tags', $data['tags']),
                 'keywords'         => Icon::prepareAttributeForDatabase('keywords', $data['keywords']),
+                'kind'             => $data['kind'],
+                'theme_variants'   => $data['theme_variants'] === [] ? null : json_encode($data['theme_variants'], JSON_UNESCAPED_SLASHES),
                 'created_at'       => now(),
                 'updated_at'       => now(),
             ];
@@ -262,7 +284,7 @@ class SeedIconsJob implements ShouldQueue
                 Icon::upsert(
                     $iconData,
                     ['package', 'path'], // Unique key: a relative path is only unique within its pack
-                    ['name', 'file_hash', 'file_modified_at', 'tags', 'keywords', 'updated_at'],
+                    ['name', 'file_hash', 'file_modified_at', 'tags', 'keywords', 'kind', 'theme_variants', 'updated_at'],
                 );
 
                 // DEDUPLICATION LEVEL 4: Bulk attach categories + variants with conflict handling
@@ -402,6 +424,38 @@ class SeedIconsJob implements ShouldQueue
     }
 
     /**
+     * Delete rows for files that are now theme twins of another file.
+     *
+     * A pack seeded before its category declared `theme_variants` holds a row
+     * per twin; those twins are now variants of their light file, so their
+     * own rows (and term attachments) go.
+     *
+     * @param list<string> $twinPaths
+     */
+    protected function removeTwinRows(array $twinPaths): void
+    {
+        if ($twinPaths === []) {
+            return;
+        }
+
+        $ids = Icon::where('package', $this->packageName)
+            ->whereIn('path', $twinPaths)
+            ->pluck('id')
+            ->all();
+
+        if ($ids === []) {
+            return;
+        }
+
+        DB::table('ichava_icon_termables')
+            ->where('termable_type', (new Icon)->getMorphClass())
+            ->whereIn('termable_id', $ids)
+            ->delete();
+
+        Icon::whereIn('id', $ids)->delete();
+    }
+
+    /**
      * Rebuild the search text the suspended trigger did not maintain.
      *
      * @param array<int, array<string, mixed>> $iconData
@@ -433,6 +487,8 @@ class SeedIconsJob implements ShouldQueue
      * 1. file_hash - SVG content changed
      * 2. tags - Tag extraction logic may have changed
      * 3. keywords - Keyword extraction logic may have changed
+     * 4. kind - The pack's config.json re-filed the category
+     * 5. theme_variants - A theme twin appeared, went, or changed
      *
      * @param Icon $existing Existing icon from database
      * @param array<string, mixed> $newData New data from file
@@ -460,7 +516,18 @@ class SeedIconsJob implements ShouldQueue
             return true;
         }
 
-        return false;
+        // 4. Kind changed: a pack that starts declaring a category as
+        // illustrations must re-file its unchanged files without --force,
+        // or they stay icons until somebody happens to force a re-seed.
+        if ($existing->kind->value !== $newData['kind']) {
+            return true;
+        }
+
+        // 5. Theme twins changed: one appeared, went, or its file changed.
+        $existingThemes = is_array($existing->theme_variants) ? $existing->theme_variants : [];
+        ksort($existingThemes);
+
+        return $existingThemes !== ($newData['theme_variants'] ?? []);
     }
 
     /**

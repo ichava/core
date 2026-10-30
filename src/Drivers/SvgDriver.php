@@ -63,15 +63,16 @@ class SvgDriver
      *
      * @param IconData $icon Resolved icon data object (path, name, set)
      * @param array<string, mixed> $attributes HTML attributes to inject onto the SVG element
+     * @param int|null $maxBytes Size ceiling for this icon's kind; null uses `max_file_size`
      *
      * @return string Rendered HTML-safe SVG string
      *
      * @throws IchavaException wrapping any underlying load or processing failure
      */
-    public function render(IconData $icon, array $attributes = [], ?string $baseDir = null): string
+    public function render(IconData $icon, array $attributes = [], ?string $baseDir = null, ?int $maxBytes = null): string
     {
         try {
-            $content = $this->load($icon->path, [], $baseDir);
+            $content = $this->load($icon->path, [], $baseDir, $maxBytes);
             $content = $this->processor->process($content, $attributes);
 
             return $content;
@@ -89,14 +90,15 @@ class SvgDriver
      * @param string $path Absolute filesystem path to the .svg file
      * @param array<string, mixed> $options Reserved for future use
      * @param string|null $baseDir Package base directory the path must stay within
+     * @param int|null $maxBytes Size ceiling for this icon's kind; null uses `max_file_size`
      *
      * @return string Raw SVG content (unsanitized)
      *
      * @throws IchavaException if the file does not exist, is unreadable, or fails security checks
      */
-    public function load(string $path, array $options = [], ?string $baseDir = null): string
+    public function load(string $path, array $options = [], ?string $baseDir = null, ?int $maxBytes = null): string
     {
-        return $this->loadFromLocal($path, $baseDir);
+        return $this->loadFromLocal($path, $baseDir, $maxBytes);
     }
 
     /**
@@ -145,12 +147,14 @@ class SvgDriver
      *
      * @param string $path Absolute path to the SVG file
      * @param string|null $baseDir Package base directory the path must stay within
+     * @param int|null $maxBytes Size ceiling for this icon's kind (see IconKind::maxFileSize());
+     *                           null keeps the global `max_file_size`
      *
      * @return string Raw SVG content
      *
      * @throws IchavaException on any security violation, size violation, or read failure
      */
-    protected function loadFromLocal(string $path, ?string $baseDir = null): string
+    protected function loadFromLocal(string $path, ?string $baseDir = null, ?int $maxBytes = null): string
     {
         if (! $this->files->exists($path)) {
             throw IchavaException::pathNotFound($path);
@@ -181,7 +185,7 @@ class SvgDriver
         // Prevent loading excessively large files
         $configuredMax = config('ichava.ichava-core.max_file_size', IchavaConstants::MAX_SVG_FILE_SIZE);
         // The value usually arrives from env() as a numeric string; it was compared numerically before.
-        $maxSize = is_numeric($configuredMax) ? $configuredMax + 0 : IchavaConstants::MAX_SVG_FILE_SIZE;
+        $maxSize = $maxBytes ?? (is_numeric($configuredMax) ? $configuredMax + 0 : IchavaConstants::MAX_SVG_FILE_SIZE);
         if ($size > $maxSize) {
             throw IchavaException::invalidSvg("File exceeds maximum size of {$maxSize} bytes: {$path}");
         }

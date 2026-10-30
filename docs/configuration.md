@@ -20,6 +20,14 @@ return [
     // Hard cap on SVG file size loaded from disk (bytes)
     'max_file_size' => env('ICHAVA_MAX_FILE_SIZE', 2_097_152),
 
+    // SVG kinds: what a browser opens on, and a size ceiling per kind
+    'kinds' => [
+        'default'       => env('ICHAVA_DEFAULT_KIND', 'icon'),
+        'max_file_size' => [
+            'illustration' => env('ICHAVA_ILLUSTRATION_MAX_FILE_SIZE', 5 * 1024 * 1024),
+        ],
+    ],
+
     // Shared route prefix (used by both core API and browser SPA)
     'prefix' => env('ICHAVA_BROWSER_PREFIX', 'ichava'),
 
@@ -103,6 +111,7 @@ return [
 | Stop the file watcher | `database.auto_sync=false` |
 | Force-disable seeding via queue | `database.use_queue=false` |
 | Change the log retention | `logging.retention_days=14` |
+| Allow larger illustrations | `kinds.max_file_size.illustration` (bytes); see [Icons and illustrations](kinds.md) |
 | Override the icon storage path | use `ICHAVA_LOG_PATH` for logs; icon paths come from each pack's `setPathFrom` |
 
 ## See also
