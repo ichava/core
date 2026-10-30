@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
+use DOMNode;
 use DOMXPath;
 use DOMElement;
 use DOMDocument;
+use DOMNodeList;
+use DOMNameSpaceNode;
 
 /**
  * Per-file id namespacing. Fixes CR1.
@@ -61,7 +64,7 @@ trait NamespacesSvgIds
             return $content;
         }
 
-        foreach ($xpath->query('//*') as $element) {
+        foreach ($this->queryNodes($xpath, '//*') as $element) {
             if (! $element instanceof DOMElement) {
                 continue;
             }
@@ -80,7 +83,11 @@ trait NamespacesSvgIds
         }
 
         // CSS in a <style> element references ids the same way an attribute does.
-        foreach ($xpath->query('//*[local-name()="style"]') as $style) {
+        foreach ($this->queryNodes($xpath, '//*[local-name()="style"]') as $style) {
+            if (! $style instanceof DOMElement) {
+                continue;
+            }
+
             $style->textContent = $this->rewriteUrlReferences($style->textContent, $map);
         }
 
@@ -104,7 +111,7 @@ trait NamespacesSvgIds
         $prefix = 'i' . substr(sha1($seed), 0, 6) . '-';
         $map = [];
 
-        foreach ($xpath->query('//*[@id]') as $element) {
+        foreach ($this->queryNodes($xpath, '//*[@id]') as $element) {
             if (! $element instanceof DOMElement) {
                 continue;
             }
@@ -117,6 +124,19 @@ trait NamespacesSvgIds
         }
 
         return $map;
+    }
+
+    /**
+     * The nodes an expression selects. query() answers false only for a
+     * malformed expression, and every expression here is a constant.
+     *
+     * @return DOMNodeList<DOMNode|DOMNameSpaceNode>|array{}
+     */
+    private function queryNodes(DOMXPath $xpath, string $expression): DOMNodeList|array
+    {
+        $nodes = $xpath->query($expression);
+
+        return $nodes === false ? [] : $nodes;
     }
 
     /**

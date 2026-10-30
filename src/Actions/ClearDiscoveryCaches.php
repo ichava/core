@@ -52,6 +52,8 @@ final class ClearDiscoveryCaches
      */
     public static function generation(): int
     {
-        return (int) Cache::get(self::GENERATION_KEY, 0);
+        $generation = Cache::get(self::GENERATION_KEY, 0);
+
+        return is_numeric($generation) ? (int) $generation : 0;
     }
 }

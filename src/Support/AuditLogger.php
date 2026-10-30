@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Support;
 
 use Throwable;
+use Stringable;
 use Illuminate\Http\Request;
 use Illuminate\Log\LogManager;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -44,31 +45,37 @@ final class AuditLogger
         private readonly ConfigRepository $config,
     ) {}
 
+    /** @param array<string, mixed> $context */
     public function emergency(string $event, array $context = []): void
     {
         $this->record($event, self::SEVERITY_EMERGENCY, $context);
     }
 
+    /** @param array<string, mixed> $context */
     public function critical(string $event, array $context = []): void
     {
         $this->record($event, self::SEVERITY_CRITICAL, $context);
     }
 
+    /** @param array<string, mixed> $context */
     public function error(string $event, array $context = []): void
     {
         $this->record($event, self::SEVERITY_ERROR, $context);
     }
 
+    /** @param array<string, mixed> $context */
     public function warning(string $event, array $context = []): void
     {
         $this->record($event, self::SEVERITY_WARNING, $context);
     }
 
+    /** @param array<string, mixed> $context */
     public function info(string $event, array $context = []): void
     {
         $this->record($event, self::SEVERITY_INFO, $context);
     }
 
+    /** @param array<string, mixed> $context */
     public function record(string $event, int $severity, array $context = []): void
     {
         if (! (bool) $this->config->get('ichava.ichava-core.security.audit.enabled', true)) {
@@ -86,6 +93,11 @@ final class AuditLogger
         $this->dispatchEvent($payload);
     }
 
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array{event: string, severity: int, context: array<string, mixed>, actor: ?string, source_ip: ?string, user_agent: ?string, request_id: ?string, timestamp: int}
+     */
     private function buildPayload(string $event, int $severity, array $context): array
     {
         $request = $this->resolveRequest();
@@ -102,9 +114,11 @@ final class AuditLogger
         ];
     }
 
+    /** @param array{event: string, severity: int, context: array<string, mixed>, actor: ?string, source_ip: ?string, user_agent: ?string, request_id: ?string, timestamp: int} $payload */
     private function writeLog(int $severity, string $event, array $payload): void
     {
-        $channel = (string) $this->config->get('ichava.ichava-core.security.audit.channel', 'ichava-audit');
+        $configured = $this->config->get('ichava.ichava-core.security.audit.channel', 'ichava-audit');
+        $channel = is_scalar($configured) ? (string) $configured : 'ichava-audit';
 
         try {
             $logger = $this->logs->channel($channel);
@@ -123,6 +137,7 @@ final class AuditLogger
         $logger->{$level}($event, $payload);
     }
 
+    /** @param array{event: string, severity: int, context: array<string, mixed>, actor: ?string, source_ip: ?string, user_agent: ?string, request_id: ?string, timestamp: int} $payload */
     private function dispatchEvent(array $payload): void
     {
         if (! (bool) $this->config->get('ichava.ichava-core.security.audit.dispatch_event', true)) {
@@ -168,8 +183,14 @@ final class AuditLogger
             return null;
         }
 
-        return method_exists($user, 'getAuthIdentifier')
-            ? (string) $user->getAuthIdentifier()
+        if (! is_object($user) || ! method_exists($user, 'getAuthIdentifier')) {
+            return null;
+        }
+
+        $identifier = $user->getAuthIdentifier();
+
+        return $identifier === null || is_scalar($identifier) || $identifier instanceof Stringable
+            ? (string) $identifier
             : null;
     }
 }

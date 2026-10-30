@@ -109,6 +109,8 @@ class CacheOperationsService
 
     /**
      * Rebuild all caches by warming them up
+     *
+     * @return array{categories: int, packages: int, total_icons: int, build_time_ms: float}
      */
     public function rebuild(): array
     {
@@ -122,10 +124,12 @@ class CacheOperationsService
         $stats = $this->discoveryService->getStatistics();
 
         $duration = (microtime(true) - $startTime) * 1000;
+        $totalIcons = $stats['total_icons'] ?? 0;
+        $iconCount = is_int($totalIcons) ? $totalIcons : 0;
 
         // Dispatch cache rebuilt event
         Event::dispatch(IconCacheEvent::rebuilt(
-            iconCount: $stats['total_icons'] ?? 0,
+            iconCount: $iconCount,
             categoryCount: count($categories),
             packageCount: count($packages),
             buildTimeMs: $duration,
@@ -134,7 +138,7 @@ class CacheOperationsService
         $result = [
             'categories'    => count($categories),
             'packages'      => count($packages),
-            'total_icons'   => $stats['total_icons'] ?? 0,
+            'total_icons'   => $iconCount,
             'build_time_ms' => round($duration, 2),
         ];
 
@@ -145,6 +149,8 @@ class CacheOperationsService
 
     /**
      * Refresh caches (clear + rebuild)
+     *
+     * @return array{cleared_keys: int, rebuild_stats: array{categories: int, packages: int, total_icons: int, build_time_ms: float}}
      */
     public function refresh(): array
     {
@@ -180,6 +186,8 @@ class CacheOperationsService
 
     /**
      * Generate icon manifest for production deployment
+     *
+     * @return array<string, mixed>
      */
     public function generateManifest(?string $path = null): array
     {
@@ -232,6 +240,8 @@ class CacheOperationsService
 
     /**
      * Get manifest data
+     *
+     * @return array<mixed>|null
      */
     public function getManifest(?string $path = null): ?array
     {
@@ -240,6 +250,8 @@ class CacheOperationsService
 
     /**
      * Get cache statistics
+     *
+     * @return array<string, mixed>
      */
     public function getStatistics(): array
     {

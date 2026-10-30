@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use SplFileInfo;
 use FilesystemIterator;
 use Illuminate\Support\Str;
 use RecursiveIteratorIterator;
@@ -175,11 +176,13 @@ abstract class ServiceProvider extends PackageServiceProvider
 
                 $meta = $registry->get($name);
 
+                $total = $meta['total'] ?? 0;
+
                 return array_filter([
-                    'Icons'   => (string) ($meta['total'] ?? 0),
-                    'Version' => $meta['version'] ?? null,
-                    'License' => $meta['license'] ?? null,
-                    'Prefix'  => $meta['prefix'] ?? null,
+                    'Icons'   => is_int($total) || is_string($total) ? (string) $total : '0',
+                    'Version' => is_string($meta['version'] ?? null) ? $meta['version'] : null,
+                    'License' => is_string($meta['license'] ?? null) ? $meta['license'] : null,
+                    'Prefix'  => is_string($meta['prefix'] ?? null) ? $meta['prefix'] : null,
                 ], static fn (?string $value): bool => $value !== null && $value !== '');
             });
         }
@@ -319,7 +322,7 @@ abstract class ServiceProvider extends PackageServiceProvider
         );
 
         foreach ($files as $file) {
-            if (str_ends_with($file->getFilename(), '.blade.php')) {
+            if ($file instanceof SplFileInfo && str_ends_with($file->getFilename(), '.blade.php')) {
                 return true;
             }
         }

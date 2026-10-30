@@ -54,14 +54,18 @@ final class ConfigurationService
 
     /**
      * Load package config with caching
+     *
+     * @return array<string, mixed>
      */
     public function rememberPackageConfig(string $directoryPath): array
     {
         $cacheKey = $this->getCacheKey($directoryPath);
 
-        return $this->cache->rememberConfig($cacheKey, function () use ($directoryPath) {
+        $config = $this->cache->rememberConfig($cacheKey, function () use ($directoryPath) {
             return $this->loadPackageConfig($directoryPath);
         });
+
+        return is_array($config) ? $this->stringKeyed($config, $this->resolveConfigPath($directoryPath)) : $this->loadPackageConfig($directoryPath);
     }
 
     /**
@@ -78,6 +82,8 @@ final class ConfigurationService
      * Check if config has variants
      *
      * Reads `metadata.data.variants` first, then the top-level `variants` key.
+     *
+     * @param array<string, mixed> $config
      */
     public function hasVariants(array $config): bool
     {
@@ -88,6 +94,10 @@ final class ConfigurationService
      * Get variants from config
      *
      * Reads `metadata.data.variants` first, then the top-level `variants` key.
+     *
+     * @param array<string, mixed> $config
+     *
+     * @return array<mixed>
      */
     public function getVariants(array $config): array
     {
@@ -98,6 +108,8 @@ final class ConfigurationService
      * Check if config has categories
      *
      * Reads `metadata.data.categories` first, then the top-level `categories` key.
+     *
+     * @param array<string, mixed> $config
      */
     public function hasCategories(array $config): bool
     {
@@ -106,34 +118,40 @@ final class ConfigurationService
 
     /**
      * Get vendor from config
+     *
+     * @param array<string, mixed> $config
      */
     public function getVendor(array $config): string
     {
-        $packageName = $config['package']['name'] ?? '';
-
-        return Helpers::getVendorFromPackage($packageName);
+        return Helpers::getVendorFromPackage($this->packageName($config) ?? '');
     }
 
     /**
      * Validate required package config fields
+     *
+     * @param array<string, mixed> $config
      */
     private function validatePackageConfig(array $config, string $configPath): void
     {
-        if (empty($config['package']['name'])) {
+        $packageName = $this->packageName($config);
+
+        if ($packageName === null || $packageName === '') {
             throw IchavaException::invalidConfig(
                 'Missing required field: package.name',
                 $configPath,
             );
         }
 
-        if (! preg_match('/^[a-z0-9_-]+\/[a-z0-9_-]+$/i', $config['package']['name'])) {
+        if (! preg_match('/^[a-z0-9_-]+\/[a-z0-9_-]+$/i', $packageName)) {
             throw IchavaException::invalidConfig(
                 'Invalid package.name format. Expected: vendor/package',
                 $configPath,
             );
         }
 
-        if (empty($config['config']['icon_prefix'])) {
+        $settings = $config['config'] ?? null;
+
+        if (! is_array($settings) || empty($settings['icon_prefix'])) {
             throw IchavaException::invalidConfig(
                 'Missing required field: config.icon_prefix',
                 $configPath,
@@ -147,7 +165,46 @@ final class ConfigurationService
     }
 
     /**
+     * `package.name` when it is a string, null otherwise.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function packageName(array $config): ?string
+    {
+        $package = $config['package'] ?? null;
+        $name = is_array($package) ? ($package['name'] ?? null) : null;
+
+        return is_string($name) ? $name : null;
+    }
+
+    /**
+     * Re-key a decoded JSON object as the string-keyed map it is.
+     *
+     * @param array<mixed> $config
+     *
+     * @return array<string, mixed>
+     *
+     * @throws IchavaException when a top-level key is not a string
+     */
+    private function stringKeyed(array $config, string $configPath): array
+    {
+        $object = [];
+
+        foreach ($config as $key => $value) {
+            if (! is_string($key)) {
+                throw IchavaException::invalidConfig('Config must be a JSON object', $configPath);
+            }
+
+            $object[$key] = $value;
+        }
+
+        return $object;
+    }
+
+    /**
      * Parse JSON with error handling
+     *
+     * @return array<string, mixed>
      */
     private function parseJson(string $json, string $configPath): array
     {
@@ -167,7 +224,7 @@ final class ConfigurationService
             );
         }
 
-        return $config;
+        return $this->stringKeyed($config, $configPath);
     }
 
     /**

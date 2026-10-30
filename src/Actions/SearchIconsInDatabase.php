@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Actions;
 
 use Closure;
+use InvalidArgumentException;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
@@ -61,7 +62,7 @@ final class SearchIconsInDatabase
             $query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection,
         ]));
 
-        return $this->cache->remember($cacheKey, fn (): array => $this->execute(
+        $build = fn (): array => $this->execute(
             $query,
             $packages,
             $categories,
@@ -71,12 +72,69 @@ final class SearchIconsInDatabase
             $sortDirection,
             $packageMetadata,
             $usageSyntax,
-        ), expects: 'array');
+        );
+
+        $cached = $this->cache->remember($cacheKey, $build, expects: 'array');
+
+        // The store is untrusted input: `expects` proves an array came back,
+        // not that it is a page. Anything else is rebuilt rather than served.
+        return self::isPage($cached) ? $cached : $build();
+    }
+
+    /**
+     * Whether a value has the shape `__invoke()` returns.
+     *
+     * @phpstan-assert-if-true array{items: list<array<string, mixed>>, total: int, page: int, per_page: int, last_page: int} $value
+     */
+    private static function isPage(mixed $value): bool
+    {
+        if (! is_array($value)) {
+            return false;
+        }
+
+        foreach (['total', 'page', 'per_page', 'last_page'] as $key) {
+            if (! is_int($value[$key] ?? null)) {
+                return false;
+            }
+        }
+
+        $items = $value['items'] ?? null;
+
+        if (! is_array($items) || ! array_is_list($items)) {
+            return false;
+        }
+
+        foreach ($items as $item) {
+            if (! is_array($item) || array_filter(array_keys($item), is_int(...)) !== []) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The sort direction in the form the query builder accepts.
+     *
+     * Same rule and message as Laravel's own `orderBy()`, which this used to
+     * reach with the raw string.
+     *
+     * @return 'asc'|'desc'
+     */
+    private static function direction(string $direction): string
+    {
+        return match (strtolower($direction)) {
+            'asc'   => 'asc',
+            'desc'  => 'desc',
+            default => throw new InvalidArgumentException('Order direction must be "asc" or "desc".'),
+        };
     }
 
     /**
      * @param list<string> $packages
      * @param list<string> $categories
+     * @param (Closure(): array<string, mixed>)|null $packageMetadata
+     * @param (Closure(string, string, ?string): array<string, mixed>)|null $usageSyntax
      *
      * @return array{items: list<array<string, mixed>>, total: int, page: int, per_page: int, last_page: int}
      */
@@ -114,15 +172,16 @@ final class SearchIconsInDatabase
 
         $icons = $builder
             ->with('terms')
-            ->orderBy($sortBy, $sortDirection)
+            ->orderBy($sortBy, self::direction($sortDirection))
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
             ->get();
 
         $allPackages = $packageMetadata ? $packageMetadata() : [];
 
-        $items = $icons->map(function (Icon $icon) use ($allPackages, $usageSyntax): array {
+        $items = array_values($icons->map(function (Icon $icon) use ($allPackages, $usageSyntax): array {
             $meta = $allPackages[$icon->package] ?? [];
+            $packageName = is_array($meta) ? ($meta['name'] ?? null) : null;
             // Read from the eager-loaded terms. `$icon->category` and `$icon->variant` are
             // not attributes, so every result carried null for both.
             $category = $icon->terms->firstWhere('type', IconTerm::TYPE_CATEGORY)?->slug;
@@ -130,7 +189,7 @@ final class SearchIconsInDatabase
 
             return [
                 'package'      => $icon->package,
-                'package_name' => $meta['name'] ?? $icon->package,
+                'package_name' => $packageName ?? $icon->package,
                 'set'          => $icon->package,
                 'name'         => $icon->name,
                 'category'     => $category,
@@ -144,7 +203,7 @@ final class SearchIconsInDatabase
                     : [],
                 'svg_content' => null, // Deferred rendering.
             ];
-        })->values()->all();
+        })->all());
 
         return [
             'items'     => $items,

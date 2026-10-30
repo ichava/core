@@ -36,7 +36,7 @@ interface IchavaPackageInterface
     /**
      * Get package metadata for registry
      *
-     * @return array Metadata including icon count, categories, etc.
+     * @return array<string, mixed> Metadata including icon count, categories, etc.
      */
     public function getPackageMetadata(): array;
 }

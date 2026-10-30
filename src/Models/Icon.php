@@ -16,6 +16,7 @@ use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Support\AuditLogger;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
@@ -32,11 +33,11 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * @property string $name
  * @property string $path Relative path from base_path
  * @property string|null $file_hash
- * @property array|null $tags
- * @property array|null $keywords
- * @property array|null $search_text
- * @property array|null $attributes
- * @property array|null $metadata
+ * @property array<array-key, mixed>|null $tags
+ * @property array<array-key, mixed>|null $keywords
+ * @property array<array-key, mixed>|null $search_text
+ * @property array<array-key, mixed>|null $attributes
+ * @property array<array-key, mixed>|null $metadata
  * @property Carbon|null $file_modified_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -50,18 +51,29 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * @property-read string|null $height
  * @property-read IconTerm|null $primary_category
  * @property-read IconTerm|null $primary_variant
- * @property-read array $category_slugs
- * @property-read array $variant_slugs
- * @property-read Collection|IconTerm[] $terms
- * @property-read Collection|IconTerm[] $categories
- * @property-read Collection|IconTerm[] $variants
+ * @property-read array<int, mixed> $category_slugs
+ * @property-read array<int, mixed> $variant_slugs
+ * @property-read Collection<int, IconTerm> $terms
+ * @property-read Collection<int, IconTerm> $categories
+ * @property-read Collection<int, IconTerm> $variants
  */
 final class Icon extends Model
 {
+    /** @use HasFactory<Factory<self>> */
     use HasFactory;
 
+    /** The table, as a literal so it can be interpolated into raw SQL. */
+    public const TABLE = 'ichava_icons';
+
+    /**
+     * `addslashes(self::class)`, spelled out as a literal for the same reason.
+     * The search SQL quotes it as a string, so it has to stay byte-identical to
+     * what `addslashes()` produced.
+     */
+    private const SQL_MORPH_TYPE = 'Simtabi\\\\Laranail\\\\Ichava\\\\Models\\\\Icon';
+
     /** @var string */
-    protected $table = 'ichava_icons';
+    protected $table = self::TABLE;
 
     /** @var list<string> */
     protected $fillable = [
@@ -139,10 +151,12 @@ final class Icon extends Model
 
     /**
      * Get package counts (cached)
+     *
+     * @return array<array-key, mixed>
      */
     public static function getPackageCounts(): array
     {
-        return app(IconCacheService::class)->remember(
+        $counts = app(IconCacheService::class)->remember(
             'icons.counts.packages',
             fn () => self::query()
                 ->selectRaw('package, COUNT(*) as count')
@@ -152,6 +166,8 @@ final class Icon extends Model
             ttl: 60 * 60 * 24, // 24 hours, in seconds
             expects: 'array',
         );
+
+        return is_array($counts) ? $counts : [];
     }
 
     /**
@@ -174,6 +190,7 @@ final class Icon extends Model
      * Relationships
      **********************************************************************/
 
+    /** @return MorphToMany<IconTerm, $this> */
     public function terms(): MorphToMany
     {
         return $this->morphToMany(
@@ -185,6 +202,7 @@ final class Icon extends Model
         )->withTimestamps();
     }
 
+    /** @return MorphToMany<IconTerm, $this> */
     public function categories(?string $package = null): MorphToMany
     {
         $query = $this->terms()->where('type', IconTerm::TYPE_CATEGORY);
@@ -192,6 +210,7 @@ final class Icon extends Model
         return $package ? $query->where('package', $package) : $query;
     }
 
+    /** @return MorphToMany<IconTerm, $this> */
     public function variants(?string $package = null): MorphToMany
     {
         $query = $this->terms()->where('type', IconTerm::TYPE_VARIANT);
@@ -201,6 +220,10 @@ final class Icon extends Model
 
     /**
      * Full-text search (multilingual; includes categories and variants).
+     *
+     * @param Builder<self> $query
+     *
+     * @return Builder<self>
      */
     public function scopeSearch(Builder $query, string $search): Builder
     {
@@ -212,12 +235,12 @@ final class Icon extends Model
 
         if (self::driverOf($query) === 'pgsql') {
             $languages = FtsLanguageHelper::getLanguages();
-            $iconMorphType = addslashes(self::class);
+            $whereClause = FtsLanguageHelper::buildComprehensiveSearchQuery(self::SQL_MORPH_TYPE, self::TABLE);
 
-            $whereClause = FtsLanguageHelper::buildComprehensiveSearchQuery($iconMorphType, $this->getTable());
             $bindings = array_fill(0, count($languages), $search);
 
             return $query->whereRaw($whereClause, $bindings);
+
         }
 
         return $this->scopeFuzzySearch($query, $search);
@@ -225,6 +248,10 @@ final class Icon extends Model
 
     /**
      * Fuzzy search (fallback for non-PostgreSQL)
+     *
+     * @param Builder<self> $query
+     *
+     * @return Builder<self>
      */
     public function scopeFuzzySearch(Builder $query, string $search): Builder
     {
@@ -264,6 +291,11 @@ final class Icon extends Model
 
     /**
      * Filter by package
+     *
+     * @param Builder<self> $query
+     * @param string|array<array-key, string> $package
+     *
+     * @return Builder<self>
      */
     public function scopePackage(Builder $query, string|array $package): Builder
     {
@@ -274,6 +306,11 @@ final class Icon extends Model
 
     /**
      * Filter by category term
+     *
+     * @param Builder<self> $query
+     * @param string|array<array-key, string> $category
+     *
+     * @return Builder<self>
      */
     public function scopeCategory(Builder $query, string|array $category): Builder
     {
@@ -290,6 +327,10 @@ final class Icon extends Model
 
     /**
      * Filter by variant term
+     *
+     * @param Builder<self> $query
+     *
+     * @return Builder<self>
      */
     public function scopeVariant(Builder $query, string $variant): Builder
     {
@@ -303,6 +344,11 @@ final class Icon extends Model
     /**
      * Filter by JSON array contains (tags or keywords)
      * Works with both PostgreSQL (json_array_elements) and MySQL (JSON_CONTAINS)
+     *
+     * @param Builder<self> $query
+     * @param string|array<array-key, string> $tags
+     *
+     * @return Builder<self>
      */
     public function scopeWhereHasTag(Builder $query, string|array $tags): Builder
     {
@@ -326,6 +372,11 @@ final class Icon extends Model
 
     /**
      * Filter by JSON array contains (keywords)
+     *
+     * @param Builder<self> $query
+     * @param string|array<array-key, string> $keywords
+     *
+     * @return Builder<self>
      */
     public function scopeWhereHasKeyword(Builder $query, string|array $keywords): Builder
     {
@@ -349,6 +400,10 @@ final class Icon extends Model
 
     /**
      * Order by most recent file modification
+     *
+     * @param Builder<self> $query
+     *
+     * @return Builder<self>
      */
     public function scopeRecentlyModified(Builder $query): Builder
     {
@@ -357,6 +412,10 @@ final class Icon extends Model
 
     /**
      * Filter by file hash (for duplicate detection)
+     *
+     * @param Builder<self> $query
+     *
+     * @return Builder<self>
      */
     public function scopeByHash(Builder $query, string $hash): Builder
     {
@@ -394,7 +453,7 @@ final class Icon extends Model
     {
         $metadata = $this->metadata ?? [];
         data_set($metadata, $key, $value);
-        $this->metadata = $metadata;
+        $this->metadata = is_array($metadata) ? $metadata : [];
     }
 
     /**
@@ -593,33 +652,39 @@ final class Icon extends Model
 
     /**
      * Get SVG viewBox attribute from JSON
+     *
+     * @return Attribute<string|null, string|null>
      */
     protected function viewbox(): Attribute
     {
         return Attribute::make(
-            get: fn (): ?string => ($v = $this->getSvgAttribute('viewbox')) === null ? null : (string) $v,
+            get: fn (): ?string => $this->svgAttributeString('viewbox'),
             set: fn (?string $value): array => ['attributes' => $this->withSvgAttribute('viewbox', $value)],
         );
     }
 
     /**
      * Get SVG width attribute from JSON
+     *
+     * @return Attribute<string|null, string|null>
      */
     protected function width(): Attribute
     {
         return Attribute::make(
-            get: fn (): ?string => ($v = $this->getSvgAttribute('width')) === null ? null : (string) $v,
+            get: fn (): ?string => $this->svgAttributeString('width'),
             set: fn (?string $value): array => ['attributes' => $this->withSvgAttribute('width', $value)],
         );
     }
 
     /**
      * Get SVG height attribute from JSON
+     *
+     * @return Attribute<string|null, string|null>
      */
     protected function height(): Attribute
     {
         return Attribute::make(
-            get: fn (): ?string => ($v = $this->getSvgAttribute('height')) === null ? null : (string) $v,
+            get: fn (): ?string => $this->svgAttributeString('height'),
             set: fn (?string $value): array => ['attributes' => $this->withSvgAttribute('height', $value)],
         );
     }
@@ -640,6 +705,8 @@ final class Icon extends Model
      *    - base_path: /path/to/vendor/package-name/resources/assets/svg
      *    - Stored path: files/{category}/icon.svg
      *    - Example: files/iconpark/stretching-o.svg
+     *
+     * @return Attribute<string, never>
      */
     protected function absolutePath(): Attribute
     {
@@ -707,6 +774,8 @@ final class Icon extends Model
 
     /**
      * Get file size (computed from filesystem)
+     *
+     * @return Attribute<int|null, never>
      */
     protected function fileSize(): Attribute
     {
@@ -734,6 +803,8 @@ final class Icon extends Model
      * rows do not self-invalidate on a content change -- the fallback is a
      * placeholder, not a content hash -- so seeding should populate
      * `file_hash`.
+     *
+     * @return Attribute<string, never>
      */
     protected function renderVersion(): Attribute
     {
@@ -749,6 +820,8 @@ final class Icon extends Model
 
     /**
      * Get SVG content (cached)
+     *
+     * @return Attribute<string|null, never>
      */
     protected function svgContent(): Attribute
     {
@@ -790,7 +863,7 @@ final class Icon extends Model
                  * The result is cached post-sanitisation, so this costs one pass per icon
                  * per cache lifetime rather than one per request.
                  */
-                return app(IconCacheService::class)->remember(
+                $content = app(IconCacheService::class)->remember(
                     $cacheKey,
                     function () use ($path): string {
                         $raw = File::get($path);
@@ -857,6 +930,8 @@ final class Icon extends Model
                     },
                     expects: 'string',
                 );
+
+                return is_string($content) ? $content : null;
             },
         );
     }
@@ -874,6 +949,7 @@ final class Icon extends Model
      * its category and its name. The terms are kept as the fallback for a row
      * with no stored path, without the variant suffix.
      */
+    /** @return Attribute<string, never> */
     protected function iconPath(): Attribute
     {
         return Attribute::make(
@@ -891,6 +967,8 @@ final class Icon extends Model
 
     /**
      * Get primary category
+     *
+     * @return Attribute<IconTerm|null, never>
      */
     protected function primaryCategory(): Attribute
     {
@@ -905,6 +983,8 @@ final class Icon extends Model
 
     /**
      * Get primary variant
+     *
+     * @return Attribute<IconTerm|null, never>
      */
     protected function primaryVariant(): Attribute
     {
@@ -919,6 +999,8 @@ final class Icon extends Model
 
     /**
      * Get all category slugs
+     *
+     * @return Attribute<array<int, mixed>, never>
      */
     protected function categorySlugs(): Attribute
     {
@@ -929,6 +1011,8 @@ final class Icon extends Model
 
     /**
      * Get all variant slugs
+     *
+     * @return Attribute<array<int, mixed>, never>
      */
     protected function variantSlugs(): Attribute
     {
@@ -955,7 +1039,9 @@ final class Icon extends Model
 
         $packageData = $packages[$this->package] ?? [];
 
-        return $packageData['base_path'] ?? $packageData['path'] ?? '';
+        $path = $packageData['base_path'] ?? $packageData['path'] ?? '';
+
+        return is_string($path) ? $path : '';
     }
 
     /**
@@ -977,6 +1063,7 @@ final class Icon extends Model
     }
 
     /** The driver behind a query: the builder's connection, typed as the concrete class. */
+    /** @param Builder<self> $query */
     private static function driverOf(Builder $query): string
     {
         /** @var \Illuminate\Database\Connection $connection */
@@ -991,13 +1078,21 @@ final class Icon extends Model
      * Not `$this->attributes`: on an Eloquent model that property is the row's raw columns, so
      * reading `viewbox` from it always gave null and writing merged every column into the JSON.
      *
-     * @return array<string, mixed>
+     * @return array<array-key, mixed>
      */
     private function svgAttributes(): array
     {
         $value = $this->getAttribute('attributes');
 
         return is_array($value) ? $value : [];
+    }
+
+    /** One `attributes` JSON value as a string, or null when absent or not a scalar. */
+    private function svgAttributeString(string $key): ?string
+    {
+        $value = $this->getSvgAttribute($key);
+
+        return is_scalar($value) ? (string) $value : null;
     }
 
     /** The `attributes` column with one key replaced, encoded for a mutator's raw write. */

@@ -31,16 +31,22 @@ interface IconSetInterface
 
     /**
      * Get all icons (optionally filtered by variant/category)
+     *
+     * @return array<array-key, IconData>
      */
     public function all(?string $variant = null, ?string $category = null): array;
 
     /**
      * Get supported variants
+     *
+     * @return array<int, string>
      */
     public function variants(): array;
 
     /**
      * Get supported categories
+     *
+     * @return array<int, string>
      */
     public function categories(?string $variant = null): array;
 

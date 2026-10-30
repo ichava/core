@@ -97,11 +97,18 @@ trait ManagesSizes
 
     /**
      * Merge size attributes with existing
+     *
+     * @param array<array-key, mixed> $sizeAttrs
+     * @param array<array-key, mixed> $existingAttrs
+     *
+     * @return array<array-key, mixed>
      */
     public function mergeWithAttributes(array $sizeAttrs, array $existingAttrs): array
     {
         if (isset($sizeAttrs['class']) && isset($existingAttrs['class'])) {
-            $existingAttrs['class'] = trim($existingAttrs['class'] . ' ' . $sizeAttrs['class']);
+            $existingAttrs['class'] = trim(
+                $this->stringifyAttribute($existingAttrs['class']) . ' ' . $this->stringifyAttribute($sizeAttrs['class']),
+            );
             unset($sizeAttrs['class']);
         }
 

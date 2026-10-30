@@ -54,7 +54,7 @@ final class IconRegistry
     /**
      * Blade component aliases, keyed by the provider class that registered one.
      *
-     * @var array<class-string, string>
+     * @var array<string, string>
      */
     private array $bladeComponents = [];
 
@@ -66,9 +66,11 @@ final class IconRegistry
     private array $packages = [];
 
     /**
-     * Package conflicts (for validation)
+     * Package conflicts (for validation): `icon_set_name` maps a set to its
+     * `existing`/`new` pair, `prefix` and `blade_component` map the clashing
+     * value to every package claiming it.
      *
-     * @var array<string, array<string, string>>
+     * @var array<string, array<string, array<string, string>|list<string>>>
      */
     private array $conflicts = [];
 
@@ -158,16 +160,17 @@ final class IconRegistry
     {
         // Load config.json using helper method (no ConfigurationService dependency!)
         $configData = $this->loadPackageConfig($path);
-        $packageName = $configData['package']['name'];
+        $packageName = $this->requiredConfigString($configData, 'package', 'name', $path);
+        $iconPrefix = $this->requiredConfigString($configData, 'config', 'icon_prefix', $path);
 
         // Create icon set
         $iconSet = IconSetBuilder::make($packageName)
             ->setBasePath($path . '/files')
-            ->prefix($configData['config']['icon_prefix']);
+            ->prefix($iconPrefix);
 
         // Add variants if present
         if ($this->hasVariants($configData)) {
-            $variants = array_keys($this->getVariants($configData));
+            $variants = array_map(strval(...), array_keys($this->getVariants($configData)));
             if (! empty($variants)) {
                 $iconSet->withVariants($variants);
             }
@@ -184,20 +187,20 @@ final class IconRegistry
         // Build metadata
         $metadata = [
             'package_name'    => $packageName,
-            'name'            => $configData['package']['title'],
-            'description'     => $configData['package']['description'] ?? '',
+            'name'            => $this->configValue($configData, 'package', 'title'),
+            'description'     => $this->configValue($configData, 'package', 'description') ?? '',
             'vendor'          => $this->getVendor($configData),
-            'version'         => $configData['package']['version'],
-            'license'         => $configData['package']['license'] ?? 'Unknown',
-            'homepage'        => $configData['metadata']['homepage'] ?? null,
-            'repository'      => $configData['metadata']['repository'] ?? null,
-            'keywords'        => $configData['package']['keywords'] ?? [],
+            'version'         => $this->configValue($configData, 'package', 'version'),
+            'license'         => $this->configValue($configData, 'package', 'license') ?? 'Unknown',
+            'homepage'        => $this->configValue($configData, 'metadata', 'homepage'),
+            'repository'      => $this->configValue($configData, 'metadata', 'repository'),
+            'keywords'        => $this->configValue($configData, 'package', 'keywords') ?? [],
             'total'           => $totalIcons,
             'base_path'       => $path,
             'icon_set_name'   => $packageName,
             'provider_class'  => $providerClass,
             'blade_component' => $this->bladeComponents[$providerClass] ?? null,
-            'prefix'          => $configData['config']['icon_prefix'],
+            'prefix'          => $iconPrefix,
         ];
 
         // Register immediately
@@ -356,6 +359,14 @@ final class IconRegistry
         try {
             $iconPath = $this->pathResolver->parseIconPath($name);
             $setName = $iconPath->set ?? $this->defaultSet;
+
+            // No set named and no default: nothing can hold the icon. `set()`
+            // takes a string, so passing null threw a TypeError, which the
+            // `catch (Exception)` below never caught.
+            if ($setName === null) {
+                return false;
+            }
+
             $set = $this->set($setName);
 
             $variant ??= $iconPath->variant;
@@ -424,7 +435,7 @@ final class IconRegistry
         $metadata = $this->packages[$setName] ?? [];
         $baseDir = $metadata['base_path'] ?? $metadata['path'] ?? null;
 
-        return $this->driver->render($icon, $attributes, $baseDir);
+        return $this->driver->render($icon, $attributes, is_string($baseDir) ? $baseDir : null);
     }
 
     /**
@@ -476,7 +487,11 @@ final class IconRegistry
         }
 
         $metadata = $this->packages[$packageName];
-        $iconSetName = $metadata['icon_set_name'] ?? $packageName;
+        $iconSetName = $metadata['icon_set_name'] ?? null;
+
+        if (! is_string($iconSetName)) {
+            $iconSetName = $packageName;
+        }
 
         unset(
             $this->packages[$packageName],
@@ -562,7 +577,7 @@ final class IconRegistry
     /**
      * Get conflicts
      *
-     * @return array<string, array<string, string>>
+     * @return array<string, array<string, array<string, string>|list<string>>>
      */
     public function getConflicts(): array
     {
@@ -696,6 +711,8 @@ final class IconRegistry
      *
      * `trans()` hands back the key it was given on a miss, which is the only
      * miss signal it offers.
+     *
+     * @return string|array<array-key, mixed>|null
      */
     private function line(string $key): string|array|null
     {
@@ -716,7 +733,7 @@ final class IconRegistry
      */
     private function logRegistrationOnce(string $name, array $metadata): void
     {
-        $ttl = (int) config('ichava.ichava-core.logging.deduplication_ttl', 300);
+        $ttl = $this->deduplicationTtl();
 
         // TTL of 0 disables deduplication
         if ($ttl === 0) {
@@ -758,7 +775,7 @@ final class IconRegistry
      */
     private function dispatchRegistrationEventOnce(string $name, array $metadata): void
     {
-        $ttl = (int) config('ichava.ichava-core.logging.deduplication_ttl', 300);
+        $ttl = $this->deduplicationTtl();
 
         // TTL of 0 disables deduplication
         if ($ttl === 0) {
@@ -820,10 +837,12 @@ final class IconRegistry
         }
 
         // Validate base path exists
-        if (! File::isDirectory($metadata['base_path'])) {
+        $basePath = $metadata['base_path'];
+
+        if (! is_string($basePath) || ! File::isDirectory($basePath)) {
             throw IchavaException::packagePathNotFound(
                 $packageName,
-                $metadata['base_path'],
+                is_string($basePath) ? $basePath : get_debug_type($basePath),
             );
         }
     }
@@ -848,7 +867,7 @@ final class IconRegistry
         $bladeComponent = $metadata['blade_component'] ?? null;
 
         // Check icon set name conflict
-        if ($iconSetName) {
+        if (is_string($iconSetName) && ! empty($iconSetName)) {
             foreach ($this->packages as $existingPackage => $existingMeta) {
                 if ($existingPackage !== $packageName &&
                     ($existingMeta['icon_set_name'] ?? null) === $iconSetName) {
@@ -867,7 +886,7 @@ final class IconRegistry
         }
 
         // Check prefix conflict (warning only)
-        if ($prefix) {
+        if (is_string($prefix) && ! empty($prefix)) {
             $prefixConflicts = [];
             foreach ($this->packages as $existingPackage => $existingMeta) {
                 if (($existingMeta['prefix'] ?? null) === $prefix) {
@@ -887,7 +906,7 @@ final class IconRegistry
         }
 
         // Check blade component conflict (warning only)
-        if ($bladeComponent) {
+        if (is_string($bladeComponent) && ! empty($bladeComponent)) {
             $componentConflicts = [];
             foreach ($this->packages as $existingPackage => $existingMeta) {
                 if (($existingMeta['blade_component'] ?? null) === $bladeComponent) {
@@ -941,7 +960,7 @@ final class IconRegistry
      *
      * @param array<string, mixed> $config Parsed config.json data
      *
-     * @return array<string, mixed> Variants keyed by variant name
+     * @return array<int|string, mixed> Variants keyed by variant name
      */
     private function getVariants(array $config): array
     {
@@ -971,9 +990,55 @@ final class IconRegistry
      */
     private function getVendor(array $config): string
     {
-        $packageName = $config['package']['name'] ?? '';
+        $packageName = $this->configValue($config, 'package', 'name');
 
-        return Helpers::getVendorFromPackage($packageName);
+        return Helpers::getVendorFromPackage(is_string($packageName) ? $packageName : '');
+    }
+
+    /**
+     * One key of one section of a parsed config.json, or null when either is absent.
+     *
+     * @param array<string, mixed> $config Parsed config.json data
+     */
+    private function configValue(array $config, string $section, string $key): mixed
+    {
+        $values = $config[$section] ?? null;
+
+        return is_array($values) ? ($values[$key] ?? null) : null;
+    }
+
+    /**
+     * A config.json value registration cannot proceed without.
+     *
+     * @param array<string, mixed> $config Parsed config.json data
+     *
+     * @throws IchavaException when the value is absent or not a string
+     */
+    private function requiredConfigString(array $config, string $section, string $key, string $directoryPath): string
+    {
+        $value = $this->configValue($config, $section, $key);
+
+        if (! is_string($value)) {
+            throw IchavaException::invalidConfig(
+                "config.json must declare {$section}.{$key} as a string",
+                Str::finish($directoryPath, '/') . 'config.json',
+            );
+        }
+
+        return $value;
+    }
+
+    /**
+     * How long registration logs and events are de-duplicated, in seconds.
+     *
+     * A non-numeric value falls back to the shipped default rather than
+     * casting to 0, which would silently disable de-duplication.
+     */
+    private function deduplicationTtl(): int
+    {
+        $ttl = config('ichava.ichava-core.logging.deduplication_ttl', 300);
+
+        return is_numeric($ttl) ? (int) $ttl : 300;
     }
 
     /**

@@ -8,6 +8,8 @@ interface IconDriverInterface
 {
     /**
      * Get all available icons
+     *
+     * @return array<array-key, mixed>
      */
     public function all(): array;
 
@@ -15,7 +17,7 @@ interface IconDriverInterface
      * Render an icon as SVG string
      *
      * @param string $name Icon name
-     * @param array $attributes HTML attributes
+     * @param array<string, mixed> $attributes HTML attributes
      */
     public function render(string $name, array $attributes = []): string;
 
@@ -29,12 +31,16 @@ interface IconDriverInterface
     /**
      * Set configuration for the driver
      *
+     * @param array<string, mixed> $config
+     *
      * @return $this
      */
     public function setConfig(array $config): static;
 
     /**
      * Get configuration
+     *
+     * @return array<string, mixed>
      */
     public function getConfig(): array;
 

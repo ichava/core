@@ -40,6 +40,8 @@ final class IconPreferenceService
 
     /**
      * Get all preferences from session
+     *
+     * @return array<mixed>
      */
     public function getAll(): array
     {
@@ -84,6 +86,10 @@ final class IconPreferenceService
 
     /**
      * Update multiple preferences at once
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return array<mixed>
      */
     public function update(array $data): array
     {
@@ -110,6 +116,8 @@ final class IconPreferenceService
 
     /**
      * Clear all preferences and reset to defaults
+     *
+     * @return array<string, mixed>
      */
     public function clear(): array
     {
@@ -127,10 +135,12 @@ final class IconPreferenceService
 
     /**
      * Get search filters
+     *
+     * @return array<mixed>
      */
     public function getFilters(): array
     {
-        return $this->get('filters', [
+        return $this->arrayAt('filters', [
             'search'     => '',
             'packages'   => [],
             'categories' => [],
@@ -140,6 +150,8 @@ final class IconPreferenceService
 
     /**
      * Set search filters
+     *
+     * @param array<mixed> $filters
      */
     public function setFilters(array $filters): self
     {
@@ -153,7 +165,9 @@ final class IconPreferenceService
      */
     public function getSearch(): string
     {
-        return $this->get('filters.search', '');
+        $search = $this->get('filters.search', '');
+
+        return is_string($search) ? $search : '';
     }
 
     /**
@@ -168,14 +182,18 @@ final class IconPreferenceService
 
     /**
      * Get selected packages
+     *
+     * @return array<mixed>
      */
     public function getPackages(): array
     {
-        return $this->get('filters.packages', []);
+        return $this->arrayAt('filters.packages', []);
     }
 
     /**
      * Set selected packages
+     *
+     * @param array<mixed> $packages
      */
     public function setPackages(array $packages): self
     {
@@ -186,14 +204,18 @@ final class IconPreferenceService
 
     /**
      * Get selected categories
+     *
+     * @return array<mixed>
      */
     public function getCategories(): array
     {
-        return $this->get('filters.categories', []);
+        return $this->arrayAt('filters.categories', []);
     }
 
     /**
      * Set selected categories
+     *
+     * @param array<mixed> $categories
      */
     public function setCategories(array $categories): self
     {
@@ -204,10 +226,12 @@ final class IconPreferenceService
 
     /**
      * Get sorting preferences
+     *
+     * @return array<mixed>
      */
     public function getSorting(): array
     {
-        return $this->get('sorting', [
+        return $this->arrayAt('sorting', [
             'sort_by'        => 'name',
             'sort_direction' => 'asc',
         ]);
@@ -228,10 +252,12 @@ final class IconPreferenceService
 
     /**
      * Get UI preferences
+     *
+     * @return array<mixed>
      */
     public function getPreferences(): array
     {
-        return $this->get('preferences', [
+        return $this->arrayAt('preferences', [
             'view_mode' => 'grid',
             'icon_size' => 48,
             'per_page'  => 60,
@@ -240,6 +266,8 @@ final class IconPreferenceService
 
     /**
      * Set UI preferences
+     *
+     * @param array<mixed> $preferences
      */
     public function setPreferences(array $preferences): self
     {
@@ -250,10 +278,12 @@ final class IconPreferenceService
 
     /**
      * Get tree state
+     *
+     * @return array<mixed>
      */
     public function getTreeState(): array
     {
-        return $this->get('tree', [
+        return $this->arrayAt('tree', [
             'expanded_nodes' => [],
             'checked_nodes'  => [],
         ]);
@@ -261,6 +291,9 @@ final class IconPreferenceService
 
     /**
      * Set tree state
+     *
+     * @param array<mixed> $expandedNodes
+     * @param array<mixed> $checkedNodes
      */
     public function setTreeState(array $expandedNodes, array $checkedNodes): self
     {
@@ -274,10 +307,12 @@ final class IconPreferenceService
 
     /**
      * Get user's favorite icon IDs
+     *
+     * @return array<mixed>
      */
     public function getFavorites(): array
     {
-        return $this->get('favorites', []);
+        return $this->arrayAt('favorites', []);
     }
 
     /**
@@ -332,14 +367,18 @@ final class IconPreferenceService
 
     /**
      * Get user's collections
+     *
+     * @return array<mixed>
      */
     public function getCollections(): array
     {
-        return $this->get('collections', []);
+        return $this->arrayAt('collections', []);
     }
 
     /**
      * Create a new collection
+     *
+     * @return array{id: string, name: string, color: string, icon_ids: list<int>, created_at: string}
      */
     public function createCollection(string $name, ?string $color = null): array
     {
@@ -360,17 +399,22 @@ final class IconPreferenceService
 
     /**
      * Update a collection
+     *
+     * @param array<mixed> $data
+     *
+     * @return array<mixed>|null
      */
     public function updateCollection(string $collectionId, array $data): ?array
     {
         $collections = $this->getCollections();
         foreach ($collections as $index => $collection) {
-            if ($collection['id'] === $collectionId) {
-                $collections[$index] = array_merge($collection, $data);
+            if (is_array($collection) && ($collection['id'] ?? null) === $collectionId) {
+                $updated = array_merge($collection, $data);
+                $collections[$index] = $updated;
                 $this->set('collections', $collections);
                 $this->logger->debug('📁 Collection updated', ['collection_id' => $collectionId]);
 
-                return $collections[$index];
+                return $updated;
             }
         }
 
@@ -383,19 +427,24 @@ final class IconPreferenceService
     public function deleteCollection(string $collectionId): void
     {
         $collections = $this->getCollections();
-        $collections = array_values(Arr::where($collections, fn ($c) => $c['id'] !== $collectionId));
+        $collections = array_values(Arr::where(
+            $collections,
+            fn (mixed $c): bool => ! is_array($c) || ($c['id'] ?? null) !== $collectionId,
+        ));
         $this->set('collections', $collections);
         $this->logger->debug('🗑️ Collection deleted', ['collection_id' => $collectionId]);
     }
 
     /**
      * Get a single collection by ID
+     *
+     * @return array<mixed>|null
      */
     public function getCollection(string $collectionId): ?array
     {
         $collections = $this->getCollections();
         foreach ($collections as $collection) {
-            if ($collection['id'] === $collectionId) {
+            if (is_array($collection) && ($collection['id'] ?? null) === $collectionId) {
                 return $collection;
             }
         }
@@ -410,9 +459,13 @@ final class IconPreferenceService
     {
         $collections = $this->getCollections();
         foreach ($collections as $index => $collection) {
-            if ($collection['id'] === $collectionId) {
-                if (! in_array($iconId, $collection['icon_ids'])) {
-                    $collections[$index]['icon_ids'][] = $iconId;
+            if (is_array($collection) && ($collection['id'] ?? null) === $collectionId) {
+                $iconIds = is_array($collection['icon_ids'] ?? null) ? $collection['icon_ids'] : [];
+
+                if (! in_array($iconId, $iconIds)) {
+                    $iconIds[] = $iconId;
+                    $collection['icon_ids'] = $iconIds;
+                    $collections[$index] = $collection;
                     $this->set('collections', $collections);
                     $this->logger->debug('📁 Icon added to collection', [
                         'collection_id' => $collectionId,
@@ -431,10 +484,12 @@ final class IconPreferenceService
     {
         $collections = $this->getCollections();
         foreach ($collections as $index => $collection) {
-            if ($collection['id'] === $collectionId) {
-                $collections[$index]['icon_ids'] = array_values(
-                    Arr::where($collection['icon_ids'], fn ($id) => $id !== $iconId),
+            if (is_array($collection) && ($collection['id'] ?? null) === $collectionId) {
+                $iconIds = is_array($collection['icon_ids'] ?? null) ? $collection['icon_ids'] : [];
+                $collection['icon_ids'] = array_values(
+                    Arr::where($iconIds, fn (mixed $id): bool => $id !== $iconId),
                 );
+                $collections[$index] = $collection;
                 $this->set('collections', $collections);
                 $this->logger->debug('📁 Icon removed from collection', [
                     'collection_id' => $collectionId,
@@ -447,10 +502,12 @@ final class IconPreferenceService
 
     /**
      * Get user's icon activity history
+     *
+     * @return array<mixed>
      */
     public function getHistory(): array
     {
-        return $this->get('history', []);
+        return $this->arrayAt('history', []);
     }
 
     /**
@@ -491,10 +548,12 @@ final class IconPreferenceService
 
     /**
      * Get command history
+     *
+     * @return array<mixed>
      */
     public function getCommandHistory(): array
     {
-        return $this->get('command_history', []);
+        return $this->arrayAt('command_history', []);
     }
 
     /**
@@ -502,7 +561,7 @@ final class IconPreferenceService
      *
      * @param string $command The command executed
      * @param string $type Command type: 'action', 'search', 'navigation'
-     * @param array $metadata Additional metadata
+     * @param array<string, mixed> $metadata Additional metadata
      */
     public function addCommandHistory(string $command, string $type, array $metadata = []): void
     {
@@ -536,6 +595,10 @@ final class IconPreferenceService
     /**
      * Validate all preferences against available data
      * Returns cleaned preferences array
+     *
+     * @param array<string, mixed> $preferences
+     *
+     * @return array<string, mixed>
      */
     public function validate(array $preferences): array
     {
@@ -553,90 +616,90 @@ final class IconPreferenceService
         $availableVariants = $this->getAvailableVariants();
 
         // 1. Validate selected packages
-        $selectedPackages = $preferences['filters']['packages'] ?? [];
-        $validPackages = array_values(array_intersect($selectedPackages, $availablePackages));
+        $selectedPackages = $this->listIn($preferences, 'filters', 'packages');
+        $validPackages = array_values(array_intersect(self::scalars($selectedPackages), $availablePackages));
         if (count($validPackages) !== count($selectedPackages)) {
             $removed = count($selectedPackages) - count($validPackages);
             $changes[] = "Removed {$removed} invalid package filter(s)";
-            $cleaned['filters']['packages'] = $validPackages;
+            $cleaned['filters'] = self::withKey($cleaned['filters'] ?? null, 'packages', $validPackages);
         }
 
         // 2. Validate selected categories
-        $selectedCategories = $preferences['filters']['categories'] ?? [];
-        $validCategories = array_values(array_intersect($selectedCategories, $availableCategories));
+        $selectedCategories = $this->listIn($preferences, 'filters', 'categories');
+        $validCategories = array_values(array_intersect(self::scalars($selectedCategories), $availableCategories));
         if (count($validCategories) !== count($selectedCategories)) {
             $removed = count($selectedCategories) - count($validCategories);
             $changes[] = "Removed {$removed} invalid category filter(s)";
-            $cleaned['filters']['categories'] = $validCategories;
+            $cleaned['filters'] = self::withKey($cleaned['filters'] ?? null, 'categories', $validCategories);
         }
 
         // 3. Validate selected variants
-        $selectedVariants = $preferences['filters']['variants'] ?? [];
-        $validVariants = array_values(array_intersect($selectedVariants, $availableVariants));
+        $selectedVariants = $this->listIn($preferences, 'filters', 'variants');
+        $validVariants = array_values(array_intersect(self::scalars($selectedVariants), $availableVariants));
         if (count($validVariants) !== count($selectedVariants)) {
             $removed = count($selectedVariants) - count($validVariants);
             $changes[] = "Removed {$removed} invalid variant filter(s)";
-            $cleaned['filters']['variants'] = $validVariants;
+            $cleaned['filters'] = self::withKey($cleaned['filters'] ?? null, 'variants', $validVariants);
         }
 
         // 4. Validate tree checked nodes (category paths)
-        $checkedNodes = $preferences['tree']['checked_nodes'] ?? [];
-        $validCheckedNodes = array_values(array_intersect($checkedNodes, $availableCategories));
+        $checkedNodes = $this->listIn($preferences, 'tree', 'checked_nodes');
+        $validCheckedNodes = array_values(array_intersect(self::scalars($checkedNodes), $availableCategories));
         if (count($validCheckedNodes) !== count($checkedNodes)) {
             $removed = count($checkedNodes) - count($validCheckedNodes);
             $changes[] = "Removed {$removed} invalid checked category node(s)";
-            $cleaned['tree']['checked_nodes'] = $validCheckedNodes;
+            $cleaned['tree'] = self::withKey($cleaned['tree'] ?? null, 'checked_nodes', $validCheckedNodes);
         }
 
         // 5. Validate tree expanded nodes
-        $expandedNodes = $preferences['tree']['expanded_nodes'] ?? [];
+        $expandedNodes = $this->listIn($preferences, 'tree', 'expanded_nodes');
         $validExpandedNodes = array_filter($expandedNodes, function ($node) {
             return is_string($node) && strlen($node) > 0;
         });
         if (count($validExpandedNodes) !== count($expandedNodes)) {
             $removed = count($expandedNodes) - count($validExpandedNodes);
             $changes[] = "Removed {$removed} invalid expanded node(s)";
-            $cleaned['tree']['expanded_nodes'] = array_values($validExpandedNodes);
+            $cleaned['tree'] = self::withKey($cleaned['tree'] ?? null, 'expanded_nodes', array_values($validExpandedNodes));
         }
 
         // 6. Validate view mode
-        $viewMode = $preferences['preferences']['view_mode'] ?? 'grid';
+        $viewMode = self::valueIn($preferences, 'preferences', 'view_mode') ?? 'grid';
         $validViewModes = ['grid', 'list'];
         if (! in_array($viewMode, $validViewModes)) {
-            $changes[] = "Reset invalid view mode: {$viewMode} → grid";
-            $cleaned['preferences']['view_mode'] = 'grid';
+            $changes[] = 'Reset invalid view mode: ' . self::describe($viewMode) . ' → grid';
+            $cleaned['preferences'] = self::withKey($cleaned['preferences'] ?? null, 'view_mode', 'grid');
         }
 
         // 7. Validate icon size
-        $iconSize = $preferences['preferences']['icon_size'] ?? 48;
+        $iconSize = self::valueIn($preferences, 'preferences', 'icon_size') ?? 48;
         if (! is_numeric($iconSize) || $iconSize < 24 || $iconSize > 128) {
-            $changes[] = "Reset invalid icon size: {$iconSize} → 48";
-            $cleaned['preferences']['icon_size'] = 48;
+            $changes[] = 'Reset invalid icon size: ' . self::describe($iconSize) . ' → 48';
+            $cleaned['preferences'] = self::withKey($cleaned['preferences'] ?? null, 'icon_size', 48);
         }
 
         // 8. Validate per page
-        $perPage = $preferences['pagination']['per_page'] ?? 60;
+        $perPage = self::valueIn($preferences, 'pagination', 'per_page') ?? 60;
         $validPerPage = [30, 60, 90, 120];
         if (! in_array($perPage, $validPerPage)) {
-            $changes[] = "Reset invalid per page: {$perPage} → 60";
-            $cleaned['pagination']['per_page'] = 60;
-            $cleaned['preferences']['per_page'] = 60; // Keep in sync
+            $changes[] = 'Reset invalid per page: ' . self::describe($perPage) . ' → 60';
+            $cleaned['pagination'] = self::withKey($cleaned['pagination'] ?? null, 'per_page', 60);
+            $cleaned['preferences'] = self::withKey($cleaned['preferences'] ?? null, 'per_page', 60); // Keep in sync
         }
 
         // 9. Validate sort_by
-        $sortBy = $preferences['sorting']['sort_by'] ?? 'name';
+        $sortBy = self::valueIn($preferences, 'sorting', 'sort_by') ?? 'name';
         $validSortFields = ['name', 'package', 'created_at', 'updated_at'];
         if (! in_array($sortBy, $validSortFields)) {
-            $changes[] = "Reset invalid sort field: {$sortBy} → name";
-            $cleaned['sorting']['sort_by'] = 'name';
+            $changes[] = 'Reset invalid sort field: ' . self::describe($sortBy) . ' → name';
+            $cleaned['sorting'] = self::withKey($cleaned['sorting'] ?? null, 'sort_by', 'name');
         }
 
         // 10. Validate sort_direction
-        $sortDirection = $preferences['sorting']['sort_direction'] ?? 'asc';
+        $sortDirection = self::valueIn($preferences, 'sorting', 'sort_direction') ?? 'asc';
         $validDirections = ['asc', 'desc'];
         if (! in_array($sortDirection, $validDirections)) {
-            $changes[] = "Reset invalid sort direction: {$sortDirection} → asc";
-            $cleaned['sorting']['sort_direction'] = 'asc';
+            $changes[] = 'Reset invalid sort direction: ' . self::describe($sortDirection) . ' → asc';
+            $cleaned['sorting'] = self::withKey($cleaned['sorting'] ?? null, 'sort_direction', 'asc');
         }
 
         // Log changes if any
@@ -651,6 +714,74 @@ final class IconPreferenceService
     }
 
     /**
+     * `$preferences[$group][$key]`, or null when either level is missing.
+     *
+     * @param array<string, mixed> $preferences
+     */
+    private static function valueIn(array $preferences, string $group, string $key): mixed
+    {
+        $section = $preferences[$group] ?? null;
+
+        return is_array($section) ? ($section[$key] ?? null) : null;
+    }
+
+    /**
+     * $section with $key set to $value; a section that is not an array
+     * becomes one holding only $key.
+     *
+     * @return array<mixed>
+     */
+    private static function withKey(mixed $section, string $key, mixed $value): array
+    {
+        $section = is_array($section) ? $section : [];
+        $section[$key] = $value;
+
+        return $section;
+    }
+
+    /**
+     * The scalar members of $values. A non-scalar can never match an
+     * available name, so it is dropped (and counted as removed) either way.
+     *
+     * @param array<mixed> $values
+     *
+     * @return array<bool|float|int|string>
+     */
+    private static function scalars(array $values): array
+    {
+        return array_filter($values, is_scalar(...));
+    }
+
+    /**
+     * The non-empty strings among $values, the same set Collection::filter()
+     * kept, as a list.
+     *
+     * @param iterable<mixed> $values
+     *
+     * @return list<string>
+     */
+    private static function nonEmptyStrings(iterable $values): array
+    {
+        $strings = [];
+
+        foreach ($values as $value) {
+            if (is_string($value) && $value !== '' && $value !== '0') {
+                $strings[] = $value;
+            }
+        }
+
+        return $strings;
+    }
+
+    /**
+     * A value as it reads in a log line.
+     */
+    private static function describe(mixed $value): string
+    {
+        return is_scalar($value) || $value === null ? (string) $value : get_debug_type($value);
+    }
+
+    /**
      * Get the session key for preferences
      */
     private function getSessionKey(): string
@@ -660,6 +791,8 @@ final class IconPreferenceService
 
     /**
      * Get default preferences structure
+     *
+     * @return array<string, mixed>
      */
     private function getDefaults(): array
     {
@@ -706,64 +839,83 @@ final class IconPreferenceService
 
     /**
      * Get all available package names from database
+     *
+     * @return list<string>
      */
     private function getAvailablePackages(): array
     {
-        return Icon::query()
+        return self::nonEmptyStrings(Icon::query()
             ->distinct()
-            ->pluck('package')
-            ->filter()
-            ->values()
-            ->toArray();
+            ->pluck('package'));
     }
 
     /**
      * Get all available category names from database
+     *
+     * @return list<string>
      */
     private function getAvailableCategories(): array
     {
         // Get categories from terms table if using new structure
         if (Schema::hasTable('ichava_icon_terms')) {
-            return DB::table('ichava_icon_terms')
+            return self::nonEmptyStrings(DB::table('ichava_icon_terms')
                 ->where('type', 'category')
-                ->pluck('slug')
-                ->filter()
-                ->values()
-                ->toArray();
+                ->pluck('slug'));
         }
 
         // Fallback to old structure
-        return Icon::query()
+        return self::nonEmptyStrings(Icon::query()
             ->whereNotNull('category')
             ->distinct()
-            ->pluck('category')
-            ->filter()
-            ->values()
-            ->toArray();
+            ->pluck('category'));
     }
 
     /**
      * Get all available variant names from database
+     *
+     * @return list<string>
      */
     private function getAvailableVariants(): array
     {
         // Get variants from terms table if using new structure
         if (Schema::hasTable('ichava_icon_terms')) {
-            return DB::table('ichava_icon_terms')
+            return self::nonEmptyStrings(DB::table('ichava_icon_terms')
                 ->where('type', 'variant')
-                ->pluck('slug')
-                ->filter()
-                ->values()
-                ->toArray();
+                ->pluck('slug'));
         }
 
         // Fallback to old structure
-        return Icon::query()
+        return self::nonEmptyStrings(Icon::query()
             ->whereNotNull('variant')
             ->distinct()
-            ->pluck('variant')
-            ->filter()
-            ->values()
-            ->toArray();
+            ->pluck('variant'));
+    }
+
+    /**
+     * The preference at $key when it is an array, $default otherwise.
+     *
+     * @param array<mixed> $default
+     *
+     * @return array<mixed>
+     */
+    private function arrayAt(string $key, array $default): array
+    {
+        $value = $this->get($key, $default);
+
+        return is_array($value) ? $value : $default;
+    }
+
+    /**
+     * `$preferences[$group][$key]` when it is an array, an empty one otherwise.
+     *
+     * @param array<string, mixed> $preferences
+     *
+     * @return array<mixed>
+     */
+    private function listIn(array $preferences, string $group, string $key): array
+    {
+        $value = self::valueIn($preferences, $group, $key);
+
+        return is_array($value) ? $value : [];
     }
 }

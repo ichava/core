@@ -70,7 +70,10 @@ class IconSetCatalogService
             );
         }
 
+        $entries = [];
+
         foreach ($sets as $index => $set) {
+            $set = is_array($set) ? $set : [];
             $missing = [];
             foreach (['key', 'package', 'repository', 'title', 'icon_count', 'variants'] as $field) {
                 if (! isset($set[$field]) || $set[$field] === '' || $set[$field] === []) {
@@ -84,9 +87,17 @@ class IconSetCatalogService
                     $path,
                 );
             }
+
+            // A catalog set is a JSON object, so its keys are field names.
+            $entry = [];
+            foreach ($set as $field => $value) {
+                $entry[(string) $field] = $value;
+            }
+
+            $entries[] = $entry;
         }
 
-        return array_values($sets);
+        return $entries;
     }
 
     /**
@@ -161,7 +172,7 @@ class IconSetCatalogService
      */
     protected function enrich(array $set): array
     {
-        $package = (string) $set['package'];
+        $package = is_scalar($set['package'] ?? null) ? (string) $set['package'] : '';
 
         $set['installed'] = $this->isInstalled($package);
         $set['installed_version'] = $this->installedVersion($package);

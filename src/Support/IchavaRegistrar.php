@@ -37,6 +37,7 @@ final class IchavaRegistrar
 
     private string $vendor = '';
 
+    /** @var array<string, array<string, mixed>> */
     private array $iconSets = [];
 
     // @phpstan-ignore property.onlyWritten (set by the fluent API and kept; nothing reads it yet)
@@ -152,6 +153,8 @@ final class IchavaRegistrar
      *
      * This MUST be called to trigger processing, call it after all
      * configuration methods, then chain trackStatistics()/enableLogging().
+     *
+     * @param array<string, array<string, mixed>> $iconSets
      */
     public function configure(array $iconSets): static
     {

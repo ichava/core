@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use ValueError;
 use ReflectionClass;
+use ReflectionException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
@@ -25,14 +27,16 @@ class PathResolver
      */
     private const SVG_PATH = IchavaConstants::SVG_ASSETS_PATH;
 
+    /** @var non-empty-string */
     protected string $pathSeparator;
 
+    /** @var non-empty-string */
     protected string $variantSeparator;
 
     public function __construct()
     {
-        $this->pathSeparator = config('ichava.ichava-core.separators.path', '::');
-        $this->variantSeparator = config('ichava.ichava-core.separators.variant', '/');
+        $this->pathSeparator = self::separator(config('ichava.ichava-core.separators.path', '::'), '::');
+        $this->variantSeparator = self::separator(config('ichava.ichava-core.separators.variant', '/'), '/');
     }
 
     /**
@@ -44,8 +48,17 @@ class PathResolver
      */
     public static function resolvePackagePath(string|object $caller, int $levelsUp = 3, string $append = ''): string
     {
-        $reflection = new ReflectionClass($caller);
+        $reflection = new ReflectionClass(self::reflectable($caller));
         $callerFile = $reflection->getFileName();
+
+        if ($callerFile === false) {
+            throw IchavaException::invalidConfiguration("Could not determine path for class: {$reflection->getName()}");
+        }
+
+        if ($levelsUp < 1) {
+            // The same refusal dirname() makes, raised before the call so the level is typed.
+            throw new ValueError('dirname(): Argument #2 ($levels) must be greater than or equal to 1');
+        }
 
         $basePath = dirname($callerFile, $levelsUp);
 
@@ -300,7 +313,7 @@ class PathResolver
     public function getManifestPathFromConfig(): string
     {
         return $this->resolveManifestPath(
-            config('ichava.ichava-core.manifest.path'),
+            self::optionalString(config('ichava.ichava-core.manifest.path')),
         );
     }
 
@@ -377,6 +390,8 @@ class PathResolver
 
     /**
      * Get package base path from service provider class
+     *
+     * @param class-string $providerClass
      */
     public function getPackageBasePath(string $providerClass): string
     {
@@ -466,6 +481,41 @@ class PathResolver
         }
 
         return $path;
+    }
+
+    /**
+     * A configured separator, or the default when the value cannot split
+     * anything (explode() refuses an empty separator).
+     *
+     * @param non-empty-string $default
+     *
+     * @return non-empty-string
+     */
+    private static function separator(mixed $configured, string $default): string
+    {
+        return is_string($configured) && $configured !== '' ? $configured : $default;
+    }
+
+    /**
+     * The caller as something ReflectionClass accepts, refusing an unknown
+     * class name with the exception ReflectionClass itself throws for one.
+     *
+     * @return class-string|object
+     *
+     * @throws ReflectionException
+     */
+    private static function reflectable(string|object $caller): string|object
+    {
+        if (is_object($caller) || class_exists($caller) || interface_exists($caller) || trait_exists($caller)) {
+            return $caller;
+        }
+
+        throw new ReflectionException("Class \"{$caller}\" does not exist");
+    }
+
+    private static function optionalString(mixed $value): ?string
+    {
+        return is_string($value) ? $value : null;
     }
 
     /**

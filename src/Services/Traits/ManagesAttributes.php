@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
+use Stringable;
+use InvalidArgumentException;
+
 /**
  * ManagesAttributes Trait
  *
@@ -13,18 +16,27 @@ trait ManagesAttributes
 {
     /**
      * Stored attributes
+     *
+     * @var array<string, mixed>
      */
     private array $attributes = [];
 
     /**
      * Build HTML attributes string
+     *
+     * @param array<array-key, mixed> $attributes
      */
     public function buildHtml(array $attributes): string
     {
         $formatted = $this->formatAttributes($this->filterAttributes($attributes));
 
         return collect($formatted)
-            ->map(function (?string $value, string|int $key) {
+            ->map(function (mixed $value, string|int $key): ?string {
+                // The closure used to declare `?string` and lean on the
+                // collection's non-strict call site to coerce scalars;
+                // stringifyAttribute() performs that same coercion explicitly.
+                $value = $value === null ? null : $this->stringifyAttribute($value);
+
                 if (is_int($key)) {
                     return $value;
                 }
@@ -52,6 +64,9 @@ trait ManagesAttributes
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $attributes
+     */
     public function setAttributes(array $attributes): self
     {
         $this->attributes = array_merge($this->attributes, $attributes);
@@ -62,7 +77,7 @@ trait ManagesAttributes
     public function addClass(string $class): self
     {
         $existing = $this->attributes['class'] ?? '';
-        $this->attributes['class'] = $this->mergeClasses($existing, $class);
+        $this->attributes['class'] = $this->mergeClasses($this->stringifyAttribute($existing), $class);
 
         return $this;
     }
@@ -81,6 +96,9 @@ trait ManagesAttributes
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getAttributes(): array
     {
         return $this->attributes;
@@ -93,6 +111,10 @@ trait ManagesAttributes
 
     /**
      * Format attributes (escape quotes)
+     *
+     * @param array<array-key, mixed> $attributes
+     *
+     * @return array<array-key, mixed>
      */
     protected function formatAttributes(array $attributes): array
     {
@@ -103,5 +125,23 @@ trait ManagesAttributes
         }
 
         return $attributes;
+    }
+
+    /**
+     * An attribute value as the string PHP's own scalar coercion produces
+     * (true -> "1", false -> "", 2 -> "2"). Anything that has no string form
+     * is refused rather than rendered as "Array".
+     */
+    protected function stringifyAttribute(mixed $value): string
+    {
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if ($value === null || is_int($value) || is_float($value) || is_bool($value) || $value instanceof Stringable) {
+            return (string) $value;
+        }
+
+        throw new InvalidArgumentException('SVG attribute value must be a scalar, got ' . get_debug_type($value) . '.');
     }
 }

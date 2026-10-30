@@ -75,6 +75,8 @@ class IchavaException extends RuntimeException
 
     /**
      * Icon set configuration validation failed
+     *
+     * @param array<array-key, string> $errors
      */
     public static function configurationValidationFailed(string $providerClass, array $errors): static
     {
@@ -300,6 +302,8 @@ class IchavaException extends RuntimeException
 
     /**
      * Package registration missing metadata
+     *
+     * @param array<array-key, string> $missingFields
      */
     public static function missingPackageMetadata(string $packageName, array $missingFields): static
     {
@@ -354,6 +358,8 @@ class IchavaException extends RuntimeException
 
     /**
      * Prefix conflict warning
+     *
+     * @param array<array-key, string> $packages
      */
     public static function prefixConflict(string $prefix, array $packages): static
     {
@@ -367,6 +373,8 @@ class IchavaException extends RuntimeException
 
     /**
      * Blade component conflict warning
+     *
+     * @param array<array-key, string> $packages
      */
     public static function bladeComponentConflict(string $componentName, array $packages): static
     {
@@ -380,6 +388,8 @@ class IchavaException extends RuntimeException
 
     /**
      * Package prefix conflict
+     *
+     * @param array<array-key, string> $packages
      */
     public static function packagePrefixConflict(string $prefix, array $packages): static
     {
@@ -393,6 +403,8 @@ class IchavaException extends RuntimeException
 
     /**
      * Package blade component conflict
+     *
+     * @param array<array-key, string> $packages
      */
     public static function packageBladeComponentConflict(string $componentName, array $packages): static
     {

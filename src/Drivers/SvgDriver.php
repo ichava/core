@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Drivers;
 
 use Exception;
+use Stringable;
 use Illuminate\Support\Str;
 use Illuminate\Filesystem\Filesystem;
 use Simtabi\Laranail\Ichava\Data\IconData;
@@ -178,7 +179,9 @@ class SvgDriver
         }
 
         // Prevent loading excessively large files
-        $maxSize = config('ichava.ichava-core.max_file_size', IchavaConstants::MAX_SVG_FILE_SIZE);
+        $configuredMax = config('ichava.ichava-core.max_file_size', IchavaConstants::MAX_SVG_FILE_SIZE);
+        // The value usually arrives from env() as a numeric string; it was compared numerically before.
+        $maxSize = is_numeric($configuredMax) ? $configuredMax + 0 : IchavaConstants::MAX_SVG_FILE_SIZE;
         if ($size > $maxSize) {
             throw IchavaException::invalidSvg("File exceeds maximum size of {$maxSize} bytes: {$path}");
         }
@@ -214,7 +217,12 @@ class SvgDriver
 
         // Handle title for accessibility (inject inside SVG)
         if (isset($attributes['title'])) {
-            $svg = $this->injectTitle($svg, $attributes['title']);
+            $title = $attributes['title'];
+
+            if (is_string($title) || is_int($title) || is_float($title) || $title instanceof Stringable) {
+                $svg = $this->injectTitle($svg, (string) $title);
+            }
+
             unset($attributes['title']);
         }
 
@@ -222,7 +230,7 @@ class SvgDriver
         $svg = $this->ensureResponsiveSvg($svg, $attributes);
 
         // Extract existing class from SVG if present, and merge with new classes
-        if (isset($attributes['class']) && preg_match('/<svg[^>]+class=["\']([^"\']+)["\']/', $svg, $matches)) {
+        if (isset($attributes['class']) && is_string($attributes['class']) && preg_match('/<svg[^>]+class=["\']([^"\']+)["\']/', $svg, $matches)) {
             $existingClasses = $matches[1];
             $attributes['class'] = $this->processor->mergeClasses($existingClasses, $attributes['class']);
 
@@ -351,13 +359,11 @@ class SvgDriver
         $titleElement = "<title id=\"{$titleId}\">{$safeTitle}</title>";
 
         // Inject title right after opening <svg> tag and add aria-labelledby
-        $svg = preg_replace(
+        return preg_replace(
             '/<svg([^>]*)>/',
             "<svg$1 aria-labelledby=\"{$titleId}\">{$titleElement}",
             $svg,
             1,
-        );
-
-        return $svg ?? $svg;
+        ) ?? $svg;
     }
 }

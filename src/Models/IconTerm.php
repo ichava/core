@@ -35,8 +35,8 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read IconTerm|null $parent
- * @property-read \Illuminate\Database\Eloquent\Collection<IconTerm> $children
- * @property-read \Illuminate\Database\Eloquent\Collection<Icon> $icons
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, IconTerm> $children
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Icon> $icons
  * @property-read int $icons_count Cached icon count
  * @property-read int $depth Term depth in hierarchy
  */
@@ -60,6 +60,8 @@ class IconTerm extends Model
 
     /**
      * Recursive descendant loader, supports unlimited depth.
+     *
+     * @return Collection<int, IconTerm>
      */
     public static function descendantsOf(int $termId): Collection
     {
@@ -154,6 +156,11 @@ class IconTerm extends Model
         return $query->where('package', $package);
     }
 
+    /**
+     * @param Builder<IconTerm> $query
+     *
+     * @return Builder<IconTerm>
+     */
     public function scopeRoots(Builder $query): Builder
     {
         return $query->whereNull('parent_id');
@@ -212,19 +219,22 @@ class IconTerm extends Model
         });
     }
 
+    /** @return Collection<int, IconTerm> */
     public function ancestors(): Collection
     {
-        $accumulated = collect();
+        $accumulated = [];
         $current = $this->parent;
 
         while ($current) {
-            $accumulated->push($current);
+            $accumulated[] = $current;
             $current = $current->parent;
         }
 
-        return $accumulated;
+        return collect($accumulated);
+
     }
 
+    /** @return Collection<int, IconTerm> */
     public function descendants(): Collection
     {
         return static::descendantsOf($this->id);
@@ -287,6 +297,8 @@ class IconTerm extends Model
 
     /**
      * Get siblings (terms with same parent)
+     *
+     * @return Collection<int, IconTerm>
      */
     public function siblings(): Collection
     {

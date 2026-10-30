@@ -30,6 +30,16 @@ use Simtabi\Laranail\Ichava\Events\IconPackUpdateAvailable;
  *   custom URL trivial to add as a new `parse*Response` method.
  * - Event-driven notifications: the host app decides what to do with
  *   the news (Slack, email, dashboard...).
+ *
+ * @phpstan-type CheckResult array{
+ *     package: string,
+ *     source: string,
+ *     status: 'up-to-date'|'update-available'|'unreachable'|'no-upstream'|'error',
+ *     current: ?string,
+ *     latest: ?string,
+ *     release_url: ?string,
+ *     reason: ?string,
+ * }
  */
 class IconPackUpdateChecker
 {
@@ -87,6 +97,10 @@ class IconPackUpdateChecker
         'ff00::/8',           // multicast
     ];
 
+    /**
+     * @param (Closure(string): ?class-string<JsonConfigConstants>)|null $constantsResolver
+     * @param (Closure(string): list<string>)|null $hostResolver
+     */
     public function __construct(
         protected IconRegistry $registry,
         protected ?IchavaLogger $logger = null,
@@ -133,15 +147,7 @@ class IconPackUpdateChecker
      * alongside their primary row. Dispatches IconPackUpdateAvailable
      * for each stale source.
      *
-     * @return list<array{
-     *     package: string,
-     *     source: string,
-     *     status: 'up-to-date'|'update-available'|'unreachable'|'no-upstream'|'error',
-     *     current: ?string,
-     *     latest: ?string,
-     *     release_url: ?string,
-     *     reason: ?string,
-     * }>
+     * @return list<CheckResult>
      */
     public function checkAll(?string $packageFilter = null): array
     {
@@ -164,7 +170,7 @@ class IconPackUpdateChecker
      * source a pack declares; use checkOne() when you only need the
      * primary tracker.
      *
-     * @return list<array<string, mixed>>
+     * @return list<CheckResult>
      */
     public function checkPackage(string $packageName): array
     {
@@ -190,15 +196,7 @@ class IconPackUpdateChecker
      * its upstream block, and dispatches one IconPackUpdateAvailable
      * if the pack is behind.
      *
-     * @return array{
-     *     package: string,
-     *     source: string,
-     *     status: 'up-to-date'|'update-available'|'unreachable'|'no-upstream'|'error',
-     *     current: ?string,
-     *     latest: ?string,
-     *     release_url: ?string,
-     *     reason: ?string,
-     * }
+     * @return CheckResult
      */
     public function checkOne(string $packageName): array
     {
@@ -229,11 +227,16 @@ class IconPackUpdateChecker
      * is read from the source entry itself (each additional tracker pins
      * its own snapshot version).
      *
-     * @return array<string, mixed>
+     * @param array<string, mixed> $extraSource
+     *
+     * @return CheckResult
      */
     protected function checkAdditional(string $packageName, array $extraSource): array
     {
-        $name = (string) ($extraSource['name'] ?? 'secondary');
+        $name = $extraSource['name'] ?? 'secondary';
+        $name = is_scalar($name) ? (string) $name : 'secondary';
+        $current = $extraSource['current_version'] ?? null;
+        $current = is_string($current) ? $current : null;
 
         // Each additional source is a self-contained mini-upstream block.
         // The shape mirrors the primary one: source/current_version/url/cdn.
@@ -247,7 +250,7 @@ class IconPackUpdateChecker
             $packageName,
             $name,
             $upstream,
-            $extraSource['current_version'] ?? null,
+            $current,
         );
     }
 
@@ -256,7 +259,9 @@ class IconPackUpdateChecker
      * unreachable, and parse-failure branches the same way for primary
      * and additional sources.
      *
-     * @return array<string, mixed>
+     * @param array<array-key, mixed> $upstream
+     *
+     * @return CheckResult
      */
     protected function evaluateSource(
         string $packageName,
@@ -266,7 +271,7 @@ class IconPackUpdateChecker
     ): array {
         $url = $upstream['version_check_url'] ?? null;
 
-        if (! $url) {
+        if (! is_string($url) || empty($url)) {
             return [
                 'package'     => $packageName,
                 'source'      => $sourceName,
@@ -278,7 +283,7 @@ class IconPackUpdateChecker
             ];
         }
 
-        if (! $this->isAllowedVersionCheckUrl((string) $url)) {
+        if (! $this->isAllowedVersionCheckUrl($url)) {
             return [
                 'package'     => $packageName,
                 'source'      => $sourceName,
@@ -324,7 +329,7 @@ class IconPackUpdateChecker
                 currentVersion: $current,
                 latestVersion: $latest,
                 releaseUrl: $releaseUrl,
-                releaseNotes: isset($payload['body']) ? substr((string) $payload['body'], 0, 2_000) : null,
+                releaseNotes: is_string($payload['body'] ?? null) ? substr($payload['body'], 0, 2_000) : null,
                 sourceName: $sourceName,
             ));
 
@@ -357,19 +362,24 @@ class IconPackUpdateChecker
      *
      * Returns null when we can't determine a sensible URL (e.g. the pack
      * uses source.type=url without registering source.release_url_template).
+     *
+     * @param array<array-key, mixed> $upstream
+     * @param array<array-key, mixed> $payload
      */
     protected function resolveReleaseUrl(array $upstream, array $payload, ?string $version): ?string
     {
-        $type = $upstream['source']['type'] ?? 'github';
-        $source = $upstream['source'] ?? [];
+        $source = $this->sourceOf($upstream);
+        $type = $source['type'] ?? 'github';
+        $template = $source['release_url_template'] ?? null;
+        $htmlUrl = $payload['html_url'] ?? null;
 
         return match ($type) {
-            'github'     => $payload['html_url'] ?? $this->githubReleaseUrl($source, $version),
+            'github'     => is_string($htmlUrl) ? $htmlUrl : $this->githubReleaseUrl($source, $version),
             'github-tag' => $this->githubReleaseUrl($source, $version),
             'npm'        => $this->npmReleaseUrl($source, $version),
             'packagist'  => $this->packagistReleaseUrl($source, $version),
             'url'        => $this->interpolateTemplate(
-                $source['release_url_template'] ?? null,
+                is_string($template) ? $template : null,
                 ['version' => $version ?? ''],
             ),
             default => null,
@@ -379,12 +389,14 @@ class IconPackUpdateChecker
     /**
      * https://github.com/<owner>/<repo>/releases/tag/v<version>
      * Falls back to the repo root when owner/repo aren't both declared.
+     *
+     * @param array<array-key, mixed> $source
      */
     protected function githubReleaseUrl(array $source, ?string $version): ?string
     {
         $owner = $source['owner'] ?? null;
         $repo = $source['repo'] ?? null;
-        if (! $owner || ! $repo) {
+        if (! is_string($owner) || ! is_string($repo) || empty($owner) || empty($repo)) {
             return null;
         }
         if ($version === null) {
@@ -397,11 +409,13 @@ class IconPackUpdateChecker
     /**
      * https://www.npmjs.com/package/<package>/v/<version>
      * Scoped packages (@x/y) are encoded by npm automatically.
+     *
+     * @param array<array-key, mixed> $source
      */
     protected function npmReleaseUrl(array $source, ?string $version): ?string
     {
         $package = $source['package'] ?? null;
-        if (! $package) {
+        if (! is_string($package) || empty($package)) {
             return null;
         }
         if ($version === null) {
@@ -413,12 +427,14 @@ class IconPackUpdateChecker
 
     /**
      * https://packagist.org/packages/<vendor>/<package>#<version>
+     *
+     * @param array<array-key, mixed> $source
      */
     protected function packagistReleaseUrl(array $source, ?string $version): ?string
     {
         $vendor = $source['vendor'] ?? null;
         $package = $source['package'] ?? null;
-        if (! $vendor || ! $package) {
+        if (! is_string($vendor) || ! is_string($package) || empty($vendor) || empty($package)) {
             return null;
         }
         $base = "https://packagist.org/packages/{$vendor}/{$package}";
@@ -429,6 +445,8 @@ class IconPackUpdateChecker
     /**
      * Replace `{token}` segments in a template with values from $bindings.
      * Returns null when the template is missing entirely.
+     *
+     * @param array<string, string> $bindings
      */
     protected function interpolateTemplate(?string $template, array $bindings): ?string
     {
@@ -436,7 +454,7 @@ class IconPackUpdateChecker
             return null;
         }
         foreach ($bindings as $key => $value) {
-            $template = str_replace('{' . $key . '}', (string) $value, $template);
+            $template = str_replace('{' . $key . '}', $value, $template);
         }
 
         return $template;
@@ -449,6 +467,8 @@ class IconPackUpdateChecker
      * A custom resolver passed via the constructor / setConstantsResolver()
      * short-circuits the default discovery; useful for tests that don't
      * want to register a full service provider per fixture.
+     *
+     * @return class-string<JsonConfigConstants>|null
      */
     protected function resolveConstants(string $packageName): ?string
     {
@@ -563,13 +583,13 @@ class IconPackUpdateChecker
         $ips = [];
 
         foreach (@dns_get_record($host, DNS_A) ?: [] as $record) {
-            if (isset($record['ip'])) {
+            if (isset($record['ip']) && is_string($record['ip'])) {
                 $ips[] = $record['ip'];
             }
         }
 
         foreach (@dns_get_record($host, DNS_AAAA) ?: [] as $record) {
-            if (isset($record['ipv6'])) {
+            if (isset($record['ipv6']) && is_string($record['ipv6'])) {
                 $ips[] = $record['ipv6'];
             }
         }
@@ -681,12 +701,14 @@ class IconPackUpdateChecker
      *
      * Redirects are not followed: the URL above was validated, its redirect
      * target would not be.
+     *
+     * @return array<array-key, mixed>
      */
     protected function fetch(string $url): array
     {
         $cacheKey = self::CACHE_PREFIX . md5($url);
 
-        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($url): array {
+        $payload = Cache::remember($cacheKey, $this->cacheTtl, function () use ($url): array {
             $response = Http::timeout($this->httpTimeout)
                 ->acceptJson()
                 ->withoutRedirecting()
@@ -694,8 +716,12 @@ class IconPackUpdateChecker
                 ->get($url);
             $response->throw();
 
-            return $response->json() ?? [];
+            $json = $response->json();
+
+            return is_array($json) ? $json : [];
         });
+
+        return is_array($payload) ? $payload : [];
     }
 
     /**
@@ -721,42 +747,58 @@ class IconPackUpdateChecker
      *   url        custom JSON endpoint; ``source.version_field`` is a
      *              dot-path into the response. Escape hatch for vendors
      *              not on github/npm/packagist.
+     *
+     * @param array<array-key, mixed> $upstream
+     * @param array<array-key, mixed> $payload
      */
     protected function parseLatest(array $upstream, array $payload): ?string
     {
-        $type = $upstream['source']['type'] ?? 'github';
+        $source = $this->sourceOf($upstream);
+        $type = $source['type'] ?? 'github';
+        $first = $payload[0] ?? null;
+        $first = is_array($first) ? $first : [];
+        $versionField = $source['version_field'] ?? 'version';
 
         return match ($type) {
-            'github'     => $this->trimVersion($payload['tag_name'] ?? null),
+            'github'     => $this->trimVersion(self::stringOrNull($payload['tag_name'] ?? null)),
             'github-tag' => $this->trimVersion(
-                $payload[0]['name'] ?? ($payload[0]['ref'] ?? null),
+                self::stringOrNull($first['name'] ?? ($first['ref'] ?? null)),
             ),
-            'npm'       => $this->trimVersion($payload['version'] ?? null),
+            'npm'       => $this->trimVersion(self::stringOrNull($payload['version'] ?? null)),
             'packagist' => $this->parsePackagist($upstream, $payload),
-            'url'       => $this->parseDotPath($payload, $upstream['source']['version_field'] ?? 'version'),
-            default     => $this->trimVersion($payload['version'] ?? $payload['tag_name'] ?? null),
+            'url'       => $this->parseDotPath($payload, is_string($versionField) ? $versionField : 'version'),
+            default     => $this->trimVersion(self::stringOrNull($payload['version'] ?? $payload['tag_name'] ?? null)),
         };
     }
 
     /**
      * Packagist p2 endpoint returns `packages.<vendor>/<package>` as a list
      * of versions sorted newest-first. We take the first entry's `version`.
+     *
+     * @param array<array-key, mixed> $upstream
+     * @param array<array-key, mixed> $payload
      */
     protected function parsePackagist(array $upstream, array $payload): ?string
     {
-        $key = ($upstream['source']['vendor'] ?? '') . '/' . ($upstream['source']['package'] ?? '');
+        $source = $this->sourceOf($upstream);
+        $vendor = $source['vendor'] ?? '';
+        $package = $source['package'] ?? '';
+        $key = (is_string($vendor) ? $vendor : '') . '/' . (is_string($package) ? $package : '');
         $key = trim($key, '/');
         if ($key === '') {
             return null;
         }
-        $versions = $payload['packages'][$key] ?? [];
-        $latest = $versions[0]['version'] ?? null;
+        $packages = $payload['packages'] ?? null;
+        $versions = is_array($packages) ? ($packages[$key] ?? []) : [];
+        $versions = is_array($versions) ? $versions : [];
+        $newest = $versions[0] ?? null;
+        $latest = is_array($newest) ? ($newest['version'] ?? null) : null;
         // Packagist tags often look like "v1.2.3" or "dev-main"; the latter
         // shouldn't compare as "newest" so we filter dev-* refs out.
         if (! is_string($latest) || str_starts_with($latest, 'dev-')) {
             // Walk the list until we find a stable-looking entry.
             foreach ($versions as $entry) {
-                $v = $entry['version'] ?? null;
+                $v = is_array($entry) ? ($entry['version'] ?? null) : null;
                 if (is_string($v) && ! str_starts_with($v, 'dev-')) {
                     return $this->trimVersion($v);
                 }
@@ -772,6 +814,8 @@ class IconPackUpdateChecker
      * Walk a dot-separated path into a nested array. ``"dist-tags.latest"``
      * returns ``$payload['dist-tags']['latest']`` or null if any segment
      * is missing.
+     *
+     * @param array<array-key, mixed> $payload
      */
     protected function parseDotPath(array $payload, string $path): ?string
     {
@@ -811,5 +855,27 @@ class IconPackUpdateChecker
         }
 
         return version_compare($current, $latest, '<');
+    }
+
+    /**
+     * A response value when it is a string; anything else parses as nothing.
+     */
+    private static function stringOrNull(mixed $value): ?string
+    {
+        return is_string($value) ? $value : null;
+    }
+
+    /**
+     * The `source` block of an upstream entry, or [] when it is not a block.
+     *
+     * @param array<array-key, mixed> $upstream
+     *
+     * @return array<array-key, mixed>
+     */
+    private function sourceOf(array $upstream): array
+    {
+        $source = $upstream['source'] ?? [];
+
+        return is_array($source) ? $source : [];
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services;
 
 use Throwable;
+use SplFileInfo;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -18,6 +19,7 @@ use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
 use Simtabi\Laranail\Ichava\Traits\ContainsFilePaths;
 use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Symfony\Component\Finder\SplFileInfo as FinderFile;
 use Simtabi\Laranail\Ichava\Support\IconPathStructureDetector;
 use Symfony\Component\Finder\Exception\DirectoryNotFoundException;
 
@@ -50,7 +52,9 @@ class IconWatcherService
      */
     public static function getLastScanTime(): ?Carbon
     {
-        return Cache::get(self::LAST_SCAN_KEY);
+        $lastScan = Cache::get(self::LAST_SCAN_KEY);
+
+        return $lastScan instanceof Carbon ? $lastScan : null;
     }
 
     /**
@@ -79,8 +83,7 @@ class IconWatcherService
     public function hasChanged(string $path): bool
     {
         try {
-            $store = cache()->store('file');
-            $fingerprints = $store->get(self::FINGERPRINT_CACHE_KEY, []);
+            $fingerprints = $this->storedFingerprints();
             $currentFingerprint = $this->generateFingerprint($path);
             $cachedFingerprint = $fingerprints[$path] ?? null;
 
@@ -98,7 +101,7 @@ class IconWatcherService
     {
         try {
             $store = cache()->store('file');
-            $fingerprints = $store->get(self::FINGERPRINT_CACHE_KEY, []);
+            $fingerprints = $this->storedFingerprints();
             $fingerprints[$path] = $this->generateFingerprint($path);
 
             $store->forever(self::FINGERPRINT_CACHE_KEY, $fingerprints);
@@ -114,7 +117,7 @@ class IconWatcherService
     {
         try {
             $store = cache()->store('file');
-            $fingerprints = $store->get(self::FINGERPRINT_CACHE_KEY, []);
+            $fingerprints = $this->storedFingerprints();
             unset($fingerprints[$path]);
             $store->forever(self::FINGERPRINT_CACHE_KEY, $fingerprints);
         } catch (IchavaException $e) {
@@ -137,11 +140,13 @@ class IconWatcherService
 
     /**
      * Get all watched directories
+     *
+     * @return list<array-key>
      */
     public function getWatchedDirectories(): array
     {
         try {
-            return array_keys(cache()->store('file')->get(self::FINGERPRINT_CACHE_KEY, []));
+            return array_keys($this->storedFingerprints());
         } catch (IchavaException $e) {
             return [];
         }
@@ -149,11 +154,13 @@ class IconWatcherService
 
     /**
      * Get fingerprint statistics
+     *
+     * @return array{total_watched: int, directories: list<array-key>, error?: string}
      */
     public function getStats(): array
     {
         try {
-            $fingerprints = cache()->store('file')->get(self::FINGERPRINT_CACHE_KEY, []);
+            $fingerprints = $this->storedFingerprints();
 
             return [
                 'total_watched' => count($fingerprints),
@@ -170,6 +177,8 @@ class IconWatcherService
 
     /**
      * Force update all fingerprints for registered packages
+     *
+     * @param array<array-key, string> $paths
      */
     public function updateAll(array $paths): void
     {
@@ -191,7 +200,7 @@ class IconWatcherService
         }
 
         $currentFingerprints = $this->generateFingerprints();
-        $cachedFingerprints = Cache::get(self::CHANGE_DETECTOR_KEY, []);
+        $cachedFingerprints = $this->fingerprintsFrom(Cache::get(self::CHANGE_DETECTOR_KEY, []));
 
         // First run - store fingerprints
         if (empty($cachedFingerprints)) {
@@ -233,6 +242,8 @@ class IconWatcherService
 
     /**
      * Watch for file changes and sync database
+     *
+     * @return array<string, mixed>
      */
     public function watch(): array
     {
@@ -266,6 +277,8 @@ class IconWatcherService
 
     /**
      * Force scan (bypass lock)
+     *
+     * @return array<string, mixed>
      */
     public function forceScan(): array
     {
@@ -276,6 +289,8 @@ class IconWatcherService
 
     /**
      * Generate fingerprints for all icon directories
+     *
+     * @return array<string, array{count: int, latest_mtime: int, total_size: int, path_hash: string}>
      */
     protected function generateFingerprints(): array
     {
@@ -285,7 +300,7 @@ class IconWatcherService
         foreach ($packages as $packageKey => $package) {
             $path = $package['path'] ?? null;
 
-            if (! $path || ! File::isDirectory($path)) {
+            if (! $path || ! is_string($path) || ! File::isDirectory($path)) {
                 continue;
             }
 
@@ -297,12 +312,14 @@ class IconWatcherService
 
     /**
      * Generate detailed fingerprint for change detection
+     *
+     * @return array{count: int, latest_mtime: int, total_size: int, path_hash: string}
      */
     protected function generateDetailedFingerprint(string $path): array
     {
         try {
             $files = File::allFiles($path);
-            $svgFiles = Arr::where($files, fn ($file) => $file->getExtension() === 'svg');
+            $svgFiles = Arr::where($files, fn (FinderFile $file) => $file->getExtension() === 'svg');
 
             $latestMtime = 0;
             $totalSize = 0;
@@ -333,6 +350,11 @@ class IconWatcherService
 
     /**
      * Compare fingerprints and return changed packages
+     *
+     * @param array<array-key, array{count: int, latest_mtime: int, total_size: int, path_hash: string}> $old
+     * @param array<array-key, array{count: int, latest_mtime: int, total_size: int, path_hash: string}> $new
+     *
+     * @return array<array-key, string>
      */
     protected function compareFingerprints(array $old, array $new): array
     {
@@ -383,6 +405,8 @@ class IconWatcherService
 
     /**
      * Scan all packages and sync changes
+     *
+     * @return array{packages_scanned: int, new_icons: int, updated_icons: int, deleted_icons: int, total_changes: int}
      */
     protected function scanAndSync(): array
     {
@@ -412,6 +436,10 @@ class IconWatcherService
 
     /**
      * Sync a single package with database
+     *
+     * @param array<string, mixed> $metadata
+     *
+     * @return array{new: int, updated: int, deleted: int}
      */
     protected function syncPackage(string $package, array $metadata): array
     {
@@ -423,7 +451,7 @@ class IconWatcherService
 
         $basePath = $metadata['base_path'] ?? $metadata['path'] ?? null;
 
-        if (! $basePath || ! File::isDirectory($basePath)) {
+        if (! $basePath || ! is_string($basePath) || ! File::isDirectory($basePath)) {
             return $stats;
         }
 
@@ -437,7 +465,9 @@ class IconWatcherService
 
         // Process each disk icon
         foreach ($diskIcons as $path => $iconData) {
-            if (! $dbIcons->has($path)) {
+            $existing = $dbIcons->get($path);
+
+            if ($existing === null) {
                 // New icon
                 Icon::create($iconData);
                 $stats['new']++;
@@ -447,9 +477,9 @@ class IconWatcherService
                     'name'    => $iconData['name'],
                     'path'    => $path,
                 ]);
-            } elseif ($dbIcons[$path]->file_hash !== $iconData['file_hash']) {
+            } elseif ($existing->file_hash !== $iconData['file_hash']) {
                 // Updated icon
-                $dbIcons[$path]->update($iconData);
+                $existing->update($iconData);
                 $stats['updated']++;
 
                 $this->logger->debug('Icon updated', [
@@ -482,6 +512,8 @@ class IconWatcherService
 
     /**
      * Scan disk for icons
+     *
+     * @return array<string, array{package: string, name: string, path: string, file_hash: string|false, tags: list<string>, keywords: list<string>, attributes: array<string, int|string>, metadata: array{file_size: int|false, file_modified_at: string, category: string|null}, file_modified_at: Carbon, updated_at: \Illuminate\Support\Carbon}>
      */
     protected function scanDiskIcons(string $basePath, string $package): array
     {
@@ -537,13 +569,16 @@ class IconWatcherService
 
     /**
      * Extract icon data from file
-     */
-    /**
-     * Extract icon data from file
      *
      * Handles path extraction for:
      * - CORE: svg/{set-name}/files/{category}/icon.svg → {set-name}/files/{category}/icon.svg
      * - STANDARD: svg/files/{category}/icon.svg → files/{category}/icon.svg
+     *
+     * @param FinderFile $file
+     *
+     * @return array{package: string, name: string, path: string, file_hash: string|false, tags: list<string>, keywords: list<string>, attributes: array<string, int|string>, metadata: array{file_size: int|false, file_modified_at: string, category: string|null}, file_modified_at: Carbon, updated_at: \Illuminate\Support\Carbon}
+     *
+     * @throws IchavaException
      */
     protected function extractIconData($file, string $package, string $basePath): array
     {
@@ -570,7 +605,8 @@ class IconWatcherService
         // than in the caller that happens to be safe right now.
         $this->assertPathContained($absolutePath, $basePath);
 
-        $maxSize = config('ichava.ichava-core.max_file_size', IchavaConstants::MAX_SVG_FILE_SIZE);
+        $configuredMaxSize = config('ichava.ichava-core.max_file_size', IchavaConstants::MAX_SVG_FILE_SIZE);
+        $maxSize = is_numeric($configuredMaxSize) ? $configuredMaxSize + 0 : IchavaConstants::MAX_SVG_FILE_SIZE;
 
         if ($file->getSize() > $maxSize) {
             throw IchavaException::invalidSvg("File exceeds maximum size of {$maxSize} bytes: {$absolutePath}");
@@ -578,6 +614,7 @@ class IconWatcherService
 
         $content = File::get($absolutePath);
         $svgMetadata = $this->extractSvgMetadata($content);
+        $modifiedAt = Carbon::createFromTimestamp($file->getMTime());
 
         return [
             'package'    => $package,
@@ -589,10 +626,10 @@ class IconWatcherService
             'attributes' => $svgMetadata,
             'metadata'   => [
                 'file_size'        => $file->getSize(),
-                'file_modified_at' => Carbon::createFromTimestamp($file->getMTime())->toIso8601String(),
+                'file_modified_at' => $modifiedAt->toIso8601String(),
                 'category'         => $category, // Store in metadata for reference
             ],
-            'file_modified_at' => Carbon::createFromTimestamp($file->getMTime()),
+            'file_modified_at' => $modifiedAt->copy(),
             'updated_at'       => now(),
         ];
     }
@@ -606,7 +643,8 @@ class IconWatcherService
             return 0;
         }
 
-        $latest = filemtime($path);
+        $directoryMtime = filemtime($path);
+        $latest = $directoryMtime === false ? 0 : $directoryMtime;
 
         try {
             $iterator = new RecursiveIteratorIterator(
@@ -615,7 +653,7 @@ class IconWatcherService
             );
 
             foreach ($iterator as $file) {
-                if ($file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
+                if ($file instanceof SplFileInfo && $file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
                     $mtime = $file->getMTime();
                     if ($mtime > $latest) {
                         $latest = $mtime;
@@ -623,7 +661,7 @@ class IconWatcherService
                 }
             }
         } catch (IchavaException $e) {
-            return filemtime($path);
+            return $directoryMtime === false ? 0 : $directoryMtime;
         }
 
         return $latest;
@@ -647,7 +685,7 @@ class IconWatcherService
             );
 
             foreach ($iterator as $file) {
-                if ($file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
+                if ($file instanceof SplFileInfo && $file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
                     $count++;
                 }
             }
@@ -676,7 +714,7 @@ class IconWatcherService
             );
 
             foreach ($iterator as $file) {
-                if ($file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
+                if ($file instanceof SplFileInfo && $file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
                     $size += $file->getSize();
                 }
             }
@@ -706,6 +744,8 @@ class IconWatcherService
 
     /**
      * Extract SVG metadata
+     *
+     * @return array<string, int|string>
      */
     protected function extractSvgMetadata(string $svg): array
     {
@@ -728,16 +768,18 @@ class IconWatcherService
 
     /**
      * Generate search keywords
+     *
+     * @return list<string>
      */
     protected function generateKeywords(string $name, ?string $category): array
     {
         $keywords = [];
-        $nameParts = preg_split('/[-_]/', $name);
+        $nameParts = preg_split('/[-_]/', $name) ?: [];
         $keywords = array_merge($keywords, $nameParts);
 
         if ($category !== null && $category !== '') {
             $keywords[] = $category;
-            $categoryParts = preg_split('/[-_]/', $category);
+            $categoryParts = preg_split('/[-_]/', $category) ?: [];
             $keywords = array_merge($keywords, $categoryParts);
         }
 
@@ -748,11 +790,13 @@ class IconWatcherService
 
     /**
      * Generate tags
+     *
+     * @return list<string>
      */
     protected function generateTags(string $name, ?string $category): array
     {
         $tags = [];
-        $parts = preg_split('/[-_]/', $name);
+        $parts = preg_split('/[-_]/', $name) ?: [];
         $tags = array_merge($tags, array_filter($parts, fn ($p) => strlen($p) > 2));
 
         if ($category !== null && $category !== '') {
@@ -760,6 +804,53 @@ class IconWatcherService
         }
 
         return array_values(array_unique($tags));
+    }
+
+    /**
+     * The `path => fingerprint` map kept in the file store; anything else
+     * found under the key reads as no fingerprints.
+     *
+     * @return array<array-key, mixed>
+     */
+    protected function storedFingerprints(): array
+    {
+        $fingerprints = cache()->store('file')->get(self::FINGERPRINT_CACHE_KEY, []);
+
+        return is_array($fingerprints) ? $fingerprints : [];
+    }
+
+    /**
+     * The change-detector fingerprints read back from the cache, keeping only
+     * entries of the shape {@see generateDetailedFingerprint()} writes.
+     *
+     * @return array<array-key, array{count: int, latest_mtime: int, total_size: int, path_hash: string}>
+     */
+    protected function fingerprintsFrom(mixed $cached): array
+    {
+        if (! is_array($cached)) {
+            return [];
+        }
+
+        $fingerprints = [];
+
+        foreach ($cached as $package => $fingerprint) {
+            if (
+                is_array($fingerprint)
+                && is_int($fingerprint['count'] ?? null)
+                && is_int($fingerprint['latest_mtime'] ?? null)
+                && is_int($fingerprint['total_size'] ?? null)
+                && is_string($fingerprint['path_hash'] ?? null)
+            ) {
+                $fingerprints[$package] = [
+                    'count'        => $fingerprint['count'],
+                    'latest_mtime' => $fingerprint['latest_mtime'],
+                    'total_size'   => $fingerprint['total_size'],
+                    'path_hash'    => $fingerprint['path_hash'],
+                ];
+            }
+        }
+
+        return $fingerprints;
     }
 
     /**

@@ -66,7 +66,17 @@ final class SvgPolicy
             );
         }
 
-        return self::$cache = $decoded;
+        $policy = [];
+
+        foreach ($decoded as $key => $value) {
+            if (! is_string($key)) {
+                throw new RuntimeException("SVG policy at {$path} must be a JSON object, not a list.");
+            }
+
+            $policy[$key] = $value;
+        }
+
+        return self::$cache = $policy;
     }
 
     public static function path(): string
@@ -79,7 +89,7 @@ final class SvgPolicy
      */
     public static function allowedTags(): array
     {
-        return array_values((array) (self::all()['allowedTags'] ?? []));
+        return self::names('allowedTags', self::all()['allowedTags'] ?? []);
     }
 
     /**
@@ -111,13 +121,13 @@ final class SvgPolicy
     {
         $policy = self::all();
 
-        $names = (array) ($policy['allowedAttributes'] ?? []);
+        $names = self::names('allowedAttributes', $policy['allowedAttributes'] ?? []);
 
         if (isset($policy['styleAttribute'])) {
             $names[] = 'style';
         }
 
-        foreach ((array) ($policy['fragmentOnlyRefs']['attributes'] ?? []) as $ref) {
+        foreach (self::referenceAttributes() as $ref) {
             $names[] = $ref;
         }
 
@@ -129,7 +139,7 @@ final class SvgPolicy
      */
     public static function forbiddenTags(): array
     {
-        return array_values((array) (self::all()['forbiddenTags'] ?? []));
+        return self::names('forbiddenTags', self::all()['forbiddenTags'] ?? []);
     }
 
     /**
@@ -137,7 +147,7 @@ final class SvgPolicy
      */
     public static function allowedAttributePrefixes(): array
     {
-        return array_values((array) (self::all()['allowedAttributePrefixes'] ?? []));
+        return self::names('allowedAttributePrefixes', self::all()['allowedAttributePrefixes'] ?? []);
     }
 
     /**
@@ -149,7 +159,7 @@ final class SvgPolicy
      */
     public static function referenceAttributes(): array
     {
-        return array_values((array) (self::all()['fragmentOnlyRefs']['attributes'] ?? []));
+        return self::names('fragmentOnlyRefs.attributes', self::fragmentOnlyRefs()['attributes'] ?? []);
     }
 
     /**
@@ -158,7 +168,11 @@ final class SvgPolicy
      */
     public static function fragmentPattern(): string
     {
-        $raw = (string) (self::all()['fragmentOnlyRefs']['allow'] ?? '^#[A-Za-z_][\w.:-]*$');
+        $raw = self::fragmentOnlyRefs()['allow'] ?? '^#[A-Za-z_][\w.:-]*$';
+
+        if (! is_string($raw)) {
+            throw new RuntimeException('SVG policy field fragmentOnlyRefs.allow must be a string.');
+        }
 
         return '/' . $raw . '/';
     }
@@ -185,5 +199,40 @@ final class SvgPolicy
     public static function flush(): void
     {
         self::$cache = null;
+    }
+
+    /**
+     * The `fragmentOnlyRefs` block. A missing or non-object block reads as
+     * empty, exactly as the nested `?? []` reads it replaces did.
+     *
+     * @return array<array-key, mixed>
+     */
+    private static function fragmentOnlyRefs(): array
+    {
+        $block = self::all()['fragmentOnlyRefs'] ?? [];
+
+        return is_array($block) ? $block : [];
+    }
+
+    /**
+     * A policy list, read with the same `(array)` widening as before (a lone
+     * string becomes a one-item list). An entry that is not a string fails
+     * loudly: the sanitiser could only ever have choked on it later.
+     *
+     * @return list<string>
+     */
+    private static function names(string $field, mixed $value): array
+    {
+        $names = [];
+
+        foreach ((array) $value as $name) {
+            if (! is_string($name)) {
+                throw new RuntimeException("SVG policy field {$field} must list strings only.");
+            }
+
+            $names[] = $name;
+        }
+
+        return $names;
     }
 }

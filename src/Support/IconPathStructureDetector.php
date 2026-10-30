@@ -77,7 +77,7 @@ final class IconPathStructureDetector
      *
      * @param string $basePath Base SVG directory
      *
-     * @return array Array of set directory names (e.g., ['test-icons', 'ui-icons'])
+     * @return list<string> Array of set directory names (e.g., ['test-icons', 'ui-icons'])
      */
     public static function findSetDirectories(string $basePath): array
     {
@@ -89,6 +89,10 @@ final class IconPathStructureDetector
         $directories = File::directories($basePath);
 
         foreach ($directories as $dir) {
+            if (! is_string($dir)) {
+                continue;
+            }
+
             $dirName = basename($dir);
 
             // Skip common non-set directories
@@ -115,7 +119,7 @@ final class IconPathStructureDetector
      *
      * @param string $basePath Base SVG directory (can be parent or specific set)
      *
-     * @return array Array of absolute paths to scan
+     * @return list<string> Array of absolute paths to scan
      */
     public static function getScanPaths(string $basePath): array
     {
@@ -149,7 +153,7 @@ final class IconPathStructureDetector
      *
      * @param string $basePath Base SVG directory
      *
-     * @return array Detailed structure information
+     * @return array{type: string, base_path: string, sets: list<string>, scan_paths: list<string>, is_multi_set: bool, is_single_set: bool} Detailed structure information
      */
     public static function getStructureInfo(string $basePath): array
     {

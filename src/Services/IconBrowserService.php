@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use stdClass;
+use ArrayAccess;
+use InvalidArgumentException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Simtabi\Laranail\Ichava\Models\Icon;
+use Illuminate\Database\Query\JoinClause;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -30,6 +34,10 @@ final class IconBrowserService
 
     /**
      * Get filtered and paginated icons
+     *
+     * @param array<string, mixed> $filters
+     *
+     * @return LengthAwarePaginator<int, Icon>
      */
     public function getIcons(
         array $filters = [],
@@ -55,9 +63,12 @@ final class IconBrowserService
          * variant. It was easy to miss because each half works in isolation: filtering
          * alone is correct, and searching alone is correct.
          */
-        if (! empty($filters['search'])) {
+        $search = $filters['search'] ?? null;
+
+        if (! empty($search) && is_scalar($search)) {
             // The scope takes the search alone; a second argument (once a limit) was ignored.
-            $query = Icon::fuzzySearch($filters['search']);
+            // A scalar is passed as the string the scope's `string` parameter coerced it to.
+            $query = Icon::fuzzySearch((string) $search);
         }
 
         if (! empty($filters['packages'])) {
@@ -80,8 +91,15 @@ final class IconBrowserService
             });
         }
 
-        // Apply sorting
-        $query->orderBy($sortBy, $sortDirection);
+        // Apply sorting. The query builder accepts "asc" or "desc" in any case and
+        // throws this exact exception for anything else.
+        $direction = strtolower($sortDirection);
+
+        if ($direction !== 'asc' && $direction !== 'desc') {
+            throw new InvalidArgumentException('Order direction must be a SortDirection, "asc" or "desc".');
+        }
+
+        $query->orderBy($sortBy, $direction);
 
         // Select base columns (relationships loaded separately)
         $query->select([
@@ -108,6 +126,8 @@ final class IconBrowserService
 
     /**
      * Transform icon model to API response format
+     *
+     * @return array<string, mixed>
      */
     public function transformIcon(Icon $icon): array
     {
@@ -214,18 +234,27 @@ final class IconBrowserService
     /**
      * Group icons by a specified field
      *
+     * @param Collection<array-key, mixed> $icons
      * @param string $groupBy (package|category|name)
+     *
+     * @return array<array-key, list<mixed>>
      */
     public function groupIcons(Collection $icons, string $groupBy = 'package'): array
     {
         $grouped = [];
 
         foreach ($icons as $icon) {
+            $readable = is_array($icon) || $icon instanceof ArrayAccess;
+
             $key = match ($groupBy) {
-                'package'  => $icon['package'] ?? 'Unknown',
-                'category' => $icon['category'] ?? 'Uncategorized',
-                default    => $icon['package'] ?? 'Unknown', // Default to package grouping
+                'package'  => $readable ? ($icon['package'] ?? 'Unknown') : 'Unknown',
+                'category' => $readable ? ($icon['category'] ?? 'Uncategorized') : 'Uncategorized',
+                default    => $readable ? ($icon['package'] ?? 'Unknown') : 'Unknown', // Default to package grouping
             };
+
+            if (! is_int($key) && ! is_string($key)) {
+                $key = $groupBy === 'category' ? 'Uncategorized' : 'Unknown';
+            }
 
             if (! isset($grouped[$key])) {
                 $grouped[$key] = [];
@@ -239,10 +268,12 @@ final class IconBrowserService
 
     /**
      * Get filter options (packages, categories, variants)
+     *
+     * @return array<array-key, mixed>
      */
     public function getFilters(): array
     {
-        return $this->cacheManager->remember('browser.filters', function () {
+        $filters = $this->cacheManager->remember('browser.filters', function () {
             // Check if database has any icons
             if (! $this->hasIcons()) {
                 return [
@@ -263,7 +294,7 @@ final class IconBrowserService
                 ->selectRaw('package, COUNT(*) as icon_count')
                 ->groupBy('package')
                 ->pluck('icon_count', 'package')
-                ->map(fn ($count) => (int) $count)
+                ->map(fn (mixed $count): int => is_numeric($count) ? (int) $count : 0)
                 ->all();
 
             $transformedPackages = collect($packages)->map(function ($pkg, $key) use ($iconCounts) {
@@ -320,14 +351,18 @@ final class IconBrowserService
                 'empty'      => false,
             ];
         }, expects: 'array');
+
+        return is_array($filters) ? $filters : [];
     }
 
     /**
      * Get statistics for the browser
+     *
+     * @return array<array-key, mixed>
      */
     public function getStatistics(): array
     {
-        return $this->cacheManager->remember('browser.statistics', function () {
+        $statistics = $this->cacheManager->remember('browser.statistics', function () {
             // Check if database has any icons
             if (! $this->hasIcons()) {
                 return [
@@ -365,6 +400,8 @@ final class IconBrowserService
                 'empty' => false,
             ];
         }, expects: 'array');
+
+        return is_array($statistics) ? $statistics : [];
     }
 
     /**
@@ -384,7 +421,7 @@ final class IconBrowserService
      */
     public function buildIconTree(): array
     {
-        return $this->cacheManager->remember('browser.tree', function (): array {
+        $tree = $this->cacheManager->remember('browser.tree', function (): array {
             if (! $this->hasIcons()) {
                 return [];
             }
@@ -394,7 +431,7 @@ final class IconBrowserService
             // One row per (package, term) with the number of icons carrying it.
             $rows = DB::table('ichava_icon_terms')
                 ->join('ichava_icon_termables', 'ichava_icon_termables.term_id', '=', 'ichava_icon_terms.id')
-                ->join('ichava_icons', function ($join) use ($iconMorphAlias) {
+                ->join('ichava_icons', function (JoinClause $join) use ($iconMorphAlias): void {
                     $join->on('ichava_icon_termables.termable_id', '=', 'ichava_icons.id')
                         ->where('ichava_icon_termables.termable_type', '=', $iconMorphAlias);
                 })
@@ -424,7 +461,7 @@ final class IconBrowserService
                 ->selectRaw('package, COUNT(*) as icon_count')
                 ->groupBy('package')
                 ->pluck('icon_count', 'package')
-                ->map(fn ($count) => (int) $count)
+                ->map(fn (mixed $count): int => is_numeric($count) ? (int) $count : 0)
                 ->all();
 
             // Variants per category: icons carrying BOTH terms. A pack-wide
@@ -432,7 +469,7 @@ final class IconBrowserService
             // report icons under a category that none of its icons belong to.
             $variantsByCategory = DB::table('ichava_icon_termables as tc')
                 ->join('ichava_icon_terms as c', 'c.id', '=', 'tc.term_id')
-                ->join('ichava_icon_termables as tv', function ($join) {
+                ->join('ichava_icon_termables as tv', function (JoinClause $join): void {
                     $join->on('tv.termable_id', '=', 'tc.termable_id')
                         ->on('tv.termable_type', '=', 'tc.termable_type');
                 })
@@ -454,13 +491,18 @@ final class IconBrowserService
                 $categories = [];
 
                 foreach ($packageRows->where('type', 'category') as $row) {
-                    $variants = collect($variantsByCategory->get($row->id, []))
+                    $rowId = $row->id;
+
+                    $variants = collect(is_int($rowId) || is_string($rowId) ? $variantsByCategory->get($rowId, []) : [])
+
                         ->where('slug', '!=', $row->slug)
-                        ->map(fn ($variant) => [
+                        ->filter(fn (mixed $variant): bool => $variant instanceof stdClass)
+                        ->map(fn (stdClass $variant): array => [
                             'slug'  => $variant->slug,
                             'name'  => $variant->name,
-                            'count' => (int) $variant->icon_count,
+                            'count' => is_numeric($variant->icon_count) ? (int) $variant->icon_count : 0,
                         ])
+
                         ->sortBy('name')
                         ->values()
                         ->all();
@@ -468,7 +510,7 @@ final class IconBrowserService
                     $categories[] = array_filter([
                         'name'  => $row->slug,
                         'label' => $row->name,
-                        'count' => (int) $row->icon_count,
+                        'count' => is_numeric($row->icon_count) ? (int) $row->icon_count : 0,
                         // Only present when the category actually has variants
                         // of its own; a pack whose variant slugs are the same as
                         // its categories (tabler: outline/filled) gains nothing
@@ -481,7 +523,7 @@ final class IconBrowserService
                     continue;
                 }
 
-                usort($categories, fn ($a, $b) => strcasecmp($a['label'], $b['label']));
+                usort($categories, fn (array $a, array $b): int => strcasecmp(self::labelOf($a), self::labelOf($b)));
 
                 $iconCount = $iconTotals[$package] ?? 0;
 
@@ -502,6 +544,20 @@ final class IconBrowserService
 
             return $tree;
         }, expects: 'array');
+
+        if (! is_array($tree)) {
+            return [];
+        }
+
+        $nodes = [];
+
+        foreach ($tree as $node) {
+            if (self::isTreeNode($node)) {
+                $nodes[] = $node;
+            }
+        }
+
+        return $nodes;
     }
 
     /**
@@ -515,6 +571,48 @@ final class IconBrowserService
     }
 
     /**
+     * Whether a cached tree entry has the shape `buildIconTree()` promises.
+     *
+     * @phpstan-assert-if-true array{pack: string, label: string, count: int, icon_count: int, cats: list<array<string, mixed>>} $node
+     */
+    private static function isTreeNode(mixed $node): bool
+    {
+        if (! is_array($node)
+            || ! is_string($node['pack'] ?? null)
+            || ! is_string($node['label'] ?? null)
+            || ! is_int($node['count'] ?? null)
+            || ! is_int($node['icon_count'] ?? null)
+            || ! is_array($node['cats'] ?? null)
+            || ! array_is_list($node['cats'])) {
+            return false;
+        }
+
+        foreach ($node['cats'] as $cat) {
+            if (! is_array($cat)) {
+                return false;
+            }
+
+            foreach (array_keys($cat) as $key) {
+                if (! is_string($key)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * A tree node's `label`, or '' when the node has none.
+     *
+     * @param array<array-key, mixed> $node
+     */
+    private static function labelOf(array $node): string
+    {
+        return isset($node['label']) && is_string($node['label']) ? $node['label'] : '';
+    }
+
+    /**
      * Display labels for every registered pack, keyed by package name.
      *
      * @return array<string, string>
@@ -522,7 +620,8 @@ final class IconBrowserService
     private function getPackageLabels(): array
     {
         return collect($this->registry->all())
-            ->map(fn (array $package, string $key): string => $package['name'] ?? $key)
+            ->map(fn (array $package, string $key): string => isset($package['name']) && is_string($package['name']) ? $package['name'] : $key)
+
             ->all();
     }
 

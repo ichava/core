@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Actions;
 
 use Throwable;
+use SplFileInfo;
 use Illuminate\Support\Str;
 use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
@@ -58,7 +59,7 @@ final readonly class CountSvgFiles
             $count = 0;
 
             foreach ($iterator as $file) {
-                if ($file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
+                if ($file instanceof SplFileInfo && $file->isFile() && Str::endsWith($file->getFilename(), '.svg')) {
                     $count++;
                 }
             }

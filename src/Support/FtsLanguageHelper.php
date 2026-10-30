@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use stdClass;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
@@ -61,18 +62,22 @@ final class FtsLanguageHelper
      */
     public static function getStrategy(): string
     {
-        return config('ichava.ichava-core.database.search.strategy', 'simple');
+        $strategy = config('ichava.ichava-core.database.search.strategy', 'simple');
+
+        return is_string($strategy) ? $strategy : 'simple';
     }
 
     /**
      * Get the configured primary language for FTS
+     *
+     * @return literal-string One of AVAILABLE_LANGUAGES.
      */
     public static function getPrimaryLanguage(): string
     {
         $language = config('ichava.ichava-core.database.search.language', 'simple');
 
         // For static context, use simple validation without DB check
-        if (! in_array($language, self::AVAILABLE_LANGUAGES)) {
+        if (! is_string($language) || ! in_array($language, self::AVAILABLE_LANGUAGES, true)) {
             return 'simple';
         }
 
@@ -98,7 +103,9 @@ final class FtsLanguageHelper
     /**
      * Get all configured languages for search
      *
-     * @return array<string>
+     * Every entry is one of AVAILABLE_LANGUAGES, so each is a literal SQL-safe name.
+     *
+     * @return array<literal-string>
      */
     public static function getLanguages(): array
     {
@@ -115,20 +122,26 @@ final class FtsLanguageHelper
         // Multilingual strategy
         $languages = config('ichava.ichava-core.database.search.languages', ['simple', 'english']);
 
+        if (! is_array($languages)) {
+            $languages = ['simple', 'english'];
+        }
+
         // Static context: simple validation without DB check or logger,
         // mirroring getPrimaryLanguage() above.
         return array_map(
-            fn ($lang) => in_array($lang, self::AVAILABLE_LANGUAGES) ? $lang : 'simple',
+            fn (mixed $lang): string => is_string($lang) && in_array($lang, self::AVAILABLE_LANGUAGES, true) ? $lang : 'simple',
             $languages,
         );
     }
 
     /**
      * Get search scope configuration
+     *
+     * @return array<array-key, mixed>
      */
     public static function getSearchScope(): array
     {
-        return config('ichava.ichava-core.database.search.scope', [
+        $default = [
             'icon_name'    => true,
             'keywords'     => true,
             'tags'         => true,
@@ -136,7 +149,11 @@ final class FtsLanguageHelper
             'variants'     => true,
             'metadata'     => true,
             'package_name' => false,
-        ]);
+        ];
+
+        $scope = config('ichava.ichava-core.database.search.scope', $default);
+
+        return is_array($scope) ? $scope : $default;
     }
 
     /**
@@ -144,7 +161,9 @@ final class FtsLanguageHelper
      */
     public static function isScopeEnabled(string $scope): bool
     {
-        return self::getSearchScope()[$scope] ?? false;
+        $enabled = self::getSearchScope()[$scope] ?? false;
+
+        return is_bool($enabled) ? $enabled : false;
     }
 
     /**
@@ -155,6 +174,13 @@ final class FtsLanguageHelper
      * - Category names (including parent categories)
      * - Variant names
      * - Icon metadata
+     *
+     * Both arguments are interpolated into SQL, so both must be literals.
+     *
+     * @param literal-string $iconMorphType
+     * @param literal-string $table
+     *
+     * @return literal-string
      */
     public static function buildComprehensiveSearchQuery(string $iconMorphType, string $table = 'ichava_icons'): string
     {
@@ -281,6 +307,8 @@ final class FtsLanguageHelper
 
     /**
      * Get language-specific stemming example
+     *
+     * @return array<string, mixed>
      */
     public static function getStemExample(string $language): array
     {
@@ -293,7 +321,7 @@ final class FtsLanguageHelper
             return [
                 'language' => $language,
                 'input'    => 'running quickly',
-                'tokens'   => $result->tokens ?? null,
+                'tokens'   => $result instanceof stdClass ? ($result->tokens ?? null) : null,
             ];
         } catch (Exception $e) {
             return [
@@ -338,6 +366,8 @@ final class FtsLanguageHelper
 
     /**
      * Get list of available FTS languages from database
+     *
+     * @return array<mixed>
      */
     public function getAvailableLanguages(): array
     {
@@ -346,7 +376,8 @@ final class FtsLanguageHelper
                 'SELECT cfgname FROM pg_ts_config ORDER BY cfgname',
             );
 
-            return array_map(fn ($config) => $config->cfgname, $configs);
+            return array_map(fn (mixed $config): mixed => $config instanceof stdClass ? $config->cfgname : null, $configs);
+
         } catch (Exception $e) {
             $this->logger->error("❌ Failed to fetch available FTS languages: {$e->getMessage()}");
 

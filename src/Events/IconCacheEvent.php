@@ -25,6 +25,9 @@ final class IconCacheEvent
 
     public const ACTION_CHANGED = 'changed';
 
+    /**
+     * @param array<string, mixed> $metadata
+     */
     private function __construct(
         public readonly string $action,
         public readonly ?string $package = null,
@@ -120,7 +123,9 @@ final class IconCacheEvent
      */
     public function getClearedKeys(): array
     {
-        return $this->metadata['cleared_keys'] ?? [];
+        $keys = $this->metadata['cleared_keys'] ?? [];
+
+        return is_array($keys) ? array_filter($keys, is_string(...)) : [];
     }
 
     /**
@@ -131,10 +136,10 @@ final class IconCacheEvent
     public function getRebuildStats(): array
     {
         return [
-            'icon_count'     => $this->metadata['icon_count'] ?? 0,
-            'category_count' => $this->metadata['category_count'] ?? 0,
-            'package_count'  => $this->metadata['package_count'] ?? 0,
-            'build_time_ms'  => $this->metadata['build_time_ms'] ?? 0.0,
+            'icon_count'     => $this->getIconCount(),
+            'category_count' => $this->getCategoryCount(),
+            'package_count'  => $this->getPackageCount(),
+            'build_time_ms'  => $this->getBuildTimeMs(),
         ];
     }
 
@@ -143,7 +148,7 @@ final class IconCacheEvent
      */
     public function getIconCount(): int
     {
-        return $this->metadata['icon_count'] ?? 0;
+        return $this->intMetadata('icon_count');
     }
 
     /**
@@ -151,7 +156,7 @@ final class IconCacheEvent
      */
     public function getCategoryCount(): int
     {
-        return $this->metadata['category_count'] ?? 0;
+        return $this->intMetadata('category_count');
     }
 
     /**
@@ -159,7 +164,7 @@ final class IconCacheEvent
      */
     public function getPackageCount(): int
     {
-        return $this->metadata['package_count'] ?? 0;
+        return $this->intMetadata('package_count');
     }
 
     /**
@@ -167,11 +172,15 @@ final class IconCacheEvent
      */
     public function getBuildTimeMs(): float
     {
-        return $this->metadata['build_time_ms'] ?? 0.0;
+        $value = $this->metadata['build_time_ms'] ?? null;
+
+        return is_float($value) || is_int($value) ? (float) $value : 0.0;
     }
 
     /**
      * Convert event to array for logging
+     *
+     * @return array{action: string, package: string|null, reason: string|null, metadata: array<string, mixed>}
      */
     public function toArray(): array
     {
@@ -181,5 +190,15 @@ final class IconCacheEvent
             'reason'   => $this->reason,
             'metadata' => $this->metadata,
         ];
+    }
+
+    /**
+     * An integer metadata entry, or 0 when it is absent or not an integer.
+     */
+    private function intMetadata(string $key): int
+    {
+        $value = $this->metadata[$key] ?? null;
+
+        return is_int($value) ? $value : 0;
     }
 }

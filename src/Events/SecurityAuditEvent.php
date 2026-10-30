@@ -24,6 +24,9 @@ final readonly class SecurityAuditEvent
 {
     use Dispatchable;
 
+    /**
+     * @param array<string, mixed> $context
+     */
     public function __construct(
         public string $event,
         public int $severity,

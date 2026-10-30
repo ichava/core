@@ -36,23 +36,27 @@ class IconSetBuilder implements IconSetInterface
 
     protected IconSetConfig $config;
 
+    /** @var array<array-key, IconData> */
     protected array $discoveredIcons = [];
 
     // From IconSetBuilder (fluent configuration)
     protected string $name;
 
+    /** @var string|list<string>|null */
     protected string|array|null $paths = null;
 
     protected ?string $prefix = null;
 
     protected ?string $defaultVariant = null;
 
+    /** @var array<int, string> */
     protected array $variants = [];
 
     protected bool $supportsCategories = false;
 
     protected string $defaultClass = 'icon';
 
+    /** @var array<string, mixed> */
     protected array $defaultAttributes = [];
 
     protected ?string $fallback = null;
@@ -168,8 +172,8 @@ class IconSetBuilder implements IconSetInterface
         // Normalize path:
         // 1. Replace multiple consecutive slashes with single slash
         // 2. Remove trailing slashes
-        $path = preg_replace('#/+#', '/', $path); // Replace // with /
-        $path = preg_replace('#\\\\+#', '\\\\', $path); // Replace \\\\ with \\
+        $path = preg_replace('#/+#', '/', $path) ?? $path; // Replace // with /
+        $path = preg_replace('#\\\\+#', '\\\\', $path) ?? $path; // Replace \\\\ with \\
         $path = rtrim($path, '/\\');
 
         // Convert relative paths to absolute
@@ -206,7 +210,7 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set multiple icon paths
      *
-     * @param array $paths Array of paths
+     * @param list<string> $paths Array of paths
      *
      * @return $this
      */
@@ -248,7 +252,7 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set available variants
      *
-     * @param array $variants Variant names
+     * @param array<int, string> $variants Variant names
      *
      * @return $this
      */
@@ -290,7 +294,7 @@ class IconSetBuilder implements IconSetInterface
     /**
      * Set default attributes
      *
-     * @param array $attributes Default attributes
+     * @param array<string, mixed> $attributes Default attributes
      *
      * @return $this
      */
@@ -425,7 +429,10 @@ class IconSetBuilder implements IconSetInterface
      * Cached as `array<string, array>` (never objects) for the same reason
      * documented on {@see get()}.
      *
-     * @return array<string, IconData>
+     * Keyed by icon name; a numeric name becomes an integer key, as PHP
+     * does with any numeric-string key.
+     *
+     * @return array<array-key, IconData>
      */
     public function all(?string $variant = null, ?string $category = null): array
     {
@@ -470,6 +477,8 @@ class IconSetBuilder implements IconSetInterface
 
     /**
      * Get categories
+     *
+     * @return array<int, string>
      */
     public function categories(?string $variant = null): array
     {
@@ -510,6 +519,8 @@ class IconSetBuilder implements IconSetInterface
 
     /**
      * Get icon variants
+     *
+     * @return array<int, string>
      */
     public function variants(): array
     {
@@ -616,6 +627,8 @@ class IconSetBuilder implements IconSetInterface
 
     /**
      * Discover all SVG icons
+     *
+     * @return array<array-key, IconData>
      */
     protected function discoverAllIcons(?string $variant, ?string $category): array
     {
@@ -624,7 +637,7 @@ class IconSetBuilder implements IconSetInterface
 
         $icons = [];
         foreach ($files as $file) {
-            if (! $this->isSvgFile($file)) {
+            if (! is_string($file) || ! $this->isSvgFile($file)) {
                 continue;
             }
 
@@ -681,6 +694,8 @@ class IconSetBuilder implements IconSetInterface
 
     /**
      * Discover categories
+     *
+     * @return array<int, string>
      */
     protected function discoverCategories(?string $variant): array
     {
@@ -690,10 +705,15 @@ class IconSetBuilder implements IconSetInterface
             return [];
         }
 
-        return Arr::map(
-            $this->files->directories($searchPath),
-            fn ($dir) => basename($dir),
-        );
+        $categories = [];
+
+        foreach ($this->files->directories($searchPath) as $key => $dir) {
+            if (is_int($key) && is_string($dir)) {
+                $categories[$key] = basename($dir);
+            }
+        }
+
+        return $categories;
     }
 
     /**
