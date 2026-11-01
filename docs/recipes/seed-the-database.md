@@ -152,7 +152,7 @@ https://example.com/horizon
 ### Configuration
 
 ```php
-// config/ichava/core.php
+// config/ichava/ichava-core.php
 'database' => [
     'batch_size' => env('ICHAVA_BATCH_SIZE', 1000),  // Icons per job
     'use_queue' => true,                              // Enable queue mode
@@ -200,7 +200,7 @@ php artisan migrate:fresh --seed           # With migrations
 To enable auto-seeding (not recommended for production):
 
 ```php
-// config/ichava/core.php
+// config/ichava/ichava-core.php
 'database' => [
     'auto_seed' => true,  // Enable auto-seeding
 ],

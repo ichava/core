@@ -2,10 +2,10 @@
 
 *Reference.*
 
-Publish `config/ichava/core.php` once after install:
+Publish `config/ichava/ichava-core.php` once after install:
 
 ```bash
-php artisan vendor:publish --tag=ichava::core-config
+php artisan vendor:publish --tag=ichava::ichava-core-config
 ```
 
 The published file is the engine's single source of truth. Browser-specific keys live in [`config/ichava/icon-browser.php`](https://opensource.simtabi.com/documentation/ichava/icon-browser/configuration), published separately.

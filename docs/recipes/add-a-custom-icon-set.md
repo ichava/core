@@ -7,13 +7,13 @@ For icon sets that live **inside your own application** (rather than a distribut
 ### Publish the config
 
 ```bash
-php artisan vendor:publish --tag=ichava::core-config
+php artisan vendor:publish --tag=ichava::ichava-core-config
 ```
 
-Then edit `config/ichava/core.php` and add entries under `custom-icons.sets`:
+Then edit `config/ichava/ichava-core.php` and add entries under `custom-icons.sets`:
 
 ```php
-// config/ichava/core.php
+// config/ichava/ichava-core.php
 return [
     // ...
 

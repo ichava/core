@@ -45,7 +45,7 @@ Both extend `IconComponent` and accept the same `name`, `class`, `title`, `aria`
 <x-ichava::ichava-ui-icons   name="search" class="w-5 h-5" />
 ```
 
-The `test_icons` component is auto-disabled in production, see `components.test_icons` in `config/ichava/core.php`.
+The `test_icons` component is auto-disabled in production, see `components.test_icons` in `config/ichava/ichava-core.php`.
 
 ### Per-package components
 

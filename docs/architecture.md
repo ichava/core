@@ -232,7 +232,7 @@ Common bug: logging in `registeringPackage()` throws `Log [ichava] not defined` 
 
 `IchavaServiceProvider::configurePackage()` runs before any bindings are registered (the packager's earliest lifecycle hook). It declares:
 
-- The published config file (`config/ichava/core.php`)
+- The published config file (`config/ichava/ichava-core.php`)
 - All Artisan commands
 - The `@ichava_defs` Blade directive
 

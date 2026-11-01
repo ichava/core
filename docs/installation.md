@@ -12,25 +12,23 @@ Relocated from the README, which is now a slim pointer.
 
 ## 1. Point Composer at the repositories
 
-**Nothing in the Ichava ecosystem is published on Packagist yet.** `composer require ichava/core`
-on its own fails with "could not be found". Add the VCS repositories to your application's
-`composer.json` first, including the three `laranail/*` packages core depends on, which are also
-unpublished:
+`ichava/core` is on Packagist, but four `laranail/*` packages it depends on are not yet, so
+`composer require ichava/core` on its own fails with "could not be found" for them. Add their VCS
+repositories to your application's `composer.json` first:
 
 ```json
 {
     "repositories": [
-        { "type": "vcs", "url": "https://github.com/ichava/core" },
         { "type": "vcs", "url": "https://github.com/laranail/package-tools.git" },
         { "type": "vcs", "url": "https://github.com/laranail/console.git" },
-        { "type": "vcs", "url": "https://github.com/laranail/enumerator.git" }
+        { "type": "vcs", "url": "https://github.com/laranail/enumerator.git" },
+        { "type": "vcs", "url": "https://github.com/laranail/db-tools.git" }
     ]
 }
 ```
 
 Composer reads `repositories` only from the root package, so a package's own entries do not carry
-across to yours: every unpublished package in the tree has to be named here, core's dependencies
-included.
+across to yours: every package not on Packagist has to be named here, core's dependencies included.
 
 ## 2. Require the package
 
@@ -43,10 +41,10 @@ The `IchavaServiceProvider` registers automatically via Laravel package discover
 ## 3. Publish the config
 
 ```bash
-php artisan vendor:publish --tag=ichava::core-config
+php artisan vendor:publish --tag=ichava::ichava-core-config
 ```
 
-Creates `config/ichava/core.php`. See [configuration](configuration.md) for the keys.
+Creates `config/ichava/ichava-core.php`. See [configuration](configuration.md) for the keys.
 
 ## 4. Run the migrations
 
@@ -103,11 +101,11 @@ Or with the helper:
 
 - `<x-ichava::icon>` Blade component
 - `ichava()` global helper
-- `ichava:*` Artisan commands
-- The icon registry, scaffolder, seeder
-- No HTTP routes, no Vue, no Vite
+- `ichava::ichava-core.*` Artisan commands
+- The icon registry and seeder
+- No HTTP routes and no JavaScript toolchain
 
-For the visual icon browser at `/ichava/icons` and the REST API, install [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) on top. It is a licensed, proprietary add-on in a private repository; everything above works without it.
+For the visual icon browser at `/ichava/icons` and the REST API, install [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) on top. It is a licensed, proprietary add-on; everything above works without it.
 
 ## See also
 
