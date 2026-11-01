@@ -4,6 +4,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+## [0.1.0] - TBD
+
+First release of `ichava/core`. The repository is published as a single commit; the 0.1.x tags cut between 2026-10-23 and 2026-10-27 (v0.1.0 to v0.1.3) are folded into this release, and their notes are kept below under *Archived history*.
+
 ### Added
 
 - **An icon's subcategory, `sub`.** `IconBrowserService::getIcons()` loads each term's `parent_id`, which tells a nested category from a top-level one, and the new `Icon::$primary_subcategory` returns the nested category the icon sits in (null at the top level), reading the loaded terms when they carry `parent_id` and querying otherwise. `transformIcon()` adds `sub`, the subcategory's slug; every other key is unchanged. This is the per-icon counterpart of the `subs[]` filter. `tests/Feature/IconSubcategoryTest.php` (all 4 cases fail on the previous code).
@@ -25,6 +29,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Changed
 
+- **Release tooling starts from 0.1.0.** `.release-please-manifest.json` reads `0.1.0` and `release-please-config.json` no longer names a `bootstrap-sha`, so after the hand-cut `v0.1.0` tag release-please proposes `0.1.1` next. `composer.json` describes the package as it ships (it named a scaffolder core no longer carries) and the README gains the Packagist badge and a quick start.
 - **Release-prep guard: every `ichava/*` constraint admits 0.1.0.** `tests/Unit/SiblingConstraintsTest.php` (the packs' copy, unchanged) fails when a constraint in `require` or `require-dev` excludes the released 0.1.0, and when it finds none to check; `composer/semver` is a direct dev dependency for it. CI's test and database jobs alias `ichava/icon-sets-package-scaffolder`'s `main` into the 0.1 line before installing, print the commit it resolved, and restore `composer.json` before the tests run, so the guard reads the committed constraints.
 
 - **`transformIcon()`'s `svg_url` follows icon-browser's REST API to `/api/v1`.** It resolves the route named `ichava.api.v1.icons.svg`, the name icon-browser gives the SVG endpoint once its API is mounted under `/api/v1`; it is null, as before, when that route is not registered. Against an icon-browser that still names the route `ichava.api.icons.svg`, `svg_url` is null and tiles render from `svg_content`.
@@ -41,17 +46,16 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 - **PHPStan analyses all of `src/` at level max, with no exclusions and no baseline.** `src/Providers`, `src/Commands`, `src/Jobs`, `src/Listeners`, `src/View` and `src/Facades` were excluded from analysis; bringing them in surfaced 304 findings, fixed in code: typed array shapes and lists on command and job helpers, typed container and scheduler closures in the provider, corrected `IchavaFacade` `@method` tags (one named a class that does not exist, `Interfaces\IconSetInterface`), `@phpstan-impure` on `DatabaseOperationsService::tablesExist()`, and narrowing of `mixed` config, env, console and progress values. The narrowing goes through a new internal `Support\Coerce`, which returns exactly what the bare cast returned for every scalar and null (`tests/Unit/CoerceTest.php` pins that). Valid input behaves as before. Malformed input now falls back instead of throwing a `TypeError`: a non-string option or config value reads as unset, `--format=json` throws a `JsonException` on unencodable data rather than printing nothing, and a log file that vanishes between listing and reading is counted as failed by `cleanup-logs`. The provider's direct `env()` reads go through one private method carrying the one `larastan.noEnvCallsOutsideOfConfig` waiver, since routing them through `config()` would change defaults (its log level and Horizon `maxProcesses` differ from `config/ichava-core.php`). Two errors stay ignored in `phpstan.neon.dist`, each pinned to one file and a count of 1, both PHPStan limitations with traits: `HasIconSetVariants` has no user inside this repository (the icon packs use it), and `HasIconSizing`'s `?? true` default reads as redundant in `IconComponent`'s context. (The `HasIconSizing` ignore is gone again: `lockAspectRatio` is nullable now, so the default is reachable and one ignore remains.) The repo-wide `trait.unused` ignore is gone. `tests/Unit/PhpstanLevelTest.php` now also fails if `excludePaths` names any of the six directories or an ignore lacks a path and count.
 - **Every workflow runs on every pull request.** The `paths-ignore: '**.md'` and `paths:` filters are removed from the `pull_request` triggers, so every check reports on every pull request and can be a required status check on `main`. A path-filtered required check never reports on the pull requests it skips, and blocks them for good.
-- **The package names Simtabi LLC as its author** (W-20, XR-3). The `composer.json` author was a person with a personal address; it is now `Simtabi LLC <ichava@simtabi.com>`, following the 2026-10-28 decision that no personal name or email is published. `tests/Unit/NoPersonalIdentityTest.php` reads `composer.json`, `README.md`, `LICENSE`, `docs/` and `src/` and fails on a personal name or address, with a floor on the files it read.
-- **PHPStan runs at level max, with no baseline** (Wave 2, workstream B). Raising the level from 5 to max surfaced 1,060 findings across 57 files, all fixed in code: precise array shapes, list and generic types, `@phpstan-assert-if-true` guards on cached values, and narrowing of `mixed` config, cache and JSON values to the default each read site already used. No `@phpstan-ignore` was added and the empty `phpstan-baseline.neon` is gone. Valid input behaves as before; malformed input (a non-string config value, a corrupt cache entry, a non-object `config.json`) now falls back to the existing default or throws a named exception where it used to throw a `TypeError`. `tests/Unit/PhpstanLevelTest.php` reads `phpstan.neon.dist` and fails if the level is not `max` or a baseline returns. The excluded paths (`Providers`, `Commands`, `Jobs`, `Listeners`, `View`, `Facades`) are still excluded.
-- **PHPStan runs at level 5, with Larastan** (C3; it ran at level 0). Larastan teaches PHPStan Eloquent, which took the level-5 findings from 101 to 60. The rest are fixed: Eloquent relation generics, `@property` docs for the accessors, and a typed driver lookup for the scopes. Six were real bugs, listed under Fixed. Where PHPStan calls code redundant that the preserve rule keeps (a public constant, fluent properties nothing reads yet, defensive guards, and two `catch` blocks whose widening would change failure behaviour), a one-line `@phpstan-ignore` gives the reason in place. The traits used only from the excluded `View` and `Commands` paths are ignored in config until those paths are analysed.
+- **The package names Simtabi LLC as its author** (W-20, XR-3). The `composer.json` author was a person with a personal address; it is now `Simtabi LLC <opensource@simtabi.com>`, the community role address, following the 2026-10-28 decision that no personal name or email is published. `tests/Unit/NoPersonalIdentityTest.php` reads `composer.json`, `README.md`, `LICENSE`, `docs/` and `src/` and fails on a personal name or address, with a floor on the files it read.
+- **PHPStan runs at level max, with no baseline** (Wave 2, workstream B). Raising the level from 5 to max surfaced 1,060 findings across 57 files, all fixed in code: precise array shapes, list and generic types, `@phpstan-assert-if-true` guards on cached values, and narrowing of `mixed` config, cache and JSON values to the default each read site already used. No `@phpstan-ignore` was added and the empty `phpstan-baseline.neon` is gone. Valid input behaves as before; malformed input (a non-string config value, a corrupt cache entry, a non-object `config.json`) now falls back to the existing default or throws a named exception where it used to throw a `TypeError`. `tests/Unit/PhpstanLevelTest.php` reads `phpstan.neon.dist` and fails if the level is not `max` or a baseline returns. That step left `Providers`, `Commands`, `Jobs`, `Listeners`, `View` and `Facades` excluded; the entry above brought them in.
+- **PHPStan runs at level 5, with Larastan** (C3; it ran at level 0; the first step towards the level-max entries above). Larastan teaches PHPStan Eloquent, which took the level-5 findings from 101 to 60. The rest are fixed: Eloquent relation generics, `@property` docs for the accessors, and a typed driver lookup for the scopes. Six were real bugs, listed under Fixed. Where PHPStan calls code redundant that the preserve rule keeps (a public constant, fluent properties nothing reads yet, defensive guards, and two `catch` blocks whose widening would change failure behaviour), a one-line `@phpstan-ignore` gives the reason in place. The traits used only from the excluded `View` and `Commands` paths are ignored in config until those paths are analysed.
 
 ### Removed
 
 - **Dead members the release-0.1.0 wire-in plan marks for removal** (each had no caller in core, icon-browser, the packs, the scaffolder or ichava.com; measured with `git grep -w` against `origin/main`): `SvgDriver::getViewBox()`/`getDimensions()` (duplicates of the stored viewbox, and `width=` matched `stroke-width`); `JsonConfigConstants::getVariantSuffix()`, `getBaseSvgPath()`, `getCategoryPaths()`, `getVariantPaths()`; `IchavaConstants::RATE_LIMIT_CACHE`, `getCacheTTL()`, `getSvgSizeLimits()`, `getPathLimits()`; `IconTerm::scopeWithIconCount()`, `getDepth()`; ten `IchavaException` constructors with no throw site (`missingMethodImplementation`, `invalidIconSetClass`, `fileOperationFailed`, `cacheFailure`, `serviceFailure`, `discoveryFailed`, `browserOperationFailed`, `httpRequestFailed`, `invalidData`, `classNotFound`); `FtsLanguageHelper::buildMultilingualQuery()`, `buildSingleLanguageQuery()`, `getAvailableLanguages()`; `PathResolver::packageRootFromProvider()`, `svgPathFromProvider()`; `DeferredIconsRegistry::getRegisteredIds()`; `ServiceProvider::ICON_ECOSYSTEM_NAME`; `IconRegistrationEvent::MODE_*`; `IconBrowserService`'s unused `$discoveryService` constructor argument; `CacheOperationsService::getManifest()` (returned absolute paths); `IconDiscoveryService::getRegisteredPackages()`, `getIconSvg()` and `renderIconSvg()` (both returned **unsanitised** SVG), `scanIconDirectory()`; `DatabaseOperationsService::ensureTablesExist()`; `IconSetBuilder::getMergedSets()`; `IconWatcherService::getWatchedDirectories()`, `clearFingerprints()`, `extractCategory()`; `IconCacheService::clearDiscovery()`, `warmUp()`, `formatSize()`, `clearAndRefresh()`, `setTtl()`, `getTtl()`, `setPrefix()`; `IconRegistry::getByIconSet()`; `ManagesAttributes::setAttributes()`, `addClass()`, `clearAttributes()`, `renderAttributes()` and `ManagesSizes::toInlineStyle()` (mutated a singleton; `IconRenderer` is the per-render API). Config keys `security.sanitize`, `svg.tag`, `svg.extensions`; translation keys `errors.log_dir_missing`, `info.dry_run_notice`.
 - **`.parked/`** and its three tests. The docs that still taught `JobProgressTracker` and `$seeder->getStatus()` now point at `SeederRunTracker` and `Bus::findBatch()`.
-
-
 - **`ConfigurationService::CACHE_TTL`**, a private constant nothing read, with the `@phpstan-ignore` comment that wrongly called it a public constant kept for outside callers. A private constant has no outside callers.
+- **`IconBrowserService::shortIconRef()`**, deprecated in 0.1.3 (Sim's call: remove deprecations rather than carry them). It only fed the broken generic snippet, its `set:path` reference is one the registry refuses, and nothing in the ichava packages calls it. Use `fullIconPath()`.
 
 ### Fixed
 
@@ -71,13 +75,19 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 `tests/Feature/SearchResultTermsTest.php`, `tests/Feature/IconSvgAttributesTest.php` and a new case in `tests/Feature/IconsManifestWriteTest.php` cover the first four, and fail on the old code.
 
-### Removed
+## [Archived history]
 
-- **`IconBrowserService::shortIconRef()`**, deprecated in 0.1.3 (Sim's call: remove deprecations rather than carry them). It only fed the broken generic snippet, its `set:path` reference is one the registry refuses, and nothing in the ichava packages calls it. Use `fullIconPath()`.
+> The first sections below are the 0.1.x releases folded into 0.1.0 (v0.1.0 to v0.1.3, 2026-10-23 to 2026-10-27); their tags and GitHub releases are removed
+> by the single-commit publication. After them come the sections from before the 2026-10-23 re-base.
+> Both are reproduced verbatim, one heading level down.
+>
+> Versioning was re-based to 0.1.0 on 2026-10-23. The tags and GitHub releases below were removed;
+> every commit they pointed at was on `main`
+> until the single-commit publication. Sections reproduced verbatim, one heading level down.
 
-## [0.1.3] - 2026-10-27
+### [0.1.3] - 2026-10-27
 
-### Fixed
+#### Fixed
 
 - **`icon_path` resolves.** It was assembled from the primary terms as `package::category/name:variant`, and the registry refuses a `:` in an icon name, so every icon with a variant (all of tabler) carried a path that threw when pasted into `ichava()` or `<x-ichava::icon>`; a pack nested deeper than one folder (bundled's `iconpark/...`) also lost the folders between its category and its name. It is now built from the stored file path, the way the registry keys icons: `files/outline/home.svg` becomes `ichava/icon-sets-tabler::outline/home`. Icons with no variant and one folder keep the same path. `Icon::registryKey()` is the shared rule.
 - **Each `ichava()` call starts from a clean renderer.** `Ichava` is a singleton and handed out the one renderer it was built with, so a call inherited the previous call's classes and attributes: `ichava('x')` after `ichava('y')->class('big')` rendered `big`. `Ichava::render()` now clones a renderer that is never mutated.
@@ -87,23 +97,23 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 `tests/Feature/IconPathResolvesTest.php` covers these, and seeds the test pack to check that every `icon_path` resolves in the registry and renders through `<x-ichava::icon>`. It also renders every snippet the browser service hands out, a pack tag included, through Blade.
 
-### Deprecated
+#### Deprecated
 
 - **`IconBrowserService::shortIconRef()`**, which only the broken generic snippet used. It still works unchanged; use `fullIconPath()`. Removable no earlier than 0.2.0.
 
-## [0.1.2] - 2026-10-26
+### [0.1.2] - 2026-10-26
 
-### Added
+#### Added
 
 - **Icon aliases: an old icon name can resolve to an icon kept under another name.** A pack ships them as `aliases.json` beside `config.json` (old path => kept path, within the pack), or a provider calls `IconRegistry::alias($set, $map)`; `IconRegistry::aliases($set)` reads them back. `IconRegistry::render()` and `has()`, and so `<x-ichava::icon>` and the `ichava()` helper, follow an alias only after the requested name misses, so an alias never shadows a real icon. Dot and slash form are one name. An alias that names itself or another alias, and an `aliases.json` that is not a JSON object, throw `IchavaException` at registration; unregistering a set drops its aliases. This lets a pack merge byte-identical duplicate icons without breaking a name anyone uses. Additive: a pack without `aliases.json` behaves as before. `tests/Feature/IconAliasTest.php` asserts each old name renders byte-for-byte what the kept name renders; with the lookup removed from `render()`, four of its sixteen tests fail.
 
-### Changed
+#### Changed
 
 - **`IconSetVariantInterface::getPath()` may return `null`.** Its return type widens from `string` to `?string`, for a variant or category with no directory of its own, such as `icon-sets-bundled`'s categories, which group whole sets. Every existing implementation that returns `string` still satisfies the interface, because a narrower return type is covariant, so no pack has to change; a caller of `getPath()` through the interface must now handle `null`. Nothing in core calls it. `tests/Unit/VariantPathContractTest.php` declares one enum returning a path and one returning `null`, and asserts the interface's return type.
 
-## [0.1.1] - 2026-10-26
+### [0.1.1] - 2026-10-26
 
-### Changed
+#### Changed
 
 - **The SVG policy's comments describe the corpus, not named packs.** Six `_comment` and `_count_note` strings in `resources/security/svg-policy.json` cited per-pack icon counts for two packs that are now private. They now give corpus-wide counts and refer to "a proprietary icon set" where the detail matters. Only underscore-prefixed comment keys changed: with those removed, the JSON is identical to the previous release, so every runtime enforces the same policy. The copies in icon-sets-sync and react-icon-browser are re-synced to the new digest (`56e8145b2cd87c7990cecf6816de5e062cb771d6eccd5249349c6c102c56e70d`).
 - **Source comments use public packs as examples.** `IconComponent`'s usage examples and the `getIconSet()`, `getVendorPackage()` and `buildIconPath()` docblocks, `IchavaPackageInterface::getIconSetName()`, and the counts in `Icon`, `NormalisesSvgSizing`, `NamespacesSvgIds` and `SvgPolicy` named two packs that are now private. They now name `icon-sets-tabler` and `icon-sets-flag` paths that exist (`outline/home`, `4x3/gb`). Comments only; no code changes.
@@ -112,24 +122,24 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 - **Docs mark `ichava/icon-browser` as a licensed add-on.** It went private and proprietary when it took the react-icon-browser UI, which contains Untitled UI PRO components. Getting started, installation and the architecture diagram say so, and the diagram no longer describes its front end as a Vue/Vite SPA. Core itself is unchanged and stays usable headless.
 - **Two archetype test fixtures are now synthetic.** `tests/fixtures/archetypes/gradient.svg` and `inline-style.svg` were copies of Metronic icons, which are proprietary artwork and cannot ship in a public repository. Both are replaced with hand-drawn SVGs that keep the constructs each archetype exists to exercise: gradients with stops reached through `url(#id)` plus a clip path, and an Illustrator-style export whose only paint is `style="fill:..."`. `manifest.json` records them as `synthetic` with no upstream source. The gradient test also asserts that every `url(#id)` still resolves after id namespacing, which it did not check before. Test-only; nothing shipped changes.
 
-### Added
+#### Added
 
 - **Releases are prepared by release-please.** A *Release Please* workflow reads the Conventional Commit log, keeps one release pull request open that bumps `.release-please-manifest.json`, and tags the release when that pull request merges; the tag starts `release.yml` as before. On 0.x a breaking change bumps the minor and everything else bumps the patch. The minor moves in lockstep with the other coupled ichava packages: a breaking change anywhere in the family reaches every coupled repository as a `Release-As: 0.N.0` footer, so `^0.N` means the same line everywhere. Release notes stay hand-written: release-please is set to `skip-changelog`, and the workflow closes this `[Unreleased]` section under the new version on the release branch, failing if it is empty. It runs on `workflow_dispatch`, a weekly schedule, and the merge of a release pull request, so the only `push` trigger is still the tag. The pull request and the tag are made with a per-run Refresh Bot token, because ones made with `GITHUB_TOKEN` start no workflows. `release.yml` gains a `workflow_dispatch` recovery path for a tag push that started nothing; its first step refuses any ref that is not a `vX.Y.Z` tag.
 
-### Fixed
+#### Fixed
 
 - **Icons one directory deeper than the first resolve again.** `IconRegistry::fromDirectory()` and `ConfigurationService` looked for `variants` and `categories` at the top level of `config.json`, but every pack, the scaffolder's stub and `JsonConfigConstants` keep them under `metadata.data`. No pack got category support, so `IconSetBuilder` dropped the middle segment of a three-segment path and looked up `ichava/icon-sets-emoji::twemoji/smileys-emotion/<name>` as `files/twemoji/<name>.svg`. That broke all 10,567 `icon-sets-emoji` icons and the 15,393 `icon-sets-bundled` icons in sub-directories; tabler, flag and metronic use two-segment paths and were unaffected. Both classes now read `metadata.data.*` through `Support\PackConfigData`, falling back to the top-level keys, so a config written against the old lookup still works. `tests/Feature/PackConfigShapeTest.php` registers a fixture pack of each shape and failed on `main`.
 - **`0` is a valid icon name and path segment.** `PathResolver` refused `fontawesome/solid/0` because it tested `empty(trim($name))`, and `empty('0')` is true. The name and segment checks, path building in `PathResolver`, `IconSetBuilder` and the `<x-ichava::icon>` component, the manifest key, the deferred-sprite id, `Icon::findByName()` and the watcher's category and keyword extraction now compare against `''` instead of relying on truthiness. Covered for `0` and `00` in `PathResolverTest` and `PackConfigShapeTest`.
 - **The release pull request is found in the same run that opens it.** The step that hands the release branch to the changelog close asked `gh pr list --label 'autorelease: pending'`, which goes through GitHub's search index; on the first live run (js-motion#30) the index had not caught up with the pull request opened seconds earlier, so the close was skipped and a second dispatch was needed. It now takes the branch from release-please's own `pr` output, and only when the action reports nothing (the pull request was already current) falls back to the open pull requests, matched by the `release-please--branches--main` prefix rather than the label.
 
-## [0.1.0] - 2026-10-23
+### [0.1.0] - 2026-10-23
 
 Versioning re-based to 0.1.0. This release contains everything previously tagged v0.1.0 through v0.4.2 (2026-08-31 to 2026-09-26) plus the changes below. Those tags and their GitHub releases were removed; every commit they pointed at is on `main`, and their sections are kept under *Archived pre-reset history*.
 
-### Changed
+#### Changed
 
 
-### Added
+#### Added
 
 - **Opt-in `ichava.ichava-core.svg.monochrome_to_current_color`** (env `ICHAVA_SVG_MONOCHROME_TO_CURRENT_COLOR`,
   default `false`). When on, a monochrome icon whose paint is hardcoded black (`#000`, `#000000`, `black`,
@@ -138,7 +148,7 @@ Versioning re-based to 0.1.0. This release contains everything previously tagged
   flag is part of the render fingerprint, so enabling it re-keys the icon cache without bumping
   `ICHAVA_CACHE_VERSION`; a published config needs the key added.
 
-### Changed
+#### Changed
 
 - **References follow the repository renames.** `ichava/maintainer-toolkit` is now `ichava/icon-sets-sync`, `ichava/motion` is `ichava/js-motion` and `ichava/react-browser` is `ichava/react-icon-browser`. GitHub redirects the old names, but redirects are not permanent.
 - **The daily icon-set catalogue sync opens its pull request as the Refresh Bot GitHub App.** A pull
@@ -194,7 +204,7 @@ Versioning re-based to 0.1.0. This release contains everything previously tagged
 - **`database stats` and `info stats` share one statistics table**, so `info stats` now also
   shows Term Relationships, which its service already returned.
 
-### Removed
+#### Removed
 
 - **The folder-tree scanner in `IconBrowserService`.** Since #104 the tree reads the
   database taxonomy, which left five private helpers with no caller: `getPackageConfig`,
@@ -222,7 +232,7 @@ Versioning re-based to 0.1.0. This release contains everything previously tagged
   gone**; use laranail/console's `FileSize`, `TimeFormat` and `Gauge` for the first four. A
   command extending `BaseCommand` outside this package that called one of them must switch.
 
-### Fixed
+#### Fixed
 
 - **`bin/sync-icon-sets.php` records only a `vX.Y.Z` tag as a pack's latest version.** It took the first entry of `GET /repos/{r}/tags?per_page=1`, an order GitHub does not document, so a Go alias (`src/v0.1.0`), an archive or work-in-progress tag, or a lower version listed first would have been written into `icon-sets.json`. It now reads up to 100 tags and keeps the highest plain `vX.Y.Z` by semver, skipping pre-releases. `tests/Unit/SyncIconSetsLatestTagTest.php` covers it, and the script runs its `main()` only when executed directly so the selection can be tested.
 - **A pack whose asset directory is missing no longer crashes the icon watcher.** `IconWatcherService::scanDiskIcons()` caught only `IchavaException`, but `File::allFiles()` throws Symfony's `DirectoryNotFoundException` for a missing directory, so the scan failed. It now returns no icons and logs the warning "Icon directory not found" with the package and path. `symfony/finder` is now a direct requirement, because core imports its exception class (it was already installed through `illuminate/filesystem`).
@@ -349,7 +359,7 @@ Versioning re-based to 0.1.0. This release contains everything previously tagged
   tables -- were printed into a buffer nobody read. The command now takes Prompts back after the
   nested call; `install` does the same around the commands it calls.
 
-### Tests
+#### Tests
 
 - **The English ratchet sees seeder output.** It matched `$this->helper('literal'` only, so
   `$this->command->helper(` and `IconTermsSeeder`'s own `$this->output(` went uncounted. That is how
@@ -381,11 +391,6 @@ Versioning re-based to 0.1.0. This release contains everything previously tagged
   was 225. It now also counts literal first arguments to imported Prompts functions and literal
   `label:`/`hint:`/`placeholder:`/`yes:`/`no:` arguments, per file, across `src/Commands` and
   `src/Support/Seeder`. `src/Commands` is at 0; the seeder is pinned at 12 for a later pass.
-
-## [Archived pre-reset history]
-
-> Versioning was re-based to 0.1.0 on 2026-10-23. The tags and GitHub releases below were removed;
-> every commit they pointed at is on `main`. Sections reproduced verbatim, one heading level down.
 
 ### [0.4.2] - 2026-09-26
 

@@ -55,13 +55,18 @@ The file follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [S
 
 The release pull request does that move: it closes `[Unreleased]` as `## [x.y.z] - YYYY-MM-DD` on its branch, so the section is in place on the commit that gets tagged.
 
-## The 0.1.0 re-base
+## The 0.1.0 release
 
-Versioning was re-based on 2026-10-23, with every other ichava package. The tags `v0.1.0` to
-`v0.4.2` (2026-08-31 to 2026-09-26) and their GitHub releases were removed, and `main` was tagged `v0.1.0`. Every
-commit those tags pointed at is on `main`, so no code was lost; their notes are kept in
-`CHANGELOG.md` under *Archived pre-reset history*. Version numbers in older changelog entries and
-issues refer to that earlier series.
+`v0.1.0` is the first release. The repository is published as a single commit, and that tag is cut
+by hand on it rather than by release-please: `CHANGELOG.md` already carries a `## [0.1.0]` section,
+which `release.yml` publishes as the body, and `.release-please-manifest.json` already reads `0.1.0`,
+so release-please treats `v0.1.0` as the last release and proposes `0.1.1` next.
+
+Two earlier series are folded into it. The tags `v0.1.0` to `v0.4.2` (2026-08-31 to 2026-09-26)
+were removed when versioning was re-based on 2026-10-23, and the tags `v0.1.0` to `v0.1.3`
+(2026-10-23 to 2026-10-27) were removed by the single-commit publication. Their notes are kept in
+`CHANGELOG.md` under *Archived history*. Version numbers in older changelog entries and issues refer
+to those earlier series.
 
 ## Versioning, and why `0.x` minors are load-bearing
 
