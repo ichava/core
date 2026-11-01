@@ -93,6 +93,14 @@ An empty result means no consumed code moved, and the consumers' constraints sta
 - [Architecture](architecture.md)
 - [Artisan commands](tools/artisan-commands.md)
 
+## Tags are final
+
+A pushed `vX.Y.Z` tag is never moved, deleted or reused: the Go module proxy, `sum.golang.org`,
+Packagist and npm keep the first copy of a tag they fetch, so a moved tag leaves them serving
+different code from git. Test a release with a pre-release tag (`vX.Y.Z-rc.N`), and retract a bad
+release and fix it forward in the next version. The full rules are in
+[CONTRIBUTING.md](../CONTRIBUTING.md#releases-and-versioning).
+
 ---
 
 [← Docs index](../README.md#documentation)
