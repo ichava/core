@@ -1,20 +1,67 @@
 # ichava/core
 
+[![Packagist](https://img.shields.io/packagist/v/ichava/core)](https://packagist.org/packages/ichava/core)
 [![Tests](https://github.com/ichava/core/actions/workflows/tests.yml/badge.svg)](https://github.com/ichava/core/actions/workflows/tests.yml)
-[![Code Quality](https://github.com/ichava/core/actions/workflows/code-quality.yml/badge.svg)](https://github.com/ichava/core/actions/workflows/code-quality.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Static analysis](https://github.com/ichava/core/actions/workflows/code-quality.yml/badge.svg)](https://github.com/ichava/core/actions/workflows/code-quality.yml)
+[![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-> The engine for the Ichava Laravel icon ecosystem — icon registry, queue-backed seeder, DOM-based SVG sanitiser, icon cache, and the base `<x-ichava::icon>` Blade component, with zero HTTP surface.
+> The engine for the Ichava Laravel icon ecosystem: icon registry, queue-backed seeder, DOM-based SVG sanitiser, icon cache, and the base `<x-ichava::icon>` Blade component, with zero HTTP surface.
 
-This package is not published to Packagist, so there is no registry-version badge to show. Targets PHP `^8.4.1 || ^8.5` on Laravel `^13`, against SQLite, PostgreSQL, MySQL or MariaDB.
+Targets PHP `^8.4.1 || ^8.5` on Laravel `^13`, against SQLite, PostgreSQL, MySQL or MariaDB.
 
 ## Install
 
-```bash
-composer require ichava/core
+Core is on Packagist, but four of its dependencies (`laranail/package-tools`, `laranail/console`,
+`laranail/enumerator` and `laranail/db-tools`) are not yet, so add them as VCS repositories to your
+application's `composer.json` first:
+
+```json
+{
+    "repositories": [
+        { "type": "vcs", "url": "https://github.com/laranail/package-tools.git" },
+        { "type": "vcs", "url": "https://github.com/laranail/console.git" },
+        { "type": "vcs", "url": "https://github.com/laranail/enumerator.git" },
+        { "type": "vcs", "url": "https://github.com/laranail/db-tools.git" }
+    ]
+}
 ```
 
-Core and its `laranail/*` dependencies are unpublished, so your application's `composer.json` needs VCS repository entries before that command resolves — [Installation](docs/installation.md) gives the exact block, then covers publishing the config, migrating, and seeding your first pack.
+```bash
+composer require ichava/core:^0.1
+```
+
+The service provider registers itself through package discovery. [Installation](docs/installation.md) covers every step.
+
+## Quick start guide and usage
+
+### Getting started
+
+Core ships no icons, so install a pack beside it, run the migrations and seed the icon index:
+
+```bash
+composer require ichava/icon-sets-tabler:^0.1
+php artisan migrate
+php artisan ichava::ichava-core.database seed --package=ichava/icon-sets-tabler
+```
+
+Publishing the config is optional: `php artisan vendor:publish --tag=ichava::ichava-core-config` writes
+`config/ichava/ichava-core.php`, read as `config('ichava.ichava-core.*')`.
+
+### Usage
+
+Render an icon with the Blade component, which works with any installed pack:
+
+```blade
+<x-ichava::icon name="ichava/icon-sets-tabler::outline/home" class="w-6 h-6" />
+```
+
+Or with the fluent helper, which renders when cast to a string:
+
+```blade
+{{ ichava('ichava/icon-sets-tabler::filled/home')->color('#4338ca')->class('w-5 h-5') }}
+```
+
+See [Getting started](docs/getting-started.md) for the full walkthrough, and the [documentation index](#documentation) for everything else.
 
 ## <a name="documentation"></a>Documentation
 
@@ -52,7 +99,7 @@ Full documentation is at **[opensource.simtabi.com/documentation/ichava/core](ht
 
 ## Contributing & security
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately through [security policy](https://github.com/ichava/core/security/policy) — never in a public issue.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately through the [security policy](https://github.com/ichava/core/security/policy), never in a public issue.
 
 ## License
 
