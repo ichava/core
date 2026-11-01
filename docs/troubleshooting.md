@@ -40,7 +40,7 @@ If you run Horizon, the dashboard at `/horizon` shows the `ichava-icons` supervi
 The seeder chunks icons into 1,000-row jobs to avoid memory pressure. If you still hit a memory limit, do one of:
 
 ```bash
-# Smaller chunks (config/ichava/core.php)
+# Smaller chunks (config/ichava/ichava-core.php)
 'batch_size' => 500,
 
 # Larger queue worker memory
