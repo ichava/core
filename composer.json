@@ -1,6 +1,6 @@
 {
     "name": "ichava/core",
-    "description": "Core engine for the Ichava Laravel icon ecosystem. Services, registry, seeder, scaffolder. Headless-friendly with no JS toolchain required.",
+    "description": "Core engine for the Ichava Laravel icon ecosystem: icon registry, queue-backed seeder, SVG sanitiser, icon cache and the <x-ichava::icon> Blade component, with no HTTP surface.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -8,13 +8,16 @@
         "icons",
         "svg",
         "ichava",
-        "blade-components"
+        "blade",
+        "blade-components",
+        "icon-sets",
+        "svg-sanitizer"
     ],
     "homepage": "https://opensource.simtabi.com/products/ichava/core",
     "authors": [
         {
             "name": "Simtabi LLC",
-            "email": "ichava@simtabi.com",
+            "email": "opensource@simtabi.com",
             "homepage": "https://simtabi.com",
             "role": "Developer"
         }

@@ -6,7 +6,7 @@ declare(strict_types=1);
  * The package names Simtabi LLC, never a person (W-20, XR-3).
  *
  * Decided 2026-10-28: no personal name or email is published. Contact goes
- * through role addresses such as `ichava@simtabi.com`. This reads every file
+ * through role addresses such as `opensource@simtabi.com`. This reads every file
  * that ships or documents the package -- the manifest, README, LICENSE, docs/
  * and src/ -- and fails on a personal name or address. CHANGELOG.md is history
  * and is not read.
@@ -51,7 +51,7 @@ it('names Simtabi LLC as the author', function (): void {
 
     expect($composer['authors'])->toBe([[
         'name'     => 'Simtabi LLC',
-        'email'    => 'ichava@simtabi.com',
+        'email'    => 'opensource@simtabi.com',
         'homepage' => 'https://simtabi.com',
         'role'     => 'Developer',
     ]]);
