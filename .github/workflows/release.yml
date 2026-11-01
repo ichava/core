@@ -143,6 +143,8 @@ jobs:
         with:
           body: ${{ steps.changelog.outputs.body }}
           generate_release_notes: true
+          # A `vX.Y.Z-rc.N` tag is a test build, never a release users should pick up.
+          prerelease: ${{ contains(github.ref_name, '-') }}
           files: ichava-core.cdx.json
           # Explicit, though it is the action's default: a missing SBOM must not
           # fail the publish, so it must not rest on a default a reader has to know.
