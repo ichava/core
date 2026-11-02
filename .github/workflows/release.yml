@@ -121,6 +121,13 @@ jobs:
             found                    { print }
           ' CHANGELOG.md)"
 
+          # A pre-release tag (vX.Y.Z-rc.N) is a test build: it publishes as a GitHub
+          # pre-release and needs no CHANGELOG section of its own. A final tag still
+          # fails closed below.
+          if [ -z "$(printf '%s' "$SECTION" | tr -d '[:space:]')" ] && [[ "$VERSION" == *-* ]]; then
+            SECTION="Pre-release build ${GITHUB_REF_NAME}, for testing. It is not a release; the notes ship with the final v${VERSION%%-*} tag."
+          fi
+
           # Fail closed. A tag whose version has no CHANGELOG section is a tag
           # pointing at the wrong commit, or a release nobody wrote notes for —
           # both are reasons to stop, not to publish auto-generated notes and
