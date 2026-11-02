@@ -98,9 +98,9 @@ An empty result means no consumed code moved, and the consumers' constraints sta
 A pushed `vX.Y.Z` tag is never moved, deleted or reused: once a tag has been fetched, lockfiles and
 caches keep the commit it named while fresh installs resolve the moved one, so two consumers of the
 same version run different code (and for a Go module, `sum.golang.org` makes the moved version fail
-verification). Test a release with a pre-release tag (`vX.Y.Z-rc.N`), whose commit needs its own
-`## [X.Y.Z-rc.N]` CHANGELOG section and which publishes as a GitHub pre-release. Retract a bad
-release and fix it forward in the next version. The full rules are in
+verification). Test a release with a pre-release tag (`vX.Y.Z-rc.N`): it publishes as a GitHub
+pre-release, and needs no CHANGELOG section of its own. Retract a bad release and fix it forward in
+the next version. The full rules are in
 [CONTRIBUTING.md](../CONTRIBUTING.md#releases-and-versioning).
 
 ---

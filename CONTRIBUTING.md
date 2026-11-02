@@ -226,8 +226,9 @@ ichava/
 
 - **A version tag is pushed only for final code.** `vX.Y.Z` marks a release, nothing else. To try a
   release build first, push a pre-release tag, `vX.Y.Z-rc.N`, which uses up no release number. It runs
-  the same release workflow, so the tagged commit needs its own `## [X.Y.Z-rc.N]` CHANGELOG section
-  (the workflow refuses to publish without one), and it is published as a GitHub pre-release.
+  the same release workflow and publishes as a GitHub pre-release. It needs no CHANGELOG section of
+  its own: the workflow uses a `## [X.Y.Z-rc.N]` section when the commit has one, and a fixed
+  test-build note otherwise.
 - **A public tag is never moved, deleted or reused.** Once a tag has been fetched, moving it makes
   consumers of the same version disagree. Composer and npm git dependencies resolve the tag afresh, so
   new installs get the moved commit while every existing lockfile and cache keeps the old one (an npm
