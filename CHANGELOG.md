@@ -4,6 +4,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Changed
+
+- **The SVG policy's `_always_blocked_comment` describes the parked brand logos.** The five raster-wrapping brand logos it called "render blank" are now parked outside their pack's registered assets (OQ-018), so the comment says so. Only that underscore-prefixed comment changed; the policy is identical. The copies in icon-sets-sync and react-icon-browser are re-synced to the new digest (`950214c5828531987ecfa72f1055ab3491c3c664336eaca657cc04907400d390`).
+
 ## [0.1.0] - TBD
 
 First release of `ichava/core`. The repository is published as a single commit; the 0.1.x tags cut between 2026-10-23 and 2026-10-27 (v0.1.0 to v0.1.3) are folded into this release, and their notes are kept below under *Archived history*.
