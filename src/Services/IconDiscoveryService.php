@@ -1,0 +1,963 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Simtabi\Laranail\Ichava\Services;
+
+use Generator;
+use Throwable;
+use SplFileInfo;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
+use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Actions\BuildIconUsageSyntax;
+use Simtabi\Laranail\Ichava\Actions\ClearDiscoveryCaches;
+use Simtabi\Laranail\Ichava\Actions\SearchIconsInDatabase;
+use Simtabi\Laranail\Ichava\Actions\DiscoverInstalledPackages;
+
+/**
+ * IconDiscoveryService - Unified Discovery for Icons and Packages
+ *
+ * Consolidates:
+ * - IconDiscoveryService (icon browsing, searching)
+ * - PackageDiscoveryService (composer package detection)
+ *
+ * Single source of truth for:
+ * - Registered packages (via IconRegistry)
+ * - Installed packages (via composer.lock)
+ * - Icon enumeration and search
+ * - Statistics and metadata
+ *
+ * @phpstan-type InstalledPackage array{name: string, version: string, description: string, homepage: string|null, type: string, time: string|null}
+ * @phpstan-type StreamedIcon array{name: string, variant: null, category: string|null, path: string, set: string}
+ * @phpstan-type CategoryFolder array{name: string, display_name: string, path: string, package: string, depth: int, parent: string|null, full_path: string, icon_count: int, has_children: bool}
+ */
+class IconDiscoveryService
+{
+    public const CACHE_PREFIX = 'ichava.discovery';
+
+    public const CACHE_DURATION = 3600; // 1 hour
+
+    public function __construct(
+        protected IconRegistry $registry,
+        protected IconCacheService $cache,
+        protected DiscoverInstalledPackages $discoverInstalled,
+        protected CountSvgFiles $svgCounter,
+        protected BuildIconUsageSyntax $buildUsageSyntax,
+        protected SearchIconsInDatabase $searchDatabase,
+        protected ClearDiscoveryCaches $clearCaches,
+    ) {}
+
+    /**
+     * Discover all installed Ichava packages from composer.lock
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function discoverInstalledPackages(): array
+    {
+        $installed = Cache::remember(
+            self::CACHE_PREFIX . '.installed',
+            self::CACHE_DURATION,
+            fn () => $this->scanComposerLock(),
+        );
+
+        // The store is untrusted input: anything but a list of records is
+        // rebuilt from composer.lock rather than served.
+        return self::isListOfRecords($installed) ? $installed : $this->scanComposerLock();
+    }
+
+    /**
+     * Get packages that are installed but not registered
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getUnregisteredPackages(): array
+    {
+        $installed = collect($this->discoverInstalledPackages());
+        $registered = array_keys($this->registry->all());
+
+        // Loose `in_array()`, as `Collection::contains()` compared before.
+        return array_values($installed
+            ->filter(fn (array $pkg): bool => ! in_array($pkg['name'] ?? null, $registered))
+            ->filter(fn (array $pkg): bool => ($pkg['name'] ?? null) !== 'ichava/ichava') // Exclude parent
+            ->all());
+    }
+
+    /**
+     * Get packages that are registered but missing from composer.lock
+     *
+     * @return list<string>
+     */
+    public function getOrphanedPackages(): array
+    {
+        // Rows left behind after a pack is removed: packages that still have
+        // seeded icons but that no registered pack owns. This used to compare
+        // the registry with installed Composer packages, which only ever
+        // reported sets registered outside Composer (the test set, app-local
+        // sets) and never the leftover rows it was named for.
+        try {
+            $packages = Icon::query()->distinct()->pluck('package')->all();
+        } catch (Throwable) {
+            return [];
+        }
+
+        $registered = $this->registry->all();
+        $orphans = [];
+
+        foreach ($packages as $package) {
+            if (is_string($package) && ! isset($registered[$package])) {
+                $orphans[] = $package;
+            }
+        }
+
+        return $orphans;
+    }
+
+    /**
+     * Get all registered packages with their icons
+     *
+     * Optimized for large icon sets (500k+ files):
+     * - Uses cached manifests instead of scanning filesystem
+     * - Only loads icon count, not full icon data
+     * - Lazy loads actual icons on demand
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function getPackages(): array
+    {
+        $registryPackages = $this->registry->all();
+        $cacheKey = self::CACHE_PREFIX . '.packages.' . $this->generation() . '.' . md5(serialize($registryPackages));
+
+        $build = function () use ($registryPackages): array {
+            $packages = [];
+
+            foreach ($registryPackages as $packageName => $metadata) {
+                // Get icon count from manifest cache (fast). The registry
+                // refuses a pack without a base path, so the 0 is unreachable.
+                $basePath = $metadata['base_path'] ?? null;
+                $iconCount = is_string($basePath) ? $this->getIconCount($basePath) : 0;
+
+                $packages[$packageName] = array_merge($metadata, [
+                    'alias'       => $metadata['icon_set_name'],
+                    'name'        => $metadata['name'] ?? $metadata['icon_set_name'],
+                    'vendor'      => $metadata['vendor'] ?? 'ichava',
+                    'package'     => $packageName,
+                    'path'        => $metadata['base_path'],
+                    'description' => $metadata['description'] ?? '',
+                    'icons'       => [], // Don't load all icons upfront
+                    'total'       => $iconCount,
+                ]);
+            }
+
+            return $packages;
+        };
+
+        $packages = $this->remember($cacheKey, self::CACHE_DURATION, $build);
+
+        return self::isRecordMap($packages) ? $packages : $build();
+    }
+
+    /**
+     * Get a single package by name or alias
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getPackage(string $nameOrAlias): ?array
+    {
+        $packages = $this->packages();
+
+        // Try direct lookup
+        if (isset($packages[$nameOrAlias])) {
+            return $packages[$nameOrAlias];
+        }
+
+        // Try by alias
+        foreach ($packages as $package) {
+            if ($package['alias'] === $nameOrAlias || $package['icon_set_name'] === $nameOrAlias) {
+                return $package;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Search icons across all or specific packages
+     *
+     * Optimized for 500k+ icons:
+     * - Streams results instead of loading all into memory
+     * - Uses generator pattern for memory efficiency
+     * - Stops scanning once page is filled
+     * - Caches search results
+     *
+     * @param array<int, string> $packages
+     * @param array<int, string> $categories
+     *
+     * @return array<string, mixed>
+     */
+    public function searchIcons(
+        string $query = '',
+        array $packages = [],
+        array $categories = [],
+        int $page = 1,
+        int $perPage = 60,
+        string $sortBy = 'name',
+        string $sortDirection = 'asc',
+    ): array {
+        // Use database if enabled and table exists
+        if (config('ichava.ichava-core.database.enabled', true) && $this->isDatabaseAvailable()) {
+            return $this->searchIconsFromDatabase($query, array_values($packages), array_values($categories), $page, $perPage, $sortBy, $sortDirection);
+        }
+
+        // Fallback to file system search
+        return $this->searchIconsFromFileSystem($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection);
+    }
+
+    /**
+     * Get all categories across all packages with hierarchical structure
+     * Cached for performance when dealing with large icon sets
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getAllCategories(): array
+    {
+        $packages = $this->packages();
+        $cacheKey = self::CACHE_PREFIX . '.categories.' . $this->generation() . '.' . md5(serialize(array_keys($packages)));
+
+        $build = function () use ($packages): array {
+            $categories = [];
+
+            foreach ($packages as $packageKey => $package) {
+                // Get base path - prioritize base_path (where SVG files are)
+                $basePath = $package['base_path'] ?? $package['icon_path'] ?? $package['path'] ?? null;
+
+                if (! is_string($basePath) || empty($basePath) || ! File::isDirectory($basePath)) {
+                    continue;
+                }
+
+                // Scan directory for actual folder structure
+                $folders = $this->scanFolderHierarchy($basePath, $packageKey);
+
+                foreach ($folders as $folder) {
+                    $categories[] = $folder;
+                }
+            }
+
+            // Sort categories by package and path
+            usort($categories, function (array $a, array $b): int {
+                $packageCompare = strcmp($a['package'], $b['package']);
+                if ($packageCompare !== 0) {
+                    return $packageCompare;
+                }
+
+                return strcmp($a['path'], $b['path']);
+            });
+
+            return $categories;
+        };
+
+        $categories = $this->remember($cacheKey, self::CACHE_DURATION, $build);
+
+        return self::isListOfRecords($categories) ? $categories : $build();
+    }
+
+    /**
+     * Get usage syntax for an icon
+     *
+     * @return array{helper: string, directive: string, component: string|null}
+     */
+    public function getIconSyntax(string $package, string $name, ?string $variant = null): array
+    {
+        return ($this->buildUsageSyntax)($package, $this->getPackage($package) ?? [], $name, $variant);
+    }
+
+    /**
+     * Get statistics about registered packages and icons
+     *
+     * @return array<string, mixed>
+     */
+    public function getStatistics(): array
+    {
+        $packages = $this->packages();
+        $totalIcons = 0;
+        $byPackage = [];
+        $byCategory = [];
+
+        foreach ($packages as $packageKey => $package) {
+            // Use the pre-calculated 'total' instead of counting icons array
+            $packageTotal = self::toInt($package['total'] ?? 0);
+            $totalIcons += $packageTotal;
+
+            $byPackage[$packageKey] = [
+                'name'  => $package['name'] ?? $packageKey,
+                'total' => $packageTotal,
+            ];
+
+            // Note: We can't calculate category stats without scanning all icons
+            // This would require loading all icons into memory, which we're avoiding
+            // Category stats are now calculated on-demand when filtering
+        }
+
+        return [
+            'total_packages'    => count($packages),
+            'total_icons'       => $totalIcons,
+            'icons_by_package'  => $byPackage,
+            'icons_by_category' => $byCategory,
+            'registered'        => array_keys($packages),
+            'installed'         => count($this->discoverInstalledPackages()),
+            'unregistered'      => count($this->getUnregisteredPackages()),
+        ];
+    }
+
+    /**
+     * Clear discovery cache
+     */
+    public function clearCache(): void
+    {
+        // Delegated. Invalidation is the half of this class that got it wrong
+        // -- it forgot two keys of six and could not reach two of the rest --
+        // and the keys and the clear now live in one object that owns the
+        // question "what did we write?".
+        ($this->clearCaches)();
+    }
+
+    /**
+     * Get discovery statistics with unregistered package details
+     *
+     * @return array<string, mixed>
+     */
+    public function getDiscoveryStats(): array
+    {
+        $stats = $this->getStatistics();
+        $unregistered = $this->getUnregisteredPackages();
+
+        return [
+            'total_discovered'   => $stats['installed'],
+            'total_registered'   => $stats['total_packages'],
+            'total_unregistered' => $stats['unregistered'],
+            'unregistered_list'  => array_column($unregistered, 'name'),
+        ];
+    }
+
+    /**
+     * Register package metadata (for icon browser)
+     *
+     * Note: Packages are now auto-registered via IconRegistry.
+     * This method allows manual registration for testing/legacy purposes.
+     *
+     * @param array<string, mixed> $metadata
+     */
+    public function registerPackage(string $alias, array $metadata): void
+    {
+        // For testing purposes, we can manually add to cache
+        // In production, packages register via IconRegistry automatically
+        $cacheKey = self::CACHE_PREFIX . '.manual.' . $alias;
+        Cache::put($cacheKey, $metadata, self::CACHE_DURATION);
+    }
+
+    /**
+     * The invalidation generation, mixed into every key this class builds.
+     *
+     * Read on every key construction rather than memoised: `clearCache()` may
+     * run in another request, and a memoised value would serve the previous
+     * generation for the life of this instance.
+     */
+    protected function generation(): int
+    {
+        // One definition, on the action that owns invalidation.
+        return ClearDiscoveryCaches::generation();
+    }
+
+    /**
+     * Get all packages from IconRegistry
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    protected function packages(): array
+    {
+        return $this->registry->all();
+    }
+
+    /**
+     * Scan composer.lock for Ichava packages
+     *
+     * @return list<InstalledPackage>
+     */
+    protected function scanComposerLock(): array
+    {
+        return ($this->discoverInstalled)(base_path('composer.lock'));
+    }
+
+    /**
+     * Get icon count from manifest cache with smart invalidation
+     *
+     * Uses IconCacheService for all cache operations
+     */
+    protected function getIconCount(string $basePath): int
+    {
+        // Check if directory has changed
+        if ($this->cache->hasDirectoryChanged($basePath)) {
+            // Directory changed - invalidate cache via service
+            $this->cache->clearManifest($basePath);
+
+            // Update fingerprint after counting
+            $this->cache->updateDirectoryFingerprint($basePath);
+        }
+
+        $manifestKey = self::CACHE_PREFIX . '.manifest.' . md5($basePath);
+
+        // rememberForever on the file driver so the manifest survives across requests.
+        return self::toInt(cache()
+            ->store('file')
+            ->remember(
+                key: $manifestKey,
+                ttl: now()->addHours(24),
+                callback: fn () => $this->countSvgFiles($basePath),
+            ));
+    }
+
+    /**
+     * Count SVG files in directory
+     */
+    protected function countSvgFiles(string $basePath): int
+    {
+        return $this->svgCounter->recursively($basePath);
+    }
+
+    /**
+     * Check if database is available
+     */
+    protected function isDatabaseAvailable(): bool
+    {
+        try {
+            return Schema::hasTable('ichava_icons');
+        } catch (IchavaException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Search icons from database (300x faster!) with Redis caching
+     */
+    /**
+     * @param list<string> $packages
+     * @param list<string> $categories
+     *
+     * @return array<string, mixed>
+     */
+    protected function searchIconsFromDatabase(
+        string $query,
+        array $packages,
+        array $categories,
+        int $page,
+        int $perPage,
+        string $sortBy,
+        string $sortDirection,
+    ): array {
+        // Delegated to SearchIconsInDatabase. The query, its caching and the
+        // result shape left together, because splitting them is what let the
+        // driver branch go missing in one copy and not the other.
+        //
+        // Enrichment passes as closures rather than handing the action this
+        // service: package metadata and usage syntax live here, and injecting
+        // the service into its own collaborator would be a cycle.
+        return ($this->searchDatabase)(
+            query: $query,
+            packages: $packages,
+            categories: $categories,
+            page: $page,
+            perPage: $perPage,
+            sortBy: $sortBy,
+            sortDirection: $sortDirection,
+            packageMetadata: fn (): array => $this->getPackages(),
+            usageSyntax: fn (string $pkg, string $name, ?string $variant): array => $this->getIconSyntax($pkg, $name, $variant),
+        );
+    }
+
+    /**
+     * Search icons from file system (legacy fallback)
+     *
+     * @param array<int, string> $packages
+     * @param array<int, string> $categories
+     *
+     * @return array<string, mixed>
+     */
+    protected function searchIconsFromFileSystem(
+        string $query,
+        array $packages,
+        array $categories,
+        int $page,
+        int $perPage,
+        string $sortBy,
+        string $sortDirection,
+    ): array {
+        $cacheKey = self::CACHE_PREFIX . '.search.' . $this->generation() . '.' . md5(serialize(func_get_args()));
+
+        $build = function () use ($query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection): array {
+            $allPackages = $this->getPackages();
+
+            // Filter by selected packages
+            if (! empty($packages)) {
+                // What `Arr::only()` does, without losing the element type.
+                $allPackages = array_intersect_key($allPackages, array_flip($packages));
+            }
+
+            $offset = ($page - 1) * $perPage;
+            $collected = 0;
+            $skipped = 0;
+            $totalCount = 0;
+            $items = [];
+
+            // Single pass: Count total AND collect page items efficiently
+            foreach ($allPackages as $packageKey => $packageData) {
+                $basePath = $packageData['base_path'] ?? null;
+
+                if (! is_string($basePath)) {
+                    continue;
+                }
+
+                foreach ($this->streamIcons($basePath, $packageKey) as $iconData) {
+                    // Apply filters
+                    if (! $this->matchesFilters($iconData, $query, $categories)) {
+                        continue;
+                    }
+
+                    // Always count for accurate total
+                    $totalCount++;
+
+                    // Skip until we reach the page offset
+                    if ($skipped < $offset) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    // Only collect if page not full yet
+                    if ($collected < $perPage) {
+                        // Build the icon path for rendering (vendor/package::category/icon-name)
+                        $iconPath = $packageKey . '::';
+                        if (! empty($iconData['category'])) {
+                            $iconPath .= $iconData['category'] . '/';
+                        }
+                        $iconPath .= $iconData['name'];
+
+                        // Collect icon data (defer SVG rendering to reduce memory/processing)
+                        $items[] = [
+                            'package'      => $packageKey,
+                            'package_name' => $packageData['name'],
+                            'set'          => $packageKey,
+                            'name'         => $iconData['name'],
+                            'category'     => $iconData['category'],
+                            'variant'      => $iconData['variant'],
+                            'path'         => $iconData['path'],
+                            'icon_path'    => $iconPath, // Simple string path for ichava() helper
+                            'syntax'       => $this->getIconSyntax($packageKey, $iconData['name'], $iconData['variant']),
+                            // Defer SVG loading - render only when displayed
+                            'svg_content' => null,
+                        ];
+
+                        $collected++;
+                    }
+                }
+            }
+
+            // Use accurate total count
+            $total = $totalCount;
+
+            // Sort items
+            $items = $this->sortIcons($items, $sortBy, $sortDirection);
+
+            return [
+                'items'     => $items,
+                'total'     => $total,
+                'page'      => $page,
+                'per_page'  => $perPage,
+                'last_page' => (int) ceil($total / $perPage),
+            ];
+        };
+
+        $result = $this->remember($cacheKey, 300, $build);
+
+        return self::isRecord($result) ? $result : $build();
+    }
+
+    /**
+     * Sort icons by specified field and direction
+     *
+     * @param string $sortBy name, package, category
+     * @param list<array<string, mixed>> $icons
+     * @param string $sortDirection asc, desc
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function sortIcons(array $icons, string $sortBy, string $sortDirection): array
+    {
+        $sortField = match ($sortBy) {
+            'package'  => 'package_name',
+            'category' => 'category',
+            default    => 'name',
+        };
+
+        usort($icons, function (array $a, array $b) use ($sortField, $sortDirection): int {
+            $aValue = $a[$sortField] ?? '';
+            $bValue = $b[$sortField] ?? '';
+            $aValue = is_string($aValue) ? $aValue : '';
+            $bValue = is_string($bValue) ? $bValue : '';
+
+            $comparison = strcasecmp($aValue, $bValue);
+
+            return $sortDirection === 'desc' ? -$comparison : $comparison;
+        });
+
+        return $icons;
+    }
+
+    /**
+     * Stream icons from directory using generator pattern
+     *
+     * Memory efficient - yields one icon at a time
+     *
+     * @return Generator<int, StreamedIcon>
+     */
+    protected function streamIcons(string $basePath, string $packageName): Generator
+    {
+        if (! File::isDirectory($basePath)) {
+            return;
+        }
+
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($basePath, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST,
+        );
+
+        foreach ($iterator as $file) {
+            if (! $file instanceof SplFileInfo || ! $file->isFile() || ! Str::endsWith($file->getFilename(), '.svg')) {
+                continue;
+            }
+
+            $relativePath = Str::after($file->getPathname(), $basePath . DIRECTORY_SEPARATOR);
+            $parts = explode(DIRECTORY_SEPARATOR, $relativePath);
+            $filename = array_pop($parts);
+            $name = pathinfo($filename, PATHINFO_FILENAME);
+
+            // If icon is in any folder(s), treat the complete folder path as category
+            // This supports nested folders: "brand-logos/social/facebook.svg"
+            // becomes category "brand-logos/social"
+            $category = count($parts) > 0 ? implode('/', $parts) : null;
+
+            yield [
+                'name'     => $name,
+                'variant'  => null, // Variants are handled by icon set configuration
+                'category' => $category,
+                'path'     => $file->getPathname(),
+                'set'      => $packageName,
+            ];
+        }
+    }
+
+    /**
+     * Check if icon matches search filters
+     *
+     * @param StreamedIcon $iconData
+     * @param array<int, string> $categories
+     */
+    protected function matchesFilters(array $iconData, string $query, array $categories): bool
+    {
+        // Apply search filter
+        if (! empty($query)) {
+            $searchIn = Str::lower($iconData['name'] . ' ' . ($iconData['category'] ?? ''));
+            if (! Str::contains($searchIn, Str::lower($query))) {
+                return false;
+            }
+        }
+
+        // Apply category filter (support hierarchical paths)
+        // Only filter if user has selected specific categories
+        if (! empty($categories)) {
+            // Extract category from icon path if not directly available
+            $iconCategory = $iconData['category'] ?? null;
+
+            // If category is not set, try to extract from path
+            if (empty($iconCategory) && isset($iconData['path'])) {
+                // Try to extract folder structure from path
+                $pathInfo = pathinfo($iconData['path']);
+                $dirname = $pathInfo['dirname'] ?? '';
+
+                // If we can determine base path, extract relative folder
+                // This is a fallback - normally category should be set
+                if (! empty($dirname)) {
+                    // Skip filtering for icons without determinable categories
+                    return false;
+                }
+            }
+
+            // If no category after all attempts, exclude when filtering
+            if (empty($iconCategory)) {
+                return false;
+            }
+
+            $matched = false;
+
+            foreach ($categories as $filterCategory) {
+                // Exact match
+                if ($iconCategory === $filterCategory) {
+                    $matched = true;
+                    break;
+                }
+
+                // Hierarchical match: check if icon is in a subcategory
+                // e.g., filter "brand-logos" matches icon in "brand-logos/social"
+                if (Str::startsWith($iconCategory, $filterCategory . '/')) {
+                    $matched = true;
+                    break;
+                }
+            }
+
+            if (! $matched) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Scan folder hierarchy to detect nested category structure
+     * Returns array with hierarchical information
+     * OPTIMIZED: Only counts direct SVG files, estimates for subdirectories
+     *
+     * @return list<CategoryFolder>
+     */
+    protected function scanFolderHierarchy(string $basePath, string $packageKey, string $relativePath = '', int $depth = 0, int $maxDepth = 3): array
+    {
+        $folders = [];
+
+        // Reduce max depth for performance
+        if ($depth >= $maxDepth) {
+            return $folders;
+        }
+
+        $currentPath = $relativePath ? $basePath . '/' . $relativePath : $basePath;
+
+        if (! File::isDirectory($currentPath)) {
+            return $folders;
+        }
+
+        try {
+            $items = @scandir($currentPath);
+
+            if ($items === false) {
+                return $folders;
+            }
+
+            foreach ($items as $item) {
+                if ($item === '.' || $item === '..' || Str::startsWith($item, '.')) {
+                    continue;
+                }
+
+                $itemPath = $currentPath . '/' . $item;
+
+                if (! File::isDirectory($itemPath)) {
+                    continue;
+                }
+
+                $newRelativePath = $relativePath ? $relativePath . '/' . $item : $item;
+                $parts = explode('/', $newRelativePath);
+                $displayName = Str::ucfirst(str_replace(['-', '_'], ' ', end($parts)));
+
+                // Count SVG files recursively for accurate counts
+                $iconCount = $this->countSvgFiles($itemPath);
+                $hasSubdirs = $this->hasSubdirectories($itemPath);
+
+                if ($iconCount > 0) {
+                    $folders[] = [
+                        'name'         => $item,
+                        'display_name' => $displayName,
+                        'path'         => $newRelativePath,
+                        'package'      => $packageKey,
+                        'depth'        => $depth,
+                        'parent'       => $relativePath ?: null,
+                        'full_path'    => $itemPath,
+                        'icon_count'   => $iconCount,
+                        'has_children' => $hasSubdirs,
+                    ];
+                }
+
+                // Only recurse if we haven't hit too many folders yet (performance)
+                if (count($folders) < 1000 && $hasSubdirs) {
+                    $subFolders = $this->scanFolderHierarchy($basePath, $packageKey, $newRelativePath, $depth + 1, $maxDepth);
+                    $folders = array_merge($folders, $subFolders);
+                }
+            }
+        } catch (IchavaException $e) {
+            // Silently skip directories with permission errors
+        }
+
+        return $folders;
+    }
+
+    /**
+     * Count SVG files in directory (non-recursive, fast)
+     */
+    protected function countDirectSvgFiles(string $directory): int
+    {
+        return $this->svgCounter->directly($directory);
+    }
+
+    /**
+     * Check if directory has subdirectories
+     */
+    protected function hasSubdirectories(string $directory): bool
+    {
+        if (! File::isDirectory($directory)) {
+            return false;
+        }
+
+        try {
+            $items = scandir($directory);
+
+            foreach ($items as $item) {
+                if ($item === '.' || $item === '..') {
+                    continue;
+                }
+
+                if (File::isDirectory($directory . '/' . $item)) {
+                    return true;
+                }
+            }
+        } catch (IchavaException $e) {
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Cache helper with proper type handling
+     *
+     * Ensures cached values maintain their types (int stays int, not string)
+     * Handles Redis serialization issues
+     */
+    protected function remember(string $key, int $ttl, callable $callback): mixed
+    {
+        try {
+            // flexible() returns stale-while-revalidate values when cold cache fails.
+            return cache()
+                ->store('file')
+                ->flexible(
+                    key: $key,
+                    ttl: [$ttl, $ttl * 2], // [cache, stale] - serve stale while regenerating
+                    callback: function () use ($callback) {
+                        $value = $callback();
+
+                        // If it's an array, ensure nested integers are properly typed
+                        return is_array($value) ? $this->normalizeTypes($value) : $value;
+                    },
+                );
+        } catch (IchavaException $e) {
+            // If cache fails, execute callback directly
+            $value = $callback();
+
+            return is_array($value) ? $this->normalizeTypes($value) : $value;
+        }
+    }
+
+    /**
+     * Normalize types in cached arrays
+     *
+     * Converts string integers back to integers (Redis serialization issue)
+     *
+     * @param array<array-key, mixed> $data
+     *
+     * @return array<array-key, mixed>
+     */
+    protected function normalizeTypes(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $data[$key] = $this->normalizeTypes($value);
+            } elseif ($key === 'total' && is_string($value) && ctype_digit($value)) {
+                // Convert 'total' field from string to int
+                $data[$key] = (int) $value;
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * A cached count as an int: what `(int)` made of it, without casting
+     * values that are not numbers.
+     */
+    private static function toInt(mixed $value): int
+    {
+        return is_int($value) || is_float($value) || is_numeric($value) ? (int) $value : 0;
+    }
+
+    /**
+     * Whether a value is an array keyed by strings.
+     *
+     * @phpstan-assert-if-true array<string, mixed> $value
+     */
+    private static function isRecord(mixed $value): bool
+    {
+        if (! is_array($value)) {
+            return false;
+        }
+
+        foreach (array_keys($value) as $key) {
+            if (! is_string($key)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether a value is a list of string-keyed records.
+     *
+     * @phpstan-assert-if-true list<array<string, mixed>> $value
+     */
+    private static function isListOfRecords(mixed $value): bool
+    {
+        if (! is_array($value) || ! array_is_list($value)) {
+            return false;
+        }
+
+        foreach ($value as $row) {
+            if (! self::isRecord($row)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether a value maps string keys to string-keyed records.
+     *
+     * @phpstan-assert-if-true array<string, array<string, mixed>> $value
+     */
+    private static function isRecordMap(mixed $value): bool
+    {
+        if (! self::isRecord($value)) {
+            return false;
+        }
+
+        foreach ($value as $row) {
+            if (! self::isRecord($row)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}

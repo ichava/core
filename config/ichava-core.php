@@ -1,0 +1,494 @@
+<?php
+
+declare(strict_types=1);
+
+use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Support\SvgPolicy;
+use Simtabi\Laranail\Ichava\Enums\OptimizationLevel;
+use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
+
+/**
+ * Ichava, SVG icon management configuration.
+ *
+ * Publish: php artisan vendor:publish --tag=ichava-config
+ *
+ * Sections in this file are intentionally terse. For architecture, icon-path
+ * grammar, and registration patterns see the package README.
+ */
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Asset version (cache busting)
+    |--------------------------------------------------------------------------
+    */
+    'version' => env('ICHAVA_VERSION', time()),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Maximum SVG file size (bytes)
+    |--------------------------------------------------------------------------
+    | Read by SvgDriver before loading from disk; oversized files are rejected.
+    */
+    'max_file_size' => env('ICHAVA_MAX_FILE_SIZE', IchavaConstants::MAX_SVG_FILE_SIZE),
+
+    /*
+    |--------------------------------------------------------------------------
+    | SVG kinds: icons and illustrations
+    |--------------------------------------------------------------------------
+    | A pack declares what its SVGs are in config.json, per category
+    | (`metadata.data.categories.<slug>.kind`) with `package.kind` as the
+    | pack-wide default and `icon` after that. `default` is the kind a browser
+    | opens on. `max_file_size` overrides the global limit above per kind;
+    | illustrations get a larger budget because a scene routinely outweighs
+    | any icon. A kind with no entry here uses the global limit.
+    */
+    'kinds' => [
+        'default'       => env('ICHAVA_DEFAULT_KIND', 'icon'),
+        'max_file_size' => [
+            'illustration' => env('ICHAVA_ILLUSTRATION_MAX_FILE_SIZE', 5 * 1024 * 1024),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Registry
+    |--------------------------------------------------------------------------
+    | `strict_conflicts`: throw when two packs claim the same set name,
+    | prefix or Blade component, instead of logging a warning and recording
+    | the conflict (which `info status` reports either way).
+    */
+    'registry' => [
+        'strict_conflicts' => env('ICHAVA_STRICT_CONFLICTS', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Host user
+    |--------------------------------------------------------------------------
+    | Ichava has no auth of its own. It reads the host application's signed-in
+    | user from `guard` (null = the default guard), or from a resolver the host
+    | registers with `Ichava::resolveUserUsing()`.
+    |
+    | The user shape the browser sees carries `id`, `name`, `avatarUrl` and
+    | `abilities` only. Email, passwords and tokens never leave the server;
+    | `expose` is an explicit opt-in list of extra model attributes.
+    |
+    | `abilities` are the Gates checked for that user. Ichava defines
+    | `ichava.admin` as a default-deny Gate when the host has not, and
+    | `ichava.manage-cache` falls back to it.
+    */
+    'auth' => [
+        'guard'            => env('ICHAVA_AUTH_GUARD'),
+        'name_attribute'   => 'name',
+        'avatar_attribute' => null,
+        'expose'           => [],
+        'abilities'        => ['ichava.admin', 'ichava.manage-cache'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | PHP runtime
+    |--------------------------------------------------------------------------
+    | Applied at provider registration so heavy operations (seeding 100k+
+    | icons, batch processing) get the headroom they need.
+    */
+    'runtime' => [
+        'memory_limit'               => env('ICHAVA_MEMORY_LIMIT', '2G'),
+        'max_execution_time'         => env('ICHAVA_MAX_EXECUTION_TIME', 0),
+        'disable_telescope_in_queue' => env('ICHAVA_DISABLE_TELESCOPE_QUEUE', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Database
+    |--------------------------------------------------------------------------
+    | Icon metadata is stored in the host application's database. PostgreSQL
+    | is recommended (full-text search); MySQL 8+ is supported.
+    */
+    'database' => [
+        'enabled'       => env('ICHAVA_DATABASE_ENABLED', true),
+        'auto_sync'     => env('ICHAVA_AUTO_SYNC', true),
+        'sync_interval' => env('ICHAVA_SYNC_INTERVAL', IchavaConstants::DB_SYNC_INTERVAL),
+        'auto_seed'     => env('ICHAVA_AUTO_SEED', false),
+
+        /*
+         | Delete a package's seeded rows when it unregisters. This is the
+         | destructive counterpart to auto_seed and, unlike it, defaults to ON
+         | -- the listener has always read it with a default of true. It was
+         | never declared here, so a consumer publishing this file found a
+         | switch for the additive behaviour and none for this one.
+         */
+        'auto_unseed'           => env('ICHAVA_AUTO_UNSEED', true),
+        'use_queue'             => env('ICHAVA_USE_QUEUE', true),
+        'queue_connection'      => env('ICHAVA_QUEUE_CONNECTION'),
+        'batch_size'            => env('ICHAVA_BATCH_SIZE', 1000),
+        'smart_queue_threshold' => env('ICHAVA_SMART_QUEUE_THRESHOLD', 5000),
+
+        'search' => [
+            'strategy'  => env('ICHAVA_SEARCH_STRATEGY', 'simple'),
+            'language'  => env('ICHAVA_SEARCH_LANGUAGE', 'simple'),
+            'languages' => [
+                'simple', 'english', 'french', 'german', 'spanish', 'portuguese', 'italian',
+            ],
+            'scope' => [
+                'icon_name'    => true,
+                'keywords'     => true,
+                'tags'         => true,
+                'categories'   => true,
+                'variants'     => true,
+                'metadata'     => true,
+                'package_name' => true,
+            ],
+            'fuzzy' => [
+                'enabled'   => true,
+                'threshold' => 0.3,
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Icon manifest (production caching)
+    |--------------------------------------------------------------------------
+    | Pre-compiles icon discovery for fast lookups. Generate with:
+    | php artisan ichava::ichava-core.cache generate
+    */
+    'manifest' => [
+        'enabled'      => env('ICHAVA_MANIFEST_ENABLED', true),
+        'path'         => env('ICHAVA_MANIFEST_PATH', base_path('bootstrap/cache/ichava-manifest.php')),
+        'auto_rebuild' => env('ICHAVA_MANIFEST_AUTO_REBUILD', env('APP_ENV') === 'local'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default icon set
+    |--------------------------------------------------------------------------
+    | Used when an icon path omits the package prefix.
+    */
+    'default_set' => env('ICHAVA_DEFAULT_SET', 'test'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Global fallback icon
+    |--------------------------------------------------------------------------
+    | Fully qualified icon path (e.g. 'ichava/icon-sets-tabler::outline/help')
+    | rendered when the requested icon cannot be resolved and no per-component
+    | fallback is provided. null disables the feature.
+    */
+    'fallback_icon' => env('ICHAVA_FALLBACK_ICON'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Built-in test icon set
+    |--------------------------------------------------------------------------
+    | Bundled icons used for development and the package test suite.
+    */
+    'test' => [
+        'enabled' => true,
+        'path'    => null, // null → resources/assets/svg/test-icons
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cache
+    |--------------------------------------------------------------------------
+    | Drivers honoured: file, redis, memcached, array.
+    */
+    'cache' => [
+        'ttl'    => IchavaConstants::DEFAULT_CACHE_TTL,
+        'prefix' => 'ichava',
+        // Part of every key IconCacheService builds. Bump it to abandon every
+        // existing entry at once, e.g. after a cached value changes shape.
+        'version' => env('ICHAVA_CACHE_VERSION', 'v2'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | SVG optimization
+    |--------------------------------------------------------------------------
+    | Levels: none | basic (recommended) | aggressive.
+    */
+    'optimization' => [
+        'level' => OptimizationLevel::BASIC->value,
+        // Each pass: true or false to override the level, null to follow it.
+        // none: no pass; basic: xml declaration + comments; aggressive: all four.
+        'remove_comments'        => null,
+        'remove_xml_declaration' => null,
+        'remove_metadata'        => null,
+        'minify'                 => null,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | SVG security
+    |--------------------------------------------------------------------------
+    | Sanitising is not configurable: every SVG served goes through the
+    | allow-list below. A switch that turned it off used to sit here and was
+    | read by nothing; it is gone so nobody trusts it.
+    */
+    'security' => [
+        // The SVG allow/deny lists live under the `svg` key below and are read
+        // from there by SanitizesSvg. They were mirrored here as
+        // config('ichava.svg.*') lookups, which a config file cannot perform on
+        // itself: the repository is still loading, so every one returned the
+        // empty-array default. Nothing read these keys. Removed rather than
+        // duplicated -- one home for the policy.
+
+        /*
+        |----------------------------------------------------------------------
+        | Audit pipeline
+        |----------------------------------------------------------------------
+        | The AuditLogger emits structured records on a dedicated log channel
+        | and dispatches a SecurityAuditEvent for every recorded entry. The
+        | audit channel uses 90-day retention by default and 0640 permissions
+        | so SIEM forwarders can tail it without world-read access.
+        |
+        | Set `events` to an empty array (default) to record everything; set
+        | it to a list of event names to whitelist only those.
+        */
+        'audit' => [
+            'enabled'        => env('ICHAVA_AUDIT_ENABLED', true),
+            'channel'        => env('ICHAVA_AUDIT_CHANNEL', 'ichava-audit'),
+            'dispatch_event' => env('ICHAVA_AUDIT_DISPATCH_EVENT', true),
+            'events'         => [], // empty = record all
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Blade components
+    |--------------------------------------------------------------------------
+    */
+    'components' => [
+        'enabled'    => env('ICHAVA_COMPONENTS_ENABLED', true),
+        'test_icons' => env('ICHAVA_TEST_COMPONENT_ENABLED', env('APP_ENV') === 'local'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Custom icon sets (in-app, no service provider needed)
+    |--------------------------------------------------------------------------
+    | Add entries to `custom-icons.sets` for icon directories that live inside
+    | your own application rather than a distributed composer package. Each
+    | entry is registered with IconRegistry on boot. See README §
+    | "Registering Custom Icon Sets" for the field reference and examples.
+    */
+    'custom-icons' => [
+        'sets' => [
+            // 'social' => [
+            //     'enabled'             => true,
+            //     'path'                => storage_path('icons/social'),
+            //     'prefix'              => 'social',
+            //     'default_class'       => 'social-icon',
+            //     'blade_namespace'     => 'ichava',
+            //     'blade_component'     => 'social',
+            // ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default class & attributes
+    |--------------------------------------------------------------------------
+    | CSS class and HTML attributes applied to every icon by default. Override
+    | per icon set or per Blade component as needed.
+    */
+    'defaults' => [
+        'class'      => 'w-6 h-6',
+        'attributes' => [
+            // 'aria-hidden' => 'true',  // decorative icons (WCAG 2.1 A)
+            // 'focusable'   => 'false', // legacy IE/Edge focus suppression
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Route prefix (shared between core API and browser SPA)
+    |--------------------------------------------------------------------------
+    | The URL namespace for both `/{prefix}/api/...` (core) and
+    | `/{prefix}/icons` (browser). Lives in core's config because core
+    | always exists; browser optionally consumes the same value.
+    |
+    | Env var stays `ICHAVA_BROWSER_PREFIX` for backward compatibility
+    | with deployments that already set it.
+    */
+    'prefix' => env('ICHAVA_BROWSER_PREFIX', 'ichava'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Logging
+    |--------------------------------------------------------------------------
+    | Channels are auto-registered with Laravel's logging system on boot ,
+    | no manual config/logging.php edits required.
+    |
+    | Log directory resolution (in order):
+    |   1. ICHAVA_LOG_PATH (absolute or relative to base_path()).
+    |   2. storage_path('logs') , Laravel-standard.
+    | Files are named after the channel: ichava.log, ichava-icons.log,
+    | ichava-queue.log. Daily rotation appends YYYY-MM-DD before .log.
+    */
+    'logging' => [
+        'enabled'               => env('ICHAVA_LOGGING_ENABLED', true),
+        'channel'               => env('ICHAVA_LOG_CHANNEL', 'ichava'),
+        'seeding_channel'       => env('ICHAVA_SEEDING_LOG_CHANNEL', 'ichava-icons'),
+        'queue_channel'         => env('ICHAVA_QUEUE_LOG_CHANNEL', 'ichava-queue'),
+        'level'                 => env('ICHAVA_LOG_LEVEL', 'warning'),
+        'seeding_level'         => env('ICHAVA_SEEDING_LOG_LEVEL', 'info'),
+        'retention_days'        => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
+        'auto_cleanup'          => env('ICHAVA_LOG_AUTO_CLEANUP', true),
+        'cleanup_time'          => env('ICHAVA_LOG_CLEANUP_TIME', '03:00'),
+        'security'              => env('ICHAVA_LOG_SECURITY', true),
+        'performance'           => env('ICHAVA_LOG_PERFORMANCE', false),
+        'requests'              => env('ICHAVA_LOG_REQUESTS', false),
+        'auth_debug'            => env('ICHAVA_LOG_AUTH_DEBUG', false),
+        'session_debug'         => env('ICHAVA_LOG_SESSION_DEBUG', false),
+        'performance_threshold' => env('ICHAVA_PERFORMANCE_THRESHOLD', IchavaConstants::PERFORMANCE_THRESHOLD_MS),
+        'deduplication_ttl'     => env('ICHAVA_LOG_DEDUP_TTL', 300),
+
+        // Resolved log directory. Absolute paths used as-is; relative paths
+        // are resolved against base_path(). Empty falls back to storage/logs.
+        'path' => Helpers::logPath(),
+
+        'channels' => [
+            'ichava' => [
+                'driver'     => 'daily',
+                'path'       => Helpers::logPath('ichava.log'),
+                'level'      => env('ICHAVA_LOG_LEVEL', 'warning'),
+                'days'       => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
+                'permission' => 0644,
+            ],
+            'ichava-icons' => [
+                'driver'     => 'daily',
+                'path'       => Helpers::logPath('ichava-icons.log'),
+                'level'      => env('ICHAVA_SEEDING_LOG_LEVEL', 'info'),
+                'days'       => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
+                'permission' => 0644,
+            ],
+            'ichava-queue' => [
+                'driver'     => 'daily',
+                'path'       => Helpers::logPath('ichava-queue.log'),
+                'level'      => env('ICHAVA_QUEUE_LOG_LEVEL', 'info'),
+                'days'       => env('ICHAVA_LOG_RETENTION_DAYS', IchavaConstants::LOG_RETENTION_DAYS),
+                'permission' => 0644,
+            ],
+            // Security audit trail: its own file, so SIEM forwarders can tail
+            // it without operational noise, with longer retention.
+            'ichava-audit' => [
+                'driver'     => 'daily',
+                'path'       => Helpers::logPath('ichava-audit.log'),
+                'level'      => env('ICHAVA_AUDIT_LOG_LEVEL', 'info'),
+                'days'       => env('ICHAVA_AUDIT_LOG_RETENTION_DAYS', 90),
+                'permission' => 0640,
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queue
+    |--------------------------------------------------------------------------
+    | Icon seeding runs in the background on the named queue. When Laravel
+    | Horizon is installed, a supervisor is registered automatically unless
+    | `horizon.auto_register` is set to false.
+    */
+    'queue' => [
+        'name'          => env('ICHAVA_QUEUE_NAME', 'ichava-icons'),
+        'connection'    => env('ICHAVA_QUEUE_CONNECTION'),
+        'stagger_delay' => env('ICHAVA_QUEUE_STAGGER_DELAY', IchavaConstants::QUEUE_STAGGER_DELAY),
+        'timeout'       => env('ICHAVA_QUEUE_TIMEOUT', IchavaConstants::QUEUE_TIMEOUT),
+        'retries'       => env('ICHAVA_QUEUE_RETRIES', IchavaConstants::QUEUE_RETRIES),
+        'progress_ttl'  => env('ICHAVA_PROGRESS_TTL', IchavaConstants::PROGRESS_TTL),
+
+        'horizon' => [
+            'auto_register' => env('ICHAVA_HORIZON_AUTO_REGISTER', true),
+            'supervisor'    => [
+                'connection'          => env('ICHAVA_HORIZON_CONNECTION', 'redis'),
+                'balance'             => env('ICHAVA_HORIZON_BALANCE', 'simple'),
+                'autoScalingStrategy' => 'time',
+                'maxProcesses'        => (int) env('ICHAVA_HORIZON_MAX_PROCESSES', 3),
+                'maxTime'             => 0,
+                'maxJobs'             => 0,
+                'memory'              => (int) env('ICHAVA_HORIZON_MEMORY', 256),
+                'tries'               => (int) env('ICHAVA_QUEUE_RETRIES', IchavaConstants::QUEUE_RETRIES),
+                'timeout'             => (int) env('ICHAVA_QUEUE_TIMEOUT', IchavaConstants::QUEUE_TIMEOUT),
+                'nice'                => 0,
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | SVG sanitization whitelist
+    |--------------------------------------------------------------------------
+    | Tag and attribute allow-lists used by the SVG sanitizer. Tighten or
+    | extend to match the surface area you actually need.
+    */
+    'svg' => [
+        /*
+        | These lists ARE the effective policy, and they now come from ONE file:
+        | resources/security/svg-policy.json, which the Vue client, the React
+        | client and the Python build pipeline read too.
+        |
+        | They were literals here until 2026-09-02. That is how the policies
+        | diverged: W1-6 widened this side and nothing widened the clients, and
+        | a census then measured 3,507 icons rendering correctly on the Blade
+        | path and wrong in the SPA. Two hand-maintained copies of one policy is
+        | not a policy.
+        |
+        | A host may still publish this config and narrow it -- that is a
+        | deliberate local decision. What is no longer possible is drifting
+        | apart by accident. Widen the JSON, with a test per construct; do not
+        | trim these to look tidy.
+        |
+        | Note `config:cache` freezes the resolved arrays, so a policy edit needs
+        | `config:clear` to take effect in a cached application.
+        */
+        'allowed_tags' => SvgPolicy::allowedTags(),
+
+        'allowed_attributes' => SvgPolicy::allowedAttributes(),
+
+        'forbidden_tags' => SvgPolicy::forbiddenTags(),
+
+        /*
+        | Rewrite pure-black paint (#000, #000000, black, rgb(0,0,0)) to
+        | currentColor, so a monochrome icon follows the text colour and stays
+        | visible in dark mode. Applied only to an icon whose every paint is
+        | black or transparent; multicolour icons, gradients and icons with a
+        | <style> element are served unchanged.
+        |
+        | Off by default. Turning it on changes the render fingerprint, so the
+        | icon cache re-keys on its own; a published config needs this key added.
+        */
+        'monochrome_to_current_color' => (bool) env('ICHAVA_SVG_MONOCHROME_TO_CURRENT_COLOR', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validation patterns
+    |--------------------------------------------------------------------------
+    | Applied by PathResolver AFTER its built-in checks, which stay in force
+    | (they are the traversal guard), so a pattern can only narrow what is
+    | accepted, never widen it. The shipped patterns accept every real path:
+    | `vendor/package::category/icon` in slash or dot form, and names with
+    | `_` and `.`. Set either to null to rely on the built-in checks alone.
+    */
+    'validation' => [
+        'icon_path_pattern' => '/^[a-z0-9_-]+\/[a-z0-9_-]+::[a-z0-9._\/-]+$/i',
+        'icon_name_pattern' => '/^[a-z0-9._-]+$/i',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Path separators
+    |--------------------------------------------------------------------------
+    | See README § "Icon Path Format" for the full grammar (`vendor/package::
+    | category/icon-name`). Both slash and dot separators are accepted after
+    | `::` and normalized to slash form internally.
+    */
+    'separators' => [
+        'path'     => '::',
+        'variant'  => '/',
+        'category' => '/',
+    ],
+];

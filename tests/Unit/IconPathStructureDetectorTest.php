@@ -1,0 +1,123 @@
+<?php
+
+declare(strict_types=1);
+
+use Simtabi\Laranail\Ichava\Support\IconPathStructureDetector;
+
+beforeEach(function () {
+    /*
+     * The fixture is nested one level inside a sandbox this test owns, rather than
+     * sitting directly in the system temp directory.
+     *
+     * detect() reads the *parent* of the path it is given -- strategy 1 counts
+     * sibling set directories to decide whether this path is one set among many --
+     * so a fixture placed straight in the temp directory inherits whatever else is
+     * there. Any leftover directory containing `files/` makes it answer MULTI_SET,
+     * which turns this into a test that passes on a clean CI runner and fails on a
+     * developer machine that has run anything else.
+     */
+    $this->sandbox = sys_get_temp_dir() . '/ichava-pathstruct-' . bin2hex(random_bytes(4));
+    $this->root = $this->sandbox . '/package';
+    mkdir($this->root, 0755, true);
+});
+
+afterEach(function () {
+    $delete = function ($path) use (&$delete) {
+        if (is_dir($path)) {
+            foreach (scandir($path) as $entry) {
+                if ($entry === '.' || $entry === '..') {
+                    continue;
+                }
+                $delete("$path/$entry");
+            }
+            @rmdir($path);
+        } else {
+            @unlink($path);
+        }
+    };
+    $delete($this->sandbox);
+});
+
+describe('IconPathStructureDetector::detect', function () {
+    it('returns SINGLE_SET when the base directory does not exist', function () {
+        $result = IconPathStructureDetector::detect($this->root . '/missing');
+        expect($result)->toBe(IconPathStructureDetector::SINGLE_SET);
+    });
+
+    it('returns SINGLE_SET when only files/ is present at the base', function () {
+        mkdir("{$this->root}/files");
+        $result = IconPathStructureDetector::detect($this->root);
+        expect($result)->toBe(IconPathStructureDetector::SINGLE_SET);
+    });
+
+    it('ignores what sits beside the directory it was given', function () {
+        // Pins the contract directly: the answer is a property of $basePath alone.
+        // A previous strategy counted sibling set directories in the parent, which
+        // made a single set report MULTI_SET purely because of its neighbours --
+        // and in a real install those neighbours are other packages in the vendor
+        // directory. This fails if that strategy ever comes back.
+        mkdir("{$this->root}/files");
+        mkdir("{$this->sandbox}/noisy-neighbour-a/files", 0755, true);
+        mkdir("{$this->sandbox}/noisy-neighbour-b/files", 0755, true);
+
+        expect(IconPathStructureDetector::detect($this->root))
+            ->toBe(IconPathStructureDetector::SINGLE_SET);
+    });
+
+    it('returns MULTI_SET when multiple sub-directories carry files/', function () {
+        mkdir("{$this->root}/set-a/files", 0755, true);
+        mkdir("{$this->root}/set-b/files", 0755, true);
+        $result = IconPathStructureDetector::detect($this->root);
+        expect($result)->toBe(IconPathStructureDetector::MULTI_SET);
+    });
+
+    it('returns MULTI_SET when even one sub-directory has files/', function () {
+        // Strategy 3 triggers as soon as any sub-directory has files/.
+        mkdir("{$this->root}/only-set/files", 0755, true);
+        $result = IconPathStructureDetector::detect($this->root);
+        expect($result)->toBe(IconPathStructureDetector::MULTI_SET);
+    });
+});
+
+describe('IconPathStructureDetector::findSetDirectories', function () {
+    it('returns an empty list for a missing base', function () {
+        expect(IconPathStructureDetector::findSetDirectories("{$this->root}/missing"))->toBe([]);
+    });
+
+    it('returns directories that contain files/', function () {
+        mkdir("{$this->root}/set-a/files", 0755, true);
+        mkdir("{$this->root}/set-b/files", 0755, true);
+        mkdir("{$this->root}/no-files-here", 0755, true);
+        $sets = IconPathStructureDetector::findSetDirectories($this->root);
+        sort($sets);
+        expect($sets)->toBe(['set-a', 'set-b']);
+    });
+
+    it('skips well-known non-set directories', function () {
+        foreach (['vendor', 'node_modules', '.git', 'config'] as $skip) {
+            mkdir("{$this->root}/{$skip}/files", 0755, true);
+        }
+        mkdir("{$this->root}/real-set/files", 0755, true);
+        $sets = IconPathStructureDetector::findSetDirectories($this->root);
+        expect($sets)->toBe(['real-set']);
+    });
+});
+
+describe('IconPathStructureDetector::getScanPaths', function () {
+    it('returns the single-set scan path when files/ lives at the base', function () {
+        mkdir("{$this->root}/files");
+        $paths = IconPathStructureDetector::getScanPaths($this->root);
+        expect($paths)->toContain($this->root . '/files');
+    });
+
+    it('returns one scan path per set when in multi-set layout', function () {
+        mkdir("{$this->root}/set-a/files", 0755, true);
+        mkdir("{$this->root}/set-b/files", 0755, true);
+        $paths = IconPathStructureDetector::getScanPaths($this->root);
+        sort($paths);
+        expect($paths)->toBe([
+            $this->root . '/set-a/files',
+            $this->root . '/set-b/files',
+        ]);
+    });
+});

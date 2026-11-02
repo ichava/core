@@ -1,0 +1,61 @@
+{
+    "schema_version": "3.0",
+    "_note": "Static snapshot refreshed daily by .github/workflows/sync-icon-sets.yml (bin/sync-icon-sets.php). Each set pins key/package/repository; title, description, license, icon_count, icon_counts (per kind: icon, illustration), variants and latest_version are synced from the pack’s config.json at its latest GitHub tag. To add a set, append an entry carrying at least key, package, repository, title, icon_count and variants — IconSetCatalogService rejects any set missing one of those six, treating an empty string or empty array as missing, so a set pinned with only the first three makes ichava::ichava-core.install throw until the next nightly sync fills the rest. Take the values from the pack’s own config.json and let the workflow refresh them. Write with JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE, as this file is generated and any other encoding reflows it. ichava::ichava-core.install reads this file only — zero runtime network calls.",
+    "config_path": "resources/assets/svg/config.json",
+    "sets": [
+        {
+            "key": "tabler",
+            "package": "ichava/icon-sets-tabler",
+            "repository": "ichava/icon-sets-tabler",
+            "title": "Tabler Icons",
+            "description": "Over 5,200 pixel-perfect icons for web apps. Free and open source icons designed with attention to detail to make your design stand out.",
+            "license": "MIT",
+            "icon_count": 6238,
+            "variants": [
+                "outline",
+                "filled"
+            ],
+            "latest_version": "0.1.1",
+            "icon_counts": {
+                "icon": 6238,
+                "illustration": 0
+            }
+        },
+        {
+            "key": "flags",
+            "package": "ichava/icon-sets-flag",
+            "repository": "ichava/icon-sets-flag",
+            "title": "Flag Icons",
+            "description": "271 country flag SVGs sourced from lipis/flag-icons, available in 4x3 and 1x1 aspect ratios. Replaces the flag half of the deprecated simtabi/laflamoji.",
+            "license": "MIT",
+            "icon_count": 542,
+            "variants": [
+                "4x3",
+                "1x1"
+            ],
+            "latest_version": "0.1.1",
+            "icon_counts": {
+                "icon": 542,
+                "illustration": 0
+            }
+        },
+        {
+            "key": "emoji",
+            "package": "ichava/icon-sets-emoji",
+            "repository": "ichava/icon-sets-emoji",
+            "title": "Emoji Sets",
+            "description": "Multi-source emoji bundle (Twemoji, OpenMoji color, OpenMoji black). Unicode 17 / Emoji 17 spec. Categorised by Unicode CLDR groups.",
+            "license": "MIT (code) / CC-BY 4.0 (Twemoji assets) / CC-BY-SA 4.0 (OpenMoji assets)",
+            "icon_count": 10567,
+            "variants": [
+                "default"
+            ],
+            "latest_version": "0.1.1",
+            "icon_counts": {
+                "icon": 10567,
+                "illustration": 0
+            }
+        }
+    ],
+    "synced_at": "2026-10-30T20:21:40Z"
+}

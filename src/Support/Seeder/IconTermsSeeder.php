@@ -1,0 +1,375 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Simtabi\Laranail\Ichava\Support\Seeder;
+
+use Illuminate\Support\Str;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\File;
+use Simtabi\Laranail\Ichava\Models\IconTerm;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Console\Tools\Widgets\StatusLine;
+use Symfony\Component\Console\Formatter\OutputFormatter;
+
+/**
+ * Icon Terms Seeder
+ *
+ * Dynamically generates categories and variants from registered icon packages
+ * by scanning the filesystem structure.
+ *
+ * WORKFLOW:
+ * 1. Scan all registered packages from IconRegistry
+ * 2. For each package, scan the 'files/' directory structure
+ * 3. Generate nested categories based on folder hierarchy
+ * 4. Extract variants from config.json or folder patterns
+ * 5. Create IconTerm records with proper parent-child relationships
+ *
+ * STRUCTURE:
+ * - Root folder = package category (e.g., "bootstrap-icons")
+ * - Subfolders = nested categories (e.g., "logos", "regular", "solid")
+ * - Variants extracted from config.json metadata.data.variants
+ *
+ * @see IchavaSeeder Main seeder that orchestrates term + icon seeding
+ */
+class IconTermsSeeder extends Seeder
+{
+    protected IconRegistry $packageRegistry;
+
+    public function __construct()
+    {
+        $this->packageRegistry = app(IconRegistry::class);
+    }
+
+    public function run(): void
+    {
+        $this->output(__('ichava/ichava-core::commands.seeder.terms.scanning'), 'info');
+        $this->output('', 'newLine');
+
+        $packages = $this->packageRegistry->all();
+
+        if (empty($packages)) {
+            $this->output(__('ichava/ichava-core::commands.seeder.terms.no_packages'), 'warn');
+
+            return;
+        }
+
+        foreach ($packages as $packageName => $packageData) {
+            $this->seedSinglePackage($packageName, $packageData);
+        }
+
+        $this->output('', 'newLine');
+        $this->output(__('ichava/ichava-core::commands.seeder.terms.seeded'), 'info');
+    }
+
+    /**
+     * Seed terms for a single package (used by IchavaSeeder)
+     *
+     * @param array<string, mixed> $packageData
+     */
+    public function seedSinglePackage(string $packageName, array $packageData): void
+    {
+        $this->output('  ' . __('ichava/ichava-core::commands.seeder.terms.processing', ['package' => '<fg=cyan>' . OutputFormatter::escape($packageName) . '</>']));
+
+        // Seed categories from filesystem
+        $this->seedPackageCategories($packageName, $packageData);
+
+        // Seed variants from config.json
+        $this->seedPackageVariants($packageName, $packageData);
+    }
+
+    /**
+     * Safe output - only outputs if command is set
+     */
+    protected function output(string $message, string $type = 'line'): void
+    {
+        if (! $this->command) {
+            return;
+        }
+
+        // success/warning are indented status lines under the package heading,
+        // rendered by laranail/console's StatusLine so the glyph and colour are
+        // the shared ones (and ASCII-safe) rather than hand-written markup.
+        match ($type) {
+            'info'    => $this->command->info($message),
+            'warn'    => $this->command->warn($message),
+            'error'   => $this->command->error($message),
+            'success' => $this->command->line('    ' . StatusLine::make()->success($message)),
+            'warning' => $this->command->line('    ' . StatusLine::make()->warning($message)),
+            'newLine' => $this->command->newLine(),
+            default   => $this->command->line($message),
+        };
+    }
+
+    /**
+     * Seed categories for a specific package by scanning filesystem
+     *
+     * @param array<string, mixed> $packageData
+     */
+    protected function seedPackageCategories(string $packageName, array $packageData): void
+    {
+        $basePath = $this->basePathOf($packageData);
+
+        if (! $basePath || ! File::isDirectory($basePath)) {
+            $this->output(__('ichava/ichava-core::commands.seeder.terms.base_path_missing', ['path' => $basePath]), 'warning');
+
+            return;
+        }
+
+        // Look for 'files/' directory
+        $filesPath = $basePath . '/files';
+        if (! File::isDirectory($filesPath)) {
+            $filesPath = $basePath; // Fallback to base path
+        }
+
+        // Scan folder structure
+        $categories = $this->scanFolderStructure($filesPath, $packageName);
+
+        if (empty($categories)) {
+            $this->output(__('ichava/ichava-core::commands.seeder.terms.no_categories'), 'warning');
+
+            return;
+        }
+
+        // Insert categories
+        $this->insertTerms(IconTerm::TYPE_CATEGORY, $categories, null, $packageName);
+
+        $count = $this->countCategories($categories);
+        $this->output(__('ichava/ichava-core::commands.seeder.terms.categories_seeded', ['count' => $count]), 'success');
+    }
+
+    /**
+     * Seed variants for a specific package from config.json
+     *
+     * @param array<string, mixed> $packageData
+     */
+    protected function seedPackageVariants(string $packageName, array $packageData): void
+    {
+        $basePath = $this->basePathOf($packageData);
+
+        if (! $basePath) {
+            return;
+        }
+
+        // Check for config.json
+        $configPath = $basePath . '/config.json';
+        if (! File::exists($configPath)) {
+            return;
+        }
+
+        $config = json_decode(File::get($configPath), true);
+        $metadata = is_array($config) ? ($config['metadata'] ?? null) : null;
+        $data = is_array($metadata) ? ($metadata['data'] ?? null) : null;
+        $variants = is_array($data) ? ($data['variants'] ?? []) : [];
+
+        if (empty($variants) || ! is_array($variants)) {
+            return;
+        }
+
+        // Convert variants to seeder format
+        $variantTerms = [];
+        foreach ($variants as $variantSlug => $variantData) {
+            $variantData = is_array($variantData) ? $variantData : [];
+
+            $variantTerms[] = [
+                'name'        => $variantData['name'] ?? ucwords(str_replace(['-', '_'], ' ', (string) $variantSlug)),
+                'slug'        => $variantSlug,
+                'description' => $variantData['description'] ?? null,
+            ];
+        }
+
+        $this->insertTerms(IconTerm::TYPE_VARIANT, $variantTerms, null, $packageName);
+
+        $this->output(__('ichava/ichava-core::commands.seeder.terms.variants_seeded', ['count' => count($variantTerms)]), 'success');
+    }
+
+    /**
+     * Recursively scan folder structure and build category hierarchy
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function scanFolderStructure(
+        string $basePath,
+        string $packageName,
+        int $maxDepth = 3,
+        int $currentDepth = 0,
+    ): array {
+        if ($currentDepth >= $maxDepth) {
+            return [];
+        }
+
+        $categories = [];
+        $directories = File::directories($basePath);
+
+        foreach ($directories as $dir) {
+            if (! is_string($dir)) {
+                continue;
+            }
+
+            $folderName = basename($dir);
+
+            // Skip common non-icon directories
+            if (in_array($folderName, ['config', 'lang', 'vendor', 'node_modules', '.git', 'dist', 'build'])) {
+                continue;
+            }
+
+            // Check if this folder contains SVG files or has subdirectories with SVGs
+            $hasSvgFiles = $this->hasSvgFiles($dir);
+            $hasSubdirectories = ! empty(File::directories($dir));
+
+            if (! $hasSvgFiles && ! $hasSubdirectories) {
+                continue;
+            }
+
+            // Build category
+            $category = [
+                'name'        => $this->formatCategoryName($folderName),
+                'slug'        => $folderName,
+                'description' => $this->generateCategoryDescription($folderName),
+            ];
+
+            // Recursively scan for nested categories
+            $children = $this->scanFolderStructure($dir, $packageName, $maxDepth, $currentDepth + 1);
+
+            if (! empty($children)) {
+                $category['children'] = $children;
+            }
+
+            $categories[] = $category;
+        }
+
+        return $categories;
+    }
+
+    /**
+     * Check if directory contains SVG files (direct children only)
+     */
+    protected function hasSvgFiles(string $directory): bool
+    {
+        $svgFiles = File::glob($directory . '/*.svg');
+
+        return ! empty($svgFiles);
+    }
+
+    /**
+     * Format category name for display
+     */
+    protected function formatCategoryName(string $slug): string
+    {
+        // Convert kebab-case/snake_case to Title Case
+        return ucwords(str_replace(['-', '_'], ' ', $slug));
+    }
+
+    /**
+     * Generate category description based on name
+     */
+    protected function generateCategoryDescription(string $slug): ?string
+    {
+        // Simple heuristic descriptions
+        $descriptions = [
+            'logos'         => 'Brand logos and company identities',
+            'regular'       => 'Regular style icons with standard line weight',
+            'solid'         => 'Solid filled icons',
+            'outlined'      => 'Outlined style icons',
+            'filled'        => 'Filled style icons',
+            'linear'        => 'Linear style with thin lines',
+            'bold'          => 'Bold style with thick lines',
+            'duotone'       => 'Two-tone style icons',
+            'brands'        => 'Brand and company icons',
+            'social'        => 'Social media platform icons',
+            'ui'            => 'User interface elements and controls',
+            'arrows'        => 'Directional arrows and navigation',
+            'files'         => 'File types and document icons',
+            'communication' => 'Communication and messaging icons',
+        ];
+
+        return $descriptions[$slug] ?? null;
+    }
+
+    /**
+     * Count total categories including nested
+     *
+     * @param array<array-key, mixed> $categories
+     */
+    protected function countCategories(array $categories): int
+    {
+        $count = count($categories);
+
+        foreach ($categories as $category) {
+            if (is_array($category) && ! empty($category['children']) && is_array($category['children'])) {
+                $count += $this->countCategories($category['children']);
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Insert terms (supports unlimited nesting).
+     *
+     * @param string $type category, variant, etc.
+     * @param array<array-key, mixed> $items nested term definitions
+     * @param int|null $parentId parent term id
+     * @param string $package vendor/package name
+     */
+    protected function insertTerms(string $type, array $items, ?int $parentId, string $package): void
+    {
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $name = $item['name'];
+            $slug = $item['slug'] ?? (is_string($name) ? Str::slug($name) : null);
+            $description = isset($item['description']) && is_string($item['description']) ? $item['description'] : null;
+
+            /** @var IconTerm $term */
+            $term = IconTerm::firstOrNew(
+                [
+                    'type'    => $type,
+                    'slug'    => $slug,
+                    'package' => $package,
+                ],
+                [
+                    'name'        => $name,
+                    'description' => $description,
+                ],
+            );
+
+            // Set parent_id safely (avoid circular reference)
+            if (! $term->exists) {
+                $term->parent_id = $parentId;
+                $term->save();
+            } elseif ($term->parent_id !== $parentId && $parentId !== $term->id) {
+                // Update existing term if parent changed and not circular
+                $term->parent_id = $parentId;
+                $term->save();
+            }
+
+            // Update description if changed
+            if ($term->exists && $term->description !== $description && $description !== null) {
+                $term->description = $description;
+                $term->save();
+            }
+
+            // Recursively seed children (use fresh ID, not parent's)
+            if (! empty($item['children']) && is_array($item['children'])) {
+                // Refresh to ensure we have the correct ID
+                $term->refresh();
+                $this->insertTerms($type, $item['children'], $term->id, $package);
+            }
+        }
+    }
+
+    /**
+     * The package's base path from its registry entry, or null when it has none.
+     *
+     * @param array<string, mixed> $packageData
+     */
+    private function basePathOf(array $packageData): ?string
+    {
+        $basePath = $packageData['base_path'] ?? $packageData['path'] ?? null;
+
+        return is_string($basePath) ? $basePath : null;
+    }
+}

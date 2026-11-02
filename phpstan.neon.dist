@@ -1,0 +1,21 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: max
+    paths:
+        - src
+    tmpDir: .phpstan.cache
+    treatPhpDocTypesAsCertain: false
+
+    # Every directory under src/ is analysed; nothing is excluded. The two
+    # entries below are PHPStan limitations, each pinned to one file and one
+    # occurrence, so a second hit fails rather than being absorbed.
+    ignoreErrors:
+        # Used only by the icon packs' enums, which live in other repositories.
+        # PHPStan analyses a trait solely through the classes that use it, so
+        # with no user inside src/ it cannot analyse this one at all.
+        -
+            identifier: trait.unused
+            path: src/Traits/HasIconSetVariants.php
+            count: 1

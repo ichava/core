@@ -1,0 +1,129 @@
+{
+    "name": "ichava/core",
+    "description": "Core engine for the Ichava Laravel icon ecosystem: icon registry, queue-backed seeder, SVG sanitiser, icon cache and the <x-ichava::icon> Blade component, with no HTTP surface.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "icons",
+        "svg",
+        "ichava",
+        "blade",
+        "blade-components",
+        "icon-sets",
+        "svg-sanitizer"
+    ],
+    "homepage": "https://opensource.simtabi.com/products/ichava/core",
+    "authors": [
+        {
+            "name": "Simtabi LLC",
+            "email": "opensource@simtabi.com",
+            "homepage": "https://simtabi.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.4.1 || ^8.5",
+        "ext-zip": "*",
+        "illuminate/filesystem": "^13.0",
+        "illuminate/support": "^13.0",
+        "laranail/console": "^0.1.3",
+        "laranail/db-tools": "^0.1.1",
+        "laranail/enumerator": "^0.1.0",
+        "laranail/package-tools": "^0.1.1",
+        "symfony/finder": "^7.4 || ^8.0"
+    },
+    "require-dev": {
+        "composer/semver": "^3.4",
+        "ichava/icon-sets-package-scaffolder": "^0.1.0",
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^5.0",
+        "phpstan/phpstan": "^2.1"
+    },
+    "suggest": {
+        "ichava/icon-sets-package-scaffolder": "Scaffold a new Ichava icon package: php artisan ichava::icon-sets-package-scaffolder.make"
+    },
+    "autoload": {
+        "psr-4": {
+            "Simtabi\\Laranail\\Ichava\\": "src/",
+            "Simtabi\\Laranail\\Ichava\\Seeders\\": "database/seeders/"
+        },
+        "files": [
+            "helpers/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Simtabi\\Laranail\\Ichava\\Tests\\": "tests/",
+            "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\TranslatedPack\\": "tests/fixtures/TranslatedPack/src/",
+            "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\ViewfulPack\\": "tests/fixtures/ViewfulPack/src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Simtabi\\Laranail\\Ichava\\Providers\\IchavaServiceProvider"
+            ],
+            "aliases": {
+                "Ichava": "Simtabi\\Laranail\\Ichava\\Facades\\IchavaFacade"
+            }
+        },
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
+        }
+    },
+    "scripts": {
+        "pint": "@php vendor/bin/laranail-pint --test",
+        "pint-fix": "@php vendor/bin/laranail-pint --parallel",
+        "lint": "@pint",
+        "format": "@pint-fix",
+        "test": "vendor/bin/pest --parallel",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=2G"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "support": {
+        "source": "https://github.com/ichava/core",
+        "issues": "https://github.com/ichava/core/issues",
+        "security": "https://github.com/ichava/core/security/policy",
+        "docs": "https://opensource.simtabi.com/documentation/ichava/core/"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/ichava/icon-sets-package-scaffolder.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/laranail/package-tools.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/laranail/console.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/laranail/enumerator.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/laranail/db-tools.git"
+        }
+    ],
+    "archive": {
+        "exclude": [
+            "/tests",
+            "/.github",
+            "/.gitignore",
+            "phpunit.xml.dist"
+        ]
+    }
+}
