@@ -65,7 +65,7 @@ See [Getting started](docs/getting-started.md) for the full walkthrough, and the
 
 ## <a name="documentation"></a>Documentation
 
-Full documentation is at **[opensource.simtabi.com/documentation/ichava/core](https://opensource.simtabi.com/documentation/ichava/core/)**.
+The full documentation lives in this repository, under `docs/`, and is indexed below.
 
 ### Guides
 

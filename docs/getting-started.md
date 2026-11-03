@@ -49,7 +49,7 @@ Core has no HTTP surface at all — no routes, no middleware, no REST endpoints.
 composer require ichava/icon-browser
 ```
 
-See [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) for its installation and configuration.
+See [`ichava/icon-browser`](https://github.com/ichava/icon-browser/blob/main/docs/installation.md) for its installation and configuration.
 
 ## Scaffold your own pack
 
@@ -60,7 +60,7 @@ composer require --dev ichava/icon-sets-package-scaffolder
 php artisan ichava::icon-sets-package-scaffolder.make
 ```
 
-It replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0.2.7`. Full guidance is in the [scaffolder's documentation](https://opensource.simtabi.com/documentation/ichava/icon-sets-package-scaffolder/creating-icon-packages).
+It replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0.2.7`. Full guidance is in the [scaffolder's documentation](https://github.com/ichava/icon-sets-package-scaffolder/blob/main/docs/creating-icon-packages.md).
 
 ## See also
 
