@@ -13,7 +13,7 @@
         "icon-sets",
         "svg-sanitizer"
     ],
-    "homepage": "https://opensource.simtabi.com/products/ichava/core",
+    "homepage": "https://github.com/ichava/core",
     "authors": [
         {
             "name": "Simtabi LLC",
@@ -94,7 +94,7 @@
         "source": "https://github.com/ichava/core",
         "issues": "https://github.com/ichava/core/issues",
         "security": "https://github.com/ichava/core/security/policy",
-        "docs": "https://opensource.simtabi.com/documentation/ichava/core/"
+        "docs": "https://github.com/ichava/core/tree/main/docs"
     },
     "repositories": [
         {

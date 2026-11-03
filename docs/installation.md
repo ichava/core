@@ -75,7 +75,7 @@ composer require --dev ichava/icon-sets-package-scaffolder
 php artisan ichava::icon-sets-package-scaffolder.make
 ```
 
-See [creating icon packages](https://opensource.simtabi.com/documentation/ichava/icon-sets-package-scaffolder/creating-icon-packages).
+See [creating icon packages](https://github.com/ichava/icon-sets-package-scaffolder/blob/main/docs/creating-icon-packages.md).
 
 ## 6. Seed the icon database
 
@@ -105,7 +105,7 @@ Or with the helper:
 - The icon registry and seeder
 - No HTTP routes and no JavaScript toolchain
 
-For the visual icon browser at `/ichava/icons` and the REST API, install [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) on top. It is a licensed, proprietary add-on; everything above works without it.
+For the visual icon browser at `/ichava/icons` and the REST API, install [`ichava/icon-browser`](https://github.com/ichava/icon-browser/blob/main/docs/installation.md) on top. It is a licensed, proprietary add-on; everything above works without it.
 
 ## See also
 
@@ -113,7 +113,7 @@ For the visual icon browser at `/ichava/icons` and the REST API, install [`ichav
 - [Environment variables](environment.md)
 - [Database support](databases.md)
 - [Database seeding](recipes/seed-the-database.md)
-- [Browser package installation](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation)
+- [Browser package installation](https://github.com/ichava/icon-browser/blob/main/docs/installation.md)
 - [Troubleshooting](troubleshooting.md)
 
 ---

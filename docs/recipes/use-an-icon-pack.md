@@ -71,7 +71,7 @@ Look there for stroke widths, variant lists, attribution, and any pack-specific 
 - [Blade components](../tools/blade-components.md)
 - [Global helper](../tools/global-helper.md)
 - [Seeding pack icons](seed-pack-icons.md)
-- [Building your own pack](https://opensource.simtabi.com/documentation/ichava/icon-sets-package-scaffolder/recipes/build-your-own-pack)
+- [Building your own pack](https://github.com/ichava/icon-sets-package-scaffolder/blob/main/docs/recipes/build-your-own-pack.md)
 
 ---
 

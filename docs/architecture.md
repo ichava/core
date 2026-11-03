@@ -18,9 +18,9 @@ Relocated from the README, which is now a slim pointer.
 | Logging | Three dedicated channels: `ichava`, `ichava-icons`, `ichava-queue`. |
 | Search | Full-text search on PostgreSQL; portable `LIKE` search on SQLite, MySQL and MariaDB. |
 
-**Zero HTTP surface.** No REST endpoints, no middleware, no routes. The HTTP layer -- REST API plus the Inertia + React browser -- lives in the optional, licensed [`ichava/icon-browser`](https://opensource.simtabi.com/documentation/ichava/icon-browser/installation) package, which is why `composer require ichava/core` alone gives a fully functional headless icon engine.
+**Zero HTTP surface.** No REST endpoints, no middleware, no routes. The HTTP layer -- REST API plus the Inertia + React browser -- lives in the optional, licensed [`ichava/icon-browser`](https://github.com/ichava/icon-browser/blob/main/docs/installation.md) package, which is why `composer require ichava/core` alone gives a fully functional headless icon engine.
 
-Scaffolding a new icon pack is **not** part of core either; it lives in [`ichava/icon-sets-package-scaffolder`](https://opensource.simtabi.com/documentation/ichava/icon-sets-package-scaffolder/creating-icon-packages) and replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0.2.7`.
+Scaffolding a new icon pack is **not** part of core either; it lives in [`ichava/icon-sets-package-scaffolder`](https://github.com/ichava/icon-sets-package-scaffolder/blob/main/docs/creating-icon-packages.md) and replaced `ichava::ichava-core.make:icon-package`, which core shipped up to `0.2.7`.
 
 ## Package topology
 
