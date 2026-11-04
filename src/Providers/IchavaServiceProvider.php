@@ -84,6 +84,11 @@ use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
 class IchavaServiceProvider extends PackageServiceProvider
 {
     /**
+     * The vendor-scoped Blade component prefix: `<x-ichava-core::icon>`.
+     */
+    public const string SCOPED_COMPONENT_PREFIX = 'ichava-core';
+
+    /**
      * Declare the Ichava core package metadata, assets, and commands.
      * Called before any bindings are registered.
      */
@@ -331,6 +336,14 @@ class IchavaServiceProvider extends PackageServiceProvider
         // The fourth, the view hints themselves, is the one already corrected.
         Blade::componentNamespace('Simtabi\\Laranail\\Ichava\\View\\Components', 'ichava');
 
+        // The vendor-scoped prefix, `ichava-core` (vendor `ichava`, package
+        // `core`; Blade prefixes keep the hyphen because a tag cannot hold a
+        // slash). Registered over the same classes as the bare prefix, so
+        // `<x-ichava-core::icon>` and `<x-ichava::icon>` resolve the same
+        // component. Additive: the bare prefix above is unchanged, and whether
+        // it is ever deprecated is a separate owner decision.
+        Blade::componentNamespace('Simtabi\\Laranail\\Ichava\\View\\Components', self::SCOPED_COMPONENT_PREFIX);
+
         // Register core's bundled icon set (test fixtures shipped for the
         // API/test suite; multi-set structure: svg/{set-name}/config.json +
         // files/{set-name}/*.svg). The browser package's `ui-icons` set is
@@ -546,6 +559,10 @@ class IchavaServiceProvider extends PackageServiceProvider
         // bootingPackage(). This alias is the one the deferral is actually
         // about, so do not "tidy" it in isolation.
         Blade::component('ichava::icon', IconComponent::class);
+
+        // The vendor-scoped spelling of the same alias. A class namespace
+        // alone would look for `Components\Icon`, so the alias is needed too.
+        Blade::component(self::SCOPED_COMPONENT_PREFIX . '::icon', IconComponent::class);
     }
 
     /**
