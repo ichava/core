@@ -1,0 +1,18 @@
+{
+    "packages": [
+        {
+            "name": "ichava/fixture-pack",
+            "version": "1.0.0",
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\TranslatedPack\\Providers\\IconsServiceProvider"
+                    ]
+                }
+            }
+        }
+    ],
+    "dev": true,
+    "dev-package-names": []
+}
