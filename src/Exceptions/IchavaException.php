@@ -34,11 +34,11 @@ class IchavaException extends RuntimeException
     }
 
     /**
-     * SVG content with more nodes than the sanitiser will walk.
+     * SVG content with more elements than the sanitiser will walk.
      */
     public static function svgTooComplex(int $limit): static
     {
-        return new static("Invalid SVG content: more than {$limit} nodes");
+        return new static("Invalid SVG content: more than {$limit} elements");
     }
 
     /**

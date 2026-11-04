@@ -11,43 +11,44 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * synchronously, inside the request that first served it.
  *
  * Two caps now fail closed with an IchavaException: a byte cap checked before
- * the document is parsed, and a node cap checked while it is walked.
+ * the document is parsed, and an element cap checked while it is walked.
  */
 describe('SVG sanitiser caps', function () {
     beforeEach(function () {
         $this->sanitizer = app(SvgProcessingService::class);
 
-        // Root plus $paths children, no whitespace: exactly 1 + $paths nodes.
-        $this->svgWithNodes = fn (int $nodes): string => '<svg xmlns="http://www.w3.org/2000/svg">'
-            . str_repeat('<path d="M0 0"/>', $nodes - 1) . '</svg>';
+        // Root plus children, separated by whitespace text nodes that the
+        // cap must not count: exactly $elements elements.
+        $this->svgWithElements = fn (int $elements): string => '<svg xmlns="http://www.w3.org/2000/svg">'
+            . str_repeat("\n  <path d=\"M0 0\"/>", $elements - 1) . "\n</svg>";
     });
 
     it('ships both caps in config', function () {
         expect(config('ichava.ichava-core.svg.max_bytes'))->toBeInt()->toBeGreaterThan(0)
-            ->and(config('ichava.ichava-core.svg.max_nodes'))->toBeInt()->toBeGreaterThan(0);
+            ->and(config('ichava.ichava-core.svg.max_elements'))->toBeInt()->toBeGreaterThan(0);
     });
 
-    it('accepts a document exactly at the node cap', function () {
-        config()->set('ichava.ichava-core.svg.max_nodes', 50);
+    it('accepts a document exactly at the element cap, whitespace nodes not counted', function () {
+        config()->set('ichava.ichava-core.svg.max_elements', 50);
 
-        expect(substr_count($this->sanitizer->sanitize(($this->svgWithNodes)(50)), '<path'))->toBe(49);
+        expect(substr_count($this->sanitizer->sanitize(($this->svgWithElements)(50)), '<path'))->toBe(49);
     });
 
-    it('rejects a document one node over the cap', function () {
-        config()->set('ichava.ichava-core.svg.max_nodes', 50);
+    it('rejects a document one element over the cap', function () {
+        config()->set('ichava.ichava-core.svg.max_elements', 50);
 
-        $this->sanitizer->sanitize(($this->svgWithNodes)(51));
-    })->throws(IchavaException::class, 'node');
+        $this->sanitizer->sanitize(($this->svgWithElements)(51));
+    })->throws(IchavaException::class, 'elements');
 
     it('accepts a document exactly at the byte cap', function () {
-        $svg = ($this->svgWithNodes)(10);
+        $svg = ($this->svgWithElements)(10);
         config()->set('ichava.ichava-core.svg.max_bytes', strlen($svg));
 
         expect($this->sanitizer->sanitize($svg))->toContain('<path');
     });
 
     it('rejects a document one byte over the cap, before parsing it', function () {
-        $svg = ($this->svgWithNodes)(10);
+        $svg = ($this->svgWithElements)(10);
         config()->set('ichava.ichava-core.svg.max_bytes', strlen($svg) - 1);
 
         $this->sanitizer->sanitize($svg);

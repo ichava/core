@@ -83,10 +83,10 @@ trait SanitizesSvg
         'font', 'font-family',
     ];
 
-    /** Nodes visited by the walk in progress, against {@see self::$sanitizerMaxNodes}. */
-    private int $sanitizerNodeCount = 0;
+    /** Elements visited by the walk in progress, against {@see self::$sanitizerMaxElements}. */
+    private int $sanitizerElementCount = 0;
 
-    private int $sanitizerMaxNodes = IchavaConstants::SVG_SANITIZER_MAX_NODES;
+    private int $sanitizerMaxElements = IchavaConstants::SVG_SANITIZER_MAX_ELEMENTS;
 
     /** @var array<string, int> lowercased index of */
     private array $allowedTagIndex = [];
@@ -153,10 +153,11 @@ trait SanitizesSvg
             throw IchavaException::invalidSvgContent('Invalid SVG XML structure');
         }
 
-        // Sanitize the tree, counting as it goes: the node cap is checked
-        // during the walk so a refused document costs at most the cap.
-        $this->sanitizerNodeCount = 0;
-        $this->sanitizerMaxNodes = $this->sanitizerLimit('max_nodes', IchavaConstants::SVG_SANITIZER_MAX_NODES);
+        // Sanitize the tree, counting elements as it goes: the cap is checked
+        // during the walk so a refused document costs at most the cap. Text
+        // and whitespace nodes are not counted; the byte cap bounds them.
+        $this->sanitizerElementCount = 0;
+        $this->sanitizerMaxElements = $this->sanitizerLimit('max_elements', IchavaConstants::SVG_SANITIZER_MAX_ELEMENTS);
 
         $this->sanitizeNode($root);
 
@@ -434,12 +435,6 @@ trait SanitizesSvg
      */
     private function sanitizeNode(DOMNode $node): void
     {
-        if (++$this->sanitizerNodeCount > $this->sanitizerMaxNodes) {
-            $this->reportSanitizerLimit('max_nodes', $this->sanitizerMaxNodes, $this->sanitizerNodeCount);
-
-            throw IchavaException::svgTooComplex($this->sanitizerMaxNodes);
-        }
-
         if ($node instanceof DOMComment && SvgPolicy::stripComments()) {
             $node->parentNode?->removeChild($node);
 
@@ -454,6 +449,12 @@ trait SanitizesSvg
 
         if (! $node instanceof DOMElement) {
             return;
+        }
+
+        if (++$this->sanitizerElementCount > $this->sanitizerMaxElements) {
+            $this->reportSanitizerLimit('max_elements', $this->sanitizerMaxElements, $this->sanitizerElementCount);
+
+            throw IchavaException::svgTooComplex($this->sanitizerMaxElements);
         }
 
         // Blacklist check
