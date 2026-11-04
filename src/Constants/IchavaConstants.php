@@ -132,6 +132,40 @@ final class IchavaConstants
      */
     public const MIN_SVG_FILE_SIZE = 10;
 
+    /*
+     * Kind heuristic (D6 row 7): thresholds for the signals that suggest an
+     * SVG is an illustration. It suggests only; nothing applies a suggestion.
+     * icon-sets-sync's `internal/core/kinds` carries identical values, so the
+     * sync tool and doctor suggest the same items.
+     */
+
+    /** `aspect` fires when viewBox width / height is below this. */
+    public const KIND_HEURISTIC_ASPECT_MIN = 0.8;
+
+    /** `aspect` fires when viewBox width / height is above this. */
+    public const KIND_HEURISTIC_ASPECT_MAX = 1.25;
+
+    /** `palette` fires at this many distinct literal colours or more. */
+    public const KIND_HEURISTIC_PALETTE_MIN = 4;
+
+    /** `bytes` fires above this many bytes. */
+    public const KIND_HEURISTIC_MAX_BYTES = 20000;
+
+    /** `elements` fires above this many elements. */
+    public const KIND_HEURISTIC_MAX_ELEMENTS = 150;
+
+    /** `canvas` fires when the larger viewBox side is above this. */
+    public const KIND_HEURISTIC_MAX_CANVAS = 256;
+
+    /** At least this many signals must fire for a suggestion. */
+    public const KIND_HEURISTIC_MIN_SIGNALS = 3;
+
+    /** A folder with at least this many items can be suggested as one rule. */
+    public const KIND_HEURISTIC_GROUP_MIN_ITEMS = 5;
+
+    /** ...when at least this share of its items is suggested. */
+    public const KIND_HEURISTIC_GROUP_MIN_SHARE = 0.8;
+
     /**
      * Default SVG assets path relative to package root.
      */
