@@ -57,8 +57,15 @@ final class SvgProcessingService
      * version 2 let through, so an entry cached under 2 may hold one. No
      * shipped icon changed (135,112 measured 2026-11-04); the bump only stops a
      * hostile cached entry outliving the fix.
+     *
+     * 4: the sanitiser drops stray text and CDATA directly under `<svg>` and
+     * `<g>` (icon-sets-sync#85), which no config hash sees. Measured 2026-11-04
+     * across 142,247 pack SVGs, 2 outputs changed for it (OpenMoji's 1F684
+     * high-speed train in icon-sets-emoji, eos-icons' link-off in
+     * icon-sets-bundled). The 34 that changed for the new `display` and `color`
+     * attributes are re-keyed by the attribute hash on their own.
      */
-    public const RENDER_PIPELINE_VERSION = 3;
+    public const RENDER_PIPELINE_VERSION = 4;
 
     /**
      * @param array<string, bool> $optimizationOverrides Per-pass overrides of the level's

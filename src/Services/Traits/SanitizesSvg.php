@@ -86,6 +86,22 @@ trait SanitizesSvg
         'font', 'font-family',
     ];
 
+    /**
+     * Containers whose character data never renders as intended: text directly
+     * under them is an upstream defect, not content. `<title>`, `<desc>`,
+     * `<text>` and `<tspan>` are not here; their text is the point.
+     */
+    private const STRAY_TEXT_PARENTS = ['svg', 'g'];
+
+    /**
+     * `display` holds one or more bare keywords: no parens, so no `url()` or
+     * other function, and no backslash, so no escape that spells one.
+     */
+    private const DISPLAY_KEYWORDS = '/^[A-Za-z][A-Za-z-]*(?: [A-Za-z][A-Za-z-]*)*$/';
+
+    /** The only non-keyword a `marker-*` attribute may hold: `url(#id)`, quotes matched. */
+    private const MARKER_REFERENCE = '/^url\(\s*(?:#[A-Za-z_][\w.:-]*|"#[A-Za-z_][\w.:-]*"|\'#[A-Za-z_][\w.:-]*\')\s*\)$/';
+
     /** Elements visited by the walk in progress, against {@see self::$sanitizerMaxElements}. */
     private int $sanitizerElementCount = 0;
 
@@ -510,6 +526,10 @@ trait SanitizesSvg
             $children[] = $child;
         }
 
+        if (in_array(mb_strtolower($node->localName ?? $node->nodeName), self::STRAY_TEXT_PARENTS, true)) {
+            $children = $this->dropStrayText($children);
+        }
+
         foreach ($children as $child) {
             $this->sanitizeNode($child);
         }
@@ -535,6 +555,7 @@ trait SanitizesSvg
             if ($this->isDangerousAttribute($name) ||
                 $this->hasDangerousValue($value) ||
                 ! $this->isAllowedAttribute($name) ||
+                ! $this->isAllowedPresentationValue($name, $value) ||
                 ! $this->isAllowedReferenceValue($name, $value) ||
                 ! $this->isAllowedUrlValue($name, $value)) {
                 $toRemove[] = $actual;
@@ -686,6 +707,73 @@ trait SanitizesSvg
         }
 
         return true;
+    }
+
+    /**
+     * Value guards for the presentation attributes added in icon-sets-sync#85,
+     * applied after the name allow-list and before the generic `url()` rule.
+     * OpenMoji hides the construction shapes of its subdivision flags with
+     * `display="none"`; stripping it makes them render.
+     *
+     * - `display`: bare keywords only, and through the CSS guard.
+     * - `color`: the CSS guard.
+     * - `marker-start`, `marker-mid`, `marker-end`: `none`, or `url(#id)`,
+     *   through the CSS guard.
+     *
+     * Every other attribute is unaffected.
+     */
+    private function isAllowedPresentationValue(string $name, string $value): bool
+    {
+        $trimmed = trim($value);
+
+        return match ($name) {
+            'display'                                  => preg_match(self::DISPLAY_KEYWORDS, $trimmed) === 1 && SvgCssGuard::isSafe($trimmed),
+            'color'                                    => SvgCssGuard::isSafe($value),
+            'marker-start', 'marker-mid', 'marker-end' => strcasecmp($trimmed, 'none') === 0
+                || (preg_match(self::MARKER_REFERENCE, $trimmed) === 1 && SvgCssGuard::isSafe($trimmed)),
+            default => true,
+        };
+    }
+
+    /**
+     * Drop non-whitespace text and CDATA directly under `<svg>` or `<g>`, which
+     * renders as a stray glyph (OpenMoji 15.1.0's 1F684.svg, fixed by hand in
+     * icon-sets-openmoji#4). The run's trailing whitespace is kept in its place,
+     * or its leading whitespace when it has none: the shape of a line deleted
+     * by hand, so the indentation before the next element survives. Mirrors
+     * icon-sets-sync#85.
+     *
+     * @param list<DOMNode> $children
+     *
+     * @return list<DOMNode> the children still attached, for the walk
+     */
+    private function dropStrayText(array $children): array
+    {
+        $kept = [];
+
+        foreach ($children as $child) {
+            if (! $child instanceof DOMText || trim($child->data, " \t\r\n") === '') {
+                $kept[] = $child;
+
+                continue;
+            }
+
+            $text = $child->data;
+            $trailing = substr($text, strlen(rtrim($text, " \t\r\n")));
+            $whitespace = $trailing !== '' ? $trailing : substr($text, 0, strlen($text) - strlen(ltrim($text, " \t\r\n")));
+
+            if ($whitespace === '') {
+                $child->parentNode?->removeChild($child);
+
+                continue;
+            }
+
+            $replacement = new DOMText($whitespace);
+            $child->parentNode?->replaceChild($replacement, $child);
+            $kept[] = $replacement;
+        }
+
+        return $kept;
     }
 
     /**

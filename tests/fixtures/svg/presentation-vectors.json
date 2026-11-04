@@ -1,0 +1,141 @@
+{
+  "_comment": "Presentation-attribute value vectors, copied case for case from TestPresentationAttributeValueGuards in ichava/icon-sets-sync (src/internal/core/svg/presentation_test.go, #85). Every sanitiser in the ecosystem asserts the same keep or strip decision for each row; this file is byte-identical in core, react-icon-browser and js-icon-components. Change it in all of them, and in the Go table, together.",
+  "source": "ichava/icon-sets-sync#85",
+  "cases": [
+    {
+      "name": "display",
+      "value": "none",
+      "keep": true
+    },
+    {
+      "name": "display",
+      "value": "inline",
+      "keep": true
+    },
+    {
+      "name": "display",
+      "value": "block",
+      "keep": true
+    },
+    {
+      "name": "display",
+      "value": " None ",
+      "keep": true
+    },
+    {
+      "name": "display",
+      "value": "inline flow-root",
+      "keep": true
+    },
+    {
+      "name": "display",
+      "value": "url(x)",
+      "keep": false
+    },
+    {
+      "name": "display",
+      "value": "url(#a)",
+      "keep": false
+    },
+    {
+      "name": "display",
+      "value": "\\75rl(x)",
+      "keep": false
+    },
+    {
+      "name": "display",
+      "value": "var(--d)",
+      "keep": false
+    },
+    {
+      "name": "display",
+      "value": "none;fill:url(https://e)",
+      "keep": false
+    },
+    {
+      "name": "display",
+      "value": "",
+      "keep": false
+    },
+    {
+      "name": "color",
+      "value": "#000",
+      "keep": true
+    },
+    {
+      "name": "color",
+      "value": "currentColor",
+      "keep": true
+    },
+    {
+      "name": "color",
+      "value": "rgb(0 0 0)",
+      "keep": true
+    },
+    {
+      "name": "color",
+      "value": "url(https://e/x)",
+      "keep": false
+    },
+    {
+      "name": "color",
+      "value": "image-set(\"https://e/x\" 1x)",
+      "keep": false
+    },
+    {
+      "name": "marker-start",
+      "value": "none",
+      "keep": true
+    },
+    {
+      "name": "marker-mid",
+      "value": "url(#m)",
+      "keep": true
+    },
+    {
+      "name": "marker-end",
+      "value": "url(#arrow)",
+      "keep": true
+    },
+    {
+      "name": "marker-end",
+      "value": "url(\"#arrow\")",
+      "keep": true
+    },
+    {
+      "name": "marker-end",
+      "value": "url(https://e)",
+      "keep": false
+    },
+    {
+      "name": "marker-end",
+      "value": "\\75rl(https://e)",
+      "keep": false
+    },
+    {
+      "name": "marker-end",
+      "value": "#arrow",
+      "keep": false
+    },
+    {
+      "name": "marker-end",
+      "value": "inherit",
+      "keep": false
+    },
+    {
+      "name": "marker-end",
+      "value": "url(#a) url(#b)",
+      "keep": false
+    },
+    {
+      "name": "docname",
+      "value": "x.svg",
+      "keep": false
+    },
+    {
+      "name": "sodipodi:docname",
+      "value": "x.svg",
+      "keep": false
+    }
+  ]
+}
