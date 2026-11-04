@@ -36,15 +36,27 @@ return [
     |--------------------------------------------------------------------------
     | SVG kinds: icons and illustrations
     |--------------------------------------------------------------------------
-    | A pack declares what its SVGs are in config.json, per category
-    | (`metadata.data.categories.<slug>.kind`) with `package.kind` as the
-    | pack-wide default and `icon` after that. `default` is the kind a browser
-    | opens on. `max_file_size` overrides the global limit above per kind;
-    | illustrations get a larger budget because a scene routinely outweighs
-    | any icon. A kind with no entry here uses the global limit.
+    | A pack declares what its SVGs are in config.json: per item
+    | (`metadata.data.items.<path>.kind`), by ordered glob rule
+    | (`metadata.data.kinds.rules[]`), per category
+    | (`metadata.data.categories.<slug>.kind`) and pack-wide (`package.kind`),
+    | with `icon` after that. See docs/kinds.md for the full order.
+    |
+    | `default` is the kind a browser opens on. `overrides` lets this app
+    | decide an item's kind ahead of everything the pack says, keyed
+    | `<vendor/pack | *>::<glob or exact item path>`; exact keys are checked
+    | before glob keys, then globs in the order written. Kind is stored at
+    | seed time, so a changed override takes effect on the next seed, and
+    | doctor's `kind.drift` says which rows need it. `max_file_size` overrides
+    | the global limit above per kind; illustrations get a larger budget
+    | because a scene routinely outweighs any icon.
     */
     'kinds' => [
-        'default'       => env('ICHAVA_DEFAULT_KIND', 'icon'),
+        'default'   => env('ICHAVA_DEFAULT_KIND', 'icon'),
+        'overrides' => [
+            // 'ichava/icon-sets-metronic::illustrations/**' => 'icon',
+            // 'acme/scenes::spot/hero'                      => 'illustration',
+        ],
         'max_file_size' => [
             'illustration' => env('ICHAVA_ILLUSTRATION_MAX_FILE_SIZE', 5 * 1024 * 1024),
         ],
