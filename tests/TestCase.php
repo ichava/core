@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Tests;
 
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Foundation\Application;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,6 +19,13 @@ abstract class TestCase extends Orchestra
 {
     use RefreshDatabase;
 
+    /**
+     * This test's own file-cache directory, created per application boot.
+     *
+     * @var list<string>
+     */
+    private array $fileCacheDirectories = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -25,6 +33,21 @@ abstract class TestCase extends Orchestra
         // Additional setup if needed
         $this->artisan('config:clear');
         $this->artisan('cache:clear');
+    }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        // A fresh Filesystem, not the File facade: some tests mock the facade, and the
+        // mock would be asked to delete a directory it has no expectation for.
+        $files = new Filesystem;
+
+        foreach ($this->fileCacheDirectories as $directory) {
+            $files->deleteDirectory($directory);
+        }
+
+        $this->fileCacheDirectories = [];
     }
 
     /**
@@ -126,6 +149,23 @@ abstract class TestCase extends Orchestra
         $app['config']->set('cache.stores.array', [
             'driver'    => 'array',
             'serialize' => false,
+        ]);
+
+        // The services write through `cache()->store('file')` whatever the default
+        // store is, and Testbench points that store at its own skeleton's
+        // storage/framework/cache/data -- one directory under vendor/, shared by every
+        // test and by every `--parallel` worker. Two workers searching for the same
+        // term wrote the same md5 key, so one worker read the other's result against
+        // its own empty in-memory database, and a `flush()` in one worker deleted
+        // directories another was iterating (Finder's UnexpectedValueException). Each
+        // test, and each application it boots, owns its directory instead.
+        $directory = sys_get_temp_dir() . '/ichava-core-file-cache-' . getmypid() . '-' . bin2hex(random_bytes(8));
+        $this->fileCacheDirectories[] = $directory;
+
+        $app['config']->set('cache.stores.file', [
+            'driver'    => 'file',
+            'path'      => $directory,
+            'lock_path' => $directory,
         ]);
     }
 
