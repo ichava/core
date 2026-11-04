@@ -10,7 +10,7 @@ namespace Simtabi\Laranail\Ichava\Support;
  * Anchored to the whole item path and case-sensitive:
  *
  * - `*`  zero or more characters, never `/`;
- * - `?`  exactly one character, never `/`;
+ * - `?`  exactly one character (one Unicode code point), never `/`;
  * - `**` zero or more whole segments, and only as a whole segment
  *        (`a/**\/b`, `**\/x`, `a/**`);
  * - anything else matches itself.
@@ -103,6 +103,6 @@ final class KindGlob
             $regex .= strtr(preg_quote($segment, '#'), ['\\*' => '[^/]*', '\\?' => '[^/]']);
         }
 
-        return '#\A' . $regex . '\z#';
+        return '#\A' . $regex . '\z#u';
     }
 }

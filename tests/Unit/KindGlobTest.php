@@ -25,6 +25,11 @@ it('matches the contract vector table', function (string $pattern, string $path,
     ['scenes/offic?', 'scenes/office', true],
     ['Scenes/**', 'scenes/a', false],
     ['spot/tiny-*', 'spot/tiny-cat', true],
+    // Gaps filled by icon-sets-sync#77, so PHP and Go agree.
+    ['scenes/**', 'scenes', true],
+    ['caf?', 'café', true],
+    ['caf?', 'cafée', false],
+    ['?', 'é', true],
 ]);
 
 it('matches whole strings only, never across a slash for * and ?', function (): void {

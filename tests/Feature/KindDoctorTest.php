@@ -174,6 +174,18 @@ it('reads the five signals from an SVG', function (): void {
         ->and($dot)->toBe([]);
 });
 
+it('counts a named colour by its name and hex or rgb() as lowercase #rrggbb', function (): void {
+    $palette = fn (string $paints): int|float|null => collect((new KindHeuristic)->signals(
+        '<svg viewBox="0 0 24 24">' . $paints . '</svg>',
+    ))->firstWhere('id', 'palette')['value'] ?? null;
+
+    // #f00, #FF0000 and rgb(255, 0, 0) are one colour; Red and red are one name.
+    expect($palette('<path fill="#f00"/><path fill="#FF0000"/><path fill="rgb(255, 0, 0)"/><path fill="Red"/><path fill="red"/><path fill="#0f0"/><path fill="blue"/>'))->toBe(4)
+        // A name is not resolved to hex: `red` and `#ff0000` stay distinct.
+        ->and($palette('<path fill="red"/><path fill="#ff0000"/><path fill="#00ff00"/><path stroke="#0000FF"/>'))->toBe(4)
+        ->and($palette('<path fill="#f00"/><path fill="#ff0000"/><path fill="red"/>'))->toBeNull();
+});
+
 it('groups a folder of suggestions into one rule', function (): void {
     $heuristic = new KindHeuristic;
     $scene = file_get_contents(doctorFixture('HeuristicPack/files/scenes/meadow.svg'));
