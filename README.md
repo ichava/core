@@ -61,6 +61,15 @@ Or with the fluent helper, which renders when cast to a string:
 {{ ichava('ichava/icon-sets-tabler::filled/home')->color('#4338ca')->class('w-5 h-5') }}
 ```
 
+Ask what an SVG is, and which rule decided it:
+
+```php
+use Simtabi\Laranail\Ichava\Facades\IchavaFacade as Ichava;
+
+Ichava::kindOf('ichava/icon-sets-tabler::outline/home');           // IconKind::Icon
+Ichava::kindResolution('ichava/icon-sets-tabler::outline/home');   // kind, source (host, item, rule, category, pack, default) and rule
+```
+
 See [Getting started](docs/getting-started.md) for the full walkthrough, and the [documentation index](#documentation) for everything else.
 
 ## <a name="documentation"></a>Documentation

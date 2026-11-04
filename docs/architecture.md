@@ -324,6 +324,14 @@ Three built-in listeners react to these events:
 - `AutoUnseedOnUnregistration`, removes a package's icon rows plus orphaned terms on `unregistered`.
 - `InvalidateIconCache`, flushes icon caches on `IconCacheEvent`. Guarded by `IchavaLifecycleManager`: only runs after the four-stage lifecycle (`uninitialized` → `migrated` → `seeded` → `ready`) reaches `ready`. Setup-time events (registration) are unguarded.
 
+## Why kinds?
+
+An SVG is either an icon or an illustration, and the two need different treatment: an icon is drawn on a square grid and sized as a glyph, an illustration keeps its own aspect ratio and gets a larger size budget. Colour does not tell them apart (emoji and flags are multicolour icons), so kind is its own fact.
+
+Kind is **declared, never guessed**. A misclassification is not cosmetic: it can hide an icon from the browser, or publish an illustration a host meant to keep private. So the resolution order has only human-written rows -- the host's overrides, then the pack's items, rules, categories and pack default -- and the heuristic that reads viewBoxes and palettes only ever suggests. A human accepts a suggestion by writing it into the pack.
+
+Kind is **resolved once, at seed time, and stored** with the row that decided it (`kind_source`, `kind_rule`). Queries filter and count on an indexed column and never re-resolve, and "why is this an illustration?" has an answer in the row. The cost is that a config change applies on the next seed, which doctor's `kind.drift` makes visible rather than silent. One resolver (`Support\KindResolver`) serves the seeder, the watcher, the renderer and doctor, so they cannot disagree.
+
 ## See also
 
 - [Troubleshooting](troubleshooting.md)
