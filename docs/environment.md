@@ -25,6 +25,15 @@ Applied at provider registration so heavy operations (seeding 100k+ icons, batch
 | `ICHAVA_SVG_MAX_BYTES` | `4500000` | Largest SVG the sanitiser parses (bytes); checked before parsing | `ichava.ichava-core.svg.max_bytes` |
 | `ICHAVA_SVG_MAX_ELEMENTS` | `30000` | Most elements the sanitiser walks before refusing the file | `ichava.ichava-core.svg.max_elements` |
 
+## Kinds
+
+| Key | Default | Effect | Config |
+|---|---|---|---|
+| `ICHAVA_DEFAULT_KIND` | `icon` | The kind a browser opens on (`icon` or `illustration`) | `ichava.ichava-core.kinds.default` |
+| `ICHAVA_ILLUSTRATION_MAX_FILE_SIZE` | `5242880` | Size ceiling for an illustration (bytes) | `ichava.ichava-core.kinds.max_file_size.illustration` |
+
+Host kind overrides (`ichava.ichava-core.kinds.overrides`) have no environment variable, because they are a map. Set them in the published config; see [Icons and illustrations](kinds.md#host-overrides).
+
 ## Route prefix (shared)
 
 | Key | Default | Effect | Config |

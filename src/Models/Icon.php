@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Illuminate\Database\Eloquent\Collection;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Enums\KindSource;
 use Simtabi\Laranail\Ichava\Support\AuditLogger;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
@@ -41,6 +42,8 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * @property array<array-key, mixed>|null $attributes
  * @property array<array-key, mixed>|null $metadata
  * @property IconKind $kind
+ * @property KindSource $kind_source
+ * @property string|null $kind_rule
  * @property array<string, array{path: string, file_hash: string}>|null $theme_variants
  * @property Carbon|null $file_modified_at
  * @property Carbon $created_at
@@ -91,6 +94,8 @@ final class Icon extends Model
         'attributes',
         'metadata',
         'kind',
+        'kind_source',
+        'kind_rule',
         'theme_variants',
         'file_modified_at',
     ];
@@ -102,11 +107,12 @@ final class Icon extends Model
      * @var array<string, mixed>
      */
     protected $attributes = [
-        'tags'       => '[]',
-        'keywords'   => '[]',
-        'attributes' => '{}',
-        'metadata'   => '{}',
-        'kind'       => 'icon',
+        'tags'        => '[]',
+        'keywords'    => '[]',
+        'attributes'  => '{}',
+        'metadata'    => '{}',
+        'kind'        => 'icon',
+        'kind_source' => 'default',
     ];
 
     /***********************************************************************
@@ -333,6 +339,23 @@ final class Icon extends Model
         return $resolved === null
             ? $query->whereRaw('1 = 0')
             : $query->where('kind', $resolved->value);
+    }
+
+    /**
+     * Which row of the kind resolution order decided this icon's kind.
+     *
+     * A row seeded before provenance existed reads `default` until the next
+     * seed re-files it; doctor's `kind.drift` reports those.
+     */
+    public function kindSource(): KindSource
+    {
+        $source = $this->getAttribute('kind_source');
+
+        if ($source instanceof KindSource) {
+            return $source;
+        }
+
+        return is_string($source) ? (KindSource::tryFrom($source) ?? KindSource::Default) : KindSource::Default;
     }
 
     /**
@@ -720,6 +743,7 @@ final class Icon extends Model
             'attributes'       => 'array',
             'metadata'         => 'array',
             'kind'             => IconKind::class,
+            'kind_source'      => KindSource::class,
             'theme_variants'   => 'array',
             'file_modified_at' => 'datetime',
             'created_at'       => 'datetime',

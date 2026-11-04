@@ -20,9 +20,11 @@ return [
     // Hard cap on SVG file size loaded from disk (bytes)
     'max_file_size' => env('ICHAVA_MAX_FILE_SIZE', 2_097_152),
 
-    // SVG kinds: what a browser opens on, and a size ceiling per kind
+    // SVG kinds: what a browser opens on, host overrides, a size ceiling per kind
     'kinds' => [
-        'default'       => env('ICHAVA_DEFAULT_KIND', 'icon'),
+        'default'   => env('ICHAVA_DEFAULT_KIND', 'icon'),
+        // '<vendor/pack | *>::<glob or exact item path>' => 'icon' | 'illustration'
+        'overrides' => [],
         'max_file_size' => [
             'illustration' => env('ICHAVA_ILLUSTRATION_MAX_FILE_SIZE', 5 * 1024 * 1024),
         ],
@@ -187,6 +189,7 @@ Every key below is read where it claims to act, so a published (and `config:cach
 | Change the log retention | `logging.retention_days=14` |
 | Read users from another guard | `auth.guard='admin'`; see [Host user](host-user.md) |
 | Allow larger illustrations | `kinds.max_file_size.illustration` (bytes); see [Icons and illustrations](kinds.md) |
+| Decide an item's kind from the app | `kinds.overrides` (`'acme/scenes::spot/**' => 'illustration'`), then re-seed; see [Host overrides](kinds.md#host-overrides) |
 | Override the icon storage path | use `ICHAVA_LOG_PATH` for logs; icon paths come from each pack's `setPathFrom` |
 
 ## See also

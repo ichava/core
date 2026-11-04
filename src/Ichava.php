@@ -8,8 +8,10 @@ use Closure;
 use Throwable;
 use Illuminate\Support\Collection;
 use Simtabi\Laranail\Ichava\Data\UserData;
+use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Data\StatusData;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Simtabi\Laranail\Ichava\Data\KindResolution;
 use Simtabi\Laranail\Ichava\Facades\IchavaFacade;
 use Simtabi\Laranail\Ichava\Support\IconRenderer;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
@@ -345,6 +347,39 @@ final class Ichava
     public function has(string $name, ?string $variant = null, ?string $category = null): bool
     {
         return $this->registry->has($name, $variant, $category);
+    }
+
+    /**
+     * What an icon is: an icon or an illustration, by every row of the kind
+     * resolution order (host override, item, rule, category, pack, default).
+     *
+     * @param string $id Icon id, e.g. `vendor/pack::illustrations/office`
+     */
+    public function kindOf(string $id): IconKind
+    {
+        return $this->registry->kindOf($id);
+    }
+
+    /**
+     * An icon's kind and which row of the resolution order decided it.
+     *
+     * @param string $id Icon id, e.g. `vendor/pack::illustrations/office`
+     */
+    public function kindResolution(string $id): KindResolution
+    {
+        return $this->registry->kindResolution($id);
+    }
+
+    /**
+     * The id an icon lives under now: an id whose set moved to another
+     * installed pack is rewritten to that pack, and any other id is returned
+     * as given.
+     *
+     * @param string $id Icon id, e.g. `ichava/icon-sets-emoji::openmoji-color/1f600`
+     */
+    public function canonicalId(string $id): string
+    {
+        return $this->registry->canonicalId($id);
     }
 
     /**

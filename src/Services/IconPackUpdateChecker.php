@@ -536,6 +536,55 @@ class IconPackUpdateChecker
     }
 
     /**
+     * Client options that make the request connect to the addresses
+     * {@see self::isAllowedVersionCheckUrl()} validated.
+     *
+     * Without them the HTTP client resolves the host a second time, and a
+     * rebinding resolver can answer a public address to the check and a
+     * private one to the client (S8). curl's `CURLOPT_RESOLVE` pins the name
+     * to the checked addresses, so there is no second lookup to win.
+     *
+     * @return array<string, mixed>
+     */
+    protected function requestOptions(string $url): array
+    {
+        $pins = $this->resolvePins($url);
+
+        return $pins === [] || ! defined('CURLOPT_RESOLVE') ? [] : ['curl' => [CURLOPT_RESOLVE => $pins]];
+    }
+
+    /**
+     * `host:port:address` entries for every publicly routable address the
+     * host resolves to. Empty for a literal address, which needs no lookup,
+     * and when any address fails the check, since the request is refused
+     * then anyway.
+     *
+     * @return list<string>
+     */
+    protected function resolvePins(string $url): array
+    {
+        $parts = parse_url($url);
+        $host = is_array($parts) ? trim((string) ($parts['host'] ?? ''), '[]') : '';
+
+        if ($host === '' || filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return [];
+        }
+
+        $port = is_array($parts) && isset($parts['port']) ? (int) $parts['port'] : 443;
+        $pins = [];
+
+        foreach ($this->resolveHostIps($host) as $ip) {
+            if (! $this->isPublicIp($ip)) {
+                return [];
+            }
+
+            $pins[] = $host . ':' . $port . ':' . (str_contains($ip, ':') ? '[' . $ip . ']' : $ip);
+        }
+
+        return $pins;
+    }
+
+    /**
      * All addresses a host resolves to, literal or by name lookup. Numeric
      * obfuscations (decimal, hex, octal) are normalised through the resolver
      * so they cannot dodge the public-IP check.
@@ -710,6 +759,7 @@ class IconPackUpdateChecker
 
         $payload = Cache::remember($cacheKey, $this->cacheTtl, function () use ($url): array {
             $response = Http::timeout($this->httpTimeout)
+                ->withOptions($this->requestOptions($url))
                 ->acceptJson()
                 ->withoutRedirecting()
                 ->withUserAgent('ichava-icon-pack-update-checker (https://github.com/ichava/core)')

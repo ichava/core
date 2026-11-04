@@ -16,6 +16,7 @@ use function Laravel\Prompts\warning;
 
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Data\StatusData;
+use Simtabi\Laranail\Ichava\Services\KindDoctor;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Console\Tools\Widgets\CheckList;
@@ -64,7 +65,8 @@ final class InfoCommand extends BaseCommand
                             {--format=table : Output format: table, json, csv}
                             {--export= : Export to file}
                             {--reset : Reset lifecycle state (for status type)}
-                            {--force : Force operation without confirmation}';
+                            {--force : Force operation without confirmation}
+                            {--suggest-kinds=false : (doctor) Suggest illustration kinds from every SVG: bare or =default for default-row items, =all to include pack-row items}';
 
     protected $description = 'Display Ichava information (packages, icons, status, stats)';
 
@@ -76,6 +78,7 @@ final class InfoCommand extends BaseCommand
     public function __construct(
         protected InformationService $infoService,
         protected IchavaLogger $logger,
+        protected ?KindDoctor $kindDoctor = null,
     ) {
         parent::__construct();
     }
@@ -303,7 +306,11 @@ final class InfoCommand extends BaseCommand
      */
     protected function handleDoctor(): int
     {
-        intro(__('ichava/ichava-core::commands.info.doctor.intro'));
+        $json = $this->option('format') === 'json';
+
+        if (! $json) {
+            intro(__('ichava/ichava-core::commands.info.doctor.intro'));
+        }
 
         $health = $this->infoService->status();
         $checks = is_array($health->lifecycle['checks'] ?? null) ? $health->lifecycle['checks'] : [];
@@ -314,20 +321,55 @@ final class InfoCommand extends BaseCommand
             ? array_filter(array_keys(app('router')->getRoutes()->getRoutesByName()), static fn (string $name): bool => str_starts_with($name, 'ichava.'))
             : [];
 
-        $list = CheckList::make()
-            ->check(__('ichava/ichava-core::commands.info.doctor.packages'), $health->packages > 0, (string) $health->packages)
-            ->check(__('ichava/ichava-core::commands.info.status.migrations'), (bool) ($checks['migrations'] ?? false))
-            ->check(__('ichava/ichava-core::commands.info.status.seeds'), (bool) ($checks['seeds'] ?? false))
-            ->check(__('ichava/ichava-core::commands.info.status.cache'), (bool) ($checks['cache'] ?? false))
-            ->check(__('ichava/ichava-core::commands.info.doctor.queue'), $queueOk, $queueConnection)
-            ->check(__('ichava/ichava-core::commands.info.doctor.auth'), app()->bound('auth') ? true : Status::Warning, Coerce::stringOrNull(config('ichava.ichava-core.auth.guard')) ?? __('ichava/ichava-core::commands.info.doctor.default_guard'))
-            ->check(__('ichava/ichava-core::commands.info.doctor.gates'), $gateDefined ? true : Status::Warning)
-            ->check(__('ichava/ichava-core::commands.info.doctor.routes'), $routes !== [] ? true : Status::Warning, (string) count($routes))
-            ->check(__('ichava/ichava-core::commands.info.doctor.orphans'), $health->orphans === [] ? true : Status::Warning, $health->orphans === [] ? null : implode(', ', $health->orphans));
+        // id => [label, state, detail]; the ids are what --format=json reports.
+        $install = [
+            'packages'   => [__('ichava/ichava-core::commands.info.doctor.packages'), $health->packages > 0, (string) $health->packages],
+            'migrations' => [__('ichava/ichava-core::commands.info.status.migrations'), (bool) ($checks['migrations'] ?? false), null],
+            'seeds'      => [__('ichava/ichava-core::commands.info.status.seeds'), (bool) ($checks['seeds'] ?? false), null],
+            'cache'      => [__('ichava/ichava-core::commands.info.status.cache'), (bool) ($checks['cache'] ?? false), null],
+            'queue'      => [__('ichava/ichava-core::commands.info.doctor.queue'), $queueOk, $queueConnection],
+            'auth'       => [__('ichava/ichava-core::commands.info.doctor.auth'), app()->bound('auth') ? true : Status::Warning, Coerce::stringOrNull(config('ichava.ichava-core.auth.guard')) ?? __('ichava/ichava-core::commands.info.doctor.default_guard')],
+            'gates'      => [__('ichava/ichava-core::commands.info.doctor.gates'), $gateDefined ? true : Status::Warning, null],
+            'routes'     => [__('ichava/ichava-core::commands.info.doctor.routes'), $routes !== [] ? true : Status::Warning, (string) count($routes)],
+            'orphans'    => [__('ichava/ichava-core::commands.info.doctor.orphans'), $health->orphans === [] ? true : Status::Warning, $health->orphans === [] ? null : implode(', ', $health->orphans)],
+        ];
+
+        $kindChecks = ($this->kindDoctor ?? app(KindDoctor::class))->checks($this->suggestKinds());
+        $failed = $health->packages === 0 || ! ($checks['migrations'] ?? false) || ! $queueOk;
+
+        if ($json) {
+            $report = [];
+
+            foreach ($install as $id => [, $state, $detail]) {
+                $report[] = [
+                    'id'     => $id,
+                    'status' => $state === true ? 'ok' : ($state === Status::Warning ? 'warn' : 'fail'),
+                    'count'  => $state === true ? 0 : 1,
+                    'detail' => $detail === null ? [] : [$detail],
+                ];
+            }
+
+            $this->line(json_encode(['passed' => ! $failed, 'checks' => [...$report, ...$kindChecks]], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+
+            return $failed ? self::FAILURE : self::SUCCESS;
+        }
+
+        $list = CheckList::make();
+
+        foreach ($install as [$label, $state, $detail]) {
+            $list->check(Coerce::string($label), $state, $detail === null ? null : Coerce::string($detail));
+        }
+
+        foreach ($kindChecks as $check) {
+            $list->check(
+                Coerce::string(__("ichava/ichava-core::commands.info.doctor.kinds.{$check['id']}")),
+                $check['status'] === 'ok' ? true : Status::Warning,
+                $check['count'] > 0 ? (string) $check['count'] : null,
+            );
+        }
 
         $this->line($list->render());
-
-        $failed = $health->packages === 0 || ! ($checks['migrations'] ?? false) || ! $queueOk;
+        $this->displayKindDetail($kindChecks);
 
         $failed
             ? warning(__('ichava/ichava-core::commands.info.doctor.failed'))
@@ -531,6 +573,76 @@ final class InfoCommand extends BaseCommand
             $this->exportToCsv($data, $exportPath);
         } else {
             $this->exportToJson($data, $exportPath);
+        }
+    }
+
+    /**
+     * `--suggest-kinds` as the heuristic scope: null when off, `default` when
+     * given bare or as `=default`, `all` when given as `=all`.
+     */
+    private function suggestKinds(): ?string
+    {
+        $value = $this->option('suggest-kinds');
+
+        return match (true) {
+            $value === null, $value === 'default', $value === '' => 'default',
+            $value === 'all'                                     => 'all',
+            default                                              => null,
+        };
+    }
+
+    /**
+     * The rows behind a kind warning, plus the drift fix and any suggestions,
+     * so the table mode says what to do and not only that something is off.
+     *
+     * @param list<array{id: string, status: string, count: int, detail: list<mixed>}> $kindChecks
+     */
+    private function displayKindDetail(array $kindChecks): void
+    {
+        foreach ($kindChecks as $check) {
+            if ($check['count'] === 0 || $check['id'] === 'kind.non_default') {
+                continue;
+            }
+
+            if ($check['id'] === 'kind.drift') {
+                foreach ($check['detail'] as $package) {
+                    if (is_array($package)) {
+                        note(__('ichava/ichava-core::commands.info.doctor.kinds.drift_fix', [
+                            'count'   => Coerce::int($package['rows'] ?? 0),
+                            'package' => Coerce::string($package['package'] ?? ''),
+                            'command' => Coerce::string($package['command'] ?? ''),
+                        ]));
+                    }
+                }
+
+                continue;
+            }
+
+            if ($check['id'] === 'kind.suggestions') {
+                table(
+                    [__('ichava/ichava-core::commands.info.doctor.kinds.suggestion_package'), __('ichava/ichava-core::commands.info.doctor.kinds.suggestion_path'), __('ichava/ichava-core::commands.info.doctor.kinds.suggestion_signals')],
+                    array_map(static fn (mixed $record): array => is_array($record) ? [
+                        Coerce::string($record['package'] ?? ''),
+                        Coerce::string($record['path'] ?? ''),
+                        implode(', ', array_map(static fn (mixed $s): string => is_array($s) ? Coerce::string($s['id'] ?? '') : '', is_array($record['signals'] ?? null) ? $record['signals'] : [])),
+                    ] : [], $check['detail']),
+                );
+
+                continue;
+            }
+
+            foreach ($check['detail'] as $entry) {
+                $this->line('  ' . $check['id'] . ': ' . json_encode($entry, JSON_UNESCAPED_SLASHES));
+            }
+        }
+
+        $nonDefault = collect($kindChecks)->firstWhere('id', 'kind.non_default');
+        $bySource = collect(is_array($nonDefault['detail'] ?? null) ? $nonDefault['detail'] : [])->countBy(static fn (mixed $row): string => is_array($row) ? Coerce::string($row['source'] ?? '') : '')->all();
+
+        if ($bySource !== []) {
+            note(__('ichava/ichava-core::commands.info.doctor.kinds.non_default_by_source', [
+                'sources' => implode(' · ', array_map(static fn (string $source, int $n): string => "{$source} {$n}", array_keys($bySource), $bySource)),
+            ]));
         }
     }
 

@@ -12,9 +12,13 @@ use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Data\IconData;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Enums\KindSource;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Illuminate\Contracts\Foundation\Application;
+use Simtabi\Laranail\Ichava\Data\KindResolution;
+use Simtabi\Laranail\Ichava\Support\PackAliases;
 use Simtabi\Laranail\Ichava\Support\IconAliasMap;
+use Simtabi\Laranail\Ichava\Support\KindResolver;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
 use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
 use Simtabi\Laranail\Ichava\Support\PackConfigData;
@@ -91,6 +95,19 @@ final class IconRegistry
      * Bootstrap state
      */
     private bool $bootstrapped = false;
+
+    /**
+     * Sets other packs took over (D9), rebuilt when a pack registers or
+     * unregisters.
+     */
+    private ?PackAliases $packAliases = null;
+
+    /**
+     * Old ids already reported as rewritten in this process.
+     *
+     * @var array<string, true>
+     */
+    private array $loggedAliases = [];
 
     public function __construct(
         private Application $app,
@@ -205,12 +222,30 @@ final class IconRegistry
             // What the pack's SVGs are. Read here, from the one config.json
             // read registration already makes, so the seeder and the browser
             // never need a second reader of the same file.
-            'kind'           => (PackConfigData::packageKind($configData) ?? IconKind::Icon)->value,
+            'kind' => (PackConfigData::packageKind($configData) ?? IconKind::Icon)->value,
+            // `kind` above is the pack's effective kind, `icon` when it names
+            // none. KindResolver needs to tell "declared icon" (row 5) from
+            // "declared nothing" (row 6), so the declaration is kept too.
+            'declared_kind'  => PackConfigData::packageKind($configData)?->value,
             'category_kinds' => array_map(
                 static fn (IconKind $kind): string => $kind->value,
                 PackConfigData::categoryKinds($configData),
             ),
-            'theme_variants' => PackConfigData::themeVariants($configData),
+            // The rest of the kind resolution order (D6 rows 2 and 3), plus
+            // what doctor reports about the kind keys, so KindResolver and
+            // doctor never re-read config.json either.
+            'item_kinds' => array_map(
+                static fn (IconKind $kind): string => $kind->value,
+                PackConfigData::items($configData),
+            ),
+            'kind_rules' => array_map(
+                static fn (array $rule): array => ['match' => $rule['match'], 'kind' => $rule['kind']->value],
+                PackConfigData::kindRules($configData),
+            ),
+            'kind_issues'           => PackConfigData::kindIssues($configData),
+            'replaces'              => PackConfigData::replaces($configData),
+            'deprecated_categories' => PackConfigData::deprecatedCategories($configData),
+            'theme_variants'        => PackConfigData::themeVariants($configData),
             // The variant blocks as declared (name, description, attributes,
             // preview icon, colour scheme, order), for VariantData.
             'variant_metadata' => array_filter(PackConfigData::variants($configData), is_array(...)),
@@ -308,6 +343,7 @@ final class IconRegistry
         $this->sets[$name] = $set;
 
         // Store metadata
+        $this->packAliases = null;
         $this->packages[$name] = array_merge([
             'registered_at' => now()->toIso8601String(),
             'package_name'  => $name,
@@ -397,6 +433,8 @@ final class IconRegistry
      */
     public function has(string $name, ?string $variant = null, ?string $category = null): bool
     {
+        $name = $this->canonicalId($name);
+
         try {
             $iconPath = $this->pathResolver->parseIconPath($name);
             $setName = $iconPath->set ?? $this->defaultSet;
@@ -443,6 +481,7 @@ final class IconRegistry
         ?string $category = null,
         array $attributes = [],
     ): string {
+        $name = $this->canonicalId($name);
         $iconPath = $this->pathResolver->parseIconPath($name);
         $setName = $iconPath->set ?? $this->defaultSet;
 
@@ -477,8 +516,9 @@ final class IconRegistry
         $baseDir = $metadata['base_path'] ?? $metadata['path'] ?? null;
 
         // The file-size ceiling follows the kind, so an illustration is not
-        // refused by a limit sized for icons.
-        $maxBytes = $this->kindFor($setName, self::topFolder($iconPath->fullPath ?? $iconPath->name))->maxFileSize();
+        // refused by a limit sized for icons. Resolved by the same rows the
+        // seeder stored, so render and the row agree.
+        $maxBytes = $this->kindResolver()->resolve($setName, $iconPath->fullPath ?? $iconPath->name)->kind->maxFileSize();
 
         return $this->driver->render($icon, $attributes, is_string($baseDir) ? $baseDir : null, $maxBytes);
     }
@@ -508,27 +548,85 @@ final class IconRegistry
 
     /**
      * The kind of the icon a renderable path names, e.g.
-     * `vendor/pack::illustrations/scene` → the `illustrations` category's kind.
+     * `vendor/pack::illustrations/scene`.
      *
-     * The category is the first folder of the in-pack path, which is how the
-     * seeder files icons under categories too. Never throws: a path that does
-     * not parse is reported as an icon, and rendering reports the real error.
+     * Delegates to {@see KindResolver}, so render-time aspect and size budget
+     * follow every row the seeder stored, not only the category and pack.
+     * Never throws: a path that does not parse is reported as an icon, and
+     * rendering reports the real error.
      */
     public function kindOf(string $name): IconKind
     {
+        return $this->kindResolution($name)->kind;
+    }
+
+    /**
+     * The kind of the icon a renderable path names, and which row decided it.
+     *
+     * An aliased id (D9) is resolved in the pack it moved to. A path that does
+     * not parse, or names no set, resolves from the default row.
+     */
+    public function kindResolution(string $name): KindResolution
+    {
+        $name = $this->canonicalId($name);
+
         try {
             $iconPath = $this->pathResolver->parseIconPath($name);
         } catch (Throwable) {
-            return IconKind::Icon;
+            return new KindResolution(IconKind::Icon, KindSource::Default);
         }
 
         $setName = $iconPath->set ?? $this->defaultSet;
 
         if ($setName === null) {
-            return IconKind::Icon;
+            return new KindResolution(IconKind::Icon, KindSource::Default);
         }
 
-        return $this->kindFor($setName, self::topFolder($iconPath->fullPath ?? $iconPath->name));
+        return $this->kindResolver()->resolve($setName, $iconPath->fullPath ?? $iconPath->name);
+    }
+
+    /**
+     * The id an icon now lives under: an old id whose set moved to another
+     * installed pack (D9) is rewritten to that pack, and every other id is
+     * returned unchanged.
+     *
+     * Each rewritten id is logged once per process, as a deprecation, to the
+     * `ichava` channel.
+     */
+    public function canonicalId(string $name): string
+    {
+        $rewritten = $this->packAliases()->rewrite($name);
+
+        if ($rewritten === null) {
+            return $name;
+        }
+
+        if (! isset($this->loggedAliases[$name])) {
+            $this->loggedAliases[$name] = true;
+            $this->logger->deprecation("Icon id {$name} is deprecated; it now resolves to {$rewritten}", [
+                'id'          => $name,
+                'replacement' => $rewritten,
+            ]);
+        }
+
+        return $rewritten;
+    }
+
+    /**
+     * Whether an old pack's item has moved to an installed replacement, so
+     * the seeder and the watcher leave it out rather than duplicate it.
+     */
+    public function isReplaced(string $packageName, string $itemPath): bool
+    {
+        return $this->packAliases()->replacementFor($packageName, $itemPath) !== null;
+    }
+
+    /**
+     * Every set another installed pack has taken over.
+     */
+    public function packAliases(): PackAliases
+    {
+        return $this->packAliases ??= PackAliases::fromPackages($this->packages);
     }
 
     /**
@@ -615,6 +713,8 @@ final class IconRegistry
         if (! is_string($iconSetName)) {
             $iconSetName = $packageName;
         }
+
+        $this->packAliases = null;
 
         unset(
             $this->packages[$packageName],
@@ -720,12 +820,28 @@ final class IconRegistry
     /**
      * The first folder of an in-pack path, which is the category the seeder
      * files the icon under, or null for an icon at the root of the pack.
+     *
+     * Unused since render() and kindOf() resolve through KindResolver, which
+     * applies every row rather than the category and pack alone. Kept, not
+     * removed: removal is a separate, per-item owner decision.
+     *
+     * @phpstan-ignore method.unused
      */
     private static function topFolder(string $relativePath): ?string
     {
         $relativePath = trim($relativePath, '/');
 
         return str_contains($relativePath, '/') ? Str::before($relativePath, '/') : null;
+    }
+
+    /**
+     * The resolver over this registry. Built per call: it is a readonly view
+     * of what this registry holds, and cannot be injected into the object it
+     * reads from.
+     */
+    private function kindResolver(): KindResolver
+    {
+        return new KindResolver($this);
     }
 
     /**

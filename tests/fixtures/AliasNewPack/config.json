@@ -1,0 +1,15 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "ichava-fixtures/openmoji-new",
+        "title": "New OpenMoji fixture pack",
+        "description": "Takes over a set from another pack, under the same item paths.",
+        "version": "0.1.0",
+        "type": "single",
+        "license": "MIT",
+        "kind": "icon",
+        "replaces": [ { "package": "ichava-fixtures/emoji-old", "paths": ["openmoji-color/**"], "since": "0.1.0" } ]
+    },
+    "metadata": { "data": { "variants": {}, "categories": { "openmoji-color": { "name": "OpenMoji Color" } } } },
+    "config": { "icon_prefix": "newmoji", "defaults": { "class": "", "attributes": {} } }
+}

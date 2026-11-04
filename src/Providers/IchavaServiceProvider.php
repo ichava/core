@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Providers;
 
+use Throwable;
 use Illuminate\Support\Str;
 use Laravel\Horizon\Horizon;
+use Illuminate\Support\Facades\DB;
 use Simtabi\Laranail\Ichava\Ichava;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Blade;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Illuminate\Console\Scheduling\Schedule;
+use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Package\Tools\Package;
 use Illuminate\Contracts\Container\Container;
+use Simtabi\Laranail\Ichava\Enums\KindSource;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Simtabi\Laranail\Ichava\Support\AuditLogger;
 use Simtabi\Laranail\DbTools\Query\PortableQuery;
@@ -400,7 +404,55 @@ class IchavaServiceProvider extends PackageServiceProvider
             'Cache driver'  => Coerce::string(config('cache.default')),
             'Cache version' => Coerce::string(config('ichava.ichava-core.cache.version', '1')),
             'Queue'         => Coerce::string(config('ichava.ichava-core.database.queue', 'ichava-icons')),
+            ...$this->aboutKinds(),
         ];
+    }
+
+    /**
+     * The kind facts for `about`: seeded icons per kind, the browser's
+     * default kind, which resolution row decided the seeded kinds, and how
+     * many host overrides are configured.
+     *
+     * @return array<string, string>
+     */
+    protected function aboutKinds(): array
+    {
+        $overrides = config('ichava.ichava-core.kinds.overrides', []);
+        $facts = [
+            'Icons by kind'  => __('ichava/ichava-core::info.about.database_disabled'),
+            'Default kind'   => IconKind::default()->value,
+            'Kind sources'   => __('ichava/ichava-core::info.about.database_disabled'),
+            'Kind overrides' => (string) (is_array($overrides) ? count($overrides) : 0),
+        ];
+
+        if (! config('ichava.ichava-core.database.enabled', true)) {
+            return array_map(Coerce::string(...), $facts);
+        }
+
+        try {
+            $byKind = DB::table(Icon::TABLE)->selectRaw('kind, COUNT(*) as n')->groupBy('kind')->pluck('n', 'kind')->all();
+            $bySource = DB::table(Icon::TABLE)->selectRaw('kind_source, COUNT(*) as n')->groupBy('kind_source')->pluck('n', 'kind_source')->all();
+        } catch (Throwable) {
+            return array_map(Coerce::string(...), $facts);
+        }
+
+        $facts['Icons by kind'] = implode(' · ', array_map(
+            static fn (IconKind $kind): string => $kind->value . ' ' . number_format(Coerce::int($byKind[$kind->value] ?? 0)),
+            IconKind::cases(),
+        ));
+
+        $sources = [];
+        foreach (KindSource::cases() as $source) {
+            $count = Coerce::int($bySource[$source->value] ?? 0);
+
+            if ($count > 0) {
+                $sources[] = $source->value . ' ' . number_format($count);
+            }
+        }
+
+        $facts['Kind sources'] = $sources === [] ? __('ichava/ichava-core::info.about.none') : implode(' · ', $sources);
+
+        return array_map(Coerce::string(...), $facts);
     }
 
     /**

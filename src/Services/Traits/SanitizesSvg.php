@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Services\Traits;
 
 use DOMNode;
+use DOMText;
 use DOMComment;
 use DOMElement;
 use DOMDocument;
+use DOMCdataSection;
 use DOMEntityReference;
 use Illuminate\Support\Str;
+use DOMProcessingInstruction;
 use Simtabi\Laranail\Ichava\Support\SvgPolicy;
 use Simtabi\Laranail\Ichava\Support\AuditLogger;
 use Simtabi\Laranail\Ichava\Support\SvgCssGuard;
@@ -443,6 +446,24 @@ trait SanitizesSvg
 
         if ($node instanceof DOMEntityReference && SvgPolicy::stripEntities()) {
             $node->parentNode?->removeChild($node);
+
+            return;
+        }
+
+        // A processing instruction has no rendering purpose inside an SVG, and
+        // an `xml-stylesheet` one names an external sheet. Stripped (S5).
+        if ($node instanceof DOMProcessingInstruction) {
+            $node->parentNode?->removeChild($node);
+
+            return;
+        }
+
+        // CDATA becomes ordinary text, so its characters survive and are
+        // escaped on output. Parsers disagree about CDATA inside `<title>`:
+        // parse5 builds elements from it where Chromium does not, and escaped
+        // text means the same thing to every one of them (S10).
+        if ($node instanceof DOMCdataSection) {
+            $node->parentNode?->replaceChild(new DOMText($node->data), $node);
 
             return;
         }

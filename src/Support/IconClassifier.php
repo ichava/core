@@ -7,6 +7,7 @@ namespace Simtabi\Laranail\Ichava\Support;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
+use Simtabi\Laranail\Ichava\Data\KindResolution;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 
 /**
@@ -28,9 +29,14 @@ use Simtabi\Laranail\Ichava\Services\IconRegistry;
  */
 final readonly class IconClassifier
 {
+    private KindResolver $resolver;
+
     public function __construct(
         private IconRegistry $registry,
-    ) {}
+        ?KindResolver $resolver = null,
+    ) {
+        $this->resolver = $resolver ?? new KindResolver($registry);
+    }
 
     /**
      * The category a stored path files under: the first folder after `files/`,
@@ -66,10 +72,22 @@ final readonly class IconClassifier
         return null;
     }
 
-    /** The kind of a stored path in a pack. */
+    /**
+     * The kind of a stored path in a pack, by every row of the resolution
+     * order ({@see KindResolver}).
+     */
     public function kind(string $package, string $relativePath): IconKind
     {
-        return $this->registry->kindFor($package, self::categoryOf($relativePath));
+        return $this->resolution($package, $relativePath)->kind;
+    }
+
+    /**
+     * The kind of a stored path in a pack, and which row decided it: what the
+     * seeder and the watcher write as `kind`, `kind_source` and `kind_rule`.
+     */
+    public function resolution(string $package, string $relativePath): KindResolution
+    {
+        return $this->resolver->resolve($package, KindResolver::itemPath($relativePath));
     }
 
     /**

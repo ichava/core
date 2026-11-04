@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
+use Simtabi\Laranail\Ichava\Enums\KindSource;
+use Simtabi\Laranail\Ichava\Support\KindResolver;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
 use Simtabi\Laranail\Ichava\Support\IconClassifier;
 use Simtabi\Laranail\Ichava\Traits\ContainsFilePaths;
@@ -551,6 +553,11 @@ class IconWatcherService
             return true;
         }
 
+        if ($existing->kindSource()->value !== ($iconData['kind_source'] ?? KindSource::Default->value)
+            || $existing->kind_rule !== ($iconData['kind_rule'] ?? null)) {
+            return true;
+        }
+
         $existingThemes = is_array($existing->theme_variants) ? $existing->theme_variants : [];
         $newThemes = is_array($iconData['theme_variants'] ?? null) ? $iconData['theme_variants'] : [];
         ksort($existingThemes);
@@ -566,7 +573,7 @@ class IconWatcherService
     /**
      * Scan disk for icons
      *
-     * @return array<string, array{package: string, name: string, path: string, file_hash: string|false, tags: list<string>, keywords: list<string>, attributes: array<string, int|string>, metadata: array{file_size: int|false, file_modified_at: string, category: string|null}, file_modified_at: Carbon, updated_at: \Illuminate\Support\Carbon, kind: string, theme_variants: array<string, array{path: string, file_hash: string}>|null}>
+     * @return array<string, array{package: string, name: string, path: string, file_hash: string|false, tags: list<string>, keywords: list<string>, attributes: array<string, int|string>, metadata: array{file_size: int|false, file_modified_at: string, category: string|null}, file_modified_at: Carbon, updated_at: \Illuminate\Support\Carbon, kind: string, kind_source: string, kind_rule: string|null, theme_variants: array<string, array{path: string, file_hash: string}>|null}>
      */
     protected function scanDiskIcons(string $basePath, string $package): array
     {
@@ -607,8 +614,17 @@ class IconWatcherService
                     continue;
                 }
 
+                // A set another installed pack took over (D9) is that pack's
+                // row, not this one's -- the same rule the seeder applies.
+                if ($this->registry->isReplaced($package, KindResolver::itemPath($iconData['path']))) {
+                    continue;
+                }
+
                 $themes = $this->classifier()->themeVariants($package, $basePath, $iconData['path']);
-                $iconData['kind'] = $this->classifier()->kind($package, $iconData['path'])->value;
+                $resolution = $this->classifier()->resolution($package, $iconData['path']);
+                $iconData['kind'] = $resolution->kind->value;
+                $iconData['kind_source'] = $resolution->source->value;
+                $iconData['kind_rule'] = $resolution->rule;
                 $iconData['theme_variants'] = $themes === [] ? null : $themes;
 
                 // Keyed by the STORED path -- relative to the pack's base

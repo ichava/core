@@ -20,7 +20,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
+use Simtabi\Laranail\Ichava\Enums\KindSource;
 use Simtabi\Laranail\DbTools\Query\ChunkedWriter;
+use Simtabi\Laranail\Ichava\Support\KindResolver;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\IconClassifier;
@@ -196,6 +198,18 @@ class SeedIconsJob implements ShouldQueue
                 continue;
             }
 
+            // A set another installed pack has taken over (D9) is served from
+            // that pack. Seeding it here as well would count every icon twice,
+            // so it is left out, and any row from before the move goes the way
+            // a twin's does.
+            if ($registry->isReplaced($this->packageName, KindResolver::itemPath($relativePath))) {
+                $twinPaths[] = $relativePath;
+                $stats['skipped']++;
+
+                continue;
+            }
+
+            $resolution = $classifier->resolution($this->packageName, $relativePath);
             $fileHash = md5_file($absolutePath);
             $name = pathinfo($absolutePath, PATHINFO_FILENAME);
 
@@ -207,7 +221,9 @@ class SeedIconsJob implements ShouldQueue
                 'name'             => $name,
                 'tags'             => $this->extractTags($relativePath, $name),
                 'keywords'         => $this->extractKeywords($relativePath, $name),
-                'kind'             => $classifier->kind($this->packageName, $relativePath)->value,
+                'kind'             => $resolution->kind->value,
+                'kind_source'      => $resolution->source->value,
+                'kind_rule'        => $resolution->rule,
                 'theme_variants'   => $classifier->themeVariants($this->packageName, $basePath, $relativePath),
             ];
         }
@@ -217,7 +233,7 @@ class SeedIconsJob implements ShouldQueue
         // DEDUPLICATION LEVEL 2: Get existing icons for comparison
         $existingIcons = Icon::where('package', $this->packageName)
             ->whereIn('path', $relativePaths)
-            ->get(['path', 'file_hash', 'tags', 'keywords', 'kind', 'theme_variants'])
+            ->get(['path', 'file_hash', 'tags', 'keywords', 'kind', 'kind_source', 'kind_rule', 'theme_variants'])
             ->keyBy('path');
 
         // Determine which files need processing
@@ -276,6 +292,8 @@ class SeedIconsJob implements ShouldQueue
                 'tags'             => Icon::prepareAttributeForDatabase('tags', $data['tags']),
                 'keywords'         => Icon::prepareAttributeForDatabase('keywords', $data['keywords']),
                 'kind'             => $data['kind'],
+                'kind_source'      => $data['kind_source'],
+                'kind_rule'        => $data['kind_rule'],
                 'theme_variants'   => $data['theme_variants'] === [] ? null : json_encode($data['theme_variants'], JSON_UNESCAPED_SLASHES),
                 'created_at'       => now(),
                 'updated_at'       => now(),
@@ -296,7 +314,7 @@ class SeedIconsJob implements ShouldQueue
                 Icon::upsert(
                     $iconData,
                     ['package', 'path'], // Unique key: a relative path is only unique within its pack
-                    ['name', 'file_hash', 'file_modified_at', 'tags', 'keywords', 'kind', 'theme_variants', 'updated_at'],
+                    ['name', 'file_hash', 'file_modified_at', 'tags', 'keywords', 'kind', 'kind_source', 'kind_rule', 'theme_variants', 'updated_at'],
                 );
 
                 // DEDUPLICATION LEVEL 4: Bulk attach categories + variants with conflict handling
@@ -532,6 +550,14 @@ class SeedIconsJob implements ShouldQueue
         // illustrations must re-file its unchanged files without --force,
         // or they stay icons until somebody happens to force a re-seed.
         if ($existing->kind->value !== $newData['kind']) {
+            return true;
+        }
+
+        // 4b. Provenance changed: the same kind, now decided by another row
+        // (a host override added, a rule reordered). Stored so doctor and
+        // `about` say which row decided, so it re-files like kind does.
+        if ($existing->kindSource()->value !== ($newData['kind_source'] ?? KindSource::Default->value)
+            || $existing->kind_rule !== ($newData['kind_rule'] ?? null)) {
             return true;
         }
 
