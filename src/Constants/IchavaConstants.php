@@ -90,6 +90,32 @@ final class IchavaConstants
     public const MAX_SVG_FILE_SIZE = 1048576;
 
     /**
+     * Largest input, in bytes, the SVG sanitiser will parse at all.
+     *
+     * A ceiling for every caller, checked before the document is parsed. It is
+     * not the per-kind serving budget (`max_file_size`, `kinds.max_file_size`),
+     * which stays the tighter limit on the serve path. Measured 2026-11-04 over
+     * all 135,112 SVGs under the icon-sets-* packs: the largest is 1,053,328
+     * bytes (a parked metronic brand logo), so 5 MiB is at least 4x that and
+     * matches the illustration budget.
+     *
+     * @var int 5242880 bytes = 5 MiB
+     */
+    public const SVG_SANITIZER_MAX_BYTES = 5242880;
+
+    /**
+     * Most nodes the SVG sanitiser will walk before refusing the document.
+     *
+     * Measured 2026-11-04 over the same 135,112 SVGs: the most nodes in one
+     * file is 13,485 (bundled country-flags `1x1-do.svg`), so 60,000 is at
+     * least 4x that. A 5 MB file of about 374k trivial nodes took 9.5 s to
+     * sanitise before this cap existed (S2).
+     *
+     * @var int
+     */
+    public const SVG_SANITIZER_MAX_NODES = 60000;
+
+    /**
      * Minimum SVG file size in bytes
      *
      * Files smaller than this are considered invalid/corrupt.

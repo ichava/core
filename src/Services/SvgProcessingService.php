@@ -52,8 +52,13 @@ final class SvgProcessingService
      * below, so editing config invalidates on its own. This constant exists for
      * the changes config cannot see, and it sits in the class whose output it
      * describes so that a reader changing that output has it in front of them.
+     *
+     * 3: the CSS guard (S1) now strips escaped and indirect `url()` fetches that
+     * version 2 let through, so an entry cached under 2 may hold one. No
+     * shipped icon changed (135,112 measured 2026-11-04); the bump only stops a
+     * hostile cached entry outliving the fix.
      */
-    public const RENDER_PIPELINE_VERSION = 2;
+    public const RENDER_PIPELINE_VERSION = 3;
 
     /**
      * @param array<string, bool> $optimizationOverrides Per-pass overrides of the level's

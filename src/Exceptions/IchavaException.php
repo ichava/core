@@ -26,6 +26,22 @@ class IchavaException extends RuntimeException
     }
 
     /**
+     * SVG content larger than the sanitiser will parse.
+     */
+    public static function svgTooLarge(int $bytes, int $limit): static
+    {
+        return new static("Invalid SVG content: {$bytes} bytes exceeds the limit of {$limit} bytes");
+    }
+
+    /**
+     * SVG content with more nodes than the sanitiser will walk.
+     */
+    public static function svgTooComplex(int $limit): static
+    {
+        return new static("Invalid SVG content: more than {$limit} nodes");
+    }
+
+    /**
      * Icon set already registered
      */
     public static function iconSetAlreadyRegistered(string $name): static

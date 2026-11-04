@@ -11,6 +11,9 @@ use DOMDocument;
 use DOMEntityReference;
 use Illuminate\Support\Str;
 use Simtabi\Laranail\Ichava\Support\SvgPolicy;
+use Simtabi\Laranail\Ichava\Support\AuditLogger;
+use Simtabi\Laranail\Ichava\Support\SvgCssGuard;
+use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
@@ -66,6 +69,25 @@ trait SanitizesSvg
         'jar:',
     ];
 
+    /**
+     * Attributes whose value the browser parses as CSS, and which therefore get
+     * the full CSS check ({@see SvgCssGuard}): comments removed, escapes
+     * decoded, then an allow-list of functions with `url()` held to fragments.
+     * Every other attribute keeps the literal `url()` fragment check.
+     */
+    private const CSS_VALUE_ATTRIBUTES = [
+        'style', 'fill', 'stroke', 'filter', 'clip-path', 'mask',
+        'marker', 'marker-start', 'marker-mid', 'marker-end', 'cursor',
+        'color', 'stop-color', 'flood-color', 'lighting-color',
+        'transform', 'gradienttransform', 'patterntransform',
+        'font', 'font-family',
+    ];
+
+    /** Nodes visited by the walk in progress, against {@see self::$sanitizerMaxNodes}. */
+    private int $sanitizerNodeCount = 0;
+
+    private int $sanitizerMaxNodes = IchavaConstants::SVG_SANITIZER_MAX_NODES;
+
     /** @var array<string, int> lowercased index of */
     private array $allowedTagIndex = [];
 
@@ -103,6 +125,16 @@ trait SanitizesSvg
      */
     public function sanitize(string $content): string
     {
+        // Checked before anything reads the content: parsing is the cost the
+        // cap exists to bound, so it cannot be measured by parsing (S2).
+        $maxBytes = $this->sanitizerLimit('max_bytes', IchavaConstants::SVG_SANITIZER_MAX_BYTES);
+
+        if (strlen($content) > $maxBytes) {
+            $this->reportSanitizerLimit('max_bytes', $maxBytes, strlen($content));
+
+            throw IchavaException::svgTooLarge(strlen($content), $maxBytes);
+        }
+
         if (empty(trim($content))) {
             throw IchavaException::invalidSvgContent('SVG content is empty');
         }
@@ -121,7 +153,11 @@ trait SanitizesSvg
             throw IchavaException::invalidSvgContent('Invalid SVG XML structure');
         }
 
-        // Sanitize the tree
+        // Sanitize the tree, counting as it goes: the node cap is checked
+        // during the walk so a refused document costs at most the cap.
+        $this->sanitizerNodeCount = 0;
+        $this->sanitizerMaxNodes = $this->sanitizerLimit('max_nodes', IchavaConstants::SVG_SANITIZER_MAX_NODES);
+
         $this->sanitizeNode($root);
 
         // Export
@@ -365,10 +401,45 @@ trait SanitizesSvg
     }
 
     /**
+     * A positive integer cap from `ichava.ichava-core.svg.<key>`, else the
+     * built-in default. Read per call, like the other per-request flags, so a
+     * runtime config change takes effect on a singleton service.
+     */
+    private function sanitizerLimit(string $key, int $default): int
+    {
+        $value = config("ichava.ichava-core.svg.{$key}", $default);
+
+        return is_numeric($value) && (int) $value > 0 ? (int) $value : $default;
+    }
+
+    /**
+     * Record a tripped cap. A document that hits one is either corrupt or
+     * built to cost the server time, and either is worth an operator's look.
+     */
+    private function reportSanitizerLimit(string $limit, int $max, int $actual): void
+    {
+        if (! function_exists('app') || ! app()->bound(AuditLogger::class)) {
+            return;
+        }
+
+        app(AuditLogger::class)->warning('svg.limit_exceeded', [
+            'limit'  => $limit,
+            'max'    => $max,
+            'actual' => $actual,
+        ]);
+    }
+
+    /**
      * Sanitize DOM node recursively
      */
     private function sanitizeNode(DOMNode $node): void
     {
+        if (++$this->sanitizerNodeCount > $this->sanitizerMaxNodes) {
+            $this->reportSanitizerLimit('max_nodes', $this->sanitizerMaxNodes, $this->sanitizerNodeCount);
+
+            throw IchavaException::svgTooComplex($this->sanitizerMaxNodes);
+        }
+
         if ($node instanceof DOMComment && SvgPolicy::stripComments()) {
             $node->parentNode?->removeChild($node);
 
@@ -394,6 +465,15 @@ trait SanitizesSvg
 
         // Whitelist check
         if (! isset($this->allowedTagIndex[mb_strtolower($node->nodeName)])) {
+            $node->parentNode?->removeChild($node);
+
+            return;
+        }
+
+        // A <style> element is forbidden by the shipped policy. A host that
+        // allows it still gets its text held to the same CSS rule as the
+        // `style` attribute; a sheet that fails loses the whole element.
+        if (mb_strtolower($node->nodeName) === 'style' && ! SvgCssGuard::isSafe($node->textContent)) {
             $node->parentNode?->removeChild($node);
 
             return;
@@ -554,12 +634,22 @@ trait SanitizesSvg
      * `url()` targets exactly like `style` does, so the fragment-only rule
      * applies to every value, not just `style` -- values without `url()` are
      * unaffected. `behavior:` and `-moz-binding` are style-only script sinks.
+     *
+     * The literal `url(` match alone is bypassable: a CSS escape (`\75rl(`), a
+     * comment inside the token, or a fetching function with no `url(` in it
+     * (`image-set(`, `src(`) all survived it (S1, 2026-11-04). Values the
+     * browser parses as CSS therefore also pass {@see SvgCssGuard}, which reads
+     * them as a browser does before applying the allow-list.
      */
     private function isAllowedUrlValue(string $name, string $value): bool
     {
         $collapsed = (string) preg_replace('/[\s\x00-\x1f\x7f]+/u', '', mb_strtolower($value));
 
         if ($name === 'style' && Str::contains($collapsed, ['behavior:', '-moz-binding'])) {
+            return false;
+        }
+
+        if (in_array($name, self::CSS_VALUE_ATTRIBUTES, true) && ! SvgCssGuard::isSafe($value)) {
             return false;
         }
 
