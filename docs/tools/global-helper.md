@@ -61,7 +61,7 @@ The `ichava()` helper provides a fluent API for rendering icons:
 | `width($w)` / `height($h)` | Set dimensions |
 | `title($title)` | Add SVG title |
 | `aria($label)` | Set aria-label |
-| `role($role)` | Set ARIA role |
+| `role($role)` | Set ARIA role (default `img`); `role(null)` omits the attribute |
 | `id($id)` | Set ID attribute |
 | `data($key, $value)` | Add data attribute |
 | `attributes($attrs)` | Add multiple attributes |

@@ -52,8 +52,10 @@ Publishing the config is optional: `php artisan vendor:publish --tag=ichava::ich
 Render an icon with the Blade component, which works with any installed pack:
 
 ```blade
-<x-ichava::icon name="ichava/icon-sets-tabler::outline/home" class="w-6 h-6" />
+<x-ichava-core::icon name="ichava/icon-sets-tabler::outline/home" class="w-6 h-6" />
 ```
+
+`<x-ichava::icon>` is the same component under the ecosystem prefix and keeps working.
 
 Or with the fluent helper, which renders when cast to a string:
 

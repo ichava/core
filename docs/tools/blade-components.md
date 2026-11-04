@@ -2,9 +2,16 @@
 
 *Reference.*
 
-### Generic icon component. `<x-ichava::icon>`
+### Generic icon component. `<x-ichava-core::icon>`
 
-The single component that renders icons from any registered package.
+The single component that renders icons from any registered package. It answers to two prefixes:
+
+| Tag | Prefix | Notes |
+|---|---|---|
+| `<x-ichava-core::icon>` | `ichava-core`, vendor-scoped | Preferred in new code: the prefix names the package that ships it |
+| `<x-ichava::icon>` | `ichava`, the ecosystem prefix | Unchanged and fully supported; packs register their own short names under it |
+
+Both resolve the same class, `Simtabi\Laranail\Ichava\View\Components\IconComponent`, and render the same bytes. The examples below use the bare prefix; swap in `ichava-core` anywhere.
 
 ```blade
 {{-- Basic usage --}}
@@ -26,6 +33,22 @@ The single component that renders icons from any registered package.
 <x-ichava::icon name="vendor/your-icons::category/icon-name" />
 <x-ichava::icon name="vendor/your-icons::category/icon-name" />
 ```
+
+#### Dark variants. `dark`
+
+`dark` names a dark-mode twin. Both icons render inside a `<span class="ichava-themed">`, and the dark one shows when the page is dark:
+
+```blade
+<x-ichava-core::icon name="acme/scenes::scenes/park" dark="acme/scenes::scenes/park-dark" class="w-64" />
+```
+
+Each SVG gets the caller's attributes plus `ichava-theme-light` or `ichava-theme-dark`, and a small `<style>` carrying the request's CSP nonce swaps them. `theme_variants.dark_mode` decides what "dark" means: `media` (the default, `prefers-color-scheme`) or `class` (a `.dark` ancestor, as Tailwind's class strategy sets). A `dark` that does not resolve renders the light icon alone.
+
+With `theme_variants.auto_dark` on, an icon whose category declares a `dark` theme twin ([Theme twins](../kinds.md#theme-twins)) renders it without a `dark` attribute. It is off by default, so an icon rendered without `dark` is byte-identical to before. `IconRegistry::themeTwin($name, 'dark')` returns the twin's id, or null.
+
+#### Accessibility role
+
+`role` defaults to `img`. Pass another value (`presentation`, `none`), or, from the fluent helper, `->role(null)` to render no `role` attribute at all.
 
 Size presets square an icon. An illustration keeps its viewBox aspect: `size` sets the width and the height follows. Pass `:lock-aspect-ratio="true"` or `"false"` to choose explicitly; see [Icons and illustrations](../kinds.md).
 
