@@ -1,0 +1,36 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "ichava-fixtures/top-level-shape",
+        "title": "Fixture pack (top-level shape)",
+        "description": "Test fixture: config.json with variants and categories only at the top level, a shape core does not read",
+        "version": "1.0.0",
+        "type": "collection",
+        "license": "MIT"
+    },
+    "metadata": {
+        "data": {}
+    },
+    "config": {
+        "icon_prefix": "fxt"
+    },
+    "variants": {
+        "default": {
+            "name": "Default",
+            "slug": "default",
+            "default": true,
+            "icon_suffix": "",
+            "display_order": 1,
+            "attributes": {}
+        }
+    },
+    "categories": {
+        "glyphs": {
+            "name": "Glyphs",
+            "description": "Fixture glyph set",
+            "sets": [
+                "glyphs"
+            ]
+        }
+    }
+}

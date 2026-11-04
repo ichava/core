@@ -1,0 +1,25 @@
+name: Bug report
+description: Something in ichava/core misbehaves
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Smallest snippet or steps that reproduce the problem.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Package / PHP / Laravel versions (composer show, php -v).
+    validations:
+      required: true

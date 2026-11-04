@@ -1,0 +1,530 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Simtabi\Laranail\Ichava\Services;
+
+use Exception;
+use Throwable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Simtabi\Laranail\DbTools\DbTools;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Artisan;
+use Simtabi\Laranail\Ichava\Models\Icon;
+use Simtabi\Laranail\Ichava\Models\IconTerm;
+use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Console\Tools\Support\FileSize;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
+
+/**
+ * DatabaseOperationsService
+ *
+ * Centralized service for all Ichava database operations including:
+ * - Migration management (run, fresh)
+ * - Seeding with smart queue logic
+ * - Unseeding (package removal, orphan cleanup)
+ * - Statistics and validation
+ *
+ * Extracted from BaseDatabaseCommand for maximum reusability.
+ */
+class DatabaseOperationsService implements DatabaseOperations
+{
+    /**
+     * Smart queue threshold - packages with fewer icons are seeded synchronously
+     */
+    public const SMART_QUEUE_THRESHOLD = 5000;
+
+    /**
+     * Ichava table names in dependency order
+     */
+    protected const TABLES = [
+        'ichava_icon_termables',
+        'ichava_icon_terms',
+        'ichava_icons',
+    ];
+
+    /** Migration directory could not be resolved on disk. */
+    private const MIGRATION_PATH_MISSING = 1;
+
+    public function __construct(
+        protected IchavaLogger $logger,
+        protected IconRegistry $registry,
+    ) {}
+
+    /**
+     * Check if all required Ichava tables exist
+     *
+     * Reads the live schema, so two calls either side of a migration differ.
+     *
+     * @phpstan-impure
+     */
+    public function tablesExist(): bool
+    {
+        foreach (self::TABLES as $table) {
+            if (! Schema::hasTable($table)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Get list of missing tables
+     *
+     * @return list<string>
+     */
+    public function getMissingTables(): array
+    {
+        $missing = [];
+        foreach (self::TABLES as $table) {
+            if (! Schema::hasTable($table)) {
+                $missing[] = $table;
+            }
+        }
+
+        return $missing;
+    }
+
+    /**
+     * Drop all Ichava tables (preserves other application tables)
+     *
+     * @return list<string>
+     */
+    public function dropTables(): array
+    {
+        $dropped = [];
+
+        // Disable foreign key checks temporarily
+        $this->setForeignKeyChecks(false);
+
+        try {
+            // Drop FTS triggers and functions first (PostgreSQL)
+            if (Helpers::dbDriverIsPgSql()) {
+                $this->dropPostgresqlFtsObjects();
+            }
+
+            // Drop tables in reverse dependency order
+            foreach (self::TABLES as $table) {
+                if (Schema::hasTable($table)) {
+                    Schema::dropIfExists($table);
+                    $dropped[] = $table;
+                    $this->logger->info("Dropped table: {$table}");
+                }
+            }
+        } finally {
+            // Re-enable foreign key checks
+            $this->setForeignKeyChecks(true);
+        }
+
+        return $dropped;
+    }
+
+    /**
+     * Run Ichava migrations
+     */
+    public function runMigrations(): int
+    {
+        $this->logger->info('🗄️ Running Ichava migrations');
+
+        /*
+         * Resolved from this file, not written down.
+         *
+         * This passed `--path` a literal `platform/ichava/ichava/database/migrations`,
+         * a layout from some other project. `migrate --path` against a directory
+         * that does not exist runs nothing and **exits 0**, so the command reported
+         * success, printed its outro and created no tables -- in every consuming
+         * application, for the whole life of the package. Nothing caught it because
+         * the suite runs migrations through Testbench, which never calls this.
+         */
+        $migrations = $this->migrationPath();
+
+        if ($migrations === null) {
+            $this->logger->error('🗄️ Ichava migration directory is missing', null, [
+                'looked_in' => __DIR__ . '/../../database/migrations',
+            ]);
+
+            return self::MIGRATION_PATH_MISSING;
+        }
+
+        return Artisan::call('migrate', [
+            '--path'     => $migrations,
+            '--realpath' => true,
+            '--force'    => true,
+        ]);
+    }
+
+    /**
+     * Fresh migration: drop tables and re-run migrations
+     *
+     * @return array{dropped_tables: list<string>, forgotten: list<string>, migration_exit_code: int, success: bool}
+     */
+    public function freshMigration(): array
+    {
+        $this->logger->info('🗄️ Starting fresh Ichava migration');
+
+        $dropped = $this->dropTables();
+
+        // Dropping the tables leaves their rows in the migrations table, and
+        // `migrate` reads those rows as "already ran" -- so the re-run below
+        // reported "Nothing to migrate" and the tables stayed dropped while
+        // the command reported success. Forget our rows first.
+        $forgotten = $this->forgetMigrationRecords();
+
+        $exitCode = $this->runMigrations();
+
+        return [
+            'dropped_tables'      => $dropped,
+            'forgotten'           => $forgotten,
+            'migration_exit_code' => $exitCode,
+            'success'             => $exitCode === 0 && $this->tablesExist(),
+        ];
+    }
+
+    /**
+     * Truncate all Ichava tables (keeps structure, removes data)
+     *
+     * @return list<string>
+     */
+    public function truncateTables(): array
+    {
+        $truncated = [];
+
+        // Disable foreign key checks temporarily
+        $this->setForeignKeyChecks(false);
+
+        try {
+            foreach (self::TABLES as $table) {
+                if (Schema::hasTable($table)) {
+                    DB::table($table)->truncate();
+                    $truncated[] = $table;
+                    $this->logger->info("Truncated table: {$table}");
+                }
+            }
+        } finally {
+            // Re-enable foreign key checks
+            $this->setForeignKeyChecks(true);
+        }
+
+        return $truncated;
+    }
+
+    /**
+     * Remove all data for a specific package
+     *
+     * @return array<string, mixed>
+     */
+    public function unseedPackage(string $packageName): array
+    {
+        $this->logger->info("Unseeding package: {$packageName}");
+
+        $stats = [
+            'package'                => $packageName,
+            'icons_deleted'          => 0,
+            'term_relations_deleted' => 0,
+            'orphaned_terms_deleted' => 0,
+        ];
+
+        DB::beginTransaction();
+
+        try {
+            // Get icon IDs for this package
+            $iconIds = Icon::where('package', $packageName)->pluck('id')->toArray();
+
+            if (! empty($iconIds)) {
+                // Delete term relationships for these icons
+                $stats['term_relations_deleted'] = DB::table('ichava_icon_termables')
+                    ->where('termable_type', (new Icon)->getMorphClass())
+                    ->whereIn('termable_id', $iconIds)
+                    ->delete();
+
+                // Delete icons
+                $stats['icons_deleted'] = Icon::where('package', $packageName)->delete();
+            }
+
+            // Clean up orphaned terms
+            $stats['orphaned_terms_deleted'] = $this->cleanupOrphanedTerms();
+
+            DB::commit();
+
+            $this->logger->info("Unseeded package: {$packageName}", $stats);
+
+            return $stats;
+        } catch (Throwable $e) {
+            DB::rollBack();
+            $this->logger->error("Failed to unseed package: {$packageName}", $e);
+            throw $e;
+        }
+    }
+
+    /**
+     * Remove all Ichava data (unseed all packages)
+     *
+     * @return array<string, mixed>
+     */
+    public function unseedAll(): array
+    {
+        $this->logger->info('Unseeding all packages');
+
+        $stats = [
+            'icons_deleted'          => 0,
+            'term_relations_deleted' => 0,
+            'terms_deleted'          => 0,
+        ];
+
+        DB::beginTransaction();
+
+        try {
+            // Delete all term relationships
+            $stats['term_relations_deleted'] = DB::table('ichava_icon_termables')->delete();
+
+            // Delete all icons
+            $stats['icons_deleted'] = Icon::query()->delete();
+
+            // Delete all terms
+            $stats['terms_deleted'] = IconTerm::query()->delete();
+
+            DB::commit();
+
+            $this->logger->info('🧹 Unseeded all packages', $stats);
+
+            return $stats;
+        } catch (Throwable $e) {
+            DB::rollBack();
+            $this->logger->error('❌ Failed to unseed all packages', $e);
+            throw $e;
+        }
+    }
+
+    /**
+     * Remove orphaned terms (terms with no associated icons)
+     */
+    public function cleanupOrphanedTerms(): int
+    {
+        $iconMorphClass = (new Icon)->getMorphClass();
+
+        // Find terms that have no icons attached
+        $orphanedTermIds = IconTerm::whereNotExists(function (\Illuminate\Database\Query\Builder $query) use ($iconMorphClass): void {
+            $query->select(DB::raw(1))
+                ->from('ichava_icon_termables')
+                ->whereColumn('ichava_icon_termables.term_id', 'ichava_icon_terms.id')
+                ->where('ichava_icon_termables.termable_type', $iconMorphClass);
+        })->pluck('id')->toArray();
+
+        if (empty($orphanedTermIds)) {
+            return 0;
+        }
+
+        // Delete orphaned terms (cascade will handle children)
+        $deleted = IconTerm::whereIn('id', $orphanedTermIds)->delete();
+        $deleted = is_int($deleted) ? $deleted : 0;
+
+        $this->logger->info("Cleaned up {$deleted} orphaned terms");
+
+        return $deleted;
+    }
+
+    /**
+     * Determine if a package should use queue for seeding
+     */
+    public function shouldUseQueue(int $iconCount, bool $forceSync = false): bool
+    {
+        if ($forceSync) {
+            return false;
+        }
+
+        $threshold = config('ichava.ichava-core.database.smart_queue_threshold', self::SMART_QUEUE_THRESHOLD);
+
+        // env() hands the threshold over as a string; compare it as a number.
+        return $iconCount >= (is_numeric($threshold) ? (int) $threshold : self::SMART_QUEUE_THRESHOLD);
+    }
+
+    /**
+     * Get database statistics
+     *
+     * @return array<string, mixed>
+     */
+    public function getStatistics(): array
+    {
+        $stats = [
+            'icons'              => 0,
+            'packages'           => 0,
+            'categories'         => 0,
+            'variants'           => 0,
+            'term_relationships' => 0,
+            'database_size'      => null,
+        ];
+
+        try {
+            $stats['icons'] = Icon::count();
+            $stats['packages'] = Icon::distinct('package')->count('package');
+            $stats['categories'] = IconTerm::where('type', IconTerm::TYPE_CATEGORY)->count();
+            $stats['variants'] = IconTerm::where('type', IconTerm::TYPE_VARIANT)->count();
+            $stats['term_relationships'] = DB::table('ichava_icon_termables')->count();
+
+            $stats['database_size'] = $this->databaseSize();
+        } catch (Exception $e) {
+            $this->logger->warning('⚠️ Failed to get database statistics', ['error' => $e->getMessage()]);
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Get per-package statistics
+     *
+     * @return array<array-key, mixed> package name => icon count
+     */
+    public function getPackageStatistics(): array
+    {
+        return Icon::select('package', DB::raw('count(*) as count'))
+            ->groupBy('package')
+            ->orderByDesc('count')
+            ->get()
+            ->mapWithKeys(fn (Icon $row): array => [$row->package => is_numeric($count = $row->getAttribute('count')) ? (int) $count : 0])
+            ->toArray();
+    }
+
+    /**
+     * Check if database has any seeded data
+     */
+    public function hasSeeds(): bool
+    {
+        if (! $this->tablesExist()) {
+            return false;
+        }
+
+        try {
+            return Icon::count() > 0;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Remove this package's rows from the host's migrations table, so its
+     * migrations run again. Only our own files are touched; the host's
+     * migration history is not.
+     *
+     * @return list<string> the migration names forgotten
+     */
+    protected function forgetMigrationRecords(): array
+    {
+        $path = $this->migrationPath();
+        $repository = app('migration.repository');
+
+        if ($path === null || ! $repository->repositoryExists()) {
+            return [];
+        }
+
+        $forgotten = [];
+
+        foreach (File::glob($path . '/*.php') as $file) {
+            if (! is_string($file)) {
+                continue;
+            }
+
+            $migration = basename($file, '.php');
+
+            $repository->delete((object) ['migration' => $migration]);
+            $forgotten[] = $migration;
+        }
+
+        return $forgotten;
+    }
+
+    /**
+     * The package's migration directory, resolved from this file rather than
+     * written down, or null when it is missing on disk.
+     */
+    protected function migrationPath(): ?string
+    {
+        $path = realpath(__DIR__ . '/../../database/migrations');
+
+        return $path === false ? null : $path;
+    }
+
+    /**
+     * Drop PostgreSQL FTS objects (triggers, functions, indexes)
+     */
+    protected function dropPostgresqlFtsObjects(): void
+    {
+        // Drop triggers
+        DB::unprepared('DROP TRIGGER IF EXISTS trg_ichava_icon_terms_search_text ON ichava_icon_terms');
+        DB::unprepared('DROP TRIGGER IF EXISTS trg_ichava_icon_termables_search_text ON ichava_icon_termables');
+        DB::unprepared('DROP TRIGGER IF EXISTS trg_ichava_icons_search_text ON ichava_icons');
+
+        // Drop functions
+        DB::unprepared('DROP FUNCTION IF EXISTS trg_refresh_ichava_icons_search_text_from_term() CASCADE');
+        DB::unprepared('DROP FUNCTION IF EXISTS refresh_ichava_icons_search_text_for_term(bigint) CASCADE');
+        DB::unprepared('DROP FUNCTION IF EXISTS trg_refresh_ichava_icon_search_text_from_termable() CASCADE');
+        DB::unprepared('DROP FUNCTION IF EXISTS trg_refresh_ichava_icon_search_text() CASCADE');
+        DB::unprepared('DROP FUNCTION IF EXISTS refresh_ichava_icon_search_text(bigint) CASCADE');
+
+        // Drop indexes
+        DB::statement('DROP INDEX IF EXISTS idx_icons_search');
+        DB::statement('DROP INDEX IF EXISTS idx_icons_created_brin');
+        DB::statement('DROP INDEX IF EXISTS idx_icons_updated_brin');
+        DB::statement('DROP INDEX IF EXISTS idx_icons_package_hash');
+        DB::statement('DROP INDEX IF EXISTS idx_icons_list_covering');
+    }
+
+    /**
+     * Storage used by the Ichava tables, human-readable; null when no driver
+     * can say. This was `pg_total_relation_size()` hard-wired, so every other
+     * driver reported "N/A" -- laranail/db-tools answers per driver.
+     */
+    protected function databaseSize(): ?string
+    {
+        $sizes = array_filter(DbTools::tableSizes(self::TABLES), is_int(...));
+
+        return $sizes === [] ? null : FileSize::format(array_sum($sizes));
+    }
+
+    /**
+     * Turn foreign-key enforcement off around a bulk drop or truncate, and back on.
+     *
+     * Three statements, because this package supports four drivers and they do
+     * not agree on any one of them:
+     *
+     *   pgsql            SET session_replication_role  -- replica suppresses triggers
+     *   mysql / mariadb  SET FOREIGN_KEY_CHECKS
+     *   sqlite           PRAGMA foreign_keys
+     *
+     * This used to be a two-way branch -- pgsql, or everything else -- which
+     * sent SQLite a MySQL statement it answers with
+     * `near "SET": syntax error`. dropTables(), freshMigration() and
+     * truncateTables() therefore all threw on SQLite, and SQLite is the
+     * default test driver.
+     *
+     * Nothing caught it because none of those three methods had a test: the CI
+     * matrix covers pgsql, mysql and mariadb -- every driver for which the
+     * `else` branch happened to be right -- and the SQLite lane never called
+     * them.
+     *
+     * An unrecognised driver is left alone rather than guessed at. Skipping the
+     * toggle risks a foreign-key error on a drop; sending the wrong statement
+     * guarantees a syntax error on every one.
+     */
+    private function setForeignKeyChecks(bool $enabled): void
+    {
+        $driver = DB::connection()->getDriverName();
+
+        match ($driver) {
+            'pgsql' => DB::statement(
+                'SET session_replication_role = ' . ($enabled ? 'DEFAULT' : 'replica'),
+            ),
+            'mysql', 'mariadb' => DB::statement(
+                'SET FOREIGN_KEY_CHECKS=' . ($enabled ? '1' : '0'),
+            ),
+            'sqlite' => DB::statement(
+                'PRAGMA foreign_keys = ' . ($enabled ? 'ON' : 'OFF'),
+            ),
+            default => $this->logger->warning(
+                '⚠️ Unknown database driver; foreign-key checks left as they are',
+                ['driver' => $driver, 'requested' => $enabled ? 'enable' : 'disable'],
+            ),
+        };
+    }
+}

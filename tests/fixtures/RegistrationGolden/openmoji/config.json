@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-openmoji",
+    "title": "OpenMoji",
+    "description": "OpenMoji emoji in two sets (colour and black outline), Unicode emoji 16.0, grouped by Unicode CLDR category. Moved verbatim from ichava/icon-sets-twemoji, which now ships Twemoji only.",
+    "keywords": [
+      "emoji",
+      "openmoji",
+      "svg",
+      "unicode"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "15.1.0",
+    "type": "bulk",
+    "kind": "icon",
+    "license": "MIT (code) / CC-BY-SA 4.0 (OpenMoji assets)"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "HfG Schwäbisch Gmünd + community (OpenMoji)",
+        "role": "Creator -- OpenMoji",
+        "url": "https://openmoji.org/"
+      }
+    ],
+    "homepage": "https://openmoji.org/",
+    "repository": "https://github.com/ichava/icon-sets-openmoji",
+    "data": {
+      "variants": {
+        "default": {
+          "name": "Default",
+          "slug": "default",
+          "description": "OpenMoji's own style in each set",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {},
+          "color_scheme": "adaptive"
+        }
+      },
+      "categories": {
+        "openmoji-color": {
+          "name": "OpenMoji Color",
+          "description": "Community-driven flat colourful emojis from HfG Schwäbisch Gmünd (CC-BY-SA 4.0). Default set.",
+          "sets": [
+            "openmoji-color"
+          ]
+        },
+        "openmoji-black": {
+          "name": "OpenMoji Black",
+          "description": "Monochrome outline variant of OpenMoji (CC-BY-SA 4.0). Ideal for single-colour designs.",
+          "sets": [
+            "openmoji-black"
+          ]
+        }
+      },
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "openmoji"
+  },
+  "upstream": {
+    "source": {
+      "type": "github",
+      "owner": "hfg-gmuend",
+      "repo": "openmoji"
+    },
+    "current_version": "15.1.0",
+    "version_check_url": "https://api.github.com/repos/hfg-gmuend/openmoji/releases/latest",
+    "license": "CC-BY-SA 4.0",
+    "cdn": {
+      "openmoji_color_jsdelivr": "https://cdn.jsdelivr.net/gh/hfg-gmuend/openmoji@{version}/color/svg/{codepoint}.svg",
+      "openmoji_black_jsdelivr": "https://cdn.jsdelivr.net/gh/hfg-gmuend/openmoji@{version}/black/svg/{codepoint}.svg"
+    },
+    "update_command": {
+      "_note": "Refreshed by ichava/icon-sets-sync from config/icon-sets-openmoji.json, through its `openmoji-sets` recipe: both sets from one pinned hfg-gmuend/openmoji release tag, categorised by the Unicode taxonomy, with the guards that keep every icon. The weekly sync-upstream run here calls it. ichava/icon-sets-twemoji no longer carries OpenMoji, so this pack is its only home.",
+      "type": "recipe",
+      "recipe": "openmoji-sets"
+    },
+    "_vendored_note": "The files were moved verbatim from ichava/icon-sets-twemoji, where they were produced from OpenMoji 15.1.0 and categorised with Unicode emoji 16.0 (emoji-test.txt).",
+    "cldr_version": "16.0"
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-font-awesome-free",
+    "title": "Font Awesome Free",
+    "description": "2,883 Font Awesome Free icons (2,001 solid, 273 regular, 609 brands) by @fontawesome, vendored from Font Awesome 7.3.1. Icons CC BY 4.0, attribution required.",
+    "keywords": [
+      "icons",
+      "svg",
+      "font-awesome",
+      "fontawesome",
+      "cc-by-4.0",
+      "brands"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "7.3.1",
+    "type": "multi",
+    "kind": "icon",
+    "license": "MIT (code) / CC-BY-4.0 (Font Awesome Free icons)"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "Fonticons, Inc. (@fontawesome)",
+        "role": "Creator -- Font Awesome Free",
+        "url": "https://fontawesome.com/"
+      }
+    ],
+    "homepage": "https://fontawesome.com/",
+    "repository": "https://github.com/ichava/icon-sets-font-awesome-free",
+    "data": {
+      "variants": {
+        "solid": {
+          "name": "Solid",
+          "slug": "solid",
+          "description": "Filled glyphs. The largest Free style.",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {},
+          "preview_icon": "house",
+          "color_scheme": "fill-based"
+        },
+        "regular": {
+          "name": "Regular",
+          "slug": "regular",
+          "description": "Outlined glyphs. Free covers only part of the Regular style.",
+          "default": false,
+          "icon_suffix": "",
+          "display_order": 2,
+          "attributes": {},
+          "preview_icon": "house",
+          "color_scheme": "fill-based"
+        },
+        "brands": {
+          "name": "Brands",
+          "slug": "brands",
+          "description": "Logos of companies, products and services. Trademarks of their owners.",
+          "default": false,
+          "icon_suffix": "",
+          "display_order": 3,
+          "attributes": {},
+          "preview_icon": "house",
+          "color_scheme": "fill-based"
+        }
+      },
+      "categories": {},
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "fa"
+  },
+  "upstream": {
+    "source": {
+      "type": "github-archive",
+      "owner": "FortAwesome",
+      "repo": "Font-Awesome",
+      "archive_url": "https://github.com/FortAwesome/Font-Awesome/archive/refs/tags/{version}.zip",
+      "source_path": "svgs"
+    },
+    "current_version": "7.3.1",
+    "version_check_url": "https://api.github.com/repos/FortAwesome/Font-Awesome/releases/latest",
+    "license": "CC-BY-4.0",
+    "cdn": {
+      "jsdelivr": "https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@{version}/svgs/{variant}/{name}.svg",
+      "github_raw": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/{version}/svgs/{variant}/{name}.svg"
+    },
+    "update_command": {
+      "type": "recipe",
+      "recipe": "generic",
+      "_note": "Refreshed by ichava/icon-sets-sync from config/icon-sets-font-awesome-free.json; the recipe is not in icon-sets-sync yet (it lands with the one recipes pull request for the v0.1.0 packs)."
+    }
+  },
+  "license": {
+    "spdx": "CC-BY-4.0",
+    "file": "resources/assets/svg/licenses/Font-Awesome/LICENSE.txt",
+    "sha256": "20c6f40715a567c97b80f6944beb8bb325835cab47ea7dcab89ee3b8e077eced",
+    "checked_at": "2026-11-04",
+    "source": "LICENSE.txt at tag 7.3.1 of FortAwesome/Font-Awesome"
+  }
+}

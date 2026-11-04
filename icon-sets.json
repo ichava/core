@@ -1,0 +1,87 @@
+{
+    "schema_version": "3.0",
+    "_note": "Static snapshot refreshed daily by .github/workflows/sync-icon-sets.yml (bin/sync-icon-sets.php). Each set pins key/package/repository; title, description, license, icon_count, icon_counts (per kind: icon, illustration), variants, latest_version and visibility (the repository's GitHub visibility, public or private) are synced from the pack’s config.json at its latest GitHub tag. To add a set, append an entry carrying at least key, package, repository, title, icon_count and variants — IconSetCatalogService rejects any set missing one of those six, treating an empty string or empty array as missing, so a set pinned with only the first three makes ichava::ichava-core.install throw until the next nightly sync fills the rest. Take the values from the pack’s own config.json and let the workflow refresh them. Write with JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE, as this file is generated and any other encoding reflows it. ichava::ichava-core.install reads this file only — zero runtime network calls.",
+    "config_path": "resources/assets/svg/config.json",
+    "sets": [
+        {
+            "key": "tabler",
+            "package": "ichava/icon-sets-tabler",
+            "repository": "ichava/icon-sets-tabler",
+            "title": "Tabler Icons",
+            "description": "Over 5,200 pixel-perfect icons for web apps. Free and open source icons designed with attention to detail to make your design stand out.",
+            "license": "MIT",
+            "icon_count": 6238,
+            "variants": [
+                "outline",
+                "filled"
+            ],
+            "latest_version": "0.1.0",
+            "icon_counts": {
+                "icon": 6238,
+                "illustration": 0
+            },
+            "visibility": "public"
+        },
+        {
+            "key": "flags",
+            "package": "ichava/icon-sets-flag",
+            "repository": "ichava/icon-sets-flag",
+            "title": "Flag Icons",
+            "description": "271 country flag SVGs sourced from lipis/flag-icons, available in 4x3 and 1x1 aspect ratios. Replaces the flag half of the deprecated simtabi/laflamoji.",
+            "license": "MIT",
+            "icon_count": 542,
+            "variants": [
+                "4x3",
+                "1x1"
+            ],
+            "latest_version": "0.1.0",
+            "icon_counts": {
+                "icon": 542,
+                "illustration": 0
+            },
+            "visibility": "public"
+        },
+        {
+            "key": "twemoji",
+            "package": "ichava/icon-sets-twemoji",
+            "repository": "ichava/icon-sets-twemoji",
+            "title": "Twemoji",
+            "description": "Twemoji, Twitter/X's open-source emoji set, as SVG. Unicode 17 / Emoji 17 spec. Categorised by Unicode CLDR groups. OpenMoji is in ichava/icon-sets-openmoji.",
+            "license": "MIT (code) / CC-BY 4.0 (Twemoji assets)",
+            "icon_count": 3435,
+            "variants": [
+                "default"
+            ],
+            "latest_version": "0.1.0",
+            "icon_counts": {
+                "icon": 3435,
+                "illustration": 0
+            },
+            "visibility": "public",
+            "hold": {
+                "tag": "v0.1.0",
+                "commit": "d7af0a20af8c5501ff5857c144573b1cf9329d16",
+                "reason": "v0.1.0 still carries the OpenMoji sets; the recorded values follow the default branch (Twemoji only) until the next release."
+            }
+        },
+        {
+            "key": "openmoji",
+            "package": "ichava/icon-sets-openmoji",
+            "repository": "ichava/icon-sets-openmoji",
+            "title": "OpenMoji",
+            "description": "OpenMoji emoji in two sets (colour and black outline), Unicode emoji 16.0, grouped by Unicode CLDR category. Moved verbatim from ichava/icon-sets-twemoji, which now ships Twemoji only.",
+            "license": "MIT (code) / CC-BY-SA 4.0 (OpenMoji assets)",
+            "icon_count": 8568,
+            "variants": [
+                "default"
+            ],
+            "latest_version": null,
+            "icon_counts": {
+                "icon": 8568,
+                "illustration": 0
+            },
+            "visibility": "public"
+        }
+    ],
+    "synced_at": "2026-11-03T10:18:20Z"
+}

@@ -1,0 +1,41 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "ichava-fixtures/variant-pack",
+        "title": "Variant fixture pack",
+        "description": "Two variants declared out of display order.",
+        "version": "1.0.0",
+        "type": "single",
+        "license": "MIT"
+    },
+    "metadata": {
+        "data": {
+            "variants": {
+                "filled": {
+                    "name": "Filled",
+                    "description": "Solid shapes",
+                    "display_order": 2,
+                    "attributes": { "fill": "currentColor" },
+                    "preview_icon": "filled/home",
+                    "color_scheme": "fill-based"
+                },
+                "outline": {
+                    "name": "Outline",
+                    "description": "Stroked shapes",
+                    "default": true,
+                    "display_order": 1,
+                    "attributes": { "stroke_width": 2, "fill": "none" },
+                    "preview_icon": "outline/home",
+                    "color_scheme": "stroke-based"
+                }
+            },
+            "categories": {
+                "outline": { "name": "Outline" },
+                "filled": { "name": "Filled" }
+            }
+        }
+    },
+    "config": {
+        "icon_prefix": "varfix"
+    }
+}

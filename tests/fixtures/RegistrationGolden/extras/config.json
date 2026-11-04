@@ -1,0 +1,1020 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-extras",
+    "title": "Ichava Extras",
+    "description": "20 smaller open-licence icon, logo and emoji sets in one pack, one directory per set, each under its own licence (MIT, Apache-2.0, CC0-1.0 or CC BY).",
+    "keywords": [
+      "icons",
+      "svg",
+      "emoji",
+      "logos",
+      "bundle",
+      "open-source"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "per set: upstream.sets.<set>.current_version",
+    "type": "bulk",
+    "kind": "icon",
+    "license": "MIT (code); icons per set, see ATTRIBUTION.md"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "WorkOS (Radix)",
+        "role": "Creator -- Radix Icons",
+        "url": "https://www.radix-ui.com/icons"
+      },
+      {
+        "name": "Cole Bemis",
+        "role": "Creator -- Feather",
+        "url": "https://feathericons.com"
+      },
+      {
+        "name": "Aniket Suvarna (Atisa)",
+        "role": "Creator -- Boxicons",
+        "url": "https://boxicons.com"
+      },
+      {
+        "name": "ByteDance",
+        "role": "Creator -- IconPark",
+        "url": "https://iconpark.oceanengine.com"
+      },
+      {
+        "name": "MingCute Design",
+        "role": "Creator -- MingCute",
+        "url": "https://www.mingcute.com"
+      },
+      {
+        "name": "TDesign (Tencent)",
+        "role": "Creator -- TDesign Icons",
+        "url": "https://tdesign.tencent.com"
+      },
+      {
+        "name": "Siemens AG",
+        "role": "Creator -- Siemens iX Icons",
+        "url": "https://ix.siemens.io"
+      },
+      {
+        "name": "Zendesk",
+        "role": "Creator -- Zendesk Garden Icons",
+        "url": "https://garden.zendesk.com"
+      },
+      {
+        "name": "Kryston Schwarze",
+        "role": "Creator -- coolicons",
+        "url": "https://coolicons.cool"
+      },
+      {
+        "name": "Akveo",
+        "role": "Creator -- Eva Icons",
+        "url": "https://akveo.github.io/eva-icons"
+      },
+      {
+        "name": "Ant UED",
+        "role": "Creator -- Ant Design Icons",
+        "url": "https://ant.design/components/icon"
+      },
+      {
+        "name": "Resolve to Save Lives and the Health Icons contributors",
+        "role": "Creator -- Health Icons",
+        "url": "https://healthicons.org"
+      },
+      {
+        "name": "konpa and the Devicon contributors",
+        "role": "Creator -- Devicon",
+        "url": "https://devicon.dev"
+      },
+      {
+        "name": "Microsoft Corporation",
+        "role": "Creator -- Fluent Emoji",
+        "url": "https://github.com/microsoft/fluentui-emoji"
+      },
+      {
+        "name": "CyCraft",
+        "role": "Creator -- Pepicons",
+        "url": "https://pepicons.com"
+      },
+      {
+        "name": "Lorc, Delapouite and the game-icons.net contributors",
+        "role": "Creator -- Game Icons",
+        "url": "https://game-icons.net"
+      },
+      {
+        "name": "CoreUI (creativeLabs)",
+        "role": "Creator -- CoreUI Icons Free",
+        "url": "https://icons.coreui.io"
+      },
+      {
+        "name": "Wayside Mapping and the Pinhead contributors",
+        "role": "Creator -- Pinhead",
+        "url": "https://pinhead.ink"
+      },
+      {
+        "name": "Gil Barbara",
+        "role": "Creator -- SVG Logos",
+        "url": "https://svgporn.com"
+      },
+      {
+        "name": "Google",
+        "role": "Creator -- Noto Emoji",
+        "url": "https://fonts.google.com/noto/specimen/Noto+Color+Emoji"
+      }
+    ],
+    "homepage": "https://github.com/ichava/icon-sets-extras#readme",
+    "repository": "https://github.com/ichava/icon-sets-extras",
+    "data": {
+      "variants": {
+        "default": {
+          "name": "Default",
+          "slug": "default",
+          "description": "Each set's own style",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {},
+          "color_scheme": "adaptive"
+        }
+      },
+      "categories": {
+        "radix-icons": {
+          "name": "Radix Icons",
+          "description": "Radix Icons by WorkOS (Radix) (MIT). 15×15, filled.",
+          "sets": [
+            "radix-icons"
+          ]
+        },
+        "feather": {
+          "name": "Feather",
+          "description": "Feather by Cole Bemis (MIT). 24×24, 2px stroke.",
+          "sets": [
+            "feather"
+          ]
+        },
+        "boxicons": {
+          "name": "Boxicons",
+          "description": "Boxicons by Aniket Suvarna (Atisa) (MIT). 24×24; regular (bx-), solid (bxs-), logos (bxl-).",
+          "sets": [
+            "boxicons"
+          ]
+        },
+        "iconpark": {
+          "name": "IconPark",
+          "description": "IconPark by ByteDance (Apache-2.0). 48×48 outline, four themes in the source.",
+          "sets": [
+            "iconpark"
+          ]
+        },
+        "mingcute": {
+          "name": "MingCute",
+          "description": "MingCute by MingCute Design (Apache-2.0). 24×24, regular (line) and filled.",
+          "sets": [
+            "mingcute"
+          ]
+        },
+        "tdesign": {
+          "name": "TDesign Icons",
+          "description": "TDesign Icons by TDesign (Tencent) (MIT). 24×24.",
+          "sets": [
+            "tdesign"
+          ]
+        },
+        "siemens-ix": {
+          "name": "Siemens iX Icons",
+          "description": "Siemens iX Icons by Siemens AG (MIT). Mixed sizes.",
+          "sets": [
+            "siemens-ix"
+          ]
+        },
+        "garden": {
+          "name": "Zendesk Garden Icons",
+          "description": "Zendesk Garden Icons by Zendesk (Apache-2.0). 16×16 and 12×12.",
+          "sets": [
+            "garden"
+          ]
+        },
+        "coolicons": {
+          "name": "coolicons",
+          "description": "coolicons by Kryston Schwarze (MIT). 24×24, line and fill (regular corners).",
+          "sets": [
+            "coolicons"
+          ]
+        },
+        "eva": {
+          "name": "Eva Icons",
+          "description": "Eva Icons by Akveo (MIT). 24×24, fill and outline.",
+          "sets": [
+            "eva"
+          ]
+        },
+        "ant-design": {
+          "name": "Ant Design Icons",
+          "description": "Ant Design Icons by Ant UED (MIT). 1024×1024, outlined, filled and two-tone.",
+          "sets": [
+            "ant-design"
+          ]
+        },
+        "health-icons": {
+          "name": "Health Icons",
+          "description": "Health Icons by Resolve to Save Lives and the Health Icons contributors (CC0-1.0). 48×48, outline and filled.",
+          "sets": [
+            "health-icons"
+          ]
+        },
+        "devicon": {
+          "name": "Devicon",
+          "description": "Devicon by konpa and the Devicon contributors (MIT). 128×128 logos; original, plain, line and wordmark.",
+          "sets": [
+            "devicon"
+          ]
+        },
+        "fluent-emoji": {
+          "name": "Fluent Emoji",
+          "description": "Fluent Emoji by Microsoft Corporation (MIT). Flat and high-contrast, with skin tones.",
+          "sets": [
+            "fluent-emoji"
+          ]
+        },
+        "pepicons": {
+          "name": "Pepicons",
+          "description": "Pepicons by CyCraft (CC BY 4.0). 20×20; pop, print and pencil.",
+          "sets": [
+            "pepicons"
+          ]
+        },
+        "game-icons": {
+          "name": "Game Icons",
+          "description": "Game Icons by Lorc, Delapouite and the game-icons.net contributors (CC BY 3.0 (CC0 for two contributors)). 512×512, white on a black square.",
+          "sets": [
+            "game-icons"
+          ]
+        },
+        "coreui": {
+          "name": "CoreUI Icons Free",
+          "description": "CoreUI Icons Free by CoreUI (creativeLabs) (CC BY 4.0). 512×512 line icons.",
+          "sets": [
+            "coreui"
+          ]
+        },
+        "pinhead": {
+          "name": "Pinhead",
+          "description": "Pinhead by Wayside Mapping and the Pinhead contributors (CC0-1.0). 15×15 map icons.",
+          "sets": [
+            "pinhead"
+          ]
+        },
+        "svg-logos": {
+          "name": "SVG Logos",
+          "description": "SVG Logos by Gil Barbara (CC0-1.0). Full-colour brand logos.",
+          "sets": [
+            "svg-logos"
+          ]
+        },
+        "noto-emoji": {
+          "name": "Noto Emoji",
+          "description": "Noto Emoji by Google (Apache-2.0). Colour emoji, 128×128.",
+          "sets": [
+            "noto-emoji"
+          ]
+        }
+      },
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "extras"
+  },
+  "upstream": {
+    "source": {
+      "type": "manifest",
+      "_note": "One upstream per set, under upstream.sets. Each has its own recipe in the design folder (pack-recipes/icon-sets-extras.<set>.json)."
+    },
+    "license": "per set",
+    "sets": {
+      "radix-icons": {
+        "name": "Radix Icons",
+        "owner": "WorkOS (Radix)",
+        "homepage": "https://www.radix-ui.com/icons",
+        "repository": "https://github.com/radix-ui/icons",
+        "source": {
+          "type": "github-archive",
+          "owner": "radix-ui",
+          "repo": "icons",
+          "archive_url": "https://github.com/radix-ui/icons/archive/refs/tags/website@{version}.tar.gz",
+          "source_path": "packages/radix-icons/icons",
+          "_version_note": "archive tag is website@0.0.17; the icons package inside it is 1.3.2"
+        },
+        "current_version": "0.0.17",
+        "ref": "tag website@0.0.17 (bde33b13aa), packages/radix-icons 1.3.2",
+        "version_check_url": "https://api.github.com/repos/radix-ui/icons/tags",
+        "license": {
+          "spdx": "MIT",
+          "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/radix-icons/LICENSE",
+          "read_from": "LICENSE at tag website@0.0.17"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 318,
+        "layout": "packages/radix-icons/icons/*.svg, unchanged names"
+      },
+      "feather": {
+        "name": "Feather",
+        "owner": "Cole Bemis",
+        "homepage": "https://feathericons.com",
+        "repository": "https://github.com/feathericons/feather",
+        "source": {
+          "type": "npm",
+          "package": "feather-icons",
+          "source_path": "dist/icons"
+        },
+        "current_version": "4.29.2",
+        "ref": "npm feather-icons 4.29.2",
+        "version_check_url": "https://registry.npmjs.org/feather-icons/latest",
+        "license": {
+          "spdx": "MIT",
+          "sha256": "308028e93fcf84972523cdf6e616f73168546b4953895f516d01287f16fe7bee",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/feather/LICENSE",
+          "read_from": "LICENSE in the npm package"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 287,
+        "layout": "dist/icons/*.svg, unchanged names",
+        "note": "Lucide is its maintained successor."
+      },
+      "boxicons": {
+        "name": "Boxicons",
+        "owner": "Aniket Suvarna (Atisa)",
+        "homepage": "https://boxicons.com",
+        "repository": "https://github.com/box-icons/boxicons",
+        "source": {
+          "type": "npm",
+          "package": "boxicons",
+          "source_path": "svg"
+        },
+        "current_version": "2.1.4",
+        "ref": "npm boxicons 2.1.4",
+        "version_check_url": "https://registry.npmjs.org/boxicons/latest",
+        "license": {
+          "spdx": "MIT",
+          "sha256": "1676a8bdd036382b7bdb8a9ec26a55af6bf15035dd4d405169da2ee45b066e22",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/boxicons/LICENSE",
+          "read_from": "LICENSE in the npm package"
+        },
+        "attribution_required": false,
+        "trademarks": true,
+        "icons": 1634,
+        "layout": "svg/regular, svg/solid and svg/logos merged; the bx-/bxs-/bxl- prefixes already keep names apart",
+        "note": "The npm manifest's `license` field reads `(CC-BY-4.0 OR OFL-1.1 OR MIT)`; the LICENSE file the package ships is MIT, and MIT is the option taken. The `bxl-` logos depict trademarks."
+      },
+      "iconpark": {
+        "name": "IconPark",
+        "owner": "ByteDance",
+        "homepage": "https://iconpark.oceanengine.com",
+        "repository": "https://github.com/bytedance/IconPark",
+        "source": {
+          "type": "github-archive",
+          "owner": "bytedance",
+          "repo": "IconPark",
+          "archive_url": "https://github.com/bytedance/IconPark/archive/refs/tags/v{version}.tar.gz",
+          "source_path": "source"
+        },
+        "current_version": "1.4.2",
+        "ref": "tag v1.4.2 (repository archived)",
+        "version_check_url": "https://api.github.com/repos/bytedance/IconPark/tags",
+        "license": {
+          "spdx": "Apache-2.0",
+          "sha256": "81268f00802b1a9cffae4df43f78c3a0809845e03fef3da68f26ad2e4c49681e",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/iconpark/LICENSE",
+          "read_from": "LICENSE at tag v1.4.2"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 2658,
+        "layout": "source/<Category>/*.svg flattened; names are unique across categories",
+        "note": "Upstream is archived; 1.4.2 is final."
+      },
+      "mingcute": {
+        "name": "MingCute",
+        "owner": "MingCute Design",
+        "homepage": "https://www.mingcute.com",
+        "repository": "https://github.com/mingcute-design/mingcute-icons",
+        "source": {
+          "type": "github-archive",
+          "owner": "mingcute-design",
+          "repo": "mingcute-icons",
+          "archive_url": "https://github.com/mingcute-design/mingcute-icons/archive/refs/tags/v{version}.tar.gz",
+          "source_path": "assets/stroke/core"
+        },
+        "current_version": "4.0.0",
+        "ref": "tag v4.0.0",
+        "version_check_url": "https://api.github.com/repos/mingcute-design/mingcute-icons/tags",
+        "license": {
+          "spdx": "Apache-2.0",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/mingcute/LICENSE",
+          "read_from": "LICENSE at tag v4.0.0"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 4526,
+        "layout": "assets/stroke/core/{regular,filled}/<category>/<name>.svg flattened to <name>-regular / <name>-filled, underscores slugged to hyphens",
+        "note": "The npm package @mingcute/icons ships JavaScript only, so the source is the tagged archive."
+      },
+      "tdesign": {
+        "name": "TDesign Icons",
+        "owner": "TDesign (Tencent)",
+        "homepage": "https://tdesign.tencent.com",
+        "repository": "https://github.com/Tencent/tdesign-icons",
+        "source": {
+          "type": "npm",
+          "package": "tdesign-icons-svg",
+          "source_path": "src"
+        },
+        "current_version": "0.4.8",
+        "ref": "npm tdesign-icons-svg 0.4.8",
+        "version_check_url": "https://registry.npmjs.org/tdesign-icons-svg/latest",
+        "license": {
+          "spdx": "MIT",
+          "sha256": "b3dbcb89dcf4a11abf1b70d043795a3da0c458af16fefd2ff315d9ff5875312f",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/tdesign/LICENSE",
+          "read_from": "LICENSE in the npm package"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 2358,
+        "layout": "src/*.svg, unchanged names"
+      },
+      "siemens-ix": {
+        "name": "Siemens iX Icons",
+        "owner": "Siemens AG",
+        "homepage": "https://ix.siemens.io",
+        "repository": "https://github.com/siemens/ix-icons",
+        "source": {
+          "type": "npm",
+          "package": "@siemens/ix-icons",
+          "source_path": "svg"
+        },
+        "current_version": "3.7.1",
+        "ref": "npm @siemens/ix-icons 3.7.1",
+        "version_check_url": "https://registry.npmjs.org/@siemens/ix-icons/latest",
+        "license": {
+          "spdx": "MIT",
+          "sha256": "42cb46c894aa9267307aa4985f40f44ba669e54d9b6b487960ecd24e1989213b",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/siemens-ix/LICENSE.md",
+          "read_from": "LICENSE.md in the npm package"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 1490,
+        "layout": "svg/*.svg, unchanged names"
+      },
+      "garden": {
+        "name": "Zendesk Garden Icons",
+        "owner": "Zendesk",
+        "homepage": "https://garden.zendesk.com",
+        "repository": "https://github.com/zendeskgarden/svg-icons",
+        "source": {
+          "type": "npm",
+          "package": "@zendeskgarden/svg-icons",
+          "source_path": "src"
+        },
+        "current_version": "8.4.0",
+        "ref": "npm @zendeskgarden/svg-icons 8.4.0",
+        "version_check_url": "https://registry.npmjs.org/@zendeskgarden/svg-icons/latest",
+        "license": {
+          "spdx": "Apache-2.0",
+          "sha256": "46ae5f0dc2e06a18cde8b06bdb45abea0b6e28d169e6eff2069536780304cf6e",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/garden/LICENSE.md",
+          "read_from": "LICENSE.md in the npm package"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 932,
+        "layout": "src/16 and src/12 flattened to <name>-16 / <name>-12",
+        "note": "9.0.0 exists only as a pre-release (next); the stable 8.4.0 is pinned."
+      },
+      "coolicons": {
+        "name": "coolicons",
+        "owner": "Kryston Schwarze",
+        "homepage": "https://coolicons.cool",
+        "repository": "https://github.com/krystonschwarze/coolicons",
+        "source": {
+          "type": "github-archive",
+          "owner": "krystonschwarze",
+          "repo": "coolicons",
+          "archive_url": "https://github.com/krystonschwarze/coolicons/archive/refs/tags/v{version}.tar.gz",
+          "source_path": "icons/svg"
+        },
+        "current_version": "5.2.0",
+        "ref": "tag v5.2.0",
+        "version_check_url": "https://api.github.com/repos/krystonschwarze/coolicons/tags",
+        "license": {
+          "spdx": "MIT",
+          "sha256": "35d8a4a8e1793b261198949d213583904b11e3826be8618ae9b9dbc6b70f50cc",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/coolicons/LICENSE",
+          "read_from": "LICENSE at tag v5.2.0"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 2648,
+        "layout": "icons/svg/{line,fill}/regular/*.svg flattened to <name>-line / <name>-fill",
+        "note": "v5 ships 1,324 icons in 15 style folders (line, fill, bulk, duotone, duocolor x regular, round, sharp): 19,860 files. Only line and fill at regular corners are vendored (2,648), to keep the bundle small; the other 13 folders are the same drawings restyled. v4 was CC-BY-4.0; v5 is MIT."
+      },
+      "eva": {
+        "name": "Eva Icons",
+        "owner": "Akveo",
+        "homepage": "https://akveo.github.io/eva-icons",
+        "repository": "https://github.com/akveo/eva-icons",
+        "source": {
+          "type": "npm",
+          "package": "eva-icons",
+          "source_path": "."
+        },
+        "current_version": "1.1.3",
+        "ref": "npm eva-icons 1.1.3 (tag v1.1.3)",
+        "version_check_url": "https://registry.npmjs.org/eva-icons/latest",
+        "license": {
+          "spdx": "MIT",
+          "sha256": "4788c563f8871931bce41ede59379a5277ac1a473e289f9100924149ce8bd311",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/eva/LICENSE",
+          "read_from": "LICENSE.txt at tag v1.1.3 (the npm package ships none)"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 490,
+        "layout": "fill/svg and outline/svg merged; upstream already names outline icons <name>-outline",
+        "note": "Unmaintained upstream (last push 2023)."
+      },
+      "ant-design": {
+        "name": "Ant Design Icons",
+        "owner": "Ant UED",
+        "homepage": "https://ant.design/components/icon",
+        "repository": "https://github.com/ant-design/ant-design-icons",
+        "source": {
+          "type": "npm",
+          "package": "@ant-design/icons-svg",
+          "source_path": "inline-svg"
+        },
+        "current_version": "4.6.0",
+        "ref": "npm @ant-design/icons-svg 4.6.0 (repo commit 7f2516ac91)",
+        "version_check_url": "https://registry.npmjs.org/@ant-design/icons-svg/latest",
+        "license": {
+          "spdx": "MIT",
+          "sha256": "5d367fb0a07340571542eb4ee8eb1add62d37b71bad6786a57c2e9a86bf76c70",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/ant-design/LICENSE",
+          "read_from": "LICENSE at commit 7f2516ac91 (the commit that set packages/icons-svg to 4.6.0; the npm package ships none)"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 848,
+        "layout": "inline-svg/{outlined,filled,twotone} flattened to <name>-outlined / -filled / -twotone"
+      },
+      "health-icons": {
+        "name": "Health Icons",
+        "owner": "Resolve to Save Lives and the Health Icons contributors",
+        "homepage": "https://healthicons.org",
+        "repository": "https://github.com/resolvetosavelives/healthicons",
+        "source": {
+          "type": "npm",
+          "package": "healthicons",
+          "source_path": "public/icons/svg"
+        },
+        "current_version": "3.1.0",
+        "ref": "npm healthicons 3.1.0",
+        "version_check_url": "https://registry.npmjs.org/healthicons/latest",
+        "license": {
+          "spdx": "CC0-1.0",
+          "sha256": "d36196c6c2b0a983415778adddf81bfe63c51f408e707a36fa2b029d65e92d06",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/health-icons/LICENSE",
+          "read_from": "LICENSE in the npm package (icons CC0-1.0; website code MIT)"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 1552,
+        "layout": "public/icons/svg/{outline,filled}/<category>/<name>.svg flattened to <name>-outline / <name>-filled",
+        "note": "The 24px redraws (filled-24px, outline-24px; 288 each) are not vendored."
+      },
+      "devicon": {
+        "name": "Devicon",
+        "owner": "konpa and the Devicon contributors",
+        "homepage": "https://devicon.dev",
+        "repository": "https://github.com/devicons/devicon",
+        "source": {
+          "type": "npm",
+          "package": "devicon",
+          "source_path": "icons"
+        },
+        "current_version": "2.18.0",
+        "ref": "npm devicon 2.18.0",
+        "version_check_url": "https://registry.npmjs.org/devicon/latest",
+        "license": {
+          "spdx": "MIT",
+          "sha256": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/devicon/LICENSE",
+          "read_from": "LICENSE in the npm package"
+        },
+        "attribution_required": false,
+        "trademarks": true,
+        "icons": 2120,
+        "layout": "icons/<tech>/<file>.svg flattened; upstream file names carry the tech and the style"
+      },
+      "fluent-emoji": {
+        "name": "Fluent Emoji",
+        "owner": "Microsoft Corporation",
+        "homepage": "https://github.com/microsoft/fluentui-emoji",
+        "repository": "https://github.com/microsoft/fluentui-emoji",
+        "source": {
+          "type": "github-archive",
+          "owner": "microsoft",
+          "repo": "fluentui-emoji",
+          "archive_url": "https://github.com/microsoft/fluentui-emoji/archive/{version}.tar.gz",
+          "source_path": "assets"
+        },
+        "current_version": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+        "ref": "commit 1ffb34c752 (main, 2026-08-24; upstream has no tags)",
+        "version_check_url": "https://api.github.com/repos/microsoft/fluentui-emoji/commits/main",
+        "license": {
+          "spdx": "MIT",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/fluent-emoji/LICENSE",
+          "read_from": "LICENSE at commit 1ffb34c752"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 4740,
+        "layout": "assets/<Emoji>/[<Tone>/]{Flat,High Contrast}/<file>.svg flattened; upstream file names carry the style and tone",
+        "note": "The Color style (3,145 files, 132 MB of gradients) and the 3D PNGs are not vendored; Flat (3,145) and High Contrast (1,595) are."
+      },
+      "pepicons": {
+        "name": "Pepicons",
+        "owner": "CyCraft",
+        "homepage": "https://pepicons.com",
+        "repository": "https://github.com/CyCraft/pepicons",
+        "source": {
+          "type": "npm",
+          "package": "pepicons",
+          "source_path": "svg"
+        },
+        "current_version": "3.1.6",
+        "ref": "npm pepicons 3.1.6 (tag v3.1.6)",
+        "version_check_url": "https://registry.npmjs.org/pepicons/latest",
+        "license": {
+          "spdx": "CC-BY-4.0",
+          "sha256": "dbb19cb7bda19afef40f19094a668dfe61375cfd57c49d33c660bdb76676b5c5",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/pepicons/LICENSE",
+          "read_from": "LICENSE at tag v3.1.6 (the npm package ships none)"
+        },
+        "attribution_required": true,
+        "trademarks": false,
+        "icons": 3825,
+        "layout": "svg/{pop,print,pencil} flattened to <name>-pop / -print / -pencil"
+      },
+      "game-icons": {
+        "name": "Game Icons",
+        "owner": "Lorc, Delapouite and the game-icons.net contributors",
+        "homepage": "https://game-icons.net",
+        "repository": "https://github.com/game-icons/icons",
+        "source": {
+          "type": "github-archive",
+          "owner": "game-icons",
+          "repo": "icons",
+          "archive_url": "https://github.com/game-icons/icons/archive/{version}.tar.gz",
+          "source_path": "."
+        },
+        "current_version": "82d948812bfe3f269ef8f731dcdb07b08160edc4",
+        "ref": "commit 82d948812b (master; upstream has no tags)",
+        "version_check_url": "https://api.github.com/repos/game-icons/icons/commits/master",
+        "license": {
+          "spdx": "CC-BY-3.0",
+          "sha256": "fac95252798668fab5ea2cb08338f2ebc6bf894a72b19a15af1ca62f0a6d2e79",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/game-icons/license.txt",
+          "read_from": "license.txt at commit 82d948812b"
+        },
+        "attribution_required": true,
+        "trademarks": false,
+        "icons": 4178,
+        "layout": "<contributor>/<name>.svg, one directory per contributor so every icon stays attributable",
+        "note": "badges/ (59) and various-artists/ (2) are not vendored: license.txt does not name them, so no licence is stated for them."
+      },
+      "coreui": {
+        "name": "CoreUI Icons Free",
+        "owner": "CoreUI (creativeLabs)",
+        "homepage": "https://icons.coreui.io",
+        "repository": "https://github.com/coreui/coreui-icons",
+        "source": {
+          "type": "npm",
+          "package": "@coreui/icons",
+          "source_path": "svg/free"
+        },
+        "current_version": "3.1.0",
+        "ref": "npm @coreui/icons 3.1.0",
+        "version_check_url": "https://registry.npmjs.org/@coreui/icons/latest",
+        "license": {
+          "spdx": "CC-BY-4.0",
+          "sha256": "171b668bd4fa31e5b75141d30290e5ab9eefcc881027ef24d0bd9e91aea8689b",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/coreui/LICENSE",
+          "read_from": "LICENSE in the npm package"
+        },
+        "attribution_required": true,
+        "trademarks": false,
+        "icons": 562,
+        "layout": "svg/free/*.svg, unchanged names",
+        "note": "Only the free set is vendored. The brand (828) and flag (198) SVGs are CC0 in the same LICENSE, but the brands are trademarks and the flags duplicate ichava/icon-sets-flag."
+      },
+      "pinhead": {
+        "name": "Pinhead",
+        "owner": "Wayside Mapping and the Pinhead contributors",
+        "homepage": "https://pinhead.ink",
+        "repository": "https://github.com/waysidemapping/pinhead",
+        "source": {
+          "type": "npm",
+          "package": "@waysidemapping/pinhead",
+          "source_path": "dist/icons"
+        },
+        "current_version": "16.26.0",
+        "ref": "npm @waysidemapping/pinhead 16.26.0",
+        "version_check_url": "https://registry.npmjs.org/@waysidemapping/pinhead/latest",
+        "license": {
+          "spdx": "CC0-1.0",
+          "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/pinhead/LICENSE",
+          "read_from": "LICENSE in the npm package"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 2747,
+        "layout": "dist/icons/*.svg, unchanged names",
+        "note": "Pinhead incorporates icons from Temaki, Maki, OpenStreetMap Carto, Osmic, Health Icons and others; its README lists every source as CC0 or public domain."
+      },
+      "svg-logos": {
+        "name": "SVG Logos",
+        "owner": "Gil Barbara",
+        "homepage": "https://svgporn.com",
+        "repository": "https://github.com/gilbarbara/logos",
+        "source": {
+          "type": "github-archive",
+          "owner": "gilbarbara",
+          "repo": "logos",
+          "archive_url": "https://github.com/gilbarbara/logos/archive/{version}.tar.gz",
+          "source_path": "logos"
+        },
+        "current_version": "22f03ffc4a652309d1fea4ade70f46e9e1d6602c",
+        "ref": "commit 22f03ffc4a (main; upstream has no releases)",
+        "version_check_url": "https://api.github.com/repos/gilbarbara/logos/commits/main",
+        "license": {
+          "spdx": "CC0-1.0",
+          "sha256": "36ffd9dc085d529a7e60e1276d73ae5a030b020313e6c5408593a6ae2af39673",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/svg-logos/LICENSE.txt",
+          "read_from": "LICENSE.txt at commit 22f03ffc4a"
+        },
+        "attribution_required": false,
+        "trademarks": true,
+        "icons": 2068,
+        "layout": "logos/*.svg, unchanged names"
+      },
+      "noto-emoji": {
+        "name": "Noto Emoji",
+        "owner": "Google",
+        "homepage": "https://fonts.google.com/noto/specimen/Noto+Color+Emoji",
+        "repository": "https://github.com/googlefonts/noto-emoji",
+        "source": {
+          "type": "github-archive",
+          "owner": "googlefonts",
+          "repo": "noto-emoji",
+          "archive_url": "https://github.com/googlefonts/noto-emoji/archive/refs/tags/v{version}.tar.gz",
+          "source_path": "2D/svg"
+        },
+        "current_version": "2026-09-24-unicode18_0",
+        "ref": "tag v2026-09-24-unicode18_0 (e20cbc2bbe)",
+        "version_check_url": "https://api.github.com/repos/googlefonts/noto-emoji/releases/latest",
+        "license": {
+          "spdx": "Apache-2.0",
+          "sha256": "611ceab36dae96644ca84e8ace6873821790192bf6f73b0d0624a21b24b4b332",
+          "checked_at": "2026-11-04",
+          "file": "resources/assets/svg/licenses/noto-emoji/LICENSE",
+          "read_from": "2D/svg/LICENSE at tag v2026-09-24-unicode18_0"
+        },
+        "attribution_required": false,
+        "trademarks": false,
+        "icons": 3580,
+        "layout": "2D/svg/emoji_u<codepoints>.svg, names slugged (emoji-u1f600)",
+        "note": "The repository's root LICENSE is OFL-1.1 and covers the fonts; the SVG directory carries its own LICENSE, the Apache 2.0 notice, which is what governs these files. 170 SVGs are not vendored: they declare Adobe Illustrator entities in an internal DTD, which the sanitiser cannot parse, so they cannot be checked.",
+        "excluded": {
+          "reason": "Internal DTD declaring Adobe Illustrator entities; the sanitiser cannot parse them, so they are not shipped.",
+          "names": [
+            "emoji-u1f306",
+            "emoji-u1f307",
+            "emoji-u1f341",
+            "emoji-u1f361",
+            "emoji-u1f367",
+            "emoji-u1f368",
+            "emoji-u1f369",
+            "emoji-u1f374",
+            "emoji-u1f37d",
+            "emoji-u1f380",
+            "emoji-u1f39b",
+            "emoji-u1f39f",
+            "emoji-u1f3a6",
+            "emoji-u1f3a9",
+            "emoji-u1f3aa",
+            "emoji-u1f3ac",
+            "emoji-u1f3cf",
+            "emoji-u1f3d1",
+            "emoji-u1f3d3",
+            "emoji-u1f3d8",
+            "emoji-u1f3d9",
+            "emoji-u1f3e8",
+            "emoji-u1f3e9",
+            "emoji-u1f3eb",
+            "emoji-u1f3f5",
+            "emoji-u1f3f8",
+            "emoji-u1f40b",
+            "emoji-u1f428",
+            "emoji-u1f42d",
+            "emoji-u1f433",
+            "emoji-u1f436",
+            "emoji-u1f43b-200d-2744",
+            "emoji-u1f43c",
+            "emoji-u1f454",
+            "emoji-u1f45b",
+            "emoji-u1f468-1f3fb-200d-1f393",
+            "emoji-u1f468-1f3fc-200d-1f393",
+            "emoji-u1f468-1f3fd-200d-1f393",
+            "emoji-u1f468-1f3fe-200d-1f393",
+            "emoji-u1f468-1f3ff-200d-1f393",
+            "emoji-u1f468-200d-1f393",
+            "emoji-u1f469-1f3fb-200d-1f393",
+            "emoji-u1f469-1f3fc-200d-1f393",
+            "emoji-u1f469-1f3fd-200d-1f393",
+            "emoji-u1f469-1f3fe-200d-1f393",
+            "emoji-u1f469-1f3ff-200d-1f393",
+            "emoji-u1f469-200d-1f393",
+            "emoji-u1f489",
+            "emoji-u1f4b1",
+            "emoji-u1f4b2",
+            "emoji-u1f4bb",
+            "emoji-u1f4d6",
+            "emoji-u1f4da",
+            "emoji-u1f4de",
+            "emoji-u1f4e2",
+            "emoji-u1f4e3",
+            "emoji-u1f4f3",
+            "emoji-u1f4f6",
+            "emoji-u1f4fa",
+            "emoji-u1f500",
+            "emoji-u1f501",
+            "emoji-u1f502",
+            "emoji-u1f504",
+            "emoji-u1f508",
+            "emoji-u1f509",
+            "emoji-u1f50a",
+            "emoji-u1f516",
+            "emoji-u1f518",
+            "emoji-u1f526",
+            "emoji-u1f53c",
+            "emoji-u1f53d",
+            "emoji-u1f54b",
+            "emoji-u1f573",
+            "emoji-u1f578",
+            "emoji-u1f5b2",
+            "emoji-u1f5fa",
+            "emoji-u1f638",
+            "emoji-u1f639",
+            "emoji-u1f63b",
+            "emoji-u1f680",
+            "emoji-u1f68e",
+            "emoji-u1f6a2",
+            "emoji-u1f6a3",
+            "emoji-u1f6a3-1f3fb",
+            "emoji-u1f6a3-1f3fb-200d-2640",
+            "emoji-u1f6a3-1f3fb-200d-2642",
+            "emoji-u1f6a3-1f3fc",
+            "emoji-u1f6a3-1f3fc-200d-2640",
+            "emoji-u1f6a3-1f3fc-200d-2642",
+            "emoji-u1f6a3-1f3fd",
+            "emoji-u1f6a3-1f3fd-200d-2640",
+            "emoji-u1f6a3-1f3fd-200d-2642",
+            "emoji-u1f6a3-1f3fe",
+            "emoji-u1f6a3-1f3fe-200d-2640",
+            "emoji-u1f6a3-1f3fe-200d-2642",
+            "emoji-u1f6a3-1f3ff",
+            "emoji-u1f6a3-1f3ff-200d-2640",
+            "emoji-u1f6a3-1f3ff-200d-2642",
+            "emoji-u1f6a3-200d-2640",
+            "emoji-u1f6a3-200d-2642",
+            "emoji-u1f6a5",
+            "emoji-u1f6a6",
+            "emoji-u1f6aa",
+            "emoji-u1f6b0",
+            "emoji-u1f6ce",
+            "emoji-u1f6d9",
+            "emoji-u1f6f6",
+            "emoji-u1f930",
+            "emoji-u1f930-1f3fb",
+            "emoji-u1f930-1f3fc",
+            "emoji-u1f930-1f3fd",
+            "emoji-u1f930-1f3fe",
+            "emoji-u1f930-1f3ff",
+            "emoji-u1f94d",
+            "emoji-u1f952",
+            "emoji-u1f962",
+            "emoji-u1f9c8",
+            "emoji-u1f9d1-1f3fb-200d-1f393",
+            "emoji-u1f9d1-1f3fc-200d-1f393",
+            "emoji-u1f9d1-1f3fd-200d-1f393",
+            "emoji-u1f9d1-1f3fe-200d-1f393",
+            "emoji-u1f9d1-1f3ff-200d-1f393",
+            "emoji-u1f9d1-200d-1f393",
+            "emoji-u1f9fd",
+            "emoji-u1fa8b",
+            "emoji-u1fa8d",
+            "emoji-u1fa90",
+            "emoji-u1fa9e",
+            "emoji-u1faa1",
+            "emoji-u1faa4",
+            "emoji-u1faa7",
+            "emoji-u1fac3-1f3fb",
+            "emoji-u1fac3-1f3fc",
+            "emoji-u1fac3-1f3fd",
+            "emoji-u1fac3-1f3fe",
+            "emoji-u1fac3-1f3ff",
+            "emoji-u1faeb",
+            "emoji-u1faf9",
+            "emoji-u1faf9-1f3fb",
+            "emoji-u1faf9-1f3fc",
+            "emoji-u1faf9-1f3fd",
+            "emoji-u1faf9-1f3fe",
+            "emoji-u1faf9-1f3ff",
+            "emoji-u1fafa",
+            "emoji-u1fafa-1f3fb",
+            "emoji-u1fafa-1f3fc",
+            "emoji-u1fafa-1f3fd",
+            "emoji-u1fafa-1f3fe",
+            "emoji-u1fafa-1f3ff",
+            "emoji-u23cf",
+            "emoji-u23e9",
+            "emoji-u23ea",
+            "emoji-u23eb",
+            "emoji-u23ec",
+            "emoji-u23ed",
+            "emoji-u23ee",
+            "emoji-u23ef",
+            "emoji-u23f8",
+            "emoji-u23f9",
+            "emoji-u23fa",
+            "emoji-u25aa",
+            "emoji-u25ab",
+            "emoji-u25b6",
+            "emoji-u25c0",
+            "emoji-u25fd",
+            "emoji-u25fe",
+            "emoji-u26d4",
+            "emoji-u26f0",
+            "emoji-u26f7",
+            "emoji-u2734"
+          ]
+        }
+      }
+    },
+    "dropped": {
+      "vscode-icons": {
+        "ref": "tag v13.0.0",
+        "reason": "README at v13.0.0: \"The icons are licensed under the Creative Commons - ShareAlike (CC BY-SA) license\"; only the extension code is MIT. CC-BY-SA is not bundle-eligible."
+      }
+    },
+    "update_command": {
+      "type": "recipe",
+      "recipe": "icon-sets-extras.<set>",
+      "_note": "Each set has its own icon-sets-sync recipe, icon-sets-extras.<set> (icon-sets-sync#88), which refreshes files/<set>/ and licenses/<set>/ and stamps upstream.sets.<set>.current_version."
+    }
+  },
+  "license": {
+    "spdx": "MIT",
+    "scope": "package code only",
+    "icons": "per set: upstream.sets.<set>.license"
+  }
+}
