@@ -72,7 +72,7 @@ final class IconBrowserService
         $query->select([
             'id', 'package', 'name', 'path', 'file_hash',
             'tags', 'keywords', 'attributes', 'metadata',
-            'kind', 'theme_variants',
+            'kind', 'kind_source', 'theme_variants',
             'created_at', 'updated_at',
         ]);
 
@@ -101,10 +101,13 @@ final class IconBrowserService
     public function transformIcon(Icon $icon): array
     {
         $iconData = [
-            'id'          => $icon->id,
-            'package'     => $icon->package,
-            'name'        => $icon->name,
-            'kind'        => $icon->kind->value,
+            'id'      => $icon->id,
+            'package' => $icon->package,
+            'name'    => $icon->name,
+            'kind'    => $icon->kind->value,
+            // Which row decided the kind. `kind_rule` is deliberately not
+            // served: it can carry a host config pattern.
+            'kind_source' => $icon->kindSource()->value,
             'themes'      => $icon->themes(),
             'category'    => $icon->primary_category?->slug,
             'variant'     => $icon->primary_variant?->slug,
@@ -283,8 +286,9 @@ final class IconBrowserService
                         'categories' => 0,
                         'variants'   => 0,
                     ],
-                    'by_kind' => array_fill_keys(array_column(IconKind::cases(), 'value'), 0),
-                    'empty'   => true,
+                    'by_kind'         => array_fill_keys(array_column(IconKind::cases(), 'value'), 0),
+                    'by_package_kind' => [],
+                    'empty'           => true,
                 ];
             }
 
@@ -315,7 +319,9 @@ final class IconBrowserService
                     array_fill_keys(array_column(IconKind::cases(), 'value'), 0),
                     $this->kindCounts(),
                 ),
-                'empty' => false,
+                // The same, per pack: a pack may hold both kinds.
+                'by_package_kind' => $this->packageKindCounts(),
+                'empty'           => false,
             ];
         }, expects: 'array');
 
@@ -416,10 +422,20 @@ final class IconBrowserService
 
         // Kind: icons or illustrations. A value that names no kind matches
         // nothing, so a bad query parameter cannot widen the result.
+        // Several kinds OR together (`?kind[]=icon&kind[]=illustration`);
+        // duplicates collapse, and a list that names no valid kind matches
+        // nothing, as a single bad value always has.
         $kind = $filters['kind'] ?? null;
 
         if ($kind instanceof IconKind || (is_string($kind) && $kind !== '')) {
             $query->ofKind($kind);
+        } elseif (is_array($kind) && $kind !== []) {
+            $kinds = array_values(array_unique(array_filter(array_map(
+                static fn (mixed $value): ?string => ($value instanceof IconKind ? $value : IconKind::fromConfig($value))?->value,
+                $kind,
+            ))));
+
+            $kinds === [] ? $query->whereRaw('1 = 0') : $query->whereIn('kind', $kinds);
         }
 
         $categories = self::stringList($filters['categories'] ?? null);
@@ -583,6 +599,11 @@ final class IconBrowserService
             ? $this->packageCounts($this->filteredIds(array_diff_key($filters, ['packages' => true])))
             : $this->database->getPackageStatistics();
 
+        // Per kind within each pack, under every current filter but the pack
+        // one, so a mixed pack can show both counts.
+        $kindCounts = $this->packageKindCounts($scoped ? $this->filteredIds(array_diff_key($filters, ['packages' => true])) : null);
+        $zero = array_fill_keys(array_column(IconKind::cases(), 'value'), 0);
+
         $transformedPackages = collect($packages)->map(fn (array $pkg, string $key): array => [
             'name'        => $key,
             'label'       => $pkg['name'] ?? $key,
@@ -590,6 +611,7 @@ final class IconBrowserService
             'description' => $pkg['description'] ?? '',
             'vendor'      => $pkg['vendor'] ?? '',
             'kind'        => $pkg['kind'] ?? IconKind::Icon->value,
+            'by_kind'     => $kindCounts[$key] ?? $zero,
             // The pack the browser opens on: the registry's default set.
             'default' => $key === $default,
         ])->values()->toArray();
@@ -855,6 +877,35 @@ final class IconBrowserService
                 $counts[$row->kind] = is_numeric($row->icon_count) ? (int) $row->icon_count : 0;
             }
         }
+
+        return $counts;
+    }
+
+    /**
+     * Seeded icons per pack and kind, every kind present (zero included).
+     * Packs with no rows are absent.
+     *
+     * @return array<string, array<string, int>>
+     */
+    private function packageKindCounts(?QueryBuilder $ids = null): array
+    {
+        $query = DB::table(Icon::TABLE)->selectRaw('package, kind, COUNT(*) as icon_count')->groupBy('package', 'kind');
+
+        if ($ids !== null) {
+            $query->whereIn(Icon::TABLE . '.id', $ids);
+        }
+
+        $zero = array_fill_keys(array_column(IconKind::cases(), 'value'), 0);
+        $counts = [];
+
+        foreach ($query->get() as $row) {
+            if (is_string($row->package ?? null) && is_string($row->kind ?? null) && array_key_exists($row->kind, $zero)) {
+                $counts[$row->package] ??= $zero;
+                $counts[$row->package][$row->kind] = is_numeric($row->icon_count) ? (int) $row->icon_count : 0;
+            }
+        }
+
+        ksort($counts);
 
         return $counts;
     }
