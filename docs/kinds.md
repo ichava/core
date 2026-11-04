@@ -68,8 +68,8 @@ Rules and host overrides match the whole item path, case-sensitively:
 | Token | Matches |
 |---|---|
 | `*` | zero or more characters, never `/` |
-| `?` | exactly one character, never `/` |
-| `**` | zero or more whole segments; only as a whole segment (`a/**/b`, `**/x`, `a/**`) |
+| `?` | exactly one character (one Unicode code point, not one byte), never `/` |
+| `**` | zero or more whole segments; only as a whole segment (`a/**/b`, `**/x`, `a/**`). Zero means `a/**` also matches `a` itself |
 | anything else | itself |
 
 `[ ] { } \` are reserved. An empty pattern, a leading `/`, a `..` or empty segment, or `**` inside a segment (`a**`) make the pattern invalid: it matches nothing and doctor reports `kind.invalid_glob`. icon-sets-sync implements the same syntax.
@@ -113,7 +113,7 @@ $icon->kindSource();                                    // KindSource::Rule
 | Signal | Fires when |
 |---|---|
 | `aspect` | viewBox width / height is outside [0.8, 1.25] |
-| `palette` | 4 or more distinct literal paint colours |
+| `palette` | 4 or more distinct literal paint colours. Hex (`#rgb`, `#rrggbb`) and `rgb()` count as lowercase `#rrggbb`; a named colour counts as its lowercase name and is not resolved to hex, so `red` and `#ff0000` are two |
 | `bytes` | more than 20,000 bytes |
 | `elements` | more than 150 elements |
 | `canvas` | the larger viewBox side is more than 256 |
