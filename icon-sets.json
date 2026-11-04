@@ -15,7 +15,7 @@
                 "outline",
                 "filled"
             ],
-            "latest_version": "0.1.1",
+            "latest_version": "0.1.0",
             "icon_counts": {
                 "icon": 6238,
                 "illustration": 0
@@ -33,7 +33,7 @@
                 "4x3",
                 "1x1"
             ],
-            "latest_version": "0.1.1",
+            "latest_version": "0.1.0",
             "icon_counts": {
                 "icon": 542,
                 "illustration": 0
@@ -50,12 +50,12 @@
             "variants": [
                 "default"
             ],
-            "latest_version": "0.1.1",
+            "latest_version": "0.1.0",
             "icon_counts": {
                 "icon": 10567,
                 "illustration": 0
             }
         }
     ],
-    "synced_at": "2026-10-30T20:21:40Z"
+    "synced_at": "2026-11-03T10:18:20Z"
 }
