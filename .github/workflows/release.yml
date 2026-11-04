@@ -30,14 +30,19 @@ concurrency:
   # queued one.
   cancel-in-progress: false
 
+# Least privilege: read by default, and the write is granted to the one job that
+# publishes. softprops/action-gh-release creates the release and uploads the SBOMs
+# with GITHUB_TOKEN, so that job needs `contents: write` and nothing else does.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
     name: Publish release
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
 
     steps:
       - name: Refuse a ref that is not a release tag
