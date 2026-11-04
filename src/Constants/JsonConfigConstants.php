@@ -8,6 +8,7 @@ use UnexpectedValueException;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Data\VariantData;
+use Simtabi\Laranail\Ichava\Support\KindResolver;
 use Simtabi\Laranail\Ichava\Support\PackConfigData;
 use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 
@@ -233,23 +234,28 @@ abstract class JsonConfigConstants
 
     /**
      * The pack-wide kind from `package.kind`, else {@see IconKind::Icon}.
+     *
+     * Answered by {@see KindResolver::declaredResolution()}, the resolver's
+     * own pack and default rows.
      */
     public static function getPackageKind(): IconKind
     {
-        return PackConfigData::packageKind(self::stringKeyed(static::config())) ?? IconKind::Icon;
+        return KindResolver::declaredResolution(self::declaredKinds(), null)->kind;
     }
 
     /**
-     * The kind of one category: its own `kind`, else the pack's.
+     * The kind of one category: its own `kind`, else the pack's, else `icon`.
      *
-     * Parsed by PackConfigData, the same reader the registry uses at
-     * registration, so a pack's constants class and the seeder cannot
-     * disagree about what a category holds.
+     * Answered by {@see KindResolver::declaredResolution()}, the same rows the
+     * resolver applies to every item filed under the category, from the same
+     * PackConfigData reading the registry stores at registration. An item can
+     * still be given another kind by a row above the category (a host
+     * override, an `items` entry or a `kinds.rules[]` glob); ask
+     * {@see KindResolver::resolve()} for one item.
      */
     public static function getCategoryKind(string $category): IconKind
     {
-        return PackConfigData::categoryKinds(self::stringKeyed(static::config()))[$category]
-            ?? static::getPackageKind();
+        return KindResolver::declaredResolution(self::declaredKinds(), $category)->kind;
     }
 
     /**
@@ -563,6 +569,25 @@ abstract class JsonConfigConstants
      * @return string Absolute path to directory containing config.json
      */
     abstract protected static function getConfigPath(): string;
+
+    /**
+     * The category and pack kinds this pack's config.json declares, in the
+     * shape the registry records them for {@see KindResolver}.
+     *
+     * @return array{declared_kind: string|null, category_kinds: array<string, string>}
+     */
+    private static function declaredKinds(): array
+    {
+        $config = self::stringKeyed(static::config());
+
+        return [
+            'declared_kind'  => PackConfigData::packageKind($config)?->value,
+            'category_kinds' => array_map(
+                static fn (IconKind $kind): string => $kind->value,
+                PackConfigData::categoryKinds($config),
+            ),
+        ];
+    }
 
     /**
      * Walk a key path through the config, answering null for a missing or

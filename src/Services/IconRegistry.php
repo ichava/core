@@ -660,6 +660,43 @@ final class IconRegistry
     }
 
     /**
+     * The renderable id of an icon's theme twin, or null when it has none.
+     *
+     * The twin is the file the icon's category declares for that theme in
+     * `theme_variants` (`scenes/park` with `{"dark": "-dark"}` is
+     * `scenes/park-dark`), and only when both files are registered: a
+     * suffixed file with no light sibling is an item of its own, not a twin.
+     * Never throws: a path that does not parse has no twin.
+     */
+    public function themeTwin(string $name, string $theme = 'dark'): ?string
+    {
+        $name = $this->canonicalId($name);
+
+        try {
+            $iconPath = $this->pathResolver->parseIconPath($name);
+        } catch (Throwable) {
+            return null;
+        }
+
+        $setName = $iconPath->set ?? $this->defaultSet;
+
+        if ($setName === null) {
+            return null;
+        }
+
+        $itemPath = $iconPath->fullPath ?? $iconPath->name;
+        $suffix = $this->themeVariantsFor($setName, KindResolver::categoryOf($itemPath))[$theme] ?? null;
+
+        if ($suffix === null || str_ends_with($itemPath, $suffix)) {
+            return null;
+        }
+
+        $twin = $setName . '::' . $itemPath . $suffix;
+
+        return $this->has($name) && $this->has($twin) ? $twin : null;
+    }
+
+    /**
      * Get all registered packages
      *
      * @return array<string, array<string, mixed>>
@@ -823,9 +860,13 @@ final class IconRegistry
      *
      * Unused since render() and kindOf() resolve through KindResolver, which
      * applies every row rather than the category and pack alone. Kept, not
-     * removed: removal is a separate, per-item owner decision.
+     * removed: removal is a separate, per-item owner decision (2026-11-04:
+     * "don't remove"). Checked again for the dark-twin lookup in themeTwin(),
+     * the one new caller that reads a first folder: it needs the slugged
+     * category theme_variants are keyed by, which KindResolver::categoryOf()
+     * gives and this does not, so wiring it there would be a bug.
      *
-     * @phpstan-ignore method.unused
+     * @phpstan-ignore method.unused (kept by owner decision; no caller needs an unslugged first folder)
      */
     private static function topFolder(string $relativePath): ?string
     {

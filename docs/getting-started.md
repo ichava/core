@@ -19,6 +19,9 @@ The base component is generic: it works with any installed pack, and the pack is
 
 ```blade
 {{-- Generic Blade component, works with any installed pack --}}
+<x-ichava-core::icon name="ichava/icon-sets-tabler::outline/home" class="w-6 h-6" />
+
+{{-- The same component under the ecosystem prefix --}}
 <x-ichava::icon name="ichava/icon-sets-tabler::outline/home" class="w-6 h-6" />
 ```
 

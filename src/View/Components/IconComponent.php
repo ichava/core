@@ -11,6 +11,7 @@ use Illuminate\Contracts\Support\Htmlable;
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Traits\HasIconSizing;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\SecurityNonce;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
@@ -89,9 +90,15 @@ class IconComponent extends Component
      * @param string|null $role ARIA role attribute (default: 'img'; use 'presentation' for decorative icons).
      * @param string|null $fallback Fallback icon path rendered if the primary icon fails.
      *                              Falls back further to config('ichava.ichava-core.fallback_icon') if this is also absent.
-     * @param string|null $dark Reserved for dark-mode variant support (not yet implemented).
+     * @param string|null $dark Icon path of a dark-mode twin. Both icons render, and the dark one shows
+     *                          when the page is dark (`theme_variants.dark_mode`: the
+     *                          `prefers-color-scheme` media query, or a `.dark` ancestor). Null renders
+     *                          the light icon alone, unless `theme_variants.auto_dark` is on and the
+     *                          pack declares a `dark` twin for it.
      * @param IconRegistry|null $iconRegistry Injected by Laravel's service container.
      * @param SvgProcessingService|null $svgProcessor Injected by Laravel's service container.
+     * @param SecurityNonce|null $securityNonce Injected by Laravel's service container; its CSP nonce
+     *                                          goes on the `<style>` a dark twin needs.
      */
     public function __construct(
         public string $name,
@@ -109,6 +116,7 @@ class IconComponent extends Component
         public ?string $dark = null,
         private readonly ?IconRegistry $iconRegistry = null,
         private readonly ?SvgProcessingService $svgProcessor = null,
+        private readonly ?SecurityNonce $securityNonce = null,
     ) {}
 
     /**
@@ -199,7 +207,7 @@ class IconComponent extends Component
 
         // Render, fall back to $fallback icon on exception, otherwise re-throw
         try {
-            return $this->iconRegistry->render($iconPath, null, null, $attributes);
+            $light = $this->iconRegistry->render($iconPath, null, null, $attributes);
         } catch (Throwable $e) {
             $fallback = $this->fallback ?? Coerce::stringOrNull(config('ichava.ichava-core.fallback_icon'));
 
@@ -209,6 +217,41 @@ class IconComponent extends Component
 
             throw $e;
         }
+
+        return $this->withDarkTwin($light, $iconPath, $attributes);
+    }
+
+    /**
+     * The light icon, or the light and dark twins together when there is a
+     * dark one to show.
+     *
+     * The dark twin is `$dark` when given, else (with
+     * `theme_variants.auto_dark` on) the twin the pack's category declares.
+     * With neither, or when the dark icon does not render, the light SVG is
+     * returned unchanged, byte for byte.
+     *
+     * @param array<string, mixed> $attributes
+     */
+    protected function withDarkTwin(string $light, string $iconPath, array $attributes): string
+    {
+        $darkPath = $this->dark ?? (config('ichava.ichava-core.theme_variants.auto_dark') === true
+            ? $this->iconRegistry?->themeTwin($iconPath, 'dark')
+            : null);
+
+        if ($darkPath === null || $darkPath === '' || $this->iconRegistry === null) {
+            return $light;
+        }
+
+        try {
+            $dark = $this->iconRegistry->render($darkPath, null, null, self::withThemeClass($attributes, 'ichava-theme-dark'));
+        } catch (Throwable) {
+            return $light;
+        }
+
+        $light = $this->iconRegistry->render($iconPath, null, null, self::withThemeClass($attributes, 'ichava-theme-light'));
+        $nonce = $this->securityNonce?->attribute() ?? '';
+
+        return '<span class="ichava-themed"><style' . $nonce . '>' . self::themeCss() . '</style>' . $light . $dark . '</span>';
     }
 
     /**
@@ -371,5 +414,33 @@ class IconComponent extends Component
         }
 
         return $attrs;
+    }
+
+    /**
+     * @param array<string, mixed> $attributes
+     *
+     * @return array<string, mixed>
+     */
+    private static function withThemeClass(array $attributes, string $class): array
+    {
+        $attributes['class'] = trim(Coerce::string($attributes['class'] ?? '') . ' ' . $class);
+
+        return $attributes;
+    }
+
+    /**
+     * The rules that show one twin at a time: by the `prefers-color-scheme`
+     * media query (`media`, the default) or by a `.dark` ancestor (`class`).
+     */
+    private static function themeCss(): string
+    {
+        $hideDark = '.ichava-themed>.ichava-theme-dark{display:none}';
+        $swap = '.ichava-themed>.ichava-theme-light{display:none}.ichava-themed>.ichava-theme-dark{display:revert}';
+
+        if (config('ichava.ichava-core.theme_variants.dark_mode') === 'class') {
+            return $hideDark . str_replace('.ichava-themed>', '.dark .ichava-themed>', $swap);
+        }
+
+        return $hideDark . '@media (prefers-color-scheme:dark){' . $swap . '}';
     }
 }

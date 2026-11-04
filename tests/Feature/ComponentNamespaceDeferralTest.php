@@ -35,3 +35,49 @@ it('still registers the deferred bare alias for the headline component', functio
     // than as a decision being taken here.
     expect(Blade::getClassComponentAliases())->toHaveKey('ichava::icon');
 });
+
+/*
+ * The vendor-scoped prefix, `ichava-core`, sits beside the bare one (V-B11).
+ *
+ * Additive only: both prefixes resolve the same classes, and nothing about the
+ * bare prefix changes. Read from Blade's live maps, then proven by rendering
+ * the same icon through both tags.
+ */
+it('registers the vendor-scoped component namespace over the same classes', function (): void {
+    $namespaces = Blade::getClassComponentNamespaces();
+
+    expect($namespaces)->toHaveKey('ichava-core')
+        ->and($namespaces['ichava-core'])->toBe($namespaces['ichava']);
+});
+
+it('registers the vendor-scoped alias for the headline component', function (): void {
+    $aliases = Blade::getClassComponentAliases();
+
+    expect($aliases)->toHaveKey('ichava-core::icon')
+        ->and($aliases['ichava-core::icon'])->toBe($aliases['ichava::icon']);
+});
+
+it('adds no bare alias beyond the deferred one', function (): void {
+    // The scoped prefix must not bring a new generic key with it: every alias
+    // core registers is either the deferred `ichava::icon` or vendor-scoped.
+    $core = array_filter(
+        Blade::getClassComponentAliases(),
+        static fn (string $class): bool => str_starts_with($class, 'Simtabi\\Laranail\\Ichava\\View\\Components\\'),
+    );
+
+    expect(array_keys($core))->not->toBeEmpty();
+
+    foreach (array_keys($core) as $alias) {
+        expect($alias === 'ichava::icon' || str_starts_with($alias, 'ichava-core::'))->toBeTrue("unscoped alias {$alias}");
+    }
+});
+
+it('renders the same bytes through the bare and the scoped tag', function (): void {
+    app(Simtabi\Laranail\Ichava\Services\IconRegistry::class)->fromDirectory(dirname(__DIR__) . '/fixtures/KindPack');
+
+    $bare = Blade::render('<x-ichava::icon name="ichava-fixtures/kind-pack::glyphs/star" class="w-4" />');
+    $scoped = Blade::render('<x-ichava-core::icon name="ichava-fixtures/kind-pack::glyphs/star" class="w-4" />');
+
+    expect($bare)->toContain('<svg')
+        ->and($scoped)->toBe($bare);
+});

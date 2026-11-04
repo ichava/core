@@ -39,7 +39,6 @@ final class IconRenderer implements Htmlable
 
     private ?string $ariaLabel = null;
 
-    // @phpstan-ignore property.unusedType (nullable on purpose: role(null) is a planned way to drop the attribute)
     private ?string $role = 'img';
 
     private ?string $size = null;
@@ -211,11 +210,12 @@ final class IconRenderer implements Htmlable
     /**
      * Set ARIA role attribute
      *
-     * Default is 'img'. Common values: 'img', 'presentation', 'none'
+     * Default is 'img'. Common values: 'img', 'presentation', 'none'.
+     * Pass null to render no `role` attribute at all.
      *
-     * @param string $role ARIA role value
+     * @param string|null $role ARIA role value, or null to omit the attribute
      */
-    public function role(string $role): static
+    public function role(?string $role): static
     {
         $this->role = $role;
 

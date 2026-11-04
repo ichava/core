@@ -134,6 +134,10 @@ $icon->hasTheme('dark');         // true
 $icon->themeSvgContent('dark');  // sanitised exactly as svg_content is
 ```
 
+The icon component renders a twin with its `dark` attribute, or on its own with `theme_variants.auto_dark` on; see [Dark variants](tools/blade-components.md#dark-variants-dark).
+
+A pack's constants class answers `getCategoryKind($category)` and `getPackageKind()` through `KindResolver::declaredResolution()`, the resolver's own category, pack and default rows, so it cannot disagree with what the seeder stores for an item that no override, item key or rule decides.
+
 ## What the seeder and the watcher write
 
 `SeedIconsJob` and the file watcher both classify through `Support\IconClassifier`, which resolves through `Support\KindResolver`, so they cannot disagree about a file. Kind, provenance and twins are part of change detection: a pack that starts declaring a category as illustrations, or a host override added for an item, re-files unchanged files on the next seed, without `--force`.

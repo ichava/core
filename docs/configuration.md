@@ -30,6 +30,13 @@ return [
         ],
     ],
 
+    // Dark twins in the icon component: how dark is read ('media' | 'class'),
+    // and whether a pack's declared twin renders without a `dark` attribute
+    'theme_variants' => [
+        'auto_dark' => (bool) env('ICHAVA_AUTO_DARK', false),
+        'dark_mode' => env('ICHAVA_DARK_MODE', 'media'),
+    ],
+
     // The host's user: which guard, what the browser sees, which Gates
     'auth' => [
         'guard'            => env('ICHAVA_AUTH_GUARD'),
@@ -190,6 +197,7 @@ Every key below is read where it claims to act, so a published (and `config:cach
 | Read users from another guard | `auth.guard='admin'`; see [Host user](host-user.md) |
 | Allow larger illustrations | `kinds.max_file_size.illustration` (bytes); see [Icons and illustrations](kinds.md) |
 | Decide an item's kind from the app | `kinds.overrides` (`'acme/scenes::spot/**' => 'illustration'`), then re-seed; see [Host overrides](kinds.md#host-overrides) |
+| Show dark twins on a `.dark` page, not by media query | `theme_variants.dark_mode='class'`; see [Dark variants](tools/blade-components.md#dark-variants-dark) |
 | Override the icon storage path | use `ICHAVA_LOG_PATH` for logs; icon paths come from each pack's `setPathFrom` |
 
 ## See also

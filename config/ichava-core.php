@@ -64,6 +64,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Theme twins: dark variants in the icon component
+    |--------------------------------------------------------------------------
+    | `<x-ichava-core::icon name="…" dark="…">` renders both icons and shows
+    | the dark one when the page is dark. `dark_mode` says how dark is read:
+    | `media` (the `prefers-color-scheme` media query) or `class` (a `.dark`
+    | ancestor, as Tailwind's class strategy sets). `auto_dark` also renders
+    | the `dark` twin a pack's category declares in `theme_variants` when no
+    | `dark` is passed; it is off by default so existing output is unchanged.
+    */
+    'theme_variants' => [
+        'auto_dark' => (bool) env('ICHAVA_AUTO_DARK', false),
+        'dark_mode' => env('ICHAVA_DARK_MODE', 'media'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Registry
     |--------------------------------------------------------------------------
     | `strict_conflicts`: throw when two packs claim the same set name,
