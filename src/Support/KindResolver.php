@@ -62,6 +62,38 @@ final readonly class KindResolver
         return str_contains($itemPath, '/') ? Str::slug(Str::before($itemPath, '/')) : null;
     }
 
+    /**
+     * Rows 4 to 6 alone: the category's kind, else the pack's, else `icon`.
+     *
+     * The one implementation of those rows. {@see self::resolve()} ends here,
+     * and a pack's constants class answers `getCategoryKind()` and
+     * `getPackageKind()` from it, so neither can disagree with the other.
+     *
+     * `$metadata` holds `category_kinds` (slug => kind) and `declared_kind`,
+     * as the registry records them at registration; a pack registered by hand
+     * with only an effective `kind` is read from that instead.
+     *
+     * @param array<array-key, mixed> $metadata
+     */
+    public static function declaredResolution(array $metadata, ?string $category): KindResolution
+    {
+        $categories = is_array($metadata['category_kinds'] ?? null) ? $metadata['category_kinds'] : [];
+        $kind = $category === null ? null : IconKind::fromConfig($categories[$category] ?? null);
+
+        if ($kind !== null) {
+            return new KindResolution($kind, KindSource::Category, $category);
+        }
+
+        // A pack registered from its config.json records what it declared; one
+        // registered by hand only has the effective `kind`.
+        $declared = array_key_exists('declared_kind', $metadata) ? $metadata['declared_kind'] : ($metadata['kind'] ?? null);
+        $kind = IconKind::fromConfig($declared);
+
+        return $kind !== null
+            ? new KindResolution($kind, KindSource::Pack)
+            : new KindResolution(IconKind::Icon, KindSource::Default);
+    }
+
     public function resolve(string $package, string $itemPath): KindResolution
     {
         foreach ($this->overrides() as $override) {
@@ -90,22 +122,7 @@ final readonly class KindResolver
             }
         }
 
-        $category = self::categoryOf($itemPath);
-        $categories = is_array($metadata['category_kinds'] ?? null) ? $metadata['category_kinds'] : [];
-        $kind = $category === null ? null : IconKind::fromConfig($categories[$category] ?? null);
-
-        if ($kind !== null) {
-            return new KindResolution($kind, KindSource::Category, $category);
-        }
-
-        // A pack registered from its config.json records what it declared; one
-        // registered by hand only has the effective `kind`.
-        $declared = array_key_exists('declared_kind', $metadata) ? $metadata['declared_kind'] : ($metadata['kind'] ?? null);
-        $kind = IconKind::fromConfig($declared);
-
-        return $kind !== null
-            ? new KindResolution($kind, KindSource::Pack)
-            : new KindResolution(IconKind::Icon, KindSource::Default);
+        return self::declaredResolution($metadata, self::categoryOf($itemPath));
     }
 
     /**
