@@ -22,6 +22,8 @@ Applied at provider registration so heavy operations (seeding 100k+ icons, batch
 | `ICHAVA_MAX_EXECUTION_TIME` | `0` (unlimited) | `max_execution_time` for bulk seeding | `ichava.ichava-core.runtime.max_execution_time` |
 | `ICHAVA_DISABLE_TELESCOPE_QUEUE` | `true` | Skip Telescope during queue jobs to avoid memory leaks | `ichava.ichava-core.runtime.disable_telescope_in_queue` |
 | `ICHAVA_MAX_FILE_SIZE` | `2_097_152` | Top-level guard read by `SvgDriver` before loading from disk (bytes) | `ichava.ichava-core.max_file_size` |
+| `ICHAVA_SVG_MAX_BYTES` | `4500000` | Largest SVG the sanitiser parses (bytes); checked before parsing | `ichava.ichava-core.svg.max_bytes` |
+| `ICHAVA_SVG_MAX_ELEMENTS` | `30000` | Most elements the sanitiser walks before refusing the file | `ichava.ichava-core.svg.max_elements` |
 
 ## Route prefix (shared)
 

@@ -10,7 +10,7 @@ Relocated from the README, which is now a slim pointer.
 
 | Concern | What core ships |
 |---|---|
-| Security | DOM-based SVG sanitiser with a strict allow-list. XXE-safe (`LIBXML_NONET`, `resolveExternals=false`). Blocks `javascript:`, `vbscript:`, `file:` and every `on*` handler. |
+| Security | DOM-based SVG sanitiser with a strict allow-list. XXE-safe (`LIBXML_NONET`, `resolveExternals=false`). Blocks `javascript:`, `vbscript:`, `file:` and every `on*` handler. CSS values are tokenised before they are checked, and `url()` is held to same-document fragments. Byte and element caps bound the cost of one file; see [SVG sanitiser policy](configuration.md#svg-sanitiser-policy). |
 | Performance | Icon-level cache, SVG optimisation, indexed database lookup, and a pre-built manifest for production. |
 | Blade | The base `<x-ichava::icon>` component every icon pack extends. |
 | Fluent API | `ichava('vendor/pkg::category/name')->color('...')->class('...')`. |
