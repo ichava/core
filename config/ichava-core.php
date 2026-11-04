@@ -451,6 +451,22 @@ return [
         'forbidden_tags' => SvgPolicy::forbiddenTags(),
 
         /*
+        | Sanitiser ceilings (S2). `max_bytes` is checked before an SVG is
+        | parsed and `max_nodes` while it is walked; either refuses the file
+        | with an IchavaException and logs `svg.limit_exceeded`. A refused file
+        | is served as an empty string, never raw.
+        |
+        | Both defaults are at least 4x the largest measured across all 135,112
+        | SVGs in the icon-sets-* packs on 2026-11-04 (1,053,328 bytes; 13,485
+        | nodes). The per-kind serving budget (`max_file_size` and
+        | `kinds.max_file_size`) is the tighter limit on the serve path; this
+        | is the ceiling for every caller.
+        */
+        'max_bytes' => (int) env('ICHAVA_SVG_MAX_BYTES', IchavaConstants::SVG_SANITIZER_MAX_BYTES),
+
+        'max_nodes' => (int) env('ICHAVA_SVG_MAX_NODES', IchavaConstants::SVG_SANITIZER_MAX_NODES),
+
+        /*
         | Rewrite pure-black paint (#000, #000000, black, rgb(0,0,0)) to
         | currentColor, so a monochrome icon follows the text colour and stays
         | visible in dark mode. Applied only to an icon whose every paint is
