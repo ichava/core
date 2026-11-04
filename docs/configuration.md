@@ -108,8 +108,56 @@ return [
         'allowed_attributes' => [...],
         'forbidden_tags'     => [...],
     ],
+
+    // SVG sanitiser ceilings
+    'svg' => [
+        'max_bytes'    => env('ICHAVA_SVG_MAX_BYTES', 4_500_000),
+        'max_elements' => env('ICHAVA_SVG_MAX_ELEMENTS', 30_000),
+    ],
 ];
 ```
+
+## SVG sanitiser policy
+
+The sanitiser is an allow-list, read from `resources/security/svg-policy.json`. The rules for CSS
+values are these:
+
+- **What is checked.** The same check runs on the `style` attribute, on the text of a `<style>`
+  element (the shipped policy forbids that element, but a host can allow it), and on every
+  presentation attribute whose value is CSS: `fill`, `stroke`, `filter`, `clip-path`, `mask`,
+  `marker`, `marker-start`, `marker-mid`, `marker-end`, `cursor`, `color`, `stop-color`,
+  `flood-color`, `lighting-color`, `transform`, `gradientTransform`, `patternTransform`, `font`
+  and `font-family`.
+- **Normalised before it is judged.** Each value is tokenised the way a browser reads it, per CSS
+  Syntax Level 3 §4.3. Comments are removed, escapes are decoded (including the one optional
+  whitespace after a hex escape) and names are lowercased. So `\75rl(`, `u\rl(` and `u/**/rl(` are
+  all read as `url(`.
+- **`url()` only for a fragment.** `url()` survives only when its argument, quoted or not, is a
+  same-document fragment such as `url(#gradient)` or `url('#gradient')`.
+- **A short list of other functions.** These are allowed: the colour functions (`rgb`, `rgba`,
+  `hsl`, `hsla`, `hwb`, `lab`, `lch`, `oklab`, `oklch`, `color`, `color-mix`), `var`, `calc`,
+  `min`, `max`, `clamp`, the transform functions, and `cubic-bezier` and `steps`. Any other
+  function is refused, which covers `image-set()`, `-webkit-image-set()`, `image()`, `src()`,
+  `cross-fade()`, `element()` and `expression()`.
+- **No at-rules or legacy script sinks.** Any at-rule (`@import` included) is refused, as are
+  `behavior` and `-moz-binding`. A value the tokeniser cannot read cleanly is refused too: a broken
+  string, a broken `url(`, or a stray backslash.
+- **What happens to a refused value.** A refused attribute is removed whole. A `<style>` element
+  whose text fails is removed whole.
+
+Two ceilings bound the cost of one file. A file that exceeds either is refused with an
+`IchavaException` and logged as `svg.limit_exceeded`. A refused icon is served as an empty
+string, never raw.
+
+| Key | Default | Checked |
+|---|---|---|
+| `svg.max_bytes` (`ICHAVA_SVG_MAX_BYTES`) | 4,500,000 | before the SVG is parsed |
+| `svg.max_elements` (`ICHAVA_SVG_MAX_ELEMENTS`) | 30,000 | while the tree is walked; counts elements only, since `max_bytes` bounds text and whitespace |
+
+Both values match `react-icon-browser` and `icon-sets-sync`, so all three runtimes refuse the same
+files. On 2026-11-04, across all 135,112 SVGs in the `icon-sets-*` packs, the largest file was
+1,053,328 bytes and the most elements in one file was 6,741, so both caps are at least 4x the
+largest real file. The serve path also checks the kind's `max_file_size` before it reads the file.
 
 ## Keys that take effect at runtime
 
@@ -127,6 +175,7 @@ Every key below is read where it claims to act, so a published (and `config:cach
 | `separators.category` | the separator between category and icon; must differ from `separators.path` |
 | `registry.strict_conflicts` | throw on a set-name, prefix or Blade-component clash instead of warning (default off) |
 | `validation.icon_path_pattern`, `icon_name_pattern` | extra patterns that can only narrow the built-in path checks; null to rely on the built-ins |
+| `svg.max_bytes`, `svg.max_elements` | the sanitiser's ceilings, read on every call; see [SVG sanitiser policy](#svg-sanitiser-policy) |
 
 ## Common changes
 

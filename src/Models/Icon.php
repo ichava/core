@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
 /**
@@ -1153,6 +1154,26 @@ final class Icon extends Model
         $content = app(IconCacheService::class)->remember(
             $cacheKey,
             function () use ($path, $storedPath): string {
+                /*
+                 * The kind's byte budget is enforced at seed time, but the
+                 * file is read again here, on every cache miss -- and it may
+                 * have been replaced or grown since. Check it before reading,
+                 * so an oversized file costs a stat rather than a parse (S2).
+                 */
+                $kind = $this->kind instanceof IconKind ? $this->kind : IconKind::Icon;
+                $limit = $kind->maxFileSize();
+                $size = @filesize($path);
+
+                if ($size !== false && $size > $limit) {
+                    app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
+                        'path'    => $storedPath,
+                        'package' => $this->package,
+                        'reason'  => IchavaException::svgTooLarge($size, $limit)->getMessage(),
+                    ]);
+
+                    return '';
+                }
+
                 $raw = File::get($path);
 
                 try {

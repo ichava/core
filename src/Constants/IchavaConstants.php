@@ -90,6 +90,40 @@ final class IchavaConstants
     public const MAX_SVG_FILE_SIZE = 1048576;
 
     /**
+     * Largest input, in bytes, the SVG sanitiser will parse at all.
+     *
+     * A ceiling for every caller, checked before the document is parsed. It is
+     * not the per-kind serving budget (`max_file_size`, `kinds.max_file_size`),
+     * which stays the tighter limit on the serve path. Measured 2026-11-04 over
+     * all 135,112 SVGs under the icon-sets-* packs: the largest is 1,053,328
+     * bytes (a parked metronic brand logo), so 4,500,000 is at least 4x that.
+     * The value matches react-icon-browser and icon-sets-sync, so the three
+     * runtimes refuse the same files.
+     *
+     * Because it bounds the whole input, it also bounds the text and
+     * whitespace nodes the element cap below does not count.
+     *
+     * @var int 4500000 bytes
+     */
+    public const SVG_SANITIZER_MAX_BYTES = 4500000;
+
+    /**
+     * Most ELEMENTS the SVG sanitiser will walk before refusing the document.
+     *
+     * Elements, not nodes: the same count react-icon-browser and icon-sets-sync
+     * use, and the same value, so the three runtimes agree. Text and whitespace
+     * nodes are bounded by the byte cap above instead. Measured 2026-11-04 over
+     * the same 135,112 SVGs: the most elements in one file is 6,741 (bundled
+     * country-flags `4x3-do.svg`), so 30,000 is at least 4x that. Counting
+     * every node, whitespace text included, gives 13,485 for `1x1-do.svg`; do
+     * not size this cap against that figure. A 5 MB file of about 374k trivial
+     * nodes took 9.5 s to sanitise before this cap existed (S2).
+     *
+     * @var int
+     */
+    public const SVG_SANITIZER_MAX_ELEMENTS = 30000;
+
+    /**
      * Minimum SVG file size in bytes
      *
      * Files smaller than this are considered invalid/corrupt.

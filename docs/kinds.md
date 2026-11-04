@@ -73,7 +73,7 @@ Every kind is listed even at zero. Whether to show an empty kind is the client's
 ## Rendering illustrations
 
 - **Aspect.** `<x-ichava::icon size="lg">` squares an icon, which is drawn on a square grid. An illustration keeps its viewBox aspect: the preset sets the width and the height follows. An explicit `lock-aspect-ratio` attribute still wins either way.
-- **File size.** `kinds.max_file_size.<kind>` sets the ceiling per kind (illustrations default to 5 MB); a kind with no entry uses `max_file_size`.
+- **File size.** `kinds.max_file_size.<kind>` sets the ceiling per kind (illustrations default to 5 MB); a kind with no entry uses `max_file_size`. It is checked when an icon is seeded and again before it is served. The sanitiser applies its own ceiling to every kind, `svg.max_bytes` (4,500,000 bytes) and `svg.max_elements` (30,000), so in practice an illustration is limited to 4,500,000 bytes. See [SVG sanitiser policy](configuration.md#svg-sanitiser-policy).
 - **Colour.** The sanitiser keeps every fill, stop and gradient of a multicolour illustration, and the opt-in monochrome conversion leaves multicolour SVGs alone.
 
 ## Configuration
