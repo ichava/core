@@ -89,8 +89,11 @@ class SeedIconsJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(IchavaLogger $logger, RuntimeLimits $limits): void
+    public function handle(IchavaLogger $logger, ?RuntimeLimits $limits = null): void
     {
+        // The queue injects $limits; a caller handling the job directly need not.
+        $limits ??= app(RuntimeLimits::class);
+
         // Check if batch was cancelled
         if ($this->batch()?->cancelled()) {
             $logger->info('🛑 Seeding cancelled, skipping', [

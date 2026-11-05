@@ -97,6 +97,6 @@ describe('Seeder taxonomy extraction', function () {
     it('writes term attachments with the registered morph alias', function () {
         // SeedIconsJob::insertTermables() stores (new Icon)->getMorphClass();
         // every reader (relations, getMorphClass joins) queries the same value.
-        expect((new Icon)->getMorphClass())->toBe('icon');
+        expect((new Icon)->getMorphClass())->toBe('ichava-icon');
     });
 });
