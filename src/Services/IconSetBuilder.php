@@ -36,10 +36,6 @@ final class IconSetBuilder implements IconSetInterface
 
     private IconSetConfig $config;
 
-    /** @var array<array-key, IconData> */
-    // @phpstan-ignore property.onlyWritten (written and never read since before 2026-11-05; listed for an owner decision, not removed)
-    private array $discoveredIcons = [];
-
     // From IconSetBuilder (fluent configuration)
     private string $name;
 
@@ -62,18 +58,14 @@ final class IconSetBuilder implements IconSetInterface
 
     private ?string $fallback = null;
 
-    // @phpstan-ignore property.onlyWritten (written and never read since before 2026-11-05; listed for an owner decision, not removed)
-    private bool $enableCache = false;
+    /** Whether lookups are cached; cache(false) rediscovers on every call. */
+    private bool $enableCache = true;
 
     /** @var IconSetInterface[] Merged icon sets */
     private array $mergedSets = [];
 
     /** @var bool Whether this is a merged set */
     private bool $isMerged = false;
-
-    /** @var bool Whether the parent has been initialized */
-    // @phpstan-ignore property.onlyWritten (written and never read since before 2026-11-05; listed for an owner decision, not removed)
-    private bool $initialized = false;
 
     /**
      * Create new icon set
@@ -323,7 +315,8 @@ final class IconSetBuilder implements IconSetInterface
     }
 
     /**
-     * Enable/disable caching
+     * Enable/disable caching of icon lookups (on by default). Off, get()
+     * and all() read the directory on every call.
      *
      * @param bool $enabled Cache enabled
      *
@@ -403,6 +396,10 @@ final class IconSetBuilder implements IconSetInterface
             return null;
         }
 
+        if (! $this->enableCache) {
+            return $this->discoverIcon($name, $variant, $category);
+        }
+
         $cacheKey = $this->getCacheKey($name, $variant, $category);
 
         $cached = $this->cache->remember($cacheKey, function () use ($name, $variant, $category) {
@@ -447,6 +444,10 @@ final class IconSetBuilder implements IconSetInterface
             }
 
             return $allIcons;
+        }
+
+        if (! $this->enableCache) {
+            return $this->discoverAllIcons($variant, $category);
         }
 
         $cacheKey = $this->getAllCacheKey($variant, $category);

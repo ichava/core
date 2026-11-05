@@ -215,7 +215,7 @@ it('implements IchavaPackageInterface on the pack base provider, through the reg
         ->and($provider->getPackageMetadata()['kind'])->toBe('icon');
 });
 
-it('implements IconDriverInterface over a directory', function (): void {
+it('lists, checks and renders a directory through the bound driver', function (): void {
     $driver = app(DirectoryIconDriver::class)->setIconPath(fixturePack('KindPack/files'));
 
     expect($driver->all())->toContain('glyphs/star', 'scenes/park')

@@ -13,6 +13,7 @@ use Simtabi\Laranail\Ichava\Traits\ContainsFilePaths;
 use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Contracts\IconDriverInterface;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
 /**
@@ -37,7 +38,7 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * @see IconCacheService
  * @see IchavaConstants
  */
-final class SvgDriver
+final class SvgDriver implements IconDriverInterface
 {
     use ContainsFilePaths;
 

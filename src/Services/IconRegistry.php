@@ -28,6 +28,7 @@ use Simtabi\Laranail\Ichava\Support\Pack\PackBuilder;
 use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
+use Simtabi\Laranail\Ichava\Contracts\IconDriverInterface;
 
 /**
  * IconRegistry - Icon Package Registration & Management
@@ -110,7 +111,7 @@ final class IconRegistry
 
     public function __construct(
         private Application $app,
-        private SvgDriver $driver,
+        private IconDriverInterface $driver,
         private IchavaLogger $logger,
         private PathResolver $pathResolver,
         private IconAliasMap $aliases,
@@ -921,7 +922,7 @@ final class IconRegistry
     /**
      * Direct access to the SvgDriver instance (load, process, render SVG files).
      */
-    public function driver(): SvgDriver
+    public function driver(): IconDriverInterface
     {
         return $this->driver;
     }

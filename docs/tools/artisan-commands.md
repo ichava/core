@@ -57,6 +57,10 @@ php artisan ichava::ichava-core.watch --package=vendor/pack   # Rescan one pack 
 php artisan ichava::ichava-core.watch --refresh               # Record every pack's fingerprint after the scan
 ```
 
+### The pack catalogue, `icon-sets.json`
+
+`ichava::ichava-core.install` offers the packs listed in `icon-sets.json` at the root of core, and makes no network call. `bin/sync-icon-sets.php` refreshes it daily (`.github/workflows/sync-icon-sets.yml`). Each entry pins `key`, `package` and `repository`; the script syncs `title`, `description`, `license`, `icon_count`, `icon_counts` (per kind), `variants` and `latest_version` from the pack's `config.json` at its latest tag, and `visibility`, the repository's GitHub visibility (`public` or `private`), from the repos API. A response that does not state the visibility keeps the recorded value. A consumer that needs to know which packs are public reads `visibility` here rather than probing GitHub.
+
 ### Scaffolding a new pack moved out of core
 
 `ichava::ichava-core.make:icon-package` was removed in core `0.3.0`. It lives in

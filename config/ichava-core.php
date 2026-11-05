@@ -299,6 +299,8 @@ return [
         // beside the canonical `<x-ichava-icon-sets-tabler::icon>`.
         'short_prefix' => env('ICHAVA_COMPONENT_SHORT_PREFIX', 'ichava'),
 
+        // The bundled <x-ichava::ichava-test-icons> component, registered by
+        // ichava/icon-browser when this is on (ComponentPrefixes::testIconsEnabled()).
         'test_icons' => env('ICHAVA_TEST_COMPONENT_ENABLED', env('APP_ENV') === 'local'),
     ],
 

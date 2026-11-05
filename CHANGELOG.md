@@ -47,6 +47,11 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Changed
 
+- **`icon-sets.json` records each pack's `visibility`** (`public` or `private`), synced by `bin/sync-icon-sets.php` from the repos API and kept when a response does not state it (F-02). Documented under *The pack catalogue* in `docs/tools/artisan-commands.md`. `tests/Unit/SyncIconSetsVisibilityTest.php`.
+- **The generic Blade snippet uses a prefix this host registers**: the short one while `components.short_prefix` names one, `ichava-core` when it is off (`ComponentPrefixes::snippetPrefix()`).
+- **`IconDriverInterface` states `SvgDriver`'s real API** (`render(IconData …)`, `load(string $path …)`), `SvgDriver` implements it, the provider binds it, and `IconRegistry`, `IconSvgReader` and `DirectoryIconDriver` depend on it (C-17). The interface's old directory methods (`all`, `has`, `setConfig`, `getConfig`, `setIconPath`, `getIconPath`) are gone from it; `DirectoryIconDriver` keeps them as its own API. `IconRegistry::driver()` returns the interface. `tests/Feature/IconDriverContractTest.php`.
+- **`IconSetBuilder::cache(false)` turns the lookup cache off.** It set a flag nothing read. Caching stays on by default. `tests/Unit/IconSetBuilderCacheTest.php`.
+- **`components.test_icons` has a reader**: `ComponentPrefixes::testIconsEnabled()`, false whenever `components.enabled` is. `tests/Feature/TestIconsComponentKeyTest.php`.
 - **A pack's `config.defaults` applies wherever the pack renders** (P-06). The registry applies `config.defaults.class`, `.attributes`, `.stroke_width` (as `stroke-width`) and `.fallback` to the set it builds, so `<x-ichava::icon>`, the pack's own tag and `IconRegistry::render()` draw the same attributes. Before, a pack's defaults lived in its `IconComponent` subclass and reached its own tag only. `tests/Feature/PackConfigDefaultsTest.php`.
 - **The pack base providers live in `Providers\`** (C-07): `Support\IconPackServiceProvider` is `Providers\IconPackServiceProvider`, and `Support\ServiceProvider` is `Providers\PackServiceProvider`. No alias is left at the old names; a pack changes one `use` line. `tests/Unit/ProvidersNamespaceTest.php`.
 - **`custom-icons.sets` keys take effect** (C-09): `enabled`, `prefix`, `default_class`, `default_attributes`, `fallback`, `variants`, `default_variant`, `supports_categories`, `blade_namespace`, `blade_component`, plus `package` for a directory without a `config.json` and `bulk`/`only` for several sets. Before, only `path` was read. `tests/Feature/CustomIconSetsTest.php`.
@@ -70,6 +75,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Removed
 
+- **`IchavaServiceProvider::isIchavaQueueCommand()`**, unused since C-01 moved the runtime limits into `RuntimeLimits`. **`IconSetBuilder::$discoveredIcons` and `$initialized`**, which nothing wrote or read.
 - **Forward-only renames, with no alias left behind** (owner, 2026-11-05): `Support\IconPackServiceProvider` and `Support\ServiceProvider` (now `Providers\IconPackServiceProvider`, `Providers\PackServiceProvider`), `Actions\CountSvgFiles` (now `Support\SvgFileCounter`), `ClearDiscoveryCaches::generation()` (now `DiscoveryCacheGeneration::current()`), and `__invoke()` on four actions (now `handle()`). Every caller in the estate moves in the same sweep; each is recorded in the deprecations audit.
 - **The bare `icon` morph alias** (now `ichava-icon`; the migration moves stored rows).
 The estate is forward-only (owner, 2026-11-05: "never support legacy only forward"). Nothing has been released, so these compatibility paths go rather than stay beside their replacements.

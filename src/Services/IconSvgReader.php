@@ -10,6 +10,7 @@ use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Simtabi\Laranail\Ichava\Support\AuditLogger;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Contracts\IconDriverInterface;
 
 /**
  * Reads one SVG file of an icon and returns its served form: read safely,
@@ -24,7 +25,7 @@ final readonly class IconSvgReader
 {
     public function __construct(
         private IconCacheService $cache,
-        private SvgDriver $driver,
+        private IconDriverInterface $driver,
         private SvgProcessingService $processor,
         private AuditLogger $audit,
     ) {}
