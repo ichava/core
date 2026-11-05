@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Filesystem\Filesystem;
-use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
+use Simtabi\Laranail\Ichava\Support\SvgFileCounter;
 use Simtabi\Laranail\Ichava\Actions\BuildIconUsageSyntax;
 use Simtabi\Laranail\Ichava\Actions\DiscoverInstalledPackages;
 
@@ -129,7 +129,7 @@ it('counts svg files at any depth', function () {
     touch($dir . '/nested/deeper/c.svg');
     touch($dir . '/nested/not-an-icon.txt');
 
-    expect((new CountSvgFiles(new Filesystem))->recursively($dir))->toBe(3);
+    expect((new SvgFileCounter(new Filesystem))->recursively($dir))->toBe(3);
 
     (new Filesystem)->deleteDirectory($dir);
 });
@@ -139,22 +139,22 @@ it('counts only the top level when asked directly, and caps it', function () {
     touch($dir . '/a.svg');
     touch($dir . '/nested/b.svg');   // deeper: must not be counted
 
-    $counter = new CountSvgFiles(new Filesystem);
+    $counter = new SvgFileCounter(new Filesystem);
 
     expect($counter->directly($dir))->toBe(1);
 
-    for ($i = 0; $i < CountSvgFiles::SHALLOW_CAP + 10; $i++) {
+    for ($i = 0; $i < SvgFileCounter::SHALLOW_CAP + 10; $i++) {
         touch($dir . "/icon-{$i}.svg");
     }
 
     // A pack with 121,314 icons must not be fully walked to render one row.
-    expect($counter->directly($dir))->toBe(CountSvgFiles::SHALLOW_CAP);
+    expect($counter->directly($dir))->toBe(SvgFileCounter::SHALLOW_CAP);
 
     (new Filesystem)->deleteDirectory($dir);
 });
 
 it('answers zero for a path that is not a directory', function () {
-    $counter = new CountSvgFiles(new Filesystem);
+    $counter = new SvgFileCounter(new Filesystem);
 
     expect($counter->recursively('/no/such/path'))->toBe(0)
         ->and($counter->directly('/no/such/path'))->toBe(0);
@@ -170,7 +170,7 @@ it('answers zero rather than propagating when a directory cannot be read', funct
     chmod($dir . '/nested', 0000);
 
     try {
-        expect((new CountSvgFiles(new Filesystem))->recursively($dir))->toBe(0);
+        expect((new SvgFileCounter(new Filesystem))->recursively($dir))->toBe(0);
     } finally {
         chmod($dir . '/nested', 0755);
         (new Filesystem)->deleteDirectory($dir);

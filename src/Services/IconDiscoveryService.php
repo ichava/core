@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Simtabi\Laranail\Ichava\Models\Icon;
-use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
+use Simtabi\Laranail\Ichava\Support\SvgFileCounter;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Actions\BuildIconUsageSyntax;
 use Simtabi\Laranail\Ichava\Actions\ClearDiscoveryCaches;
@@ -50,7 +50,7 @@ class IconDiscoveryService
         protected IconRegistry $registry,
         protected IconCacheService $cache,
         protected DiscoverInstalledPackages $discoverInstalled,
-        protected CountSvgFiles $svgCounter,
+        protected SvgFileCounter $svgCounter,
         protected BuildIconUsageSyntax $buildUsageSyntax,
         protected SearchIconsInDatabase $searchDatabase,
         protected ClearDiscoveryCaches $clearCaches,

@@ -23,7 +23,7 @@ use Simtabi\Laranail\Ichava\Data\KindResolution;
 use Simtabi\Laranail\Ichava\Support\IconAliasMap;
 use Simtabi\Laranail\Ichava\Support\KindResolver;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
-use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
+use Simtabi\Laranail\Ichava\Support\SvgFileCounter;
 use Simtabi\Laranail\Ichava\Support\IchavaRegistrar;
 use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -910,9 +910,9 @@ final class IconRegistry
     public function countIconsInDirectory(string $path): int
     {
         // One counter for the whole package. This method used to carry its own
-        // copy, catching Exception where CountSvgFiles learned to catch
+        // copy, catching Exception where SvgFileCounter learned to catch
         // Throwable -- so the failure that action was fixed for still escaped here.
-        return app(CountSvgFiles::class)->recursively($path);
+        return app(SvgFileCounter::class)->recursively($path);
     }
 
     /**
