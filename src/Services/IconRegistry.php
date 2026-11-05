@@ -10,6 +10,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Data\IconData;
+use Simtabi\Laranail\Ichava\Data\PackDefinition;
+use Simtabi\Laranail\Ichava\Support\Pack\PackBuilder;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Enums\KindSource;
@@ -20,7 +22,6 @@ use Simtabi\Laranail\Ichava\Support\IconAliasMap;
 use Simtabi\Laranail\Ichava\Support\KindResolver;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
 use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
-use Simtabi\Laranail\Ichava\Support\PackConfigData;
 use Simtabi\Laranail\Ichava\Support\IchavaRegistrar;
 use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -82,6 +83,13 @@ final class IconRegistry
      * Default icon set name
      */
     private ?string $defaultSet = null;
+
+    /**
+     * The definition each set was registered from.
+     *
+     * @var array<string, PackDefinition>
+     */
+    private array $definitions = [];
 
     /**
      * Pending registrations (lazy loading)
@@ -150,10 +158,10 @@ final class IconRegistry
     /**
      * Auto-register an icon set from a directory that contains a config.json file.
      *
-     * Reads `{$path}/config.json` to extract the package name, title, prefix,
-     * variants, categories, and metadata. Counts SVG files in `{$path}/files/`
-     * to populate the icon total. Immediately registers the set and returns a
-     * RegistrationConfig for optional further chaining.
+     * Reads `{$path}/config.json` and counts the SVGs under `{$path}/files/`.
+     * The same path as register(PackBuilder::fromDirectory($path)->build()),
+     * which is what this does; the returned RegistrationConfig is already
+     * registered, and chaining on it changes nothing.
      *
      * @param string $path Absolute path to the icon set directory (must contain config.json)
      * @param string|null $providerClass The service provider that registered this set (for attribution)
@@ -162,85 +170,80 @@ final class IconRegistry
      */
     public function fromDirectory(string $path, ?string $providerClass = null): RegistrationConfig
     {
-        // Load config.json using helper method (no ConfigurationService dependency!)
-        $configData = $this->loadPackageConfig($path);
-        $packageName = $this->requiredConfigString($configData, 'package', 'name', $path);
-        $iconPrefix = $this->requiredConfigString($configData, 'config', 'icon_prefix', $path);
+        $definition = PackBuilder::fromDirectory($path)
+            ->when($providerClass !== null, fn (PackBuilder $pack) => $pack->providedBy((string) $providerClass))
+            ->build();
 
-        // Create icon set
-        $iconSet = IconSetBuilder::make($packageName)
-            ->setBasePath($path . '/files')
-            ->prefix($iconPrefix);
+        $this->register($definition);
 
-        // Add variants if present
-        if ($this->hasVariants($configData)) {
-            $variants = array_map(strval(...), array_keys($this->getVariants($configData)));
-            if (! empty($variants)) {
-                $iconSet->withVariants($variants);
+        return (new RegistrationConfig($definition->name, $this))->markRegistered();
+    }
+
+    /**
+     * Register one icon set. Every way into the registry -- fromDirectory(),
+     * package(), the bulk registrar and `custom-icons` -- ends here, so a set
+     * carries the same metadata whichever door it came through.
+     *
+     * @param IconSetInterface|null $set a prebuilt set; null builds one from the definition
+     */
+    public function register(PackDefinition $definition, ?IconSetInterface $set = null): void
+    {
+        if ($set === null) {
+            $set = IconSetBuilder::make($definition->name)
+                ->setBasePath($definition->filesPath)
+                ->prefix($definition->prefix);
+
+            $variants = $definition->variantNames();
+
+            if ($variants !== []) {
+                $set->withVariants($variants);
+            }
+
+            if ($definition->hasCategories) {
+                $set->withCategories(true);
             }
         }
 
-        // Add categories if present
-        if ($this->hasCategories($configData)) {
-            $iconSet->withCategories(true);
+        $noted = $definition->providerClass === null ? null : ($this->bladeComponents[$definition->providerClass] ?? null);
+
+        $this->registerIconSet(
+            $definition->name,
+            $set,
+            $definition->toMetadata($this->countIconsInDirectory($definition->filesPath), $noted),
+        );
+
+        $this->definitions[$definition->name] ??= $definition;
+
+        $this->loadAliasFile($definition->name, $definition->basePath);
+
+        if ($definition->aliases !== []) {
+            $this->aliases->register($definition->name, $definition->aliases);
+        }
+    }
+
+    /**
+     * The definition a set was registered from, or null when it was registered
+     * through registerIconSet() with prebuilt metadata.
+     */
+    public function definition(string $packageName): ?PackDefinition
+    {
+        return $this->definitions[$packageName] ?? null;
+    }
+
+    /**
+     * The definition registered from the set directory $basePath, or null.
+     */
+    public function definitionAt(string $basePath): ?PackDefinition
+    {
+        $basePath = rtrim($basePath, '/\\');
+
+        foreach ($this->definitions as $definition) {
+            if (rtrim($definition->basePath, '/\\') === $basePath) {
+                return $definition;
+            }
         }
 
-        // Count icons
-        $totalIcons = $this->countIconsInDirectory($path . '/files');
-
-        // Build metadata
-        $metadata = [
-            'package_name'    => $packageName,
-            'name'            => $this->configValue($configData, 'package', 'title'),
-            'description'     => $this->configValue($configData, 'package', 'description') ?? '',
-            'vendor'          => $this->getVendor($configData),
-            'version'         => $this->configValue($configData, 'package', 'version'),
-            'license'         => $this->configValue($configData, 'package', 'license') ?? 'Unknown',
-            'homepage'        => $this->configValue($configData, 'metadata', 'homepage'),
-            'repository'      => $this->configValue($configData, 'metadata', 'repository'),
-            'keywords'        => $this->configValue($configData, 'package', 'keywords') ?? [],
-            'total'           => $totalIcons,
-            'base_path'       => $path,
-            'icon_set_name'   => $packageName,
-            'provider_class'  => $providerClass,
-            'blade_component' => $providerClass === null ? null : ($this->bladeComponents[$providerClass] ?? null),
-            'prefix'          => $iconPrefix,
-            // What the pack's SVGs are. Read here, from the one config.json
-            // read registration already makes, so the seeder and the browser
-            // never need a second reader of the same file.
-            'kind' => (PackConfigData::packageKind($configData) ?? IconKind::Icon)->value,
-            // `kind` above is the pack's effective kind, `icon` when it names
-            // none. KindResolver needs to tell "declared icon" (row 5) from
-            // "declared nothing" (row 6), so the declaration is kept too.
-            'declared_kind'  => PackConfigData::packageKind($configData)?->value,
-            'category_kinds' => array_map(
-                static fn (IconKind $kind): string => $kind->value,
-                PackConfigData::categoryKinds($configData),
-            ),
-            // The rest of the kind resolution order (D6 rows 2 and 3), plus
-            // what doctor reports about the kind keys, so KindResolver and
-            // doctor never re-read config.json either.
-            'item_kinds' => array_map(
-                static fn (IconKind $kind): string => $kind->value,
-                PackConfigData::items($configData),
-            ),
-            'kind_rules' => array_map(
-                static fn (array $rule): array => ['match' => $rule['match'], 'kind' => $rule['kind']->value],
-                PackConfigData::kindRules($configData),
-            ),
-            'kind_issues'    => PackConfigData::kindIssues($configData),
-            'theme_variants' => PackConfigData::themeVariants($configData),
-            // The variant blocks as declared (name, description, attributes,
-            // preview icon, colour scheme, order), for VariantData.
-            'variant_metadata' => array_filter(PackConfigData::variants($configData), is_array(...)),
-        ];
-
-        // Register immediately
-        $registration = $this->registerIconSet($packageName, $iconSet, $metadata);
-
-        $this->loadAliasFile($packageName, $path);
-
-        return $registration;
+        return null;
     }
 
     /**
@@ -686,6 +689,7 @@ final class IconRegistry
         unset(
             $this->packages[$packageName],
             $this->sets[$iconSetName],
+            $this->definitions[$packageName],
             $this->pending[$packageName],
             $this->pending[$iconSetName],
         );
@@ -1146,108 +1150,6 @@ final class IconRegistry
     private function strictConflicts(): bool
     {
         return (bool) config('ichava.ichava-core.registry.strict_conflicts', false);
-    }
-
-    /**
-     * Read and parse the config.json file from an icon set directory.
-     *
-     * Delegates to Helpers::loadConfigJson(). Throws if the file is missing
-     * or cannot be parsed as valid JSON.
-     *
-     * @param string $directoryPath Absolute path to the icon set directory
-     *
-     * @return array<string, mixed> Parsed config data
-     *
-     * @throws IchavaException via Helpers::loadConfigJson() on missing/invalid config
-     */
-    private function loadPackageConfig(string $directoryPath): array
-    {
-        return Helpers::loadConfigJson($directoryPath);
-    }
-
-    /**
-     * Whether the parsed config.json declares any icon variants.
-     *
-     * Reads `metadata.data.variants` first, then the top-level `variants` key.
-     *
-     * @param array<string, mixed> $config Parsed config.json data
-     */
-    private function hasVariants(array $config): bool
-    {
-        return PackConfigData::variants($config) !== [];
-    }
-
-    /**
-     * Extract the variants map from parsed config.json data.
-     *
-     * @param array<string, mixed> $config Parsed config.json data
-     *
-     * @return array<int|string, mixed> Variants keyed by variant name
-     */
-    private function getVariants(array $config): array
-    {
-        return PackConfigData::variants($config);
-    }
-
-    /**
-     * Whether the parsed config.json declares any icon categories.
-     *
-     * Reads `metadata.data.categories` first, then the top-level `categories` key.
-     *
-     * @param array<string, mixed> $config Parsed config.json data
-     */
-    private function hasCategories(array $config): bool
-    {
-        return PackConfigData::categories($config) !== [];
-    }
-
-    /**
-     * Extract the vendor name from the package name in config.json.
-     *
-     * Delegates to Helpers::getVendorFromPackage() which splits on `/`.
-     *
-     * @param array<string, mixed> $config Parsed config.json data
-     *
-     * @return string Vendor name (e.g. 'ichava' from 'ichava/icon-sets-tabler')
-     */
-    private function getVendor(array $config): string
-    {
-        $packageName = $this->configValue($config, 'package', 'name');
-
-        return Helpers::getVendorFromPackage(is_string($packageName) ? $packageName : '');
-    }
-
-    /**
-     * One key of one section of a parsed config.json, or null when either is absent.
-     *
-     * @param array<string, mixed> $config Parsed config.json data
-     */
-    private function configValue(array $config, string $section, string $key): mixed
-    {
-        $values = $config[$section] ?? null;
-
-        return is_array($values) ? ($values[$key] ?? null) : null;
-    }
-
-    /**
-     * A config.json value registration cannot proceed without.
-     *
-     * @param array<string, mixed> $config Parsed config.json data
-     *
-     * @throws IchavaException when the value is absent or not a string
-     */
-    private function requiredConfigString(array $config, string $section, string $key, string $directoryPath): string
-    {
-        $value = $this->configValue($config, $section, $key);
-
-        if (! is_string($value)) {
-            throw IchavaException::invalidConfig(
-                "config.json must declare {$section}.{$key} as a string",
-                Str::finish($directoryPath, '/') . 'config.json',
-            );
-        }
-
-        return $value;
     }
 
     /**
