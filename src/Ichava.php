@@ -371,18 +371,6 @@ final class Ichava
     }
 
     /**
-     * The id an icon lives under now: an id whose set moved to another
-     * installed pack is rewritten to that pack, and any other id is returned
-     * as given.
-     *
-     * @param string $id Icon id, e.g. `ichava/icon-sets-emoji::openmoji-color/1f600`
-     */
-    public function canonicalId(string $id): string
-    {
-        return $this->registry->canonicalId($id);
-    }
-
-    /**
      * Direct access to the SvgDriver (load and render raw SVG files).
      */
     public function driver(): mixed

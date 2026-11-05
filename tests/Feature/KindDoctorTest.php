@@ -58,7 +58,7 @@ it('reports every check with the same shape under --format=json', function (): v
             ->and($check['status'])->toBeIn(['ok', 'warn', 'fail']);
     }
 
-    foreach (['kind.invalid_value', 'kind.invalid_glob', 'kind.override_invalid', 'kind.rule_unused', 'kind.item_missing', 'kind.drift', 'kind.non_default', 'alias.deprecated_ids', 'alias.replacement_missing'] as $id) {
+    foreach (['kind.invalid_value', 'kind.invalid_glob', 'kind.override_invalid', 'kind.rule_unused', 'kind.item_missing', 'kind.drift', 'kind.non_default'] as $id) {
         expect(doctorCheck($report, $id)['status'])->toBe('ok', $id);
     }
 

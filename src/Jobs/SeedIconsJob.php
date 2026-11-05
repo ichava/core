@@ -22,7 +22,6 @@ use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Enums\KindSource;
 use Simtabi\Laranail\DbTools\Query\ChunkedWriter;
-use Simtabi\Laranail\Ichava\Support\KindResolver;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\IconClassifier;
@@ -192,17 +191,6 @@ class SeedIconsJob implements ShouldQueue
             $relativePath = $this->extractRelativePath($absolutePath, $basePath);
 
             if ($classifier->twinOf($this->packageName, $basePath, $relativePath) !== null) {
-                $twinPaths[] = $relativePath;
-                $stats['skipped']++;
-
-                continue;
-            }
-
-            // A set another installed pack has taken over (D9) is served from
-            // that pack. Seeding it here as well would count every icon twice,
-            // so it is left out, and any row from before the move goes the way
-            // a twin's does.
-            if ($registry->isReplaced($this->packageName, KindResolver::itemPath($relativePath))) {
                 $twinPaths[] = $relativePath;
                 $stats['skipped']++;
 

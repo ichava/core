@@ -16,7 +16,6 @@ use Simtabi\Laranail\Ichava\Enums\KindSource;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Illuminate\Contracts\Foundation\Application;
 use Simtabi\Laranail\Ichava\Data\KindResolution;
-use Simtabi\Laranail\Ichava\Support\PackAliases;
 use Simtabi\Laranail\Ichava\Support\IconAliasMap;
 use Simtabi\Laranail\Ichava\Support\KindResolver;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
@@ -95,19 +94,6 @@ final class IconRegistry
      * Bootstrap state
      */
     private bool $bootstrapped = false;
-
-    /**
-     * Sets other packs took over (D9), rebuilt when a pack registers or
-     * unregisters.
-     */
-    private ?PackAliases $packAliases = null;
-
-    /**
-     * Old ids already reported as rewritten in this process.
-     *
-     * @var array<string, true>
-     */
-    private array $loggedAliases = [];
 
     public function __construct(
         private Application $app,
@@ -242,10 +228,8 @@ final class IconRegistry
                 static fn (array $rule): array => ['match' => $rule['match'], 'kind' => $rule['kind']->value],
                 PackConfigData::kindRules($configData),
             ),
-            'kind_issues'           => PackConfigData::kindIssues($configData),
-            'replaces'              => PackConfigData::replaces($configData),
-            'deprecated_categories' => PackConfigData::deprecatedCategories($configData),
-            'theme_variants'        => PackConfigData::themeVariants($configData),
+            'kind_issues'    => PackConfigData::kindIssues($configData),
+            'theme_variants' => PackConfigData::themeVariants($configData),
             // The variant blocks as declared (name, description, attributes,
             // preview icon, colour scheme, order), for VariantData.
             'variant_metadata' => array_filter(PackConfigData::variants($configData), is_array(...)),
@@ -343,7 +327,6 @@ final class IconRegistry
         $this->sets[$name] = $set;
 
         // Store metadata
-        $this->packAliases = null;
         $this->packages[$name] = array_merge([
             'registered_at' => now()->toIso8601String(),
             'package_name'  => $name,
@@ -433,8 +416,6 @@ final class IconRegistry
      */
     public function has(string $name, ?string $variant = null, ?string $category = null): bool
     {
-        $name = $this->canonicalId($name);
-
         try {
             $iconPath = $this->pathResolver->parseIconPath($name);
             $setName = $iconPath->set ?? $this->defaultSet;
@@ -481,7 +462,6 @@ final class IconRegistry
         ?string $category = null,
         array $attributes = [],
     ): string {
-        $name = $this->canonicalId($name);
         $iconPath = $this->pathResolver->parseIconPath($name);
         $setName = $iconPath->set ?? $this->defaultSet;
 
@@ -563,13 +543,11 @@ final class IconRegistry
     /**
      * The kind of the icon a renderable path names, and which row decided it.
      *
-     * An aliased id (D9) is resolved in the pack it moved to. A path that does
-     * not parse, or names no set, resolves from the default row.
+     * A path that does not parse, or names no set, resolves from the default
+     * row.
      */
     public function kindResolution(string $name): KindResolution
     {
-        $name = $this->canonicalId($name);
-
         try {
             $iconPath = $this->pathResolver->parseIconPath($name);
         } catch (Throwable) {
@@ -583,50 +561,6 @@ final class IconRegistry
         }
 
         return $this->kindResolver()->resolve($setName, $iconPath->fullPath ?? $iconPath->name);
-    }
-
-    /**
-     * The id an icon now lives under: an old id whose set moved to another
-     * installed pack (D9) is rewritten to that pack, and every other id is
-     * returned unchanged.
-     *
-     * Each rewritten id is logged once per process, as a deprecation, to the
-     * `ichava` channel.
-     */
-    public function canonicalId(string $name): string
-    {
-        $rewritten = $this->packAliases()->rewrite($name);
-
-        if ($rewritten === null) {
-            return $name;
-        }
-
-        if (! isset($this->loggedAliases[$name])) {
-            $this->loggedAliases[$name] = true;
-            $this->logger->deprecation("Icon id {$name} is deprecated; it now resolves to {$rewritten}", [
-                'id'          => $name,
-                'replacement' => $rewritten,
-            ]);
-        }
-
-        return $rewritten;
-    }
-
-    /**
-     * Whether an old pack's item has moved to an installed replacement, so
-     * the seeder and the watcher leave it out rather than duplicate it.
-     */
-    public function isReplaced(string $packageName, string $itemPath): bool
-    {
-        return $this->packAliases()->replacementFor($packageName, $itemPath) !== null;
-    }
-
-    /**
-     * Every set another installed pack has taken over.
-     */
-    public function packAliases(): PackAliases
-    {
-        return $this->packAliases ??= PackAliases::fromPackages($this->packages);
     }
 
     /**
@@ -670,8 +604,6 @@ final class IconRegistry
      */
     public function themeTwin(string $name, string $theme = 'dark'): ?string
     {
-        $name = $this->canonicalId($name);
-
         try {
             $iconPath = $this->pathResolver->parseIconPath($name);
         } catch (Throwable) {
@@ -750,8 +682,6 @@ final class IconRegistry
         if (! is_string($iconSetName)) {
             $iconSetName = $packageName;
         }
-
-        $this->packAliases = null;
 
         unset(
             $this->packages[$packageName],

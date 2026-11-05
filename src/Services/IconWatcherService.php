@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Enums\KindSource;
-use Simtabi\Laranail\Ichava\Support\KindResolver;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
 use Simtabi\Laranail\Ichava\Support\IconClassifier;
 use Simtabi\Laranail\Ichava\Traits\ContainsFilePaths;
@@ -611,12 +610,6 @@ class IconWatcherService
                 // A declared theme twin is a variant of its light file, not a
                 // row of its own -- the same rule the seeder applies.
                 if ($this->classifier()->twinOf($package, $basePath, $iconData['path']) !== null) {
-                    continue;
-                }
-
-                // A set another installed pack took over (D9) is that pack's
-                // row, not this one's -- the same rule the seeder applies.
-                if ($this->registry->isReplaced($package, KindResolver::itemPath($iconData['path']))) {
                     continue;
                 }
 

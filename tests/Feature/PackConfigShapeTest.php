@@ -88,3 +88,13 @@ it('renders icons named 0 and 00', function (string $path, string $marker): void
     'segments 0 and 00' => ['ichava-fixtures/nested-shape::0/00/0', '<ellipse'],
     'dot form with 0'   => ['ichava-fixtures/nested-shape::glyphs.round.0', '<ellipse'],
 ]);
+
+it('records no set moves or deprecated categories: the estate is forward-only', function (): void {
+    $metadata = $this->registry->get('ichava-fixtures/nested-shape');
+
+    expect($metadata)->toHaveKey('kind_rules')
+        ->and($metadata)->not->toHaveKey('replaces')
+        ->and($metadata)->not->toHaveKey('deprecated_categories')
+        ->and(class_exists('Simtabi\Laranail\Ichava\Support\PackAliases'))->toBeFalse()
+        ->and(method_exists($this->registry, 'canonicalId'))->toBeFalse();
+});

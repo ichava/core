@@ -125,23 +125,6 @@ final class IchavaLogger
     }
 
     /**
-     * Log a use of something deprecated, such as an icon id whose set moved
-     * to another pack. Prepends [DEPRECATED] so the entries can be grepped
-     * out of the main ichava channel.
-     *
-     * @param string $message What was used and what replaces it
-     * @param array<string, mixed> $context Additional structured context
-     */
-    public function deprecation(string $message, array $context = []): void
-    {
-        if (! $this->enabled) {
-            return;
-        }
-
-        Log::channel($this->channel)->warning("[DEPRECATED] {$message}", $this->enrichContext($context));
-    }
-
-    /**
      * Log a security event with automatic request context enrichment.
      *
      * Prepends [SECURITY] to the message and adds user_id, client IP, and
