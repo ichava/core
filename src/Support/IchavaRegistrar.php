@@ -14,7 +14,7 @@ use Simtabi\Laranail\Ichava\Support\Pack\PackBuilder;
  * Registers several icon sets under one base directory, through
  * {@see IconRegistry::registerMany()} (Proposal 3).
  *
- * The fluent front of `ServiceProvider::registerBulkIconSets()`. Each key of
+ * The fluent front of `PackServiceProvider::registerBulkIconSets()`. Each key of
  * the map given to configure() is a sub-directory of the base path holding a
  * config.json; its value is that set's overrides, in the shape
  * {@see PackBuilder::withOptions()} reads (`['prefix' => 'fa']`). An empty map

@@ -6,7 +6,7 @@ namespace Simtabi\Laranail\Ichava\Tests\Fixtures\ViewfulPack\Providers;
 
 use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
-use Simtabi\Laranail\Ichava\Support\ServiceProvider;
+use Simtabi\Laranail\Ichava\Providers\PackServiceProvider;
 
 /**
  * A pack that ships a real Blade template.
@@ -19,7 +19,7 @@ use Simtabi\Laranail\Ichava\Support\ServiceProvider;
  * Like TranslatedPack it never calls hasViews(), hasConfigFile() or
  * hasTranslations(). That is the mechanism under test.
  */
-class IconsServiceProvider extends ServiceProvider
+class IconsServiceProvider extends PackServiceProvider
 {
     public function configurePackage(Package $package): void
     {

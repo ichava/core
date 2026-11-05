@@ -41,7 +41,6 @@ use Simtabi\Laranail\Ichava\Contracts\ResolvesUser;
 use Simtabi\Laranail\Ichava\Services\IconsManifest;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Simtabi\Laranail\Ichava\Commands\InstallCommand;
-use Simtabi\Laranail\Ichava\Support\ServiceProvider;
 use Simtabi\Laranail\Ichava\Commands\DatabaseCommand;
 use Simtabi\Laranail\Ichava\Support\Auth\IchavaGates;
 use Simtabi\Laranail\Ichava\Commands\JobStatusCommand;
@@ -79,12 +78,12 @@ use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
  *
  * Bootstraps the entire Ichava icon ecosystem for a Laravel application.
  * Auto-discovered via composer.json, no manual registration needed.
- * Child icon packages must extend Support\ServiceProvider, not this class.
+ * Child icon packages extend Providers\IconPackServiceProvider, not this class.
  *
  * Full list of registered services, commands, Blade components, middleware,
  * and log channels: see README.md § Architecture.
  *
- * @see ServiceProvider
+ * @see IconPackServiceProvider
  * @see IchavaFacade
  */
 final class IchavaServiceProvider extends PackageServiceProvider
@@ -107,7 +106,7 @@ final class IchavaServiceProvider extends PackageServiceProvider
             ->hasConfigFile('ichava-core')
             ->hasAboutSection('Ichava', fn (): array => $this->aboutEcosystem())
             // Core extends PackageServiceProvider directly, so it does NOT
-            // inherit the default-on registration Support\ServiceProvider gives
+            // inherit the default-on registration PackServiceProvider gives
             // the packs -- it has to ask. That asymmetry has already cost one
             // defect class here; anything added to the packs' default needs a
             // deliberate counterpart on this line.

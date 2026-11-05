@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Lang;
 |--------------------------------------------------------------------------
 |
 | Core extends PackageServiceProvider directly, so it does NOT inherit the
-| default-on registration that Support\ServiceProvider gives the packs. It has
+| default-on registration that Providers\PackServiceProvider gives the packs. It has
 | to call hasTranslations() itself -- an asymmetry that has already cost one
 | defect class in this ecosystem.
 |

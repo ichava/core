@@ -8,7 +8,7 @@ use Closure;
 use Simtabi\Laranail\Ichava\Data\BulkOptions;
 use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
-use Simtabi\Laranail\Ichava\Support\IconPackServiceProvider;
+use Simtabi\Laranail\Ichava\Providers\IconPackServiceProvider;
 
 /**
  * What a pack registers, beyond its config.json: the advanced half of a pack

@@ -123,9 +123,9 @@ ecosystem and only the namespace varies, so a contributor can `grep "class Icons
 and find every pack. A `<Pack>IconsServiceProvider` name is the thing this convention exists to
 prevent; the same holds for `IconsConstants` and `IconComponent`.
 
-> **Rule for icon packs:** extend `Simtabi\Laranail\Ichava\Support\IconPackServiceProvider` (lives in `ichava/core`) and declare two methods, `constantsClass()` and `componentClass()`. The base names the package from the constants class, sets the path from the provider file, registers `config/{slug}.php` when the pack ships one, registers `<x-{slug}-icon>`, and hands `resources/assets/svg` to the registry. Never extend `IchavaServiceProvider`, `IconBrowserServiceProvider`, or `PackageServiceProvider` directly.
+> **Rule for icon packs:** extend `Simtabi\Laranail\Ichava\Providers\IconPackServiceProvider` (lives in `ichava/core`) and declare two methods, `constantsClass()` and `componentClass()`. The base names the package from the constants class, sets the path from the provider file, registers `config/{slug}.php` when the pack ships one, registers `<x-{slug}-icon>`, and hands `resources/assets/svg` to the registry. Never extend `IchavaServiceProvider`, `IconBrowserServiceProvider`, or `PackageServiceProvider` directly.
 >
-> `Support\ServiceProvider`, which `IconPackServiceProvider` extends, still works for a provider that writes its own `configurePackage(Package $package)`; such a provider imports `laranail/package-tools`' `Package`, which is why no estate pack does any more.
+> `Providers\PackServiceProvider`, which `IconPackServiceProvider` extends, still works for a provider that writes its own `configurePackage(Package $package)`; such a provider imports `laranail/package-tools`' `Package`, which is why no estate pack does any more.
 
 > **Rule for the browser package:** extends `laranail/package-tools`' `PackageServiceProvider` directly. Boots its routes, views, and Vite assets in `bootingPackage()` so core's services are guaranteed to be bound first.
 
@@ -289,7 +289,7 @@ supplied comes from `laranail/console` directly.
 
 What a pack is scaffolded *into* is still core's contract: the class short names
 (`IconsServiceProvider`, `IconsConstants`, `Variant`, `IconComponent`), the
-`Support\IconPackServiceProvider` a pack extends, and the `config.json` shape its constants read. That
+`Providers\IconPackServiceProvider` a pack extends, and the `config.json` shape its constants read. That
 contract is documented here; how a pack gets generated is documented
 [in the scaffolder](https://github.com/ichava/icon-sets-package-scaffolder/blob/main/docs/architecture.md).
 

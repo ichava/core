@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Simtabi\Laranail\Ichava\Support;
+namespace Simtabi\Laranail\Ichava\Providers;
 
 use Illuminate\View\Component;
 use Simtabi\Laranail\Ichava\Support\Pack\PackSpec;
@@ -48,12 +48,12 @@ use Simtabi\Laranail\Package\Tools\Exceptions\InvalidPackage;
  * code, more sets (one, or every config-bearing sub-directory of a path),
  * extra Blade components and a config file under another name.
  *
- * `ServiceProvider`, which this extends, still works for a provider that
+ * `PackServiceProvider`, which this extends, still works for a provider that
  * writes its own `configurePackage()`.
  *
- * @see ServiceProvider
+ * @see PackServiceProvider
  */
-abstract class IconPackServiceProvider extends ServiceProvider
+abstract class IconPackServiceProvider extends PackServiceProvider
 {
     /** What the pack registers, built once in configurePackage(). */
     private ?PackSpec $spec = null;
@@ -64,7 +64,7 @@ abstract class IconPackServiceProvider extends ServiceProvider
      * config file when the pack ships `config/{slug}.php`.
      *
      * The config call is what the packs that ship one already made.
-     * `ServiceProvider::newPackage()` auto-loads `config/*.php` too, and
+     * `PackServiceProvider::newPackage()` auto-loads `config/*.php` too, and
      * package-tools de-duplicates by name, so this is a statement of the file
      * rather than a second merge.
      *

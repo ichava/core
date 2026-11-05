@@ -8,7 +8,7 @@ use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Pack\PackSpec;
 use Simtabi\Laranail\Ichava\Support\Pack\PackBuilder;
 use Simtabi\Laranail\Ichava\View\Components\IconComponent;
-use Simtabi\Laranail\Ichava\Support\IconPackServiceProvider;
+use Simtabi\Laranail\Ichava\Providers\IconPackServiceProvider;
 use Simtabi\Laranail\Ichava\Tests\Support\TestIconsPackComponent;
 use Simtabi\Laranail\Ichava\Tests\Fixtures\SpecPack\Constants\IconsConstants;
 

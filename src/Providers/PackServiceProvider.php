@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Simtabi\Laranail\Ichava\Support;
+namespace Simtabi\Laranail\Ichava\Providers;
 
+use Simtabi\Laranail\Ichava\Support\IchavaRegistrar;
 use Throwable;
 use SplFileInfo;
 use FilesystemIterator;
@@ -15,7 +16,6 @@ use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
-use Simtabi\Laranail\Ichava\Providers\IchavaServiceProvider;
 use Simtabi\Laranail\Ichava\Contracts\IchavaPackageInterface;
 use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
 
@@ -30,7 +30,7 @@ use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
  * @see IchavaServiceProvider
  * @see IconRegistry
  */
-abstract class ServiceProvider extends PackageServiceProvider implements IchavaPackageInterface
+abstract class PackServiceProvider extends PackageServiceProvider implements IchavaPackageInterface
 {
     /**
      * The composer name of the pack this provider registered, e.g.

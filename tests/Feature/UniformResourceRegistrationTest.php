@@ -12,7 +12,7 @@ use Simtabi\Laranail\Ichava\Tests\Fixtures\TranslatedPack\Providers\IconsService
 | One registration mechanism, for every resource type
 |--------------------------------------------------------------------------
 |
-| Support\ServiceProvider hand-rolled the directory check for translations
+| Providers\PackServiceProvider hand-rolled the directory check for translations
 | alone, so views and configs were never covered. package-tools already ships
 | loadAllResources() for exactly this, covering six resource types.
 |
@@ -79,7 +79,7 @@ it('still registers translations, which is what this replaced', function () {
 it('does not double-register a config the pack also declares by hand', function () {
     // The packs still call hasConfigFile() themselves, which auto-discovery now
     // also does. That redundancy is kept deliberately (see the note in
-    // Support\ServiceProvider), and the decision rests entirely on upstream
+    // Providers\PackServiceProvider), and the decision rests entirely on upstream
     // de-duplicating by name. If it ever appends instead, every pack in this
     // family starts merging its config twice -- so the assumption is pinned
     // here rather than trusted.
