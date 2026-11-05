@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-octicons",
+    "title": "Octicons",
+    "description": "GitHub's Primer icon set at two optical sizes, 16px and 24px. The GitHub logos and product marks are excluded: they are trademarks, not part of the MIT grant.",
+    "keywords": [
+      "icons",
+      "svg",
+      "octicons",
+      "primer",
+      "github"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "19.33.0",
+    "type": "multi",
+    "kind": "icon",
+    "license": "MIT"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "GitHub Inc. (Primer)",
+        "email": "",
+        "role": "Creator",
+        "url": "https://primer.style/"
+      }
+    ],
+    "homepage": "https://primer.style/octicons/",
+    "repository": "https://github.com/ichava/icon-sets-octicons",
+    "data": {
+      "variants": {
+        "16px": {
+          "name": "16px",
+          "slug": "16px",
+          "description": "Drawn for a 16 by 16 grid, the size GitHub uses in dense UI",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {
+            "fill": "currentColor"
+          },
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        },
+        "24px": {
+          "name": "24px",
+          "slug": "24px",
+          "description": "Drawn for a 24 by 24 grid, for larger touch targets",
+          "default": false,
+          "icon_suffix": "",
+          "display_order": 2,
+          "attributes": {
+            "fill": "currentColor"
+          },
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        }
+      },
+      "categories": {},
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "octicon",
+    "defaults": {
+      "class": "w-6 h-6",
+      "attributes": {}
+    }
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "@primer/octicons",
+      "source_path": "build/svg",
+      "_why_npm": "Primer publishes the built SVGs to npm on every release; the repository's icons/ needs a build."
+    },
+    "current_version": "19.33.0",
+    "version_check_url": "https://registry.npmjs.org/@primer/octicons/latest",
+    "license": "MIT",
+    "cdn": {
+      "jsdelivr": "https://cdn.jsdelivr.net/npm/@primer/octicons@{version}/build/svg/{name}-{size}.svg",
+      "unpkg": "https://unpkg.com/@primer/octicons@{version}/build/svg/{name}-{size}.svg"
+    },
+    "update_command": {
+      "type": "npm",
+      "package": "@primer/octicons",
+      "source_path": "build/svg",
+      "_note": "Upstream names files <name>-<size>.svg in one flat directory. The pack keeps <size>px/<name>.svg, so a refresh splits by the size suffix, keeps 16 and 24, and drops the names in upstream.excluded. icon-sets-sync has no transform for that split yet; see pack-recipes/icon-sets-octicons.json in the design folder."
+    },
+    "excluded": {
+      "reason": "GitHub logos and product marks are GitHub trademarks; the MIT licence covers the artwork's copyright, not the marks.",
+      "names": [
+        "mark-github",
+        "logo-github",
+        "logo-gist",
+        "lockup-github",
+        "copilot",
+        "copilot-error",
+        "copilot-warning",
+        "dependabot",
+        "hubot"
+      ],
+      "sizes_not_shipped": {
+        "12": 9,
+        "48": 1,
+        "96": 1
+      },
+      "_sizes_note": "Nine 12px glyphs (chevrons, x, alert-fill and similar) and copilot at 48 and 96 exist upstream; only the 16 and 24 grids are shipped, and copilot is excluded as a mark anyway."
+    }
+  },
+  "license": {
+    "spdx": "MIT",
+    "sha256": "da259c8bd0de62713ccdcf88910aebca810644f98c2c912bad814fc79ea778df",
+    "checked_at": "2026-11-04",
+    "file": "resources/assets/svg/licenses/primer-octicons/LICENSE"
+  }
+}

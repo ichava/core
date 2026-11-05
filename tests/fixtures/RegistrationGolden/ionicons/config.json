@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-ionicons",
+    "title": "Ionicons",
+    "description": "Ionic's Ionicons in filled, outline and sharp, with the logo icons under filled.",
+    "keywords": [
+      "icons",
+      "svg",
+      "ionicons",
+      "ionic"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "8.1.0",
+    "type": "multi",
+    "kind": "icon",
+    "license": "MIT"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "Ionic",
+        "role": "Creator -- Ionicons",
+        "url": "https://ionic.io/ionicons"
+      }
+    ],
+    "homepage": "https://ionic.io/ionicons",
+    "repository": "https://github.com/ichava/icon-sets-ionicons",
+    "data": {
+      "variants": {
+        "filled": {
+          "name": "Filled",
+          "slug": "filled",
+          "description": "Solid style, and the 94 logo icons",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        },
+        "outline": {
+          "name": "Outline",
+          "slug": "outline",
+          "description": "Stroked style",
+          "default": false,
+          "icon_suffix": "-outline",
+          "display_order": 2,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "stroke-based"
+        },
+        "sharp": {
+          "name": "Sharp",
+          "slug": "sharp",
+          "description": "Solid style with square corners",
+          "default": false,
+          "icon_suffix": "-sharp",
+          "display_order": 3,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        }
+      },
+      "categories": {},
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "ion"
+  },
+  "license": {
+    "spdx": "MIT",
+    "sha256": "c89dabc60b2e4e1a04b33bd7010b5a56bb4725ffe8c00d793a5ae009fbbfebd8",
+    "checked_at": "2026-11-04",
+    "file": "resources/assets/svg/licenses/ionicons/LICENSE",
+    "source": "https://github.com/ionic-team/ionicons/blob/v8.1.0/LICENSE"
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "ionicons",
+      "_ref": "v8.1.0",
+      "_repository": "https://github.com/ionic-team/ionicons"
+    },
+    "current_version": "8.1.0",
+    "version_check_url": "https://registry.npmjs.org/ionicons/latest",
+    "license": "MIT",
+    "update_command": {
+      "type": "recipe",
+      "recipe": "icon-sets-ionicons",
+      "_note": "icon-sets-sync has no config/icon-sets-ionicons.json yet; the proposed recipe is pack-recipes/icon-sets-ionicons.json in the ichava design folder, and lands with the one icon-sets-sync pull request that adds the v0.1.0 packs. Until then the weekly sync-upstream run has nothing to run."
+    },
+    "_subset": "No subset: the whole `dist/svg` directory. Upstream names carry the style as a suffix (`heart-outline.svg`); the suffix moves into the folder (`outline/heart`). The 94 `logo-*` icons exist in one style only and sit in `filled/`."
+  }
+}

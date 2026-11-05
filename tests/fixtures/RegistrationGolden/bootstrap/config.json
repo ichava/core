@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-bootstrap",
+    "title": "Bootstrap Icons",
+    "description": "2,078 Bootstrap Icons from v1.13.2, 16px, flat; filled forms keep their -fill suffix.",
+    "keywords": [
+      "icons",
+      "svg",
+      "bootstrap",
+      "bootstrap-icons",
+      "laravel",
+      "ichava"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "1.13.2",
+    "type": "single",
+    "kind": "icon",
+    "license": "MIT"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "The Bootstrap Authors",
+        "role": "Creator -- twbs/icons",
+        "url": "https://icons.getbootstrap.com/"
+      }
+    ],
+    "homepage": "https://icons.getbootstrap.com/",
+    "repository": "https://github.com/ichava/icon-sets-bootstrap",
+    "data": {
+      "variants": {},
+      "categories": {},
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "bi"
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "bootstrap-icons",
+      "source_path": "icons"
+    },
+    "current_version": "1.13.2",
+    "version_check_url": "https://registry.npmjs.org/bootstrap-icons/latest",
+    "license": "MIT",
+    "cdn": {
+      "jsdelivr": "https://cdn.jsdelivr.net/npm/bootstrap-icons@{version}/icons/{name}.svg",
+      "unpkg": "https://unpkg.com/bootstrap-icons@{version}/icons/{name}.svg"
+    },
+    "update_command": {
+      "type": "npm",
+      "package": "bootstrap-icons",
+      "source_path": "icons",
+      "_note": "Run through ichava/icon-sets-sync (pack recipe icon-sets-bootstrap)."
+    }
+  },
+  "license": {
+    "spdx": "MIT",
+    "file": "resources/assets/svg/licenses/bootstrap/LICENSE",
+    "upstream_path": "LICENSE",
+    "sha256": "0fb3e11bd57e896c5a512afd64864d28a37de45d19835016c87ca1ad19ead969",
+    "checked_at": "2026-11-04",
+    "checked_version": "1.13.2"
+  }
+}

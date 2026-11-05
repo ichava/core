@@ -1,0 +1,124 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-heroicons",
+    "title": "Heroicons",
+    "description": "1,288 Heroicons from v2.2.0 in four variants: outline and solid (24px), mini (20px) and micro (16px).",
+    "keywords": [
+      "icons",
+      "svg",
+      "heroicons",
+      "tailwind",
+      "outline",
+      "solid",
+      "laravel",
+      "ichava"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "2.2.0",
+    "type": "single",
+    "kind": "icon",
+    "license": "MIT"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "Tailwind Labs, Inc.",
+        "role": "Creator -- tailwindlabs/heroicons",
+        "url": "https://heroicons.com/"
+      }
+    ],
+    "homepage": "https://heroicons.com/",
+    "repository": "https://github.com/ichava/icon-sets-heroicons",
+    "data": {
+      "variants": {
+        "outline": {
+          "name": "Outline",
+          "slug": "outline",
+          "description": "24px, 1.5px stroke",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {
+            "fill": "none",
+            "stroke": "currentColor",
+            "stroke_width": 1.5
+          }
+        },
+        "solid": {
+          "name": "Solid",
+          "slug": "solid",
+          "description": "24px, filled",
+          "default": false,
+          "icon_suffix": "",
+          "display_order": 2,
+          "attributes": {
+            "fill": "currentColor"
+          }
+        },
+        "mini": {
+          "name": "Mini",
+          "slug": "mini",
+          "description": "20px, filled, for smaller UI",
+          "default": false,
+          "icon_suffix": "",
+          "display_order": 3,
+          "attributes": {
+            "fill": "currentColor"
+          }
+        },
+        "micro": {
+          "name": "Micro",
+          "slug": "micro",
+          "description": "16px, filled, for dense UI",
+          "default": false,
+          "icon_suffix": "",
+          "display_order": 4,
+          "attributes": {
+            "fill": "currentColor"
+          }
+        }
+      },
+      "categories": {},
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "heroicon"
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "heroicons"
+    },
+    "current_version": "2.2.0",
+    "version_check_url": "https://registry.npmjs.org/heroicons/latest",
+    "license": "MIT",
+    "variant_paths": {
+      "outline": "24/outline",
+      "solid": "24/solid",
+      "mini": "20/solid",
+      "micro": "16/solid"
+    },
+    "cdn": {
+      "jsdelivr": "https://cdn.jsdelivr.net/npm/heroicons@{version}/{upstream_dir}/{name}.svg",
+      "unpkg": "https://unpkg.com/heroicons@{version}/{upstream_dir}/{name}.svg"
+    },
+    "update_command": {
+      "type": "npm",
+      "package": "heroicons",
+      "_note": "Four upstream directories map to four variant directories (`variant_paths`). Run through ichava/icon-sets-sync (pack recipe icon-sets-heroicons); the sanitiser removes the root `data-slot` attribute."
+    }
+  },
+  "license": {
+    "spdx": "MIT",
+    "file": "resources/assets/svg/licenses/heroicons/LICENSE",
+    "upstream_path": "LICENSE",
+    "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985",
+    "checked_at": "2026-11-04",
+    "checked_version": "2.2.0"
+  }
+}
