@@ -17,7 +17,7 @@ use Simtabi\Laranail\Ichava\Support\KindHeuristic;
 use Simtabi\Laranail\Ichava\Support\IconClassifier;
 
 /**
- * Doctor's kind and alias checks (contract §7).
+ * Doctor's kind checks (contract §7).
  *
  * Each check is `{id, status, count, detail}` with status `ok`, `warn` or
  * `fail`. None of these fails doctor: a kind mistake degrades to the next
@@ -28,14 +28,8 @@ use Simtabi\Laranail\Ichava\Support\IconClassifier;
  */
 final readonly class KindDoctor
 {
-    /** The longest list of locations `alias.deprecated_ids` reports. */
-    public const MAX_LOCATIONS = 50;
-
     /** The longest list of rows `kind.drift` reports per package. */
     private const MAX_DRIFT_SAMPLES = 20;
-
-    /** A scanned file larger than this is skipped, not read. */
-    private const MAX_SCAN_BYTES = 2 * 1024 * 1024;
 
     public function __construct(
         private IconRegistry $registry,
@@ -44,7 +38,7 @@ final readonly class KindDoctor
     ) {}
 
     /**
-     * Every kind and alias check, in report order.
+     * Every kind check, in report order.
      *
      * @param string|null $suggest `default` or `all` to run the heuristic over every SVG; null to skip it
      *
@@ -67,9 +61,6 @@ final readonly class KindDoctor
         if ($suggest !== null) {
             $checks[] = $this->suggestions($suggest === 'all');
         }
-
-        $checks[] = $this->deprecatedIds();
-        $checks[] = $this->replacementMissing();
 
         return $checks;
     }
@@ -291,7 +282,7 @@ final readonly class KindDoctor
                 $relative = 'files/' . str_replace('\\', '/', $file->getRelativePathname());
                 $item = KindResolver::itemPath($relative);
 
-                if ($classifier->twinOf((string) $package, $base, $relative) !== null || $this->registry->isReplaced((string) $package, $item)) {
+                if ($classifier->twinOf((string) $package, $base, $relative) !== null) {
                     continue;
                 }
 
@@ -309,105 +300,5 @@ final readonly class KindDoctor
         }
 
         return self::check('kind.suggestions', count($records), $records, informational: true);
-    }
-
-    /**
-     * A static scan of the host for ids of sets that moved (D9).
-     *
-     * @return array{id: string, status: string, count: int, detail: list<mixed>}
-     */
-    private function deprecatedIds(): array
-    {
-        $needles = $this->deprecatedNeedles();
-        $detail = [];
-        $count = 0;
-
-        if ($needles !== []) {
-            foreach ($this->scanRoots() as $root) {
-                foreach (File::allFiles($root) as $file) {
-                    if ($file->isLink() || $file->getSize() > self::MAX_SCAN_BYTES) {
-                        continue;
-                    }
-
-                    $lines = @file($file->getPathname(), FILE_IGNORE_NEW_LINES);
-
-                    foreach ($lines === false ? [] : $lines as $number => $line) {
-                        foreach ($needles as $needle => $installed) {
-                            if (str_contains($line, $needle)) {
-                                $count++;
-
-                                if (count($detail) < self::MAX_LOCATIONS) {
-                                    $detail[] = [
-                                        'location'              => $file->getPathname() . ':' . ($number + 1),
-                                        'id'                    => $needle,
-                                        'replacement_installed' => $installed,
-                                    ];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return self::check('alias.deprecated_ids', $count, $detail);
-    }
-
-    /** @return array{id: string, status: string, count: int, detail: list<mixed>} */
-    private function replacementMissing(): array
-    {
-        $detail = [];
-
-        foreach ($this->registry->all() as $package => $metadata) {
-            foreach (is_array($metadata['deprecated_categories'] ?? null) ? $metadata['deprecated_categories'] : [] as $category => $marker) {
-                $replacement = is_array($marker) ? ($marker['replacement'] ?? null) : null;
-
-                if (is_string($replacement) && ! $this->registry->isRegistered($replacement)) {
-                    $detail[] = ['pack' => $package, 'category' => (string) $category, 'replacement' => $replacement];
-                }
-            }
-        }
-
-        return self::check('alias.replacement_missing', count($detail), $detail);
-    }
-
-    /**
-     * The id prefixes to look for, each with whether its replacement is
-     * installed: every deprecated category of an installed pack, and every
-     * set an installed pack took over.
-     *
-     * @return array<string, bool> id prefix => replacement installed
-     */
-    private function deprecatedNeedles(): array
-    {
-        $needles = [];
-
-        foreach ($this->registry->all() as $package => $metadata) {
-            foreach (is_array($metadata['deprecated_categories'] ?? null) ? $metadata['deprecated_categories'] : [] as $category => $marker) {
-                $replacement = is_array($marker) ? ($marker['replacement'] ?? null) : null;
-                $needles["{$package}::{$category}/"] = is_string($replacement) && $this->registry->isRegistered($replacement);
-            }
-        }
-
-        foreach ($this->registry->packAliases()->entries() as $entry) {
-            foreach ($entry['paths'] as $pattern) {
-                $prefix = substr($pattern, 0, strcspn($pattern, '*?'));
-
-                if ($prefix !== '') {
-                    $needles["{$entry['from']}::{$prefix}"] = true;
-                }
-            }
-        }
-
-        return $needles;
-    }
-
-    /** @return list<string> */
-    private function scanRoots(): array
-    {
-        return array_values(array_unique(array_filter(
-            [app_path(), resource_path('views'), resource_path('js'), config_path()],
-            static fn (string $root): bool => File::isDirectory($root),
-        )));
     }
 }

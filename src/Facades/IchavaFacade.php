@@ -47,7 +47,6 @@ use Illuminate\Support\Facades\Facade;
  * @method static bool has(string $name, ?string $variant = null, ?string $category = null)
  * @method static \Simtabi\Laranail\Ichava\Enums\IconKind kindOf(string $id)
  * @method static \Simtabi\Laranail\Ichava\Data\KindResolution kindResolution(string $id)
- * @method static string canonicalId(string $id)
  * @method static \Simtabi\Laranail\Ichava\Drivers\SvgDriver driver()
  * @method static \Simtabi\Laranail\Ichava\Ichava setDefaultSet(string $name)
  * @method static void registerFromConfig(array<int|string, string|array<string, mixed>> $sets)

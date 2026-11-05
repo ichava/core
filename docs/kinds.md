@@ -144,21 +144,6 @@ A pack's constants class answers `getCategoryKind($category)` and `getPackageKin
 
 The `kind` column defaults to `icon` and `kind_source` to `default`, which is also the backfill for rows seeded before either existed.
 
-## A set that moved to another pack
-
-A pack that takes over a set from another declares it, and the old pack marks the moved categories deprecated:
-
-```json
-"package": {
-  "name": "ichava/icon-sets-openmoji",
-  "replaces": [ { "package": "ichava/icon-sets-emoji", "paths": ["openmoji-color/**"], "since": "0.1.0" } ]
-}
-```
-
-With the replacing pack installed, `ichava/icon-sets-emoji::openmoji-color/1f600` resolves to `ichava/icon-sets-openmoji::openmoji-color/1f600` wherever an id is parsed (Blade, the helper, render and `kindOf`), and `Ichava::canonicalId()` returns the new id for callers that look ids up themselves. Each rewritten id is logged once per process to the `ichava` channel as `[DEPRECATED]`. The old pack's moved categories are not seeded, so nothing is counted twice. Without the replacing pack the old id resolves in the old pack, as before.
-
-Doctor's `alias.deprecated_ids` scans `app/`, `resources/views`, `resources/js` and `config/` for old ids and reports each `file:line` (up to 50); `alias.replacement_missing` warns when a deprecated set is installed and its replacement is not.
-
 ## Querying by kind
 
 ```php

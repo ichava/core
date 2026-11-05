@@ -30,7 +30,7 @@ flowchart TB
     browser["<b>ichava/icon-browser</b><br/>REST API + Inertia/React browser<br/>middleware + browser views<br/>PRIVATE, licensed"]
     tabler["<b>ichava/icon-sets-tabler</b><br/>6,202 icons"]
     flag["<b>ichava/icon-sets-flag</b><br/>542 flags, 1x1 + 4x3"]
-    emoji["<b>ichava/icon-sets-emoji</b><br/>10,567 icons / 3 sets<br/>twemoji, openmoji-color, openmoji-black"]
+    emoji["<b>ichava/icon-sets-emoji</b><br/>3,435 Twemoji icons"]
     third["<b>3rd-party packs</b><br/>via ichava::icon-sets-package-scaffolder.make"]
     meta["<i>ichava/ichava</i><br/>pre-split monolith, superseded by core<br/>ARCHIVED 2026-09-22, read-only"]
     toolkit["<b>ichava/icon-sets-sync</b><br/>Docker-first sync tool<br/>refreshes vendored SVGs via PR<br/>(not installed by users)"]
