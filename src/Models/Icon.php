@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
-use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
+use Simtabi\Laranail\Ichava\Services\IconSvgReader;
 use Illuminate\Database\Eloquent\Collection;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Enums\KindSource;
@@ -1162,115 +1162,16 @@ final class Icon extends Model
      */
     private function processedSvg(string $path, string $storedPath, string $cacheKey): ?string
     {
-        /*
-         * Sanitise here, at the single point every consumer reads through.
-         *
-         * This used to be a bare `File::get()`. The SVG endpoint's own comment
-         * claimed the content "has been sanitised by SvgProcessingService" and
-         * added nosniff plus a restrictive CSP as defence in depth -- but nothing
-         * had sanitised it, so those headers were the only defence, and they only
-         * apply to that one route.
-         *
-         * The path that mattered more is JSON: `IconBrowserService` puts
-         * `svg_content` straight into an API payload, where no response header
-         * helps, and the client injects it into the DOM. A pack shipping a hostile
-         * file reached the browser verbatim -- and packs do contain
-         * `foreignObject`, `script` and `image` elements today.
-         *
-         * The result is cached post-sanitisation, so this costs one pass per icon
-         * per cache lifetime rather than one per request.
-         */
-        $content = app(IconCacheService::class)->remember(
+        $base = $this->getPackageBasePath();
+
+        return app(IconSvgReader::class)->read(
+            $path,
+            $storedPath,
             $cacheKey,
-            function () use ($path, $storedPath): string {
-                /*
-                 * The kind's byte budget is enforced at seed time, but the
-                 * file is read again here, on every cache miss -- and it may
-                 * have been replaced or grown since. SvgDriver::load() is the
-                 * one safe reader (C-12): it refuses a symlink, an escape from
-                 * the pack's directory, a file under the minimum size and one
-                 * over this kind's budget, before reading (S2). A refusal
-                 * fails closed, as a sanitiser rejection does.
-                 */
-                $kind = $this->kind instanceof IconKind ? $this->kind : IconKind::Icon;
-                $base = $this->getPackageBasePath();
-
-                try {
-                    $raw = app(SvgDriver::class)->load($path, baseDir: $base !== '' ? $base : null, maxBytes: $kind->maxFileSize());
-                } catch (IchavaException $e) {
-                    app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
-                        'path'    => $storedPath,
-                        'package' => $this->package,
-                        'reason'  => $e->getMessage(),
-                    ]);
-
-                    return '';
-                }
-
-                try {
-                    $svg = app(SvgProcessingService::class);
-
-                    /*
-                     * Namespace ids before sanitising, and inside the cache,
-                     * so it costs one pass per icon per cache lifetime.
-                     *
-                     * SVG ids are page-scoped in practice. 2,157 files in the
-                     * corpus share `_Transparent_Rectangle_` and 261 share
-                     * `Layer_1`; render two of them together and the second
-                     * icon's `url(#Layer_1)` resolves to the first one's
-                     * definition, silently. The browser renders 60+ at once.
-                     * The prefix is derived from the path, not the content, so
-                     * it survives an upstream refresh and stays deterministic
-                     * for the content-addressed cache (CR1).
-                     */
-                    $raw = $svg->namespaceIds($raw, $storedPath);
-
-                    /*
-                     * Hand sizing back to the component. An icon shipping
-                     * both a viewBox and hard width/height ignores the size
-                     * it is asked for; 6,146 tabler icons alone ship that
-                     * pair. An icon with neither is
-                     * reported rather than dropped -- it still renders, it
-                     * just has no intrinsic size to scale against.
-                     */
-                    $raw = $svg->normaliseSizing($raw, function (string $reason) use ($storedPath): void {
-                        app(AuditLogger::class)->warning('svg.unusable_sizing', [
-                            'path'    => $storedPath,
-                            'package' => $this->package,
-                            'reason'  => $reason,
-                        ]);
-                    });
-
-                    /*
-                     * Opt-in (B7): a monochrome icon that hardcodes black
-                     * vanishes on a dark background. Off by default; the flag
-                     * is part of render_version, so turning it on re-keys this
-                     * cache entry by itself.
-                     */
-                    if ($svg->convertsMonochromeToCurrentColor()) {
-                        $raw = $svg->monochromeToCurrentColor($raw);
-                    }
-
-                    return $svg->process($raw, [], false);
-                } catch (Throwable $e) {
-                    /*
-                     * A file the sanitiser rejects is not served raw as a
-                     * fallback. Failing closed is the point: the rejection means
-                     * it could not be made safe.
-                     */
-                    app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
-                        'path'    => $storedPath,
-                        'package' => $this->package,
-                        'reason'  => $e->getMessage(),
-                    ]);
-
-                    return '';
-                }
-            },
-            expects: 'string',
+            $this->kind instanceof IconKind ? $this->kind : IconKind::Icon,
+            (string) $this->package,
+            $base !== '' ? $base : null,
         );
-
-        return is_string($content) ? $content : null;
     }
 
     /**
