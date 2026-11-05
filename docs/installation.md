@@ -72,7 +72,8 @@ the repositories block in step 1, then require it. Some of the public ones:
 |---|---|---|
 | `ichava/icon-sets-tabler` | 6,238 | `https://github.com/ichava/icon-sets-tabler` |
 | `ichava/icon-sets-flag` | 542 | `https://github.com/ichava/icon-sets-flag` |
-| `ichava/icon-sets-emoji` | 10,567 | `https://github.com/ichava/icon-sets-emoji` |
+| `ichava/icon-sets-emoji` | 3,435 | `https://github.com/ichava/icon-sets-emoji` |
+| `ichava/icon-sets-openmoji` | 8,568 | `https://github.com/ichava/icon-sets-openmoji` |
 
 ```bash
 composer require ichava/icon-sets-tabler:^0.1
