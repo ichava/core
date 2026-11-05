@@ -19,7 +19,7 @@ use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IconSetCatalogService;
-use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 
 /**
  * Install an Ichava icon set.
@@ -47,7 +47,7 @@ final class InstallCommand extends BaseCommand
 
     public function __construct(
         protected IconSetCatalogService $catalog,
-        protected DatabaseOperationsService $database,
+        protected DatabaseOperations $database,
     ) {
         parent::__construct();
     }

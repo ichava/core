@@ -20,7 +20,7 @@ use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconTermsSeeder;
-use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 
 /**
  * Unified Icon Database Command
@@ -61,7 +61,7 @@ final class DatabaseCommand extends BaseCommand
     protected array $validActions = ['seed', 'seed:icons', 'seed:terms', 'migrate', 'unseed', 'refresh', 'truncate', 'stats'];
 
     public function __construct(
-        protected DatabaseOperationsService $databaseService,
+        protected DatabaseOperations $databaseService,
         protected IchavaLogger $logger,
         protected IchavaSeeder $ichavaSeeder,
         protected IconTermsSeeder $termSeeder,

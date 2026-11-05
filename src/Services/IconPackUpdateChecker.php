@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Simtabi\Laranail\Ichava\Contracts\ChecksPackUpdates;
 use Closure;
 use Throwable;
 use Illuminate\Support\Facades\Http;
@@ -41,7 +42,7 @@ use Simtabi\Laranail\Ichava\Events\IconPackUpdateAvailable;
  *     reason: ?string,
  * }
  */
-class IconPackUpdateChecker
+class IconPackUpdateChecker implements ChecksPackUpdates
 {
     /** Cache key prefix for HTTP responses. */
     protected const CACHE_PREFIX = 'ichava:icon-pack-update-check:';

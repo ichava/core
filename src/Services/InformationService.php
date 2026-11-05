@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 use stdClass;
 use Exception;
 use Throwable;
@@ -32,7 +33,7 @@ final class InformationService
     public function __construct(
         protected IconRegistry $registry,
         protected IchavaLifecycleManager $lifecycle,
-        protected DatabaseOperationsService $databaseService,
+        protected DatabaseOperations $databaseService,
         protected IchavaLogger $logger,
         protected IconDiscoveryService $discovery,
         protected SvgProcessingService $svg,

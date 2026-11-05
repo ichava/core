@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 use Exception;
 use Throwable;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ use Simtabi\Laranail\Console\Tools\Support\FileSize;
  *
  * Extracted from BaseDatabaseCommand for maximum reusability.
  */
-class DatabaseOperationsService
+class DatabaseOperationsService implements DatabaseOperations
 {
     /**
      * Smart queue threshold - packages with fewer icons are seeded synchronously

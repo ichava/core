@@ -35,6 +35,8 @@ use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\Auth\HostUser;
 use Simtabi\Laranail\Ichava\Support\SecurityNonce;
 use Simtabi\Laranail\Ichava\Contracts\PresentsUser;
+use Simtabi\Laranail\Ichava\Contracts\ChecksPackUpdates;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 use Simtabi\Laranail\Ichava\Contracts\ResolvesUser;
 use Simtabi\Laranail\Ichava\Services\IconsManifest;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -221,6 +223,12 @@ final class IchavaServiceProvider extends PackageServiceProvider
         $this->app->singleton(IconSetCatalogService::class);
         $this->app->singleton(IchavaSeeder::class);
         $this->app->singleton(IconPackUpdateChecker::class);
+
+        // The two I/O services with a second implementation today (the test
+        // doubles), behind contracts. Each resolves the concrete singleton, so
+        // a binding of the class (as icon-browser's tests make) still wins (C-06).
+        $this->app->bind(ChecksPackUpdates::class, fn (Container $app): ChecksPackUpdates => $app->make(IconPackUpdateChecker::class));
+        $this->app->bind(DatabaseOperations::class, fn (Container $app): DatabaseOperations => $app->make(DatabaseOperationsService::class));
 
         // Manifest service
         $this->app->singleton(IconsManifest::class, function (Container $app) {

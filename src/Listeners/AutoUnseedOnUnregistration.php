@@ -8,7 +8,7 @@ use Throwable;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Events\IconRegistrationEvent;
 use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
-use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 
 /**
  * Removes a package's icon rows + orphaned terms when the package unregisters.
@@ -16,7 +16,7 @@ use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
 final class AutoUnseedOnUnregistration
 {
     public function __construct(
-        protected DatabaseOperationsService $databaseService,
+        protected DatabaseOperations $databaseService,
         protected IchavaLifecycleManager $lifecycle,
         protected IchavaLogger $logger,
     ) {}

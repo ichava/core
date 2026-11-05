@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 use Illuminate\Support\Str;
 use stdClass;
 use ArrayAccess;
@@ -35,7 +36,7 @@ final class IconBrowserService
         private IconRegistry $registry,
         private IconCacheService $cacheManager,
         private IchavaLogger $logger,
-        private DatabaseOperationsService $database,
+        private DatabaseOperations $database,
     ) {}
 
     /**
