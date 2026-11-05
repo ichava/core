@@ -202,6 +202,23 @@ final class IconRegistry
             if ($definition->hasCategories) {
                 $set->withCategories(true);
             }
+
+            // `config.defaults` is the one source of a set's default class,
+            // attributes and fallback, so `<x-ichava::icon>`, a pack's own tag
+            // and render() draw the same markup (P-06).
+            $set->defaultAttributes($definition->defaultAttributes());
+
+            if ($definition->defaultClass() !== null) {
+                $set->defaultClass((string) $definition->defaultClass());
+            }
+
+            if ($definition->fallback() !== null) {
+                $set->fallback($definition->fallback());
+            }
+
+            if ($definition->defaultVariant !== null) {
+                $set->defaultVariant($definition->defaultVariant);
+            }
         }
 
         $noted = $definition->providerClass === null ? null : ($this->bladeComponents[$definition->providerClass] ?? null);

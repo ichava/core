@@ -67,27 +67,31 @@ final class PackBuilder
 
     private ?string $bladeComponent = null;
 
+    /** @var list<Closure(): void> each fluent call, replayed over the base config at build() */
+    private array $operations = [];
+
+    /** @var array<string, mixed> the effective config.json while build() runs */
+    private array $config = [];
+
+    private ?string $defaultVariant = null;
+
     /**
-     * @param array<string, mixed> $config the effective config.json, written into by each method
+     * @param string|null $directory the directory whose config.json is the base, read at build()
      */
     private function __construct(
-        private string $name,
+        private ?string $name,
         private string $basePath,
         private string $filesPath,
-        private array $config,
+        private ?string $directory,
     ) {}
 
     /**
      * A set described by the config.json in $path; its SVGs are under `{$path}/files`.
-     *
-     * @throws IchavaException when config.json is missing, malformed, or names no package or prefix
+     * The file is read by build(), so a broken one fails there.
      */
     public static function fromDirectory(string $path): self
     {
-        $config = Helpers::loadConfigJson($path);
-
-        return new self(self::requiredString($config, 'package', 'name', $path), $path, $path . '/files', $config)
-            ->prefix(self::requiredString($config, 'config', 'icon_prefix', $path));
+        return new self(null, $path, $path . '/files', $path);
     }
 
     /**
@@ -101,15 +105,47 @@ final class PackBuilder
         $filesPath = rtrim($filesPath, '/\\');
         $basePath = basename($filesPath) === 'files' ? dirname($filesPath) : $filesPath;
 
-        return new self($vendorPackage, $basePath, $filesPath, ['package' => ['name' => $vendorPackage]])
+        return new self($vendorPackage, $basePath, $filesPath, null)
             ->prefix(Str::afterLast($vendorPackage, '/'));
+    }
+
+    /**
+     * One builder per sub-directory of $basePath that holds a config.json, in
+     * name order. $only limits it to those directory names; empty means all.
+     *
+     * @param list<string> $only
+     *
+     * @return list<self>
+     */
+    public static function discover(string $basePath, array $only = []): array
+    {
+        $directories = glob(rtrim($basePath, '/\\') . '/*', GLOB_ONLYDIR) ?: [];
+        sort($directories);
+
+        $builders = [];
+
+        foreach ($directories as $directory) {
+            if (($only === [] || in_array(basename($directory), $only, true)) && is_file($directory . '/config.json')) {
+                $builders[] = self::fromDirectory($directory);
+            }
+        }
+
+        return $builders;
+    }
+
+    /** The directory this set registers from: the one holding config.json, or the files' parent. */
+    public function basePath(): string
+    {
+        return $this->basePath;
     }
 
     /** The set's `vendor/package` name, replacing the one config.json declares. */
     public function named(string $vendorPackage): self
     {
         $this->name = $vendorPackage;
-        $this->config['package'] = [...$this->section('package'), 'name' => $vendorPackage];
+        $this->operations[] = function () use ($vendorPackage): void {
+            $this->config['package'] = [...$this->section('package'), 'name' => $vendorPackage];
+        };
 
         return $this;
     }
@@ -117,7 +153,9 @@ final class PackBuilder
     /** The prefix icons are written with, `{prefix}::name`. */
     public function prefix(string $prefix): self
     {
-        $this->config['config'] = [...$this->section('config'), 'icon_prefix' => $prefix];
+        $this->operations[] = function () use ($prefix): void {
+            $this->config['config'] = [...$this->section('config'), 'icon_prefix' => $prefix];
+        };
 
         return $this;
     }
@@ -136,7 +174,9 @@ final class PackBuilder
             sprintf("unknown pack field '%s'; expected one of %s", $key, implode(', ', array_keys(self::ABOUT_KEYS))),
         );
 
-        $this->config[$section] = [...$this->section($section), $key => $value];
+        $this->operations[] = function () use ($section, $key, $value): void {
+            $this->config[$section] = [...$this->section($section), $key => $value];
+        };
 
         return $this;
     }
@@ -148,19 +188,23 @@ final class PackBuilder
      */
     public function variant(string $name, array $attributes = [], ?string $description = null, ?string $preview = null): self
     {
-        $variants = $this->data('variants');
-        $existing = is_array($variants[$name] ?? null) ? $variants[$name] : [];
-        $existingAttributes = is_array($existing['attributes'] ?? null) ? $existing['attributes'] : [];
+        $this->operations[] = function () use ($attributes, $description, $name, $preview): void {
+            $variants = $this->data('variants');
+            $existing = is_array($variants[$name] ?? null) ? $variants[$name] : [];
+            $existingAttributes = is_array($existing['attributes'] ?? null) ? $existing['attributes'] : [];
 
-        $variants[$name] = array_filter([
-            ...$existing,
-            'name'         => $existing['name'] ?? Str::headline($name),
-            'attributes'   => [...$existingAttributes, ...$attributes],
-            'description'  => $description ?? ($existing['description'] ?? null),
-            'preview_icon' => $preview ?? ($existing['preview_icon'] ?? null),
-        ], static fn (mixed $value): bool => $value !== null);
+            $variants[$name] = array_filter([
+                ...$existing,
+                'name'         => $existing['name'] ?? Str::headline($name),
+                'attributes'   => [...$existingAttributes, ...$attributes],
+                'description'  => $description ?? ($existing['description'] ?? null),
+                'preview_icon' => $preview ?? ($existing['preview_icon'] ?? null),
+            ], static fn (mixed $value): bool => $value !== null);
 
-        return $this->setData('variants', $variants);
+            $this->setData('variants', $variants);
+        };
+
+        return $this;
     }
 
     /** Whether icons are filed under category folders; config.json decides when this is not called. */
@@ -174,7 +218,9 @@ final class PackBuilder
     /** The kind of the whole set (D6 row 5). */
     public function kind(IconKind $kind): self
     {
-        $this->config['package'] = [...$this->section('package'), 'kind' => $kind->value];
+        $this->operations[] = function () use ($kind): void {
+            $this->config['package'] = [...$this->section('package'), 'kind' => $kind->value];
+        };
 
         return $this;
     }
@@ -182,7 +228,11 @@ final class PackBuilder
     /** The kind of one category (D6 row 4). */
     public function categoryKind(string $slug, IconKind $kind): self
     {
-        return $this->category($slug, ['kind' => $kind->value]);
+        $this->operations[] = function () use ($kind, $slug): void {
+            $this->category($slug, ['kind' => $kind->value]);
+        };
+
+        return $this;
     }
 
     /**
@@ -205,11 +255,15 @@ final class PackBuilder
     /** The kind of one item, by its path under `files/` without `.svg` (D6 row 2). */
     public function itemKind(string $itemPath, IconKind $kind): self
     {
-        $items = $this->data('items');
-        $item = is_array($items[$itemPath] ?? null) ? $items[$itemPath] : [];
-        $items[$itemPath] = [...$item, 'kind' => $kind->value];
+        $this->operations[] = function () use ($itemPath, $kind): void {
+            $items = $this->data('items');
+            $item = is_array($items[$itemPath] ?? null) ? $items[$itemPath] : [];
+            $items[$itemPath] = [...$item, 'kind' => $kind->value];
 
-        return $this->setData('items', $items);
+            $this->setData('items', $items);
+        };
+
+        return $this;
     }
 
     /**
@@ -217,11 +271,60 @@ final class PackBuilder
      */
     public function themeTwin(string $categorySlug, string $theme, string $suffix): self
     {
-        $categories = $this->data('categories');
-        $category = is_array($categories[$categorySlug] ?? null) ? $categories[$categorySlug] : [];
-        $twins = is_array($category['theme_variants'] ?? null) ? $category['theme_variants'] : [];
+        $this->operations[] = function () use ($categorySlug, $theme, $suffix): void {
+            $categories = $this->data('categories');
+            $category = is_array($categories[$categorySlug] ?? null) ? $categories[$categorySlug] : [];
+            $twins = is_array($category['theme_variants'] ?? null) ? $category['theme_variants'] : [];
 
-        return $this->category($categorySlug, ['theme_variants' => [...$twins, $theme => $suffix]]);
+            $this->category($categorySlug, ['theme_variants' => [...$twins, $theme => $suffix]]);
+        };
+
+        return $this;
+    }
+
+    /** The CSS class every icon of the set renders with when the caller gives none (`config.defaults.class`). */
+    public function defaultClass(string $class): self
+    {
+        $this->operations[] = function () use ($class): void {
+            $this->config['config'] = [...$this->section('config'), 'defaults' => [...$this->defaults(), 'class' => $class]];
+        };
+
+        return $this;
+    }
+
+    /**
+     * SVG attributes every icon of the set renders with, merged over the ones
+     * config.json declares (`config.defaults.attributes`).
+     *
+     * @param array<string, mixed> $attributes
+     */
+    public function defaultAttributes(array $attributes): self
+    {
+        $this->operations[] = function () use ($attributes): void {
+            $defaults = $this->defaults();
+            $current = is_array($defaults['attributes'] ?? null) ? $defaults['attributes'] : [];
+            $this->config['config'] = [...$this->section('config'), 'defaults' => [...$defaults, 'attributes' => [...$current, ...$attributes]]];
+        };
+
+        return $this;
+    }
+
+    /** The icon rendered when a name in the set is not found (`config.defaults.fallback`). */
+    public function fallback(string $icon): self
+    {
+        $this->operations[] = function () use ($icon): void {
+            $this->config['config'] = [...$this->section('config'), 'defaults' => [...$this->defaults(), 'fallback' => $icon]];
+        };
+
+        return $this;
+    }
+
+    /** The variant an icon name without one resolves in. */
+    public function defaultVariant(string $variant): self
+    {
+        $this->defaultVariant = $variant;
+
+        return $this;
     }
 
     /** An old icon path that now renders $keptPath; IconAliasMap's rules apply at registration. */
@@ -287,42 +390,66 @@ final class PackBuilder
     }
 
     /**
-     * The value to register.
+     * The value to register: the base config (config.json, or a bare one for
+     * make()), with every fluent call applied over it in order.
      *
-     * @throws IchavaException when the name is not `vendor/package` or the prefix is empty
+     * @throws IchavaException when config.json is missing or malformed, or the
+     *                         name is not `vendor/package`, or the prefix is empty
      */
     public function build(): PackDefinition
     {
-        if (preg_match('/^[a-z0-9_.-]+\/[a-z0-9_.-]+$/i', $this->name) !== 1) {
-            throw IchavaException::invalidConfiguration("pack name '{$this->name}' must be vendor/package");
+        $this->config = $this->directory !== null
+            ? Helpers::loadConfigJson($this->directory)
+            : ['package' => ['name' => (string) $this->name]];
+
+        if ($this->directory !== null) {
+            $this->name ??= self::requiredString($this->config, 'package', 'name', $this->directory);
+            self::requiredString($this->config, 'config', 'icon_prefix', $this->directory);
+        }
+
+        foreach ($this->operations as $operation) {
+            $operation();
+        }
+
+        $name = (string) $this->name;
+
+        if (preg_match('/^[a-z0-9_.-]+\/[a-z0-9_.-]+$/i', $name) !== 1) {
+            throw IchavaException::invalidConfiguration("pack name '{$name}' must be vendor/package");
         }
 
         $prefix = $this->section('config')['icon_prefix'] ?? null;
 
         if (! is_string($prefix) || $prefix === '') {
-            throw IchavaException::invalidConfiguration("pack '{$this->name}' needs a non-empty prefix");
+            throw IchavaException::invalidConfiguration("pack '{$name}' needs a non-empty prefix");
         }
 
-        $config = $this->config;
-
         if ($this->kindRules !== []) {
-            $kinds = is_array($config['metadata']['data']['kinds'] ?? null) ? $config['metadata']['data']['kinds'] : [];
+            $kinds = $this->data('kinds');
             $fileRules = is_array($kinds['rules'] ?? null) ? array_values($kinds['rules']) : [];
-            $config = $this->withData($config, 'kinds', [...$kinds, 'rules' => [...$this->kindRules, ...$fileRules]]);
+            $this->setData('kinds', [...$kinds, 'rules' => [...$this->kindRules, ...$fileRules]]);
         }
 
         return new PackDefinition(
-            name: $this->name,
+            name: $name,
             basePath: $this->basePath,
             filesPath: $this->filesPath,
             prefix: $prefix,
-            config: $config,
-            hasCategories: $this->categories ?? PackConfigData::categories($config) !== [],
+            config: $this->config,
+            hasCategories: $this->categories ?? PackConfigData::categories($this->config) !== [],
             aliases: $this->aliases,
             providerClass: $this->providerClass,
             bladeComponent: $this->bladeComponent,
             extraMetadata: $this->extraMetadata,
+            defaultVariant: $this->defaultVariant,
         );
+    }
+
+    /** @return array<array-key, mixed> `config.defaults` */
+    private function defaults(): array
+    {
+        $defaults = $this->section('config')['defaults'] ?? null;
+
+        return is_array($defaults) ? $defaults : [];
     }
 
     /**

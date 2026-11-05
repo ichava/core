@@ -31,6 +31,7 @@ final readonly class PackDefinition
      * @param bool                  $hasCategories  whether the set files its icons under category folders
      * @param array<string, string> $aliases        old path => kept path, registered beside any `aliases.json`
      * @param array<string, mixed>  $extraMetadata  merged over the built metadata, last
+     * @param string|null           $defaultVariant the variant a name without one resolves in
      */
     public function __construct(
         public string $name,
@@ -43,7 +44,61 @@ final readonly class PackDefinition
         public ?string $providerClass = null,
         public ?string $bladeComponent = null,
         public array $extraMetadata = [],
+        public ?string $defaultVariant = null,
     ) {}
+
+    /**
+     * The class every icon renders with when the caller gives none, from
+     * `config.defaults.class`; null keeps the registry's default.
+     */
+    public function defaultClass(): ?string
+    {
+        $class = $this->defaults()['class'] ?? null;
+
+        return is_string($class) && $class !== '' ? $class : null;
+    }
+
+    /**
+     * The SVG attributes every icon renders with: `config.defaults.attributes`,
+     * plus `stroke-width` from `config.defaults.stroke_width` when the
+     * attributes do not name one.
+     *
+     * @return array<string, mixed>
+     */
+    public function defaultAttributes(): array
+    {
+        $defaults = $this->defaults();
+        $attributes = [];
+
+        foreach (is_array($defaults['attributes'] ?? null) ? $defaults['attributes'] : [] as $key => $value) {
+            $attributes[(string) $key] = $value;
+        }
+
+        $strokeWidth = $defaults['stroke_width'] ?? null;
+
+        if ((is_int($strokeWidth) || is_float($strokeWidth) || is_string($strokeWidth)) && ! isset($attributes['stroke-width'])) {
+            $attributes['stroke-width'] = (string) $strokeWidth;
+        }
+
+        return $attributes;
+    }
+
+    /** The icon rendered when a name is not found, from `config.defaults.fallback`. */
+    public function fallback(): ?string
+    {
+        $fallback = $this->defaults()['fallback'] ?? null;
+
+        return is_string($fallback) && $fallback !== '' ? $fallback : null;
+    }
+
+    /** @return array<array-key, mixed> */
+    private function defaults(): array
+    {
+        $config = $this->config['config'] ?? null;
+        $defaults = is_array($config) ? ($config['defaults'] ?? null) : null;
+
+        return is_array($defaults) ? $defaults : [];
+    }
 
     /**
      * The variant names, in declared order.
