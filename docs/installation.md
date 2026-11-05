@@ -12,23 +12,32 @@ Relocated from the README, which is now a slim pointer.
 
 ## 1. Point Composer at the repositories
 
-`ichava/core` is on Packagist, but four `laranail/*` packages it depends on are not yet, so
-`composer require ichava/core` on its own fails with "could not be found" for them. Add their VCS
-repositories to your application's `composer.json` first:
+**This is the one place that lists them.** Every pack's installation page links here rather than
+repeating it, so this block is the whole answer to "what must my application add".
+
+Nothing in the Ichava family is on Packagist yet: not `ichava/core`, not the packs, and not the four
+`laranail/*` packages core depends on (`repo.packagist.org` answers 404 for each). Composer reads
+`repositories` only from the root package, so a package's own entries do not carry across to yours:
+the **application's** `composer.json` has to name every one of them, core's dependencies included.
 
 ```json
 {
     "repositories": [
+        { "type": "vcs", "url": "https://github.com/ichava/core" },
         { "type": "vcs", "url": "https://github.com/laranail/package-tools.git" },
         { "type": "vcs", "url": "https://github.com/laranail/console.git" },
         { "type": "vcs", "url": "https://github.com/laranail/enumerator.git" },
-        { "type": "vcs", "url": "https://github.com/laranail/db-tools.git" }
+        { "type": "vcs", "url": "https://github.com/laranail/db-tools.git" },
+        { "type": "vcs", "url": "https://github.com/ichava/icon-sets-tabler" }
     ]
 }
 ```
 
-Composer reads `repositories` only from the root package, so a package's own entries do not carry
-across to yours: every package not on Packagist has to be named here, core's dependencies included.
+The last line is the pack you install, one line per pack, named `https://github.com/ichava/<pack>`.
+A pack requires `ichava/core` and nothing else, so the `laranail/*` lines are core's, and they stay
+the same whichever packs you add. Two packs are private (`icon-sets-bundled`, `icon-sets-metronic`):
+installing those needs read access to the repository through a GitHub token in Composer's
+`auth.json`.
 
 ## 2. Require the package
 
@@ -56,7 +65,8 @@ Creates the `icons` and `icon_terms` tables (or your configured table prefix).
 
 ## 5. Install at least one icon pack
 
-Core ships with no icons. The publicly available packs are:
+Core ships with no icons. Each pack is a repository named `ichava/icon-sets-<name>`; add its line to
+the repositories block in step 1, then require it. Some of the public ones:
 
 | Pack | Icons | Add this repository |
 |---|---|---|

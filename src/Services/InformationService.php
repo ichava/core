@@ -7,11 +7,13 @@ namespace Simtabi\Laranail\Ichava\Services;
 use stdClass;
 use Exception;
 use Throwable;
+use Composer\InstalledVersions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Data\StatusData;
+use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
 use Simtabi\Laranail\Ichava\Listeners\RecordCacheRebuild;
 
 /**
@@ -95,14 +97,40 @@ class InformationService
     }
 
     /**
-     * Discover packages from filesystem (vendor directory)
+     * Discover the icon packs installed in the application.
+     *
+     * The primary source is Composer: every package whose composer.json
+     * declares `"type": "ichava-icon-set"` (IchavaConstants::PACK_COMPOSER_TYPE),
+     * read through `Composer\InstalledVersions`, so a pack is found wherever
+     * Composer put it. `registered` says whether the pack's provider has
+     * registered it with the IconRegistry.
+     *
+     * Two older sources are kept, so nothing they found stops being found: the
+     * `vendor/*\/ichava-*` directory glob, which no estate pack matches (packs
+     * install as `vendor/ichava/icon-sets-*`) but a third-party pack named that
+     * way still would, and the `platform/ichava` directory. A name Composer
+     * already reported is not overwritten by either.
      *
      * @return array<string, array{path: string, registered: bool}>
      */
     public function discoverPackages(): array
     {
-        $vendorPath = base_path('vendor');
         $discovered = [];
+
+        foreach (InstalledVersions::getInstalledPackagesByType(IchavaConstants::PACK_COMPOSER_TYPE) as $name) {
+            $path = InstalledVersions::getInstallPath($name);
+
+            if ($path === null || isset($discovered[$name])) {
+                continue;
+            }
+
+            $discovered[$name] = [
+                'path'       => $path,
+                'registered' => $this->registry->isRegistered($name),
+            ];
+        }
+
+        $vendorPath = base_path('vendor');
 
         if (File::isDirectory($vendorPath)) {
             $directories = File::glob($vendorPath . '/*/ichava-*');
@@ -112,10 +140,12 @@ class InformationService
                 }
 
                 $name = basename(dirname($dir)) . '/' . basename($dir);
-                $discovered[$name] = [
-                    'path'       => $dir,
-                    'registered' => $this->registry->has($name),
-                ];
+                if (! isset($discovered[$name])) {
+                    $discovered[$name] = [
+                        'path'       => $dir,
+                        'registered' => $this->registry->isRegistered($name),
+                    ];
+                }
             }
         }
 
@@ -132,7 +162,7 @@ class InformationService
                 if (! isset($discovered[$name])) {
                     $discovered[$name] = [
                         'path'       => $dir,
-                        'registered' => $this->registry->has($name),
+                        'registered' => $this->registry->isRegistered($name),
                     ];
                 }
             }

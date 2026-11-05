@@ -65,9 +65,10 @@ The `ichava/icon-browser` package owns the *entire HTTP layer* (REST API, SPA, m
 
 | Rule | Rationale |
 |---|---|
-| `ichava/core` depends only on `laranail/package-tools` and Laravel framework | Headless server installs (no JS toolchain) work cleanly. |
+| `ichava/core` depends on the `laranail/*` packages and the Laravel framework, and is the only package in the family that does | Headless server installs (no JS toolchain) work cleanly. One package owns the `laranail/*` versions. |
 | `ichava/icon-browser` depends on `ichava/core` | Browser is a UI consumer, not an icon source. |
-| Icon packs depend on `ichava/core` (never on `ichava/icon-browser`) | Decouples icon distribution from UI. Install core + a pack and have CLI / Blade access with no Vue, Vite, or Node.js. |
+| Icon packs require `php` and `ichava/core`, nothing else, and import only `ichava/core` classes (never `ichava/icon-browser`, never a `laranail/*` namespace) | Decouples icon distribution from UI and from core's own dependencies. A pack's `IconPackServiceProvider` writes no package-tools type, so a `laranail/*` change reaches the packs through core alone. Each pack's `tests/Unit/CoreOnlyDependencyTest.php` enforces it. |
+| Icon packs declare `"type": "ichava-icon-set"` in composer.json | `InformationService::discoverPackages()` finds installed packs by that type, through `Composer\InstalledVersions`. |
 | `ichava/icon-browser` does not depend on icon packs | The browser discovers them at runtime via `IconRegistry`. Install any combination. |
 | Cross-package class names follow constants (`IconsServiceProvider`, `IconsConstants`, `IconComponent`, `Variant` / `Category`) | Disambiguated by namespace. No double-suffix bugs and easy ecosystem-wide grep. |
 
@@ -89,6 +90,11 @@ classDiagram
         bootingPackage()
         registerIconDirectory()
     }
+    class IconPackServiceProvider {
+        <<ichava/core, abstract>>
+        constantsClass()
+        componentClass()
+    }
     class IconBrowserServiceProvider {
         <<ichava/icon-browser>>
         routes, views, middleware,
@@ -105,10 +111,11 @@ classDiagram
     }
     PackageServiceProvider <|-- IchavaServiceProvider
     PackageServiceProvider <|-- SupportServiceProvider
+    SupportServiceProvider <|-- IconPackServiceProvider
     PackageServiceProvider <|-- IconBrowserServiceProvider
-    SupportServiceProvider <|-- TablerIcons_IconsServiceProvider
-    SupportServiceProvider <|-- FlagIcons_IconsServiceProvider
-    SupportServiceProvider <|-- EmojiSets_IconsServiceProvider
+    IconPackServiceProvider <|-- TablerIcons_IconsServiceProvider
+    IconPackServiceProvider <|-- FlagIcons_IconsServiceProvider
+    IconPackServiceProvider <|-- EmojiSets_IconsServiceProvider
 ```
 
 **Every pack's provider is called `IconsServiceProvider`.** The short name is a constant across the
@@ -116,7 +123,9 @@ ecosystem and only the namespace varies, so a contributor can `grep "class Icons
 and find every pack. A `<Pack>IconsServiceProvider` name is the thing this convention exists to
 prevent; the same holds for `IconsConstants` and `IconComponent`.
 
-> **Rule for icon packs:** extend `Simtabi\Laranail\Ichava\Support\ServiceProvider` (lives in `ichava/core`). Never extend `IchavaServiceProvider`, `IconBrowserServiceProvider`, or `PackageServiceProvider` directly.
+> **Rule for icon packs:** extend `Simtabi\Laranail\Ichava\Support\IconPackServiceProvider` (lives in `ichava/core`) and declare two methods, `constantsClass()` and `componentClass()`. The base names the package from the constants class, sets the path from the provider file, registers `config/{slug}.php` when the pack ships one, registers `<x-{slug}-icon>`, and hands `resources/assets/svg` to the registry. Never extend `IchavaServiceProvider`, `IconBrowserServiceProvider`, or `PackageServiceProvider` directly.
+>
+> `Support\ServiceProvider`, which `IconPackServiceProvider` extends, still works for a provider that writes its own `configurePackage(Package $package)`; such a provider imports `laranail/package-tools`' `Package`, which is why no estate pack does any more.
 
 > **Rule for the browser package:** extends `laranail/package-tools`' `PackageServiceProvider` directly. Boots its routes, views, and Vite assets in `bootingPackage()` so core's services are guaranteed to be bound first.
 
@@ -286,7 +295,7 @@ supplied comes from `laranail/console` directly.
 
 What a pack is scaffolded *into* is still core's contract: the class short names
 (`IconsServiceProvider`, `IconsConstants`, `Variant`, `IconComponent`), the
-`Support\ServiceProvider` a pack extends, and the `config.json` shape its constants read. That
+`Support\IconPackServiceProvider` a pack extends, and the `config.json` shape its constants read. That
 contract is documented here; how a pack gets generated is documented
 [in the scaffolder](https://github.com/ichava/icon-sets-package-scaffolder/blob/main/docs/architecture.md).
 
