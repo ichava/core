@@ -100,3 +100,17 @@ describe('Seeder taxonomy extraction', function () {
         expect((new Icon)->getMorphClass())->toBe('ichava-icon');
     });
 });
+
+describe('Generic snippet tag follows the registered prefixes', function () {
+    it('uses the short tag while components.short_prefix names one, and ichava-core when it is off', function (?string $short, string $tag) {
+        config()->set('ichava.ichava-core.components.short_prefix', $short);
+        $icon = snippetIcon('ichava/icon-sets-tabler', 'home', 'files/home.svg');
+
+        expect(app(Simtabi\Laranail\Ichava\Services\IconBrowserService::class)->generateBladeComponent($icon, useCleanSyntax: false))
+            ->toBe("<x-{$tag}::icon name=\"ichava/icon-sets-tabler::home\" class=\"w-6 h-6\" />");
+    })->with([
+        'default'   => ['ichava', 'ichava'],
+        'renamed'   => ['icon', 'icon'],
+        'off'       => [null, 'ichava-core'],
+    ]);
+});

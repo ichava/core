@@ -79,6 +79,16 @@ final readonly class ComponentPrefixes
     }
 
     /**
+     * The prefix a generated snippet uses for the icon component: the short
+     * one while it is on, so existing habits keep working, else the canonical
+     * one, so a copied tag always renders on this host.
+     */
+    public function snippetPrefix(): string
+    {
+        return $this->shortPrefix() ?? self::CANONICAL;
+    }
+
+    /**
      * The prefixes core registers, canonical first.
      *
      * @return list<string>

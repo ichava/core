@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use stdClass;
 use ArrayAccess;
 use Illuminate\Support\Str;
@@ -37,6 +38,7 @@ final class IconBrowserService
         private IconCacheService $cacheManager,
         private IchavaLogger $logger,
         private DatabaseOperations $database,
+        private ComponentPrefixes $prefixes,
     ) {}
 
     /**
@@ -149,7 +151,9 @@ final class IconBrowserService
      *   `<x-icon-sets-tabler-icon name="a-b" category="outline" />`, with the
      *   folders in `category` because the pack component reads a name containing
      *   a slash as a full path. Falls back to the generic form otherwise.
-     * - Generic: `<x-ichava::icon name="ichava/icon-sets-tabler::outline/a-b" />`.
+     * - Generic: `<x-ichava::icon name="ichava/icon-sets-tabler::outline/a-b" />`,
+     *   under the short prefix while `components.short_prefix` names one and
+     *   `ichava-core` when it is off, so the copied tag renders on this host.
      *   It used to be `<x-ichava-icon name="icon-sets-tabler:outline/a-b" />`, a
      *   tag nothing registers holding a reference the registry refuses.
      */
@@ -159,7 +163,7 @@ final class IconBrowserService
         $tag = $useCleanSyntax ? $this->packComponentTag($icon) : null;
 
         if ($tag === null) {
-            return "<x-ichava::icon name=\"{$path}\" class=\"{$class}\" />";
+            return "<x-{$this->prefixes->snippetPrefix()}::icon name=\"{$path}\" class=\"{$class}\" />";
         }
 
         $relative = substr($path, strpos($path, '::') + 2);
