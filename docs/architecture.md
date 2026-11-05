@@ -68,7 +68,7 @@ The `ichava/icon-browser` package owns the *entire HTTP layer* (REST API, SPA, m
 | `ichava/core` depends on the `laranail/*` packages and the Laravel framework, and is the only package in the family that does | Headless server installs (no JS toolchain) work cleanly. One package owns the `laranail/*` versions. |
 | `ichava/icon-browser` depends on `ichava/core` | Browser is a UI consumer, not an icon source. |
 | Icon packs require `php` and `ichava/core`, nothing else, and import only `ichava/core` classes (never `ichava/icon-browser`, never a `laranail/*` namespace) | Decouples icon distribution from UI and from core's own dependencies. A pack's `IconPackServiceProvider` writes no package-tools type, so a `laranail/*` change reaches the packs through core alone. Each pack's `tests/Unit/CoreOnlyDependencyTest.php` enforces it. |
-| Icon packs declare `"type": "ichava-icon-set"` in composer.json | `InformationService::discoverPackages()` finds installed packs by that type, through `Composer\InstalledVersions`. |
+| Icon packs declare `"type": "ichava-icon-set"` in composer.json | `InformationService::discoverPackages()` finds installed packs by that type, through `Composer\InstalledVersions`, and keeps a `platform/ichava` checkout only when its composer.json declares it. No directory is matched by its folder name. |
 | `ichava/icon-browser` does not depend on icon packs | The browser discovers them at runtime via `IconRegistry`. Install any combination. |
 | Cross-package class names follow constants (`IconsServiceProvider`, `IconsConstants`, `IconComponent`, `Variant` / `Category`) | Disambiguated by namespace. No double-suffix bugs and easy ecosystem-wide grep. |
 

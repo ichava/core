@@ -85,3 +85,63 @@ it('ignores an installed package of any other type', function (): void {
 
     expect(app(InformationService::class)->discoverPackages())->not->toHaveKey('acme/not-a-pack');
 });
+
+it('does not discover a vendor directory by its name alone', function (): void {
+    // The `vendor/*/ichava-*` glob was removed on the owner's word (2026-11-05):
+    // a pack is found by its composer type, not by what its folder is called.
+    $dir = base_path('vendor/acme/ichava-legacy');
+    $made = ! is_dir($dir);
+    if ($made) {
+        mkdir($dir, 0777, true);
+    }
+
+    try {
+        InstalledVersions::reload(installedWithPack('acme/not-a-pack', sys_get_temp_dir(), 'library'));
+
+        expect(app(InformationService::class)->discoverPackages())->not->toHaveKey('acme/ichava-legacy');
+    } finally {
+        if ($made) {
+            rmdir($dir);
+            @rmdir(dirname($dir));
+        }
+    }
+});
+
+/** Make base_path('platform/ichava/<dir>') with an optional composer.json; returns a cleanup. */
+function platformCheckout(string $dir, ?array $composer): Closure
+{
+    $path = base_path('platform/ichava/' . $dir);
+    mkdir($path, 0777, true);
+    if ($composer !== null) {
+        file_put_contents($path . '/composer.json', json_encode($composer));
+    }
+
+    return function () use ($path): void {
+        @unlink($path . '/composer.json');
+        @rmdir($path);
+        @rmdir(dirname($path));
+        @rmdir(dirname($path, 2));
+    };
+}
+
+it('discovers a platform checkout only when its composer.json declares the pack type', function (): void {
+    InstalledVersions::reload(installedWithPack('acme/not-a-pack', sys_get_temp_dir(), 'library'));
+    $cleanPack = platformCheckout('local-pack', ['name' => 'acme/local-icons', 'type' => IchavaConstants::PACK_COMPOSER_TYPE]);
+    $cleanOther = platformCheckout('not-a-pack', ['name' => 'acme/some-library', 'type' => 'library']);
+    $cleanBare = platformCheckout('no-manifest', null);
+
+    try {
+        $discovered = app(InformationService::class)->discoverPackages();
+
+        expect($discovered)->toHaveKey('acme/local-icons')
+            ->and($discovered['acme/local-icons']['path'])->toBe(base_path('platform/ichava/local-pack'))
+            ->and($discovered)->not->toHaveKey('ichava/local-pack')
+            ->and($discovered)->not->toHaveKey('ichava/not-a-pack')
+            ->and($discovered)->not->toHaveKey('acme/some-library')
+            ->and($discovered)->not->toHaveKey('ichava/no-manifest');
+    } finally {
+        $cleanBare();
+        $cleanOther();
+        $cleanPack();
+    }
+});
