@@ -8,7 +8,8 @@ declare(strict_types=1);
  *
  * For every set pinned in icon-sets.json (key/package/repository) this
  * script resolves the latest release tag, reads the pack's config.json at
- * that tag, counts the committed SVGs (in all, and per kind as icon_counts)
+ * that tag, counts the committed SVGs (in all, and per kind as icon_counts),
+ * records the repository's GitHub visibility (public or private)
  * via the git-trees API, and writes
  * the snapshot back — so `ichava:install` stays fully local with zero
  * runtime network calls.
@@ -144,6 +145,7 @@ function snapshot(string $repository, string $configPath, array $previous): ?arr
     }
 
     $variants = $config['metadata']['data']['variants'] ?? null;
+    $visibility = visibilityOf(getJson("https://api.github.com/repos/{$repository}"), $previous['visibility'] ?? null);
     $tree = $tag !== null ? svgPaths($repository, $tag, $configPath) : null;
     $count = $tree !== null ? count($tree) : null;
     $counts = $tree !== null ? countsByKind($tree, $config) : null;
@@ -156,7 +158,27 @@ function snapshot(string $repository, string $configPath, array $previous): ?arr
         'icon_counts'    => $counts ?? ($previous['icon_counts'] ?? null),
         'variants'       => is_array($variants) ? array_keys($variants) : ($previous['variants'] ?? null),
         'latest_version' => $tag !== null ? ltrim($tag, 'vV') : ($previous['latest_version'] ?? null),
+        'visibility'     => $visibility,
     ];
+}
+
+/**
+ * The repository's GitHub visibility, `public` or `private`, from the repos
+ * API response. A response that does not say (a failed request, or a private
+ * repository the token cannot see, which answers 404) keeps the previous
+ * value, so one bad night never flips a pack's recorded visibility.
+ *
+ * @param array<array-key, mixed>|null $repository
+ */
+function visibilityOf(?array $repository, mixed $previous): ?string
+{
+    $visibility = is_array($repository) ? ($repository['visibility'] ?? null) : null;
+
+    if (in_array($visibility, ['public', 'private'], true)) {
+        return $visibility;
+    }
+
+    return in_array($previous, ['public', 'private'], true) ? $previous : null;
 }
 
 function latestTag(string $repository): ?string

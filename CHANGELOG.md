@@ -47,6 +47,8 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Changed
 
+- **`icon-sets.json` records each pack's `visibility`** (`public` or `private`), synced by `bin/sync-icon-sets.php` from the repos API and kept when a response does not state it (F-02). Documented under *The pack catalogue* in `docs/tools/artisan-commands.md`. `tests/Unit/SyncIconSetsVisibilityTest.php`.
+- **The generic Blade snippet uses a prefix this host registers**: the short one while `components.short_prefix` names one, `ichava-core` when it is off (`ComponentPrefixes::snippetPrefix()`).
 - **`IconDriverInterface` states `SvgDriver`'s real API** (`render(IconData …)`, `load(string $path …)`), `SvgDriver` implements it, the provider binds it, and `IconRegistry`, `IconSvgReader` and `DirectoryIconDriver` depend on it (C-17). The interface's old directory methods (`all`, `has`, `setConfig`, `getConfig`, `setIconPath`, `getIconPath`) are gone from it; `DirectoryIconDriver` keeps them as its own API. `IconRegistry::driver()` returns the interface. `tests/Feature/IconDriverContractTest.php`.
 - **`IconSetBuilder::cache(false)` turns the lookup cache off.** It set a flag nothing read. Caching stays on by default. `tests/Unit/IconSetBuilderCacheTest.php`.
 - **`components.test_icons` has a reader**: `ComponentPrefixes::testIconsEnabled()`, false whenever `components.enabled` is. `tests/Feature/TestIconsComponentKeyTest.php`.

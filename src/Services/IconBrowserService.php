@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use stdClass;
 use ArrayAccess;
 use Illuminate\Support\Str;
@@ -20,6 +19,7 @@ use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Data\VariantData;
+use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
