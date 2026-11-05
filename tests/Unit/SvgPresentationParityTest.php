@@ -58,8 +58,8 @@ it('makes the shared vector decisions', function (): void {
     /** @var array{cases: list<array{name: string, value: string, keep: bool}>} $table */
     $table = json_decode((string) file_get_contents(__DIR__ . '/../fixtures/svg/presentation-vectors.json'), true, flags: JSON_THROW_ON_ERROR);
 
-    // The Go table has 27 rows; a table that stopped loading must not pass.
-    expect($table['cases'])->toHaveCount(27);
+    // The shared table has 35 rows; a table that stopped loading must not pass.
+    expect($table['cases'])->toHaveCount(35);
 
     foreach ($table['cases'] as $case) {
         $value = htmlspecialchars($case['value'], ENT_QUOTES | ENT_XML1);
@@ -75,6 +75,50 @@ it('makes the shared vector decisions', function (): void {
         expect($path)->not->toBeNull();
         expect($path instanceof DOMElement && $path->hasAttribute($case['name']))
             ->toBe($case['keep'], "{$case['name']}=\"{$case['value']}\"");
+    }
+});
+
+/*
+ * The marker rows. The US and UM flags draw their stars as one <marker>
+ * repeated by marker-mid, so a sanitiser that strips <marker> ships an empty
+ * canton. Each document runs through the whole sanitiser: clean means nothing
+ * was removed (the output equals what a parse-and-serialise round trip gives),
+ * and every expect row holds of the output.
+ */
+it('makes the shared document decisions', function (): void {
+    /** @var array{documents: list<array{label: string, svg: string, clean: bool, expect: list<array{element: string, attribute?: string, present: bool}>}>} $table */
+    $table = json_decode((string) file_get_contents(__DIR__ . '/../fixtures/svg/presentation-vectors.json'), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($table['documents'])->toHaveCount(6);
+
+    $shape = static function (string $xml): string {
+        $dom = new DOMDocument;
+        $dom->loadXML($xml);
+
+        return (string) $dom->saveXML($dom->documentElement);
+    };
+
+    foreach ($table['documents'] as $doc) {
+        $out = presentationSanitise($doc['svg']);
+
+        expect($shape($out) === $shape($doc['svg']))->toBe($doc['clean'], $doc['label'] . "\n" . $out);
+
+        $dom = new DOMDocument;
+        expect($dom->loadXML($out))->toBeTrue($doc['label']);
+
+        foreach ($doc['expect'] as $row) {
+            $present = false;
+
+            foreach ($dom->getElementsByTagName($row['element']) as $el) {
+                if (! isset($row['attribute']) || $el->hasAttribute($row['attribute'])) {
+                    $present = true;
+
+                    break;
+                }
+            }
+
+            expect($present)->toBe($row['present'], "{$doc['label']}: <{$row['element']}> " . ($row['attribute'] ?? '') . "\n" . $out);
+        }
     }
 });
 
