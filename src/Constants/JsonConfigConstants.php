@@ -308,8 +308,8 @@ abstract class JsonConfigConstants
      * is the site of the project whose icons the pack vendors, and it is the
      * only place that fact is recorded in a human-facing form.
      *
-     * Returns '' when the pack has no single upstream -- `icon-sets-emoji`
-     * vendors two projects across three sets and omits the key deliberately.
+     * Returns '' when the pack omits the key -- `icon-sets-twemoji` does, and
+     * names its upstream, with its URL, in `metadata.authors` instead.
      *
      * Example: https://tabler-icons.io/
      */
@@ -495,7 +495,7 @@ abstract class JsonConfigConstants
      *
      *   { "type": "npm",            "package": "...",     "source_path": "..." }
      *   { "type": "github-archive", "archive_url": "...", "source_path": "..." }
-     *   { "type": "recipe",         "recipe": "emoji-sets" }
+     *   { "type": "recipe",         "recipe": "twemoji-sets" }
      *   { "type": "url",            "version_field": "version" }
      *
      * @return array<string, mixed>|null

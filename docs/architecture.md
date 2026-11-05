@@ -30,7 +30,7 @@ flowchart TB
     browser["<b>ichava/icon-browser</b><br/>REST API + Inertia/React browser<br/>middleware + browser views<br/>PRIVATE, licensed"]
     tabler["<b>ichava/icon-sets-tabler</b><br/>6,202 icons"]
     flag["<b>ichava/icon-sets-flag</b><br/>542 flags, 1x1 + 4x3"]
-    emoji["<b>ichava/icon-sets-emoji</b><br/>3,435 Twemoji icons"]
+    twemoji["<b>ichava/icon-sets-twemoji</b><br/>3,435 Twemoji icons"]
     third["<b>3rd-party packs</b><br/>via ichava::icon-sets-package-scaffolder.make"]
     meta["<i>ichava/ichava</i><br/>pre-split monolith, superseded by core<br/>ARCHIVED 2026-09-22, read-only"]
     toolkit["<b>ichava/icon-sets-sync</b><br/>Docker-first sync tool<br/>refreshes vendored SVGs via PR<br/>(not installed by users)"]
@@ -40,11 +40,11 @@ flowchart TB
     browser -- depends on --> core
     tabler -- depends on --> core
     flag -- depends on --> core
-    emoji -- depends on --> core
+    twemoji -- depends on --> core
     third -- depends on --> core
     toolkit -. CI refreshes .-> tabler
     toolkit -. CI refreshes .-> flag
-    toolkit -. CI refreshes .-> emoji
+    toolkit -. CI refreshes .-> twemoji
     react -. replaces the SPA in .-> browser
 
     classDef engine fill:#1f6feb,stroke:#1f6feb,color:#fff
@@ -54,7 +54,7 @@ flowchart TB
     classDef tooling fill:#bf8700,stroke:#bf8700,color:#fff
     class core engine
     class browser http
-    class tabler,flag,emoji,third pack
+    class tabler,flag,twemoji,third pack
     class meta,motion,react other
     class toolkit tooling
 ```
@@ -106,8 +106,8 @@ classDiagram
     class FlagIcons_IconsServiceProvider["IconsServiceProvider"] {
         <<Ichava\IconSetsFlag\Providers>>
     }
-    class EmojiSets_IconsServiceProvider["IconsServiceProvider"] {
-        <<Ichava\IconSetsEmoji\Providers>>
+    class Twemoji_IconsServiceProvider["IconsServiceProvider"] {
+        <<Ichava\IconSetsTwemoji\Providers>>
     }
     PackageServiceProvider <|-- IchavaServiceProvider
     PackageServiceProvider <|-- SupportServiceProvider
@@ -115,7 +115,7 @@ classDiagram
     PackageServiceProvider <|-- IconBrowserServiceProvider
     IconPackServiceProvider <|-- TablerIcons_IconsServiceProvider
     IconPackServiceProvider <|-- FlagIcons_IconsServiceProvider
-    IconPackServiceProvider <|-- EmojiSets_IconsServiceProvider
+    IconPackServiceProvider <|-- Twemoji_IconsServiceProvider
 ```
 
 **Every pack's provider is called `IconsServiceProvider`.** The short name is a constant across the

@@ -14,8 +14,8 @@ use Simtabi\Laranail\Ichava\Services\ConfigurationService;
  * ever got `supportsCategories`, and IconSetBuilder::buildIconPath() dropped the
  * middle segment of a three-segment path: `glyphs/round/dot` was looked up as
  * `files/glyphs/dot.svg`. That made every icon one directory deeper than the
- * first unreachable (15,393 in icon-sets-bundled, all 10,567 in
- * icon-sets-emoji).
+ * first unreachable (15,393 in icon-sets-bundled, and all 10,567 in the
+ * emoji pack before OpenMoji moved out of it).
  *
  * The top-level shape is not read at all: the estate is forward-only, and the
  * fallback that kept a pack written against the old lookup working was

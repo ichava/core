@@ -27,9 +27,9 @@ final readonly class IconPackUpdateAvailable
         /**
          * Which source under the pack's `upstream` block fired the
          * event. "primary" for the canonical source; the value of
-         * `additional_sources[*].name` for secondary trackers (e.g.
-         * emoji-sets dispatches one event for `primary` (Twemoji) and
-         * one for `openmoji` whenever either upstream moves).
+         * `additional_sources[*].name` for secondary trackers (a pack
+         * that tracks a second upstream dispatches one event for
+         * `primary` and one for that source whenever either moves).
          */
         public string $sourceName = 'primary',
     ) {}

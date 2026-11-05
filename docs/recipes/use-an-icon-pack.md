@@ -61,7 +61,7 @@ Each pack's repository has a `docs/` directory:
 
 - [`ichava/icon-sets-tabler/docs/`](https://github.com/ichava/icon-sets-tabler/tree/main/docs)
 - [`ichava/icon-sets-flag/docs/`](https://github.com/ichava/icon-sets-flag/tree/main/docs)
-- [`ichava/icon-sets-emoji/docs/`](https://github.com/ichava/icon-sets-emoji/tree/main/docs)
+- [`ichava/icon-sets-twemoji/docs/`](https://github.com/ichava/icon-sets-twemoji/tree/main/docs)
 
 Look there for stroke widths, variant lists, attribution, and any pack-specific behaviour.
 

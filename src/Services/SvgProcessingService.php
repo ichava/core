@@ -61,7 +61,7 @@ final class SvgProcessingService
      * 4: the sanitiser drops stray text and CDATA directly under `<svg>` and
      * `<g>` (icon-sets-sync#85), which no config hash sees. Measured 2026-11-04
      * across 142,247 pack SVGs, 2 outputs changed for it (OpenMoji's 1F684
-     * high-speed train in icon-sets-emoji, eos-icons' link-off in
+     * high-speed train, now in icon-sets-openmoji, eos-icons' link-off in
      * icon-sets-bundled). The 34 that changed for the new `display` and `color`
      * attributes are re-keyed by the attribute hash on their own.
      */

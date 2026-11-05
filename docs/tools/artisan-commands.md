@@ -92,7 +92,7 @@ Reports whether any registered icon pack is behind its upstream source. Reads ea
 
 ```bash
 php artisan ichava::ichava-core.check-updates                              # table for every pack
-php artisan ichava::ichava-core.check-updates --package=ichava/icon-sets-emoji  # restrict to one pack
+php artisan ichava::ichava-core.check-updates --package=ichava/icon-sets-twemoji  # restrict to one pack
 php artisan ichava::ichava-core.check-updates --format=json                # machine-readable
 php artisan ichava::ichava-core.check-updates --fail-on-stale              # exit 1 if any pack is behind
 ```

@@ -42,10 +42,10 @@
             "visibility": "public"
         },
         {
-            "key": "emoji",
-            "package": "ichava/icon-sets-emoji",
-            "repository": "ichava/icon-sets-emoji",
-            "title": "Emoji Sets",
+            "key": "twemoji",
+            "package": "ichava/icon-sets-twemoji",
+            "repository": "ichava/icon-sets-twemoji",
+            "title": "Twemoji",
             "description": "Twemoji, Twitter/X's open-source emoji set, as SVG. Unicode 17 / Emoji 17 spec. Categorised by Unicode CLDR groups. OpenMoji is in ichava/icon-sets-openmoji.",
             "license": "MIT (code) / CC-BY 4.0 (Twemoji assets)",
             "icon_count": 3435,
@@ -64,7 +64,7 @@
             "package": "ichava/icon-sets-openmoji",
             "repository": "ichava/icon-sets-openmoji",
             "title": "OpenMoji",
-            "description": "OpenMoji emoji in two sets (colour and black outline), Unicode emoji 16.0, grouped by Unicode CLDR category. Moved verbatim from ichava/icon-sets-emoji.",
+            "description": "OpenMoji emoji in two sets (colour and black outline), Unicode emoji 16.0, grouped by Unicode CLDR category. Moved verbatim from ichava/icon-sets-twemoji, which now ships Twemoji only.",
             "license": "MIT (code) / CC-BY-SA 4.0 (OpenMoji assets)",
             "icon_count": 8568,
             "variants": [
