@@ -11,6 +11,7 @@ use function Laravel\Prompts\outro;
 use function Laravel\Prompts\warning;
 
 use Simtabi\Laranail\Ichava\Support\Coerce;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Ichava\Services\IconWatcherService;
@@ -22,7 +23,7 @@ use Simtabi\Laranail\Ichava\Services\IconWatcherService;
  *
  * @see https://laravel.com/docs/12.x/prompts
  */
-class WatchIconFilesCommand extends BaseCommand
+final class WatchIconFilesCommand extends BaseCommand
 {
     protected $signature = 'ichava::ichava-core.watch
                             {--force : Force scan even if already running}
@@ -31,7 +32,16 @@ class WatchIconFilesCommand extends BaseCommand
 
     protected $description = 'Watch icon files for changes and auto-sync database';
 
-    public function handle(IconWatcherService $watcher): int
+    public function handle(IconWatcherService $watcher, RuntimeLimits $limits): int
+    {
+        // The scan runs under Ichava's limits, restored when it returns (C-01).
+        return $limits->scope(fn (): int => $this->scan($watcher));
+    }
+
+    /**
+     * Rescan one pack, or scan every pack, and report what changed.
+     */
+    private function scan(IconWatcherService $watcher): int
     {
         intro(__('ichava/ichava-core::commands.watch.intro'));
 

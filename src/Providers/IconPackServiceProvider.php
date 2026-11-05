@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Simtabi\Laranail\Ichava\Support;
+namespace Simtabi\Laranail\Ichava\Providers;
 
 use Illuminate\View\Component;
 use Simtabi\Laranail\Package\Tools\Package;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\Pack\PackSpec;
+use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use Simtabi\Laranail\Ichava\Constants\JsonConfigConstants;
 use Simtabi\Laranail\Package\Tools\Exceptions\InvalidPath;
 use Simtabi\Laranail\Package\Tools\Exceptions\InvalidPackage;
@@ -40,20 +43,28 @@ use Simtabi\Laranail\Package\Tools\Exceptions\InvalidPackage;
  * that wrote it had to import that package; here core writes it, and a pack
  * depends on `ichava/core` alone.
  *
- * `ServiceProvider`, which this extends, is unchanged and still works for a
- * provider that writes its own `configurePackage()`.
+ * That is the simple path. The advanced one is one optional hook, pack(),
+ * which receives a {@see PackSpec}: kind rules, theme twins and aliases in
+ * code, more sets (one, or every config-bearing sub-directory of a path),
+ * extra Blade components and a config file under another name.
  *
- * @see ServiceProvider
+ * `PackServiceProvider`, which this extends, still works for a provider that
+ * writes its own `configurePackage()`.
+ *
+ * @see PackServiceProvider
  */
-abstract class IconPackServiceProvider extends ServiceProvider
+abstract class IconPackServiceProvider extends PackServiceProvider
 {
+    /** What the pack registers, built once in configurePackage(). */
+    private ?PackSpec $spec = null;
+
     /**
      * Name from the constants class, path from the provider's own file
      * (`<pack>/src/Providers/` is two levels below the pack root), and the
      * config file when the pack ships `config/{slug}.php`.
      *
      * The config call is what the packs that ship one already made.
-     * `ServiceProvider::newPackage()` auto-loads `config/*.php` too, and
+     * `PackServiceProvider::newPackage()` auto-loads `config/*.php` too, and
      * package-tools de-duplicates by name, so this is a statement of the file
      * rather than a second merge.
      *
@@ -66,10 +77,12 @@ abstract class IconPackServiceProvider extends ServiceProvider
             ->setName(($this->constantsClass())::getVendorPackage())
             ->setPathFrom(source: $this, levelsUp: 2);
 
-        $slug = $this->packSlug();
+        $spec = $this->packSpec($package);
 
-        if (is_file($package->basePath("config/{$slug}.php"))) {
-            $package->hasConfigFile($slug);
+        $config = $spec->configFileName() ?? $this->packSlug();
+
+        if (is_file($package->basePath("config/{$config}.php"))) {
+            $package->hasConfigFile($config);
         }
     }
 
@@ -80,10 +93,19 @@ abstract class IconPackServiceProvider extends ServiceProvider
      */
     public function bootingPackage(): void
     {
-        $this->loadBladeComponent(componentClass: $this->componentClass(), packageName: $this->packSlug());
-
-        $this->registerIconDirectory($this->svgAssetsPath());
+        $this->packSpec()->registerWith(
+            $this->app->make(IconRegistry::class),
+            $this->app->make(ComponentPrefixes::class),
+        );
     }
+
+    /**
+     * Shape the pack beyond its config.json: kind rules, theme twins and
+     * aliases computed in code, further sets, extra Blade components, or a
+     * config file under another name. Optional; the default does nothing, so
+     * a pack that keeps everything in config.json writes nothing here.
+     */
+    protected function pack(PackSpec $pack): void {}
 
     /**
      * The pack's constants class, which reads its `config.json`.
@@ -107,5 +129,21 @@ abstract class IconPackServiceProvider extends ServiceProvider
     protected function packSlug(): string
     {
         return ($this->constantsClass())::getPackageName();
+    }
+
+    /**
+     * The pack's spec, built once: in configurePackage(), or here when
+     * bootingPackage() runs on a provider whose configurePackage() did not.
+     */
+    private function packSpec(?Package $package = null): PackSpec
+    {
+        if ($this->spec instanceof PackSpec) {
+            return $this->spec;
+        }
+
+        $spec = PackSpec::forProvider(static::class, ($this->constantsClass())::getVendorPackage(), ($package ?? $this->package)->basePath(), $this->componentClass());
+        $this->pack($spec);
+
+        return $this->spec = $spec;
     }
 }

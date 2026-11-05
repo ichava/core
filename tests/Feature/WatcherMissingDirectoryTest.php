@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Log;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\PackConfigCache;
 use Simtabi\Laranail\Ichava\Services\IconWatcherService;
 
 /**
@@ -34,7 +35,7 @@ it('returns no icons and warns when the pack directory does not exist', function
     $missing = sys_get_temp_dir() . '/ichava-missing-' . bin2hex(random_bytes(6));
     expect(is_dir($missing))->toBeFalse();
 
-    $watcher = new IconWatcherService(app(IconRegistry::class), app(IchavaLogger::class));
+    $watcher = new IconWatcherService(app(IconRegistry::class), app(IchavaLogger::class), app(PackConfigCache::class));
     $scan = new ReflectionMethod($watcher, 'scanDiskIcons');
 
     expect($scan->invoke($watcher, $missing, 'tests/pack'))->toBe([]);

@@ -19,6 +19,7 @@ use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Enums\KindSource;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
 use Simtabi\Laranail\Ichava\Support\IconClassifier;
+use Simtabi\Laranail\Ichava\Support\PackConfigCache;
 use Simtabi\Laranail\Ichava\Traits\ContainsFilePaths;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Symfony\Component\Finder\SplFileInfo as FinderFile;
@@ -30,7 +31,7 @@ use Symfony\Component\Finder\Exception\DirectoryNotFoundException;
  * Supports both single-set and multi-set layouts via IconPathStructureDetector;
  * stored paths are always relative for cross-environment portability.
  */
-class IconWatcherService
+final class IconWatcherService
 {
     use ContainsFilePaths;
 
@@ -47,6 +48,7 @@ class IconWatcherService
     public function __construct(
         protected IconRegistry $registry,
         protected IchavaLogger $logger,
+        protected PackConfigCache $configCache,
         protected ?IconClassifier $classifier = null,
     ) {}
 
@@ -489,7 +491,7 @@ class IconWatcherService
         // A pack's config.json may have changed with its files (a category
         // re-filed as illustrations, a new theme twin); drop the cached copy
         // so the next read sees it.
-        app(ConfigurationService::class)->forgetPackageConfig($basePath);
+        $this->configCache->forget($basePath);
 
         // Scan file system
         $diskIcons = $this->scanDiskIcons($basePath, $package);

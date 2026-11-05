@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Simtabi\Laranail\Ichava\Actions;
+namespace Simtabi\Laranail\Ichava\Support;
 
 use Throwable;
 use SplFileInfo;
@@ -34,7 +34,7 @@ use Illuminate\Filesystem\Filesystem;
  * of a method whose contract is to return `0`. Catching `Throwable` here is the
  * behaviour the original was reaching for.
  */
-final readonly class CountSvgFiles
+final readonly class SvgFileCounter
 {
     /** Stop the shallow count here; a caller rendering a tree node needs "many", not the number. */
     public const int SHALLOW_CAP = 100;

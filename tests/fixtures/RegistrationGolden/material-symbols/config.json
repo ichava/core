@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-material-symbols",
+    "title": "Material Symbols",
+    "description": "Google's Material Symbols at weight 400: 3,940 icons in outlined, rounded and sharp, each unfilled and filled.",
+    "keywords": [
+      "icons",
+      "svg",
+      "material",
+      "material-symbols",
+      "google"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "0.48.3",
+    "type": "multi",
+    "kind": "icon",
+    "license": "MIT (code) / Apache-2.0 (icons)"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "Google",
+        "role": "Creator -- Material Symbols",
+        "url": "https://github.com/google/material-design-icons"
+      },
+      {
+        "name": "Marella and contributors (material-symbols)",
+        "role": "npm packaging of the SVGs",
+        "url": "https://github.com/marella/material-symbols"
+      }
+    ],
+    "homepage": "https://fonts.google.com/icons",
+    "repository": "https://github.com/ichava/icon-sets-material-symbols",
+    "data": {
+      "variants": {
+        "outlined": {
+          "name": "Outlined",
+          "slug": "outlined",
+          "description": "Outlined style, weight 400, unfilled",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        },
+        "outlined-fill": {
+          "name": "Outlined filled",
+          "slug": "outlined-fill",
+          "description": "Outlined style, weight 400, filled",
+          "default": false,
+          "icon_suffix": "-fill",
+          "display_order": 2,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        },
+        "rounded": {
+          "name": "Rounded",
+          "slug": "rounded",
+          "description": "Rounded style, weight 400, unfilled",
+          "default": false,
+          "icon_suffix": "",
+          "display_order": 3,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        },
+        "rounded-fill": {
+          "name": "Rounded filled",
+          "slug": "rounded-fill",
+          "description": "Rounded style, weight 400, filled",
+          "default": false,
+          "icon_suffix": "-fill",
+          "display_order": 4,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        },
+        "sharp": {
+          "name": "Sharp",
+          "slug": "sharp",
+          "description": "Sharp style, weight 400, unfilled",
+          "default": false,
+          "icon_suffix": "",
+          "display_order": 5,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        },
+        "sharp-fill": {
+          "name": "Sharp filled",
+          "slug": "sharp-fill",
+          "description": "Sharp style, weight 400, filled",
+          "default": false,
+          "icon_suffix": "-fill",
+          "display_order": 6,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        }
+      },
+      "categories": {},
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "material-symbols"
+  },
+  "license": {
+    "spdx": "Apache-2.0",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "checked_at": "2026-11-04",
+    "file": "resources/assets/svg/licenses/material-symbols/LICENSE",
+    "source": "https://github.com/marella/material-symbols/blob/v0.48.3/LICENSE",
+    "notice": "resources/assets/svg/NOTICE"
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "@material-symbols/svg-400",
+      "_ref": "v0.48.3",
+      "_repository": "https://github.com/marella/material-symbols"
+    },
+    "current_version": "0.48.3",
+    "version_check_url": "https://registry.npmjs.org/@material-symbols/svg-400/latest",
+    "license": "Apache-2.0",
+    "update_command": {
+      "type": "recipe",
+      "recipe": "icon-sets-material-symbols",
+      "_note": "icon-sets-sync has no config/icon-sets-material-symbols.json yet; the proposed recipe is pack-recipes/icon-sets-material-symbols.json in the ichava design folder, and lands with the one icon-sets-sync pull request that adds the v0.1.0 packs. Until then the weekly sync-upstream run has nothing to run."
+    },
+    "_subset": "Weight 400 only, in all three styles, filled and unfilled. The other six weights (100, 200, 300, 500, 600, 700) are not vendored: they would add 141,861 files. Upstream names use underscores and are slugged to hyphens (`bullet_chart` is `bullet-chart`)."
+  }
+}

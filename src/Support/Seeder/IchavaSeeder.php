@@ -31,11 +31,12 @@ use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Ichava\Commands\DatabaseCommand;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
-use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 use Simtabi\Laranail\Package\Tools\Services\Database\ChunkedBatchDispatcher;
 
 /**
@@ -48,7 +49,7 @@ use Simtabi\Laranail\Package\Tools\Services\Database\ChunkedBatchDispatcher;
  *
  * @see SeedIconsJob
  */
-class IchavaSeeder extends Seeder
+final class IchavaSeeder extends Seeder
 {
     /**
      * Default number of icons per job.
@@ -362,7 +363,8 @@ class IchavaSeeder extends Seeder
             return;
         }
 
-        $this->seedAllPackages();
+        // Seeding runs under Ichava's limits, restored when it returns (C-01).
+        app(RuntimeLimits::class)->scope(fn () => $this->seedAllPackages());
 
         $this->displayFooter();
     }
@@ -471,7 +473,7 @@ class IchavaSeeder extends Seeder
                 // when the pack is small enough that a queue only adds
                 // latency (`database.smart_queue_threshold`, 5,000 icons).
                 $useQueue = config('ichava.ichava-core.database.use_queue', true)
-                    && app(DatabaseOperationsService::class)->shouldUseQueue($iconCount, forceSync: $this->isSyncMode());
+                    && app(DatabaseOperations::class)->shouldUseQueue($iconCount, forceSync: $this->isSyncMode());
 
                 if (! $useQueue) {
                     $this->console()->line('    <fg=yellow>' . __('ichava/ichava-core::commands.seeder.seeding_sync', ['force' => $forceMsg, 'size' => $chunkSize]) . '</>');

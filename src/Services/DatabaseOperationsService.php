@@ -15,6 +15,7 @@ use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Console\Tools\Support\FileSize;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 
 /**
  * DatabaseOperationsService
@@ -27,7 +28,7 @@ use Simtabi\Laranail\Console\Tools\Support\FileSize;
  *
  * Extracted from BaseDatabaseCommand for maximum reusability.
  */
-class DatabaseOperationsService
+class DatabaseOperationsService implements DatabaseOperations
 {
     /**
      * Smart queue threshold - packages with fewer icons are seeded synchronously

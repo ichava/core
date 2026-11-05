@@ -32,7 +32,7 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
  *
  * @see IchavaSeeder Main seeder that orchestrates term + icon seeding
  */
-class IconTermsSeeder extends Seeder
+final class IconTermsSeeder extends Seeder
 {
     protected IconRegistry $packageRegistry;
 
@@ -145,22 +145,10 @@ class IconTermsSeeder extends Seeder
      */
     protected function seedPackageVariants(string $packageName, array $packageData): void
     {
-        $basePath = $this->basePathOf($packageData);
-
-        if (! $basePath) {
-            return;
-        }
-
-        // Check for config.json
-        $configPath = $basePath . '/config.json';
-        if (! File::exists($configPath)) {
-            return;
-        }
-
-        $config = json_decode(File::get($configPath), true);
-        $metadata = is_array($config) ? ($config['metadata'] ?? null) : null;
-        $data = is_array($metadata) ? ($metadata['data'] ?? null) : null;
-        $variants = is_array($data) ? ($data['variants'] ?? []) : [];
+        // The registry records each pack's variants as `variant_metadata`,
+        // so this reads them there rather than parsing config.json a second
+        // time: a variant registered from code is seeded too (C-04).
+        $variants = $packageData['variant_metadata'] ?? [];
 
         if (empty($variants) || ! is_array($variants)) {
             return;

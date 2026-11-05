@@ -76,30 +76,37 @@ return [
 
 ### Usage in Blade
 
-Once registered, icons are available via the generic component using `prefix:icon-name` syntax:
+A directory with no `config.json` registers as `app/{entry key}` (or the entry's `package`), and its icons are addressed by that name, like any pack's:
 
 ```blade
-<x-ichava::icon name="social:twitter" />
-<x-ichava::icon name="brand:partner-a" class="w-8 h-8" />
-<x-ichava::icon name="custom:home" variant="filled" />
-<x-ichava::icon name="app:navigation/menu" />
+<x-ichava::icon name="app/social::twitter" />
+<x-ichava::icon name="app/brand::partner-a" class="w-8 h-8" />
+<x-ichava::icon name="app/custom::filled/home" />
+<x-ichava::icon name="app/app::navigation/menu" />
 ```
+
+A directory holding a `config.json` registers under the `package.name` it declares, with the entry's keys applied over the file.
 
 ### Field reference
 
 | Key | Required | Description |
 |---|---|---|
-| `enabled` | ✅ | `true` to register, `false` to skip the entry |
-| `path` | ✅ | Absolute path to the SVG directory |
-| `prefix` | ✅ | Lookup prefix used in `name="prefix:icon"` |
+| `enabled` |. | `false` skips the entry (default `true`) |
+| `path` | ✅ | Absolute path to the SVG directory, or to a directory holding a `config.json` |
+| `package` |. | The `vendor/package` a directory with no `config.json` registers as (default `app/{entry key}`) |
+| `bulk` |. | `true` registers every sub-directory of `path` that holds a `config.json` |
+| `only` |. | With `bulk`, the sub-directory names to register (default all) |
+| `prefix` |. | The set's prefix (default the package half of its name) |
 | `default_variant` |. | Variant used when none specified (e.g. `'outline'`) |
 | `variants` |. | Array of supported subdirectory variants |
 | `supports_categories` |. | `true` if icons are nested by category folders |
 | `default_class` |. | CSS class auto-applied to all icons from this set |
 | `default_attributes` |. | Map of attributes auto-merged onto every SVG |
 | `fallback` |. | Per-set fallback icon name if lookup fails |
-| `blade_namespace` |. | Blade component namespace (default: `'ichava'`) |
-| `blade_component` |. | Component tag if you want `<x-{namespace}-{component} />` |
+| `blade_component` |. | The Blade alias recorded for the set, `{blade_namespace}-{blade_component}`, so the registry can report a clash |
+| `blade_namespace` |. | The prefix of that recorded alias |
+
+Every key is applied through `PackBuilder::withOptions()`, the same path a pack takes; see [Pack registration](../tools/pack-registration.md).
 
 ### Difference from custom *packages*
 

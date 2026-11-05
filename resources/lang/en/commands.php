@@ -333,15 +333,16 @@ return [
         ],
 
         'doctor' => [
-            'intro'         => '🩺 Ichava Doctor',
-            'packages'      => 'Icon packs registered',
-            'queue'         => 'Queue connection configured',
-            'auth'          => 'Host auth available',
-            'default_guard' => 'default guard',
-            'gates'         => 'ichava.admin Gate defined',
-            'routes'        => 'Browser routes mounted',
-            'orphans'       => 'No orphaned icon rows',
-            'kinds'         => [
+            'intro'                 => '🩺 Ichava Doctor',
+            'packages'              => 'Icon packs registered',
+            'queue'                 => 'Queue connection configured',
+            'auth'                  => 'Host auth available',
+            'default_guard'         => 'default guard',
+            'gates'                 => 'ichava.admin Gate defined',
+            'routes'                => 'Browser routes mounted',
+            'orphans'               => 'No orphaned icon rows',
+            'short_prefix_shadowed' => 'Short component prefix resolves to the icon component',
+            'kinds'                 => [
                 'kind.invalid_value'    => 'Kind values name a kind',
                 'kind.invalid_glob'     => 'Kind rule patterns are valid',
                 'kind.override_invalid' => 'Host kind override keys are valid',

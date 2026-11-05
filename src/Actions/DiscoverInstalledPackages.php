@@ -29,7 +29,7 @@ final readonly class DiscoverInstalledPackages
     /**
      * @return list<array{name: string, version: string, description: string, homepage: string|null, type: string, time: string|null}>
      */
-    public function __invoke(string $composerLockPath): array
+    public function handle(string $composerLockPath): array
     {
         if (! $this->files->exists($composerLockPath)) {
             return [];

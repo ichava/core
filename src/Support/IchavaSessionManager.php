@@ -31,14 +31,14 @@ final class IchavaSessionManager implements PreferenceStore
 
     private bool $sessionAvailable;
 
-    public function __construct()
+    public function __construct(private readonly IchavaLogger $logger)
     {
         $this->capabilities = HostCapabilities::getInstance();
         $this->sessionAvailable = $this->capabilities->hasSession();
 
         // Detect session availability once per request
         if (! $this->sessionAvailable && config('app.debug')) {
-            app(IchavaLogger::class)->debug('ℹ️ Session not available, using browser storage fallback');
+            $this->logger->debug('ℹ️ Session not available, using browser storage fallback');
         }
     }
 
@@ -62,12 +62,12 @@ final class IchavaSessionManager implements PreferenceStore
             session()->put($sessionKey, $value);
 
             if (config('app.debug') && config('ichava.ichava-core.logging.session_debug', false)) {
-                app(IchavaLogger::class)->debug("Session stored: {$key}", ['value' => $value]);
+                $this->logger->debug("Session stored: {$key}", ['value' => $value]);
             }
 
             return true;
         } catch (Exception $e) {
-            app(IchavaLogger::class)->warning('Failed to store in session', [
+            $this->logger->warning('Failed to store in session', [
                 'key'   => $key,
                 'error' => $e->getMessage(),
             ]);
@@ -93,12 +93,12 @@ final class IchavaSessionManager implements PreferenceStore
             $value = session()->get($sessionKey, $default);
 
             if (config('app.debug') && config('ichava.ichava-core.logging.session_debug', false)) {
-                app(IchavaLogger::class)->debug("Session retrieved: {$key}", ['value' => $value]);
+                $this->logger->debug("Session retrieved: {$key}", ['value' => $value]);
             }
 
             return $value;
         } catch (Exception $e) {
-            app(IchavaLogger::class)->warning('Failed to retrieve from session', [
+            $this->logger->warning('Failed to retrieve from session', [
                 'key'   => $key,
                 'error' => $e->getMessage(),
             ]);
@@ -121,7 +121,7 @@ final class IchavaSessionManager implements PreferenceStore
 
             return session()->has($sessionKey);
         } catch (Exception $e) {
-            app(IchavaLogger::class)->warning('Failed to check session', [
+            $this->logger->warning('Failed to check session', [
                 'key'   => $key,
                 'error' => $e->getMessage(),
             ]);
@@ -145,7 +145,7 @@ final class IchavaSessionManager implements PreferenceStore
 
             return true;
         } catch (Exception $e) {
-            app(IchavaLogger::class)->warning('Failed to forget session key', [
+            $this->logger->warning('Failed to forget session key', [
                 'key'   => $key,
                 'error' => $e->getMessage(),
             ]);
@@ -191,7 +191,7 @@ final class IchavaSessionManager implements PreferenceStore
 
             return $ichavaPrefs;
         } catch (Exception $e) {
-            app(IchavaLogger::class)->warning('Failed to retrieve all session data', [
+            $this->logger->warning('Failed to retrieve all session data', [
                 'error' => $e->getMessage(),
             ]);
 
@@ -224,7 +224,7 @@ final class IchavaSessionManager implements PreferenceStore
 
             return true;
         } catch (Exception $e) {
-            app(IchavaLogger::class)->warning('Failed to clear session', [
+            $this->logger->warning('Failed to clear session', [
                 'error' => $e->getMessage(),
             ]);
 

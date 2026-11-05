@@ -9,6 +9,7 @@ use Throwable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use Simtabi\Laranail\Ichava\Contracts\ChecksPackUpdates;
 use Simtabi\Laranail\Ichava\Constants\JsonConfigConstants;
 use Simtabi\Laranail\Ichava\Events\IconPackUpdateAvailable;
 
@@ -41,7 +42,7 @@ use Simtabi\Laranail\Ichava\Events\IconPackUpdateAvailable;
  *     reason: ?string,
  * }
  */
-class IconPackUpdateChecker
+class IconPackUpdateChecker implements ChecksPackUpdates
 {
     /** Cache key prefix for HTTP responses. */
     protected const CACHE_PREFIX = 'ichava:icon-pack-update-check:';

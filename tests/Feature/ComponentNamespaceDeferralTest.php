@@ -3,81 +3,122 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Blade;
-
-/**
- * The bare `ichava` Blade component namespace is deferred, deliberately.
- *
- * This is the enforceable half of the DEFERRED note in
- * `IchavaServiceProvider::bootingPackage()`. The note explains why the bare
- * slug stays; this pins that it is still there, so the decision cannot be
- * reversed by accident inside unrelated work -- a comment is deleted with the
- * code it sits next to, and prose does not fail a build.
- *
- * **If you are reading this because the test failed, that is the design.** You
- * are taking Decision B. It is a breaking change to the ecosystem's documented
- * public API and it needs its own release, a migration note, and the ~112
- * `<x-ichava::…>` call sites across the estate updated. Update this test and
- * the note together, or put the registration back.
- *
- * Asserted against the live compiler rather than the provider source: grepping
- * a registration proves how it was written, not what Blade ended up holding.
- */
-it('still registers the deferred bare component namespace', function (): void {
-    expect(Blade::getClassComponentNamespaces())
-        ->toHaveKey('ichava', 'Simtabi\\Laranail\\Ichava\\View\\Components');
-});
-
-it('still registers the deferred bare alias for the headline component', function (): void {
-    // `<x-ichava::icon>` is the first thing the README teaches and the single
-    // most-referenced name in the ecosystem. Core covered it only by rendering
-    // the tag (IconComponentAttributesTest); nothing asserted the alias key,
-    // so a rename would have surfaced as a render failure elsewhere rather
-    // than as a decision being taken here.
-    expect(Blade::getClassComponentAliases())->toHaveKey('ichava::icon');
-});
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\View\Components\IconComponent;
 
 /*
- * The vendor-scoped prefix, `ichava-core`, sits beside the bare one (V-B11).
+ * Proposal 1. `ichava-core` is core's canonical Blade prefix and is always
+ * registered; the short prefix (`<x-ichava::icon>` by default) is a configured
+ * convenience beside it: `components.short_prefix`, validated against Blade's
+ * own tag parser, or null to turn it off. `components.enabled` false registers
+ * no core tag at all. Every test reads Blade's live maps, not the provider.
  *
- * Additive only: both prefixes resolve the same classes, and nothing about the
- * bare prefix changes. Read from Blade's live maps, then proven by rendering
- * the same icon through both tags.
+ * This replaces the "deferred bare namespace" pins: the short form is no longer
+ * a deferral but the configured default, and the 331 existing
+ * `<x-ichava::icon>` call sites keep working unless a host turns it off.
  */
-it('registers the vendor-scoped component namespace over the same classes', function (): void {
-    $namespaces = Blade::getClassComponentNamespaces();
 
-    expect($namespaces)->toHaveKey('ichava-core')
-        ->and($namespaces['ichava-core'])->toBe($namespaces['ichava']);
+const ICHAVA_COMPONENTS = 'Simtabi\\Laranail\\Ichava\\View\\Components';
+
+afterEach(function (): void {
+    // Blade's maps live on a singleton that outlives the app between tests.
+    $this->configOverrides = [];
 });
 
-it('registers the vendor-scoped alias for the headline component', function (): void {
+function coreAliases(): array
+{
+    return array_filter(
+        Blade::getClassComponentAliases(),
+        static fn (string $class): bool => str_starts_with($class, ICHAVA_COMPONENTS . '\\'),
+    );
+}
+
+it('registers the canonical and the short prefix by default, over the same class', function (): void {
+    $aliases = Blade::getClassComponentAliases();
+    $namespaces = Blade::getClassComponentNamespaces();
+
+    expect($aliases['ichava-core::icon'] ?? null)->toBe(IconComponent::class)
+        ->and($aliases['ichava::icon'] ?? null)->toBe(IconComponent::class)
+        ->and($namespaces['ichava-core'] ?? null)->toBe(ICHAVA_COMPONENTS)
+        ->and($namespaces['ichava'] ?? null)->toBe(ICHAVA_COMPONENTS)
+        ->and(app(ComponentPrefixes::class)->registered())->toBe(['ichava-core', 'ichava']);
+});
+
+it('drops the short prefix when it is null, and keeps the canonical one', function (): void {
+    $this->configOverrides = ['ichava.ichava-core.components.short_prefix' => null];
+    $this->refreshApplication();
+
     $aliases = Blade::getClassComponentAliases();
 
     expect($aliases)->toHaveKey('ichava-core::icon')
-        ->and($aliases['ichava-core::icon'])->toBe($aliases['ichava::icon']);
+        ->and($aliases)->not->toHaveKey('ichava::icon')
+        ->and(Blade::getClassComponentNamespaces())->not->toHaveKey('ichava')
+        ->and(fn () => Blade::render('<x-ichava::icon name="ichava/test-icons::check" />'))->toThrow(InvalidArgumentException::class, 'ichava::icon');
 });
 
-it('adds no bare alias beyond the deferred one', function (): void {
-    // The scoped prefix must not bring a new generic key with it: every alias
-    // core registers is either the deferred `ichava::icon` or vendor-scoped.
-    $core = array_filter(
-        Blade::getClassComponentAliases(),
-        static fn (string $class): bool => str_starts_with($class, 'Simtabi\\Laranail\\Ichava\\View\\Components\\'),
-    );
+it('registers another short prefix in place of ichava', function (): void {
+    $this->configOverrides = ['ichava.ichava-core.components.short_prefix' => 'icon'];
+    $this->refreshApplication();
 
-    expect(array_keys($core))->not->toBeEmpty();
+    expect(Blade::getClassComponentAliases())->toHaveKey('icon::icon')
+        ->not->toHaveKey('ichava::icon');
+});
 
-    foreach (array_keys($core) as $alias) {
-        expect($alias === 'ichava::icon' || str_starts_with($alias, 'ichava-core::'))->toBeTrue("unscoped alias {$alias}");
+it('refuses a short prefix Blade cannot parse, or one that is the canonical prefix', function (string $prefix): void {
+    $this->configOverrides = ['ichava.ichava-core.components.short_prefix' => $prefix];
+
+    expect(fn () => $this->refreshApplication())->toThrow(IchavaException::class, 'short_prefix');
+})->with(['a/b', 'a::b', 'ichava-core', 'Bad Prefix']);
+
+it('registers no core tag when components are disabled', function (): void {
+    $this->configOverrides = ['ichava.ichava-core.components.enabled' => false];
+    $this->refreshApplication();
+
+    expect(coreAliases())->toBe([])
+        ->and(Blade::getClassComponentNamespaces())->not->toHaveKey('ichava-core');
+});
+
+it('renders the same bytes through every registered prefix', function (): void {
+    app(IconRegistry::class)->fromDirectory(dirname(__DIR__) . '/fixtures/KindPack');
+
+    $short = Blade::render('<x-ichava::icon name="ichava-fixtures/kind-pack::glyphs/star" class="w-4" />');
+    $canonical = Blade::render('<x-ichava-core::icon name="ichava-fixtures/kind-pack::glyphs/star" class="w-4" />');
+
+    expect($short)->toContain('<svg')
+        ->and($canonical)->toBe($short);
+});
+
+it('adds no unscoped alias beyond the configured short one', function (): void {
+    $short = config('ichava.ichava-core.components.short_prefix');
+
+    expect(coreAliases())->not->toBeEmpty();
+
+    foreach (array_keys(coreAliases()) as $alias) {
+        expect(str_starts_with($alias, 'ichava-core::') || ($short !== null && str_starts_with($alias, "{$short}::")))->toBeTrue("unscoped alias {$alias}");
     }
 });
 
-it('renders the same bytes through the bare and the scoped tag', function (): void {
-    app(Simtabi\Laranail\Ichava\Services\IconRegistry::class)->fromDirectory(dirname(__DIR__) . '/fixtures/KindPack');
+it('reports a short alias another provider has overwritten', function (): void {
+    expect(app(ComponentPrefixes::class)->shadowedShortAlias())->toBeNull();
 
-    $bare = Blade::render('<x-ichava::icon name="ichava-fixtures/kind-pack::glyphs/star" class="w-4" />');
-    $scoped = Blade::render('<x-ichava-core::icon name="ichava-fixtures/kind-pack::glyphs/star" class="w-4" />');
+    Blade::component('ichava::icon', Illuminate\View\Component::class);
 
-    expect($bare)->toContain('<svg')
-        ->and($scoped)->toBe($bare);
+    expect(app(ComponentPrefixes::class)->shadowedShortAlias())->toBe(Illuminate\View\Component::class);
+});
+
+it('has doctor warn when the short alias is shadowed', function (): void {
+    $status = function (): ?string {
+        Illuminate\Support\Facades\Artisan::call('ichava::ichava-core.info', ['type' => 'doctor', '--format' => 'json']);
+        $report = json_decode(Illuminate\Support\Facades\Artisan::output(), true);
+
+        return collect($report['checks'] ?? [])->firstWhere('id', 'component.short_prefix_shadowed')['status'] ?? null;
+    };
+
+    expect($status())->toBe('ok');
+
+    Blade::component('ichava::icon', Illuminate\View\Component::class);
+
+    expect($status())->toBe('warn');
 });

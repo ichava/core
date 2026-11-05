@@ -123,9 +123,9 @@ ecosystem and only the namespace varies, so a contributor can `grep "class Icons
 and find every pack. A `<Pack>IconsServiceProvider` name is the thing this convention exists to
 prevent; the same holds for `IconsConstants` and `IconComponent`.
 
-> **Rule for icon packs:** extend `Simtabi\Laranail\Ichava\Support\IconPackServiceProvider` (lives in `ichava/core`) and declare two methods, `constantsClass()` and `componentClass()`. The base names the package from the constants class, sets the path from the provider file, registers `config/{slug}.php` when the pack ships one, registers `<x-{slug}-icon>`, and hands `resources/assets/svg` to the registry. Never extend `IchavaServiceProvider`, `IconBrowserServiceProvider`, or `PackageServiceProvider` directly.
+> **Rule for icon packs:** extend `Simtabi\Laranail\Ichava\Providers\IconPackServiceProvider` (lives in `ichava/core`) and declare two methods, `constantsClass()` and `componentClass()`. The base names the package from the constants class, sets the path from the provider file, registers `config/{slug}.php` when the pack ships one, registers `<x-{vendor}-{package}::icon>` (and the short `<x-{package}-icon>` while `components.short_prefix` is on), and hands `resources/assets/svg` to the registry. A pack that needs more overrides the optional `pack(PackSpec $pack)` hook: see [Pack registration](tools/pack-registration.md). Never extend `IchavaServiceProvider`, `IconBrowserServiceProvider`, or `PackageServiceProvider` directly.
 >
-> `Support\ServiceProvider`, which `IconPackServiceProvider` extends, still works for a provider that writes its own `configurePackage(Package $package)`; such a provider imports `laranail/package-tools`' `Package`, which is why no estate pack does any more.
+> `Providers\PackServiceProvider`, which `IconPackServiceProvider` extends, still works for a provider that writes its own `configurePackage(Package $package)`; such a provider imports `laranail/package-tools`' `Package`, which is why no estate pack does any more.
 
 > **Rule for the browser package:** extends `laranail/package-tools`' `PackageServiceProvider` directly. Boots its routes, views, and Vite assets in `bootingPackage()` so core's services are guaranteed to be bound first.
 
@@ -249,37 +249,25 @@ Migrations are auto-discovered through `discoversMigrations()`, which uses the s
 
 Public asset publishing for the SPA happens in `IconBrowserServiceProvider::bootingPackage()`, not core. The browser package's `public/` directory is copied to `public/vendor/ichava/` under the `ichava::icon-browser-assets` tag.
 
-## RuntimeConfigurator (PHP runtime tuning)
+## Runtime limits
 
-Heavy operations (seeding 100k+ icons, batch processing) need higher memory limits and longer timeouts. Core uses the `RuntimeConfigurator` utility from `laranail/package-tools`:
+Heavy operations (seeding 100k+ icons, watching, cache builds) need a higher memory limit, a longer time limit and Telescope paused. Core applies them only around its own operations, never to the host: `Support\RuntimeLimits::scope()` applies `ichava.ichava-core.runtime.memory_limit`, `runtime.max_execution_time` and `runtime.disable_telescope_in_queue` from the merged config, runs the operation, and restores the previous values when it returns or throws.
 
 ```php
-use Simtabi\Laranail\PackageTools\Support\RuntimeConfigurator;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 
-RuntimeConfigurator::make()
-    ->memory('2G')
-    ->timeout(0)
-    ->disableTelescope()
-    ->apply();
+app(RuntimeLimits::class)->scope(fn () => $seeder->seedAllPackages());
 ```
 
-`IchavaServiceProvider::configureRuntimeSettings()` calls this automatically during `registeringPackage()`, reading `ichava.ichava-core.runtime.memory_limit`, `ichava.ichava-core.runtime.max_execution_time`, and `ichava.ichava-core.runtime.disable_telescope_in_queue` from config. No manual setup required.
+The seed, cache and watch commands, `IchavaSeeder::run()` and each `SeedIconsJob` run inside it (a job passes its own `timeout`). A host request or command that never calls them keeps its own limits. The configurator is `Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator` from `laranail/package-tools`.
 
-See `Simtabi\Laranail\Packager\Package\Support\RuntimeConfigurator` for the full fluent API (preset factories like `forQueueJob()`, `forBatchProcessing()`, scoped `scope()` callbacks, Xdebug and Debugbar toggles).
+## Bulk registration
 
-## IchavaRegistrar (bulk registration helper)
+Several sets under one directory register through `IconRegistry::registerMany()`, the same path as a set registered alone: from a pack's `PackSpec::sets()`, from `PackServiceProvider::registerBulkIconSets()` (which returns the `IchavaRegistrar` that runs it), or from a `custom-icons` entry with `'bulk' => true`. One run is one registrar id: `started`, each set's `processing` and `registered` (or `failed`), and one `completed` with the counts. A broken set is reported in the `BulkResult` and the rest register, unless `BulkOptions::$failFast`.
 
-Use `IchavaRegistrar` when a service provider manages multiple icon-set sub-directories under a shared base path (for example, a pack that vendors dozens of upstream sets). It loops over the directories, skips missing ones, and optionally tracks statistics.
+> **Call stage:** only from `bootingPackage()` or later. `IconRegistry` is not bound until core's provider has registered.
 
-| Scenario | Recommended approach |
-|---|---|
-| Single directory | `$this->registerIconDirectory()` in `bootingPackage()` |
-| 2 to 10 directories | `IchavaRegistrar` or `$this->registerBulkIconSets()` |
-| 10+ directories or large bundle | `IchavaRegistrar` with `trackStatistics()->enableLogging()` |
-
-> **Call stage:** only call from `bootingPackage()`. `IconRegistry` is not bound until after the registration phase completes.
-
-`packagePrefix`, `iconSetSuffix`, and `bladeNamespace` are extensibility hooks. They live on the registrar instance and are available inside a custom `registerIconSet()` override. The default `registerIconSet()` only passes path + provider class to `IconRegistry::fromDirectory()`; it does not act on these properties itself.
+The three forms, the options and the event lifecycle are in [Pack registration](tools/pack-registration.md#bulk-registration).
 
 ## Icon-package scaffolding
 
@@ -295,7 +283,7 @@ supplied comes from `laranail/console` directly.
 
 What a pack is scaffolded *into* is still core's contract: the class short names
 (`IconsServiceProvider`, `IconsConstants`, `Variant`, `IconComponent`), the
-`Support\IconPackServiceProvider` a pack extends, and the `config.json` shape its constants read. That
+`Providers\IconPackServiceProvider` a pack extends, and the `config.json` shape its constants read. That
 contract is documented here; how a pack gets generated is documented
 [in the scaffolder](https://github.com/ichava/icon-sets-package-scaffolder/blob/main/docs/architecture.md).
 
@@ -310,7 +298,7 @@ Two unified event classes cover Ichava's runtime signals. Listeners can branch o
 
 | Action | Constructor | Fires when |
 |---|---|---|
-| `started` | `IconRegistrationEvent::started($registrarId, $name, $totalIconSets, $mode)` | A bulk registration begins |
+| `started` | `IconRegistrationEvent::started($registrarId, $name, $totalIconSets, $mode)` | A bulk registration begins (`registerMany()`, mode `bulk`) |
 | `processing` | `IconRegistrationEvent::processing($registrarId, $name, $metadata, $position, $total)` | Each icon set in a bulk is processed |
 | `registered` | `IconRegistrationEvent::registered($registrarId, $name, $metadata, $duration, $iconCount)` | A single icon set is registered |
 | `failed` | `IconRegistrationEvent::failed($registrarId, $name, $metadata, $exception)` | Registration of one set throws |

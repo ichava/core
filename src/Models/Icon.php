@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Models;
 
-use Throwable;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -15,15 +14,14 @@ use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Illuminate\Database\Eloquent\Collection;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Enums\KindSource;
-use Simtabi\Laranail\Ichava\Support\AuditLogger;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Simtabi\Laranail\Ichava\Services\IconSvgReader;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
 /**
@@ -76,8 +74,12 @@ final class Icon extends Model
     /**
      * The morph alias core registers for this model, and so the value every
      * `termable_type` row holds. A literal so raw search SQL can quote it.
+     *
+     * Vendor-scoped: the morph map is one flat map per application, and a bare
+     * `icon` is a name a host or another package may claim for its own model.
+     * Migration 2026_11_05_000001 moves rows stored under `icon` (C-02).
      */
-    public const MORPH_ALIAS = 'icon';
+    public const MORPH_ALIAS = 'ichava-icon';
 
     /** @var string */
     protected $table = self::TABLE;
@@ -1157,113 +1159,16 @@ final class Icon extends Model
      */
     private function processedSvg(string $path, string $storedPath, string $cacheKey): ?string
     {
-        /*
-         * Sanitise here, at the single point every consumer reads through.
-         *
-         * This used to be a bare `File::get()`. The SVG endpoint's own comment
-         * claimed the content "has been sanitised by SvgProcessingService" and
-         * added nosniff plus a restrictive CSP as defence in depth -- but nothing
-         * had sanitised it, so those headers were the only defence, and they only
-         * apply to that one route.
-         *
-         * The path that mattered more is JSON: `IconBrowserService` puts
-         * `svg_content` straight into an API payload, where no response header
-         * helps, and the client injects it into the DOM. A pack shipping a hostile
-         * file reached the browser verbatim -- and packs do contain
-         * `foreignObject`, `script` and `image` elements today.
-         *
-         * The result is cached post-sanitisation, so this costs one pass per icon
-         * per cache lifetime rather than one per request.
-         */
-        $content = app(IconCacheService::class)->remember(
+        $base = $this->getPackageBasePath();
+
+        return app(IconSvgReader::class)->read(
+            $path,
+            $storedPath,
             $cacheKey,
-            function () use ($path, $storedPath): string {
-                /*
-                 * The kind's byte budget is enforced at seed time, but the
-                 * file is read again here, on every cache miss -- and it may
-                 * have been replaced or grown since. Check it before reading,
-                 * so an oversized file costs a stat rather than a parse (S2).
-                 */
-                $kind = $this->kind instanceof IconKind ? $this->kind : IconKind::Icon;
-                $limit = $kind->maxFileSize();
-                $size = @filesize($path);
-
-                if ($size !== false && $size > $limit) {
-                    app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
-                        'path'    => $storedPath,
-                        'package' => $this->package,
-                        'reason'  => IchavaException::svgTooLarge($size, $limit)->getMessage(),
-                    ]);
-
-                    return '';
-                }
-
-                $raw = File::get($path);
-
-                try {
-                    $svg = app(SvgProcessingService::class);
-
-                    /*
-                     * Namespace ids before sanitising, and inside the cache,
-                     * so it costs one pass per icon per cache lifetime.
-                     *
-                     * SVG ids are page-scoped in practice. 2,157 files in the
-                     * corpus share `_Transparent_Rectangle_` and 261 share
-                     * `Layer_1`; render two of them together and the second
-                     * icon's `url(#Layer_1)` resolves to the first one's
-                     * definition, silently. The browser renders 60+ at once.
-                     * The prefix is derived from the path, not the content, so
-                     * it survives an upstream refresh and stays deterministic
-                     * for the content-addressed cache (CR1).
-                     */
-                    $raw = $svg->namespaceIds($raw, $storedPath);
-
-                    /*
-                     * Hand sizing back to the component. An icon shipping
-                     * both a viewBox and hard width/height ignores the size
-                     * it is asked for; 6,146 tabler icons alone ship that
-                     * pair. An icon with neither is
-                     * reported rather than dropped -- it still renders, it
-                     * just has no intrinsic size to scale against.
-                     */
-                    $raw = $svg->normaliseSizing($raw, function (string $reason) use ($storedPath): void {
-                        app(AuditLogger::class)->warning('svg.unusable_sizing', [
-                            'path'    => $storedPath,
-                            'package' => $this->package,
-                            'reason'  => $reason,
-                        ]);
-                    });
-
-                    /*
-                     * Opt-in (B7): a monochrome icon that hardcodes black
-                     * vanishes on a dark background. Off by default; the flag
-                     * is part of render_version, so turning it on re-keys this
-                     * cache entry by itself.
-                     */
-                    if ($svg->convertsMonochromeToCurrentColor()) {
-                        $raw = $svg->monochromeToCurrentColor($raw);
-                    }
-
-                    return $svg->process($raw, [], false);
-                } catch (Throwable $e) {
-                    /*
-                     * A file the sanitiser rejects is not served raw as a
-                     * fallback. Failing closed is the point: the rejection means
-                     * it could not be made safe.
-                     */
-                    app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
-                        'path'    => $storedPath,
-                        'package' => $this->package,
-                        'reason'  => $e->getMessage(),
-                    ]);
-
-                    return '';
-                }
-            },
-            expects: 'string',
+            $this->kind instanceof IconKind ? $this->kind : IconKind::Icon,
+            (string) $this->package,
+            $base !== '' ? $base : null,
         );
-
-        return is_string($content) ? $content : null;
     }
 
     /**

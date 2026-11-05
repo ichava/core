@@ -37,7 +37,7 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * @see IconCacheService
  * @see IchavaConstants
  */
-class SvgDriver
+final class SvgDriver
 {
     use ContainsFilePaths;
 
@@ -51,7 +51,7 @@ class SvgDriver
     ) {
         // @phpstan-ignore booleanNot.alwaysFalse (defensive: kept for subclasses that override the constructor)
         if (! $this->cache) {
-            throw IchavaException::dependencyNotInjected('IconCacheService', static::class);
+            throw IchavaException::dependencyNotInjected('IconCacheService', self::class);
         }
     }
 

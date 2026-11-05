@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-fluent",
+    "title": "Fluent UI System Icons",
+    "description": "Microsoft's Fluent UI System Icons at 24 px, in regular and filled.",
+    "keywords": [
+      "icons",
+      "svg",
+      "fluent",
+      "fluentui",
+      "microsoft"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "1.1.345",
+    "type": "multi",
+    "kind": "icon",
+    "license": "MIT"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "Microsoft Corporation",
+        "role": "Creator -- Fluent UI System Icons",
+        "url": "https://github.com/microsoft/fluentui-system-icons"
+      }
+    ],
+    "homepage": "https://github.com/microsoft/fluentui-system-icons",
+    "repository": "https://github.com/ichava/icon-sets-fluent",
+    "data": {
+      "variants": {
+        "regular": {
+          "name": "Regular",
+          "slug": "regular",
+          "description": "Outlined style at 24 px",
+          "default": true,
+          "icon_suffix": "_24_regular",
+          "display_order": 1,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        },
+        "filled": {
+          "name": "Filled",
+          "slug": "filled",
+          "description": "Solid style at 24 px",
+          "default": false,
+          "icon_suffix": "_24_filled",
+          "display_order": 2,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        }
+      },
+      "categories": {},
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "fluent"
+  },
+  "license": {
+    "spdx": "MIT",
+    "sha256": "69bc45dc42b9acb96a69823adbc6ae538374e3c0bde169b855b32c48eaaef52f",
+    "checked_at": "2026-11-04",
+    "file": "resources/assets/svg/licenses/fluentui-system-icons/LICENSE",
+    "source": "https://github.com/microsoft/fluentui-system-icons/blob/73ec879377b1f412f33aca4a128aa967e6c238f0/LICENSE",
+    "notice": "resources/assets/svg/licenses/fluentui-system-icons/NOTICE"
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "@fluentui/svg-icons",
+      "_ref": "73ec879377b1f412f33aca4a128aa967e6c238f0",
+      "_repository": "https://github.com/microsoft/fluentui-system-icons"
+    },
+    "current_version": "1.1.345",
+    "version_check_url": "https://registry.npmjs.org/@fluentui/svg-icons/latest",
+    "license": "MIT",
+    "update_command": {
+      "type": "recipe",
+      "recipe": "icon-sets-fluent",
+      "_note": "icon-sets-sync has no config/icon-sets-fluent.json yet; the proposed recipe is pack-recipes/icon-sets-fluent.json in the ichava design folder, and lands with the one icon-sets-sync pull request that adds the v0.1.0 packs. Until then the weekly sync-upstream run has nothing to run."
+    },
+    "_subset": "Size 24 only, regular and filled. The other sizes (10, 12, 16, 20, 28, 32, 48) and the `light` and `color` styles are not vendored. Upstream names are `<name>_24_<style>.svg`; the size and style move into the folder and the name is slugged to hyphens (`access_time_24_regular.svg` is `regular/access-time`)."
+  }
+}

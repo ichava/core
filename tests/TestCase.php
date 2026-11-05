@@ -20,6 +20,20 @@ abstract class TestCase extends Orchestra
     use RefreshDatabase;
 
     /**
+     * Providers a test registers after core's, for the next refreshApplication().
+     *
+     * @var list<class-string>
+     */
+    protected array $extraProviders = [];
+
+    /**
+     * Config a test sets before the providers boot, for the next refreshApplication().
+     *
+     * @var array<string, mixed>
+     */
+    protected array $configOverrides = [];
+
+    /**
      * This test's own file-cache directory, created per application boot.
      *
      * @var list<string>
@@ -61,6 +75,7 @@ abstract class TestCase extends Orchestra
     {
         return [
             IchavaServiceProvider::class,
+            ...$this->extraProviders,
         ];
     }
 
@@ -78,6 +93,10 @@ abstract class TestCase extends Orchestra
         // package namespaces its config under the short name it registers, so the
         // live key carries it.
         $app['config']->set('ichava.ichava-core.default_set', 'test');
+
+        foreach ($this->configOverrides as $key => $value) {
+            $app['config']->set($key, $value);
+        }
     }
 
     /**

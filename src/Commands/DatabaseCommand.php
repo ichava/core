@@ -16,10 +16,11 @@ use function Laravel\Prompts\warning;
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconTermsSeeder;
-use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
 
 /**
  * Unified Icon Database Command
@@ -60,7 +61,7 @@ final class DatabaseCommand extends BaseCommand
     protected array $validActions = ['seed', 'seed:icons', 'seed:terms', 'migrate', 'unseed', 'refresh', 'truncate', 'stats'];
 
     public function __construct(
-        protected DatabaseOperationsService $databaseService,
+        protected DatabaseOperations $databaseService,
         protected IchavaLogger $logger,
         protected IchavaSeeder $ichavaSeeder,
         protected IconTermsSeeder $termSeeder,
@@ -68,7 +69,7 @@ final class DatabaseCommand extends BaseCommand
         parent::__construct();
     }
 
-    public function handle(): int
+    public function handle(RuntimeLimits $limits): int
     {
         $action = Coerce::string($this->argument('action'));
 
@@ -101,7 +102,8 @@ final class DatabaseCommand extends BaseCommand
             return self::FAILURE;
         }
 
-        return match ($action) {
+        // Seeding runs under Ichava's limits, restored when it returns (C-01).
+        return $limits->scope(fn (): int => match ($action) {
             'seed'       => $this->handleSeed(),
             'seed:icons' => $this->handleSeedIcons(),
             'seed:terms' => $this->handleSeedTerms(),
@@ -110,7 +112,7 @@ final class DatabaseCommand extends BaseCommand
             'truncate'   => $this->handleTruncate(),
             'stats'      => $this->handleStats(),
             default      => $this->handleInvalidAction((string) $action, $this->validActions),
-        };
+        });
     }
 
     /**

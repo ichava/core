@@ -13,7 +13,7 @@ use function Laravel\Prompts\table;
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
-use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
+use Simtabi\Laranail\Ichava\Contracts\ChecksPackUpdates;
 
 /**
  * Reports which registered icon packs are behind their upstream source.
@@ -67,7 +67,7 @@ final class CheckIconUpdatesCommand extends BaseCommand
         // so test doubles bound via $this->app->instance() AFTER provider
         // boot still take effect. The Command itself is cached by Artisan
         // and would otherwise capture whatever singleton was first resolved.
-        $checker = $this->laravel->make(IconPackUpdateChecker::class);
+        $checker = $this->laravel->make(ChecksPackUpdates::class);
 
         $packageFilter = Coerce::stringOrNull($this->option('package'));
         $format = $this->option('format');

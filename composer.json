@@ -40,7 +40,8 @@
         "laravel/pint": "^1.18",
         "orchestra/testbench": "^11.0",
         "pestphp/pest": "^5.0",
-        "phpstan/phpstan": "^2.1"
+        "phpstan/phpstan": "^2.1",
+        "symfony/yaml": "^7.4 || ^8.0"
     },
     "conflict": {
         "symfony/http-foundation": "<7.4.23 || >=8.0,<8.1.11",
@@ -65,7 +66,8 @@
             "Simtabi\\Laranail\\Ichava\\Tests\\": "tests/",
             "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\BasePack\\": "tests/fixtures/BasePack/src/",
             "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\TranslatedPack\\": "tests/fixtures/TranslatedPack/src/",
-            "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\ViewfulPack\\": "tests/fixtures/ViewfulPack/src/"
+            "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\ViewfulPack\\": "tests/fixtures/ViewfulPack/src/",
+            "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\SpecPack\\": "tests/fixtures/SpecPack/src/"
         }
     },
     "extra": {

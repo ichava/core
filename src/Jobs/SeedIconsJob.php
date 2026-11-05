@@ -24,10 +24,10 @@ use Simtabi\Laranail\Ichava\Enums\KindSource;
 use Simtabi\Laranail\DbTools\Query\ChunkedWriter;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Ichava\Support\IconClassifier;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconSeederHelpers;
-use Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator;
 use Simtabi\Laranail\Package\Tools\Services\Database\SeederRunTracker;
 
 /**
@@ -48,7 +48,7 @@ use Simtabi\Laranail\Package\Tools\Services\Database\SeederRunTracker;
  * @see IchavaSeeder::seed() Dispatches these jobs
  * @see IconSeederHelpers Trait for path/tag extraction
  */
-class SeedIconsJob implements ShouldQueue
+final class SeedIconsJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use IconSeederHelpers;
@@ -89,8 +89,11 @@ class SeedIconsJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(IchavaLogger $logger): void
+    public function handle(IchavaLogger $logger, ?RuntimeLimits $limits = null): void
     {
+        // The queue injects $limits; a caller handling the job directly need not.
+        $limits ??= app(RuntimeLimits::class);
+
         // Check if batch was cancelled
         if ($this->batch()?->cancelled()) {
             $logger->info('🛑 Seeding cancelled, skipping', [
@@ -101,47 +104,9 @@ class SeedIconsJob implements ShouldQueue
             return;
         }
 
-        RuntimeConfigurator::make()
-            ->memory('512M')
-            ->timeout($this->timeout)
-            ->disableTelescope()
-            ->apply();
-
-        $fileCount = count($this->files);
-        $logger->info("Processing job {$this->jobIndex}/{$this->totalJobs}", [
-            'package' => $this->packageName,
-            'files'   => $fileCount,
-        ]);
-
-        try {
-            $result = $this->processFiles($logger);
-
-            // Inside a queued batch the job is the only thing that knows its chunk
-            // is done, so it reports progress. An inline run is counted by the
-            // ChunkedBatchDispatcher driving it; reporting here too would double it.
-            if ($this->batchId !== null) {
-                app(SeederRunTracker::class)->advance(IchavaSeeder::trackingKey($this->packageName), by: $fileCount);
-            }
-
-            $logger->info("Job {$this->jobIndex} completed", [
-                'package'         => $this->packageName,
-                'files_received'  => $fileCount,
-                'files_processed' => $result['processed'],
-                'files_skipped'   => $result['skipped'],
-                'files_new'       => $result['new'],
-                'files_updated'   => $result['updated'],
-            ]);
-        } catch (Throwable $e) {
-            if ($this->batchId !== null) {
-                app(SeederRunTracker::class)->advance(IchavaSeeder::trackingKey($this->packageName), failed: true, by: $fileCount);
-            }
-
-            $logger->jobFailed(self::class, $e, [
-                'package'   => $this->packageName,
-                'job_index' => $this->jobIndex,
-            ]);
-            throw $e;
-        }
+        // The job's own limits, restored when it returns, so a worker that runs
+        // other jobs after this one keeps the limits it started with (C-01).
+        $limits->scope(fn () => $this->seedChunk($logger), timeout: $this->timeout);
     }
 
     /**
@@ -573,5 +538,47 @@ class SeedIconsJob implements ShouldQueue
         sort($b);
 
         return $a !== $b;
+    }
+
+    /**
+     * Seed this job's chunk and report its progress.
+     */
+    private function seedChunk(IchavaLogger $logger): void
+    {
+        $fileCount = count($this->files);
+        $logger->info("Processing job {$this->jobIndex}/{$this->totalJobs}", [
+            'package' => $this->packageName,
+            'files'   => $fileCount,
+        ]);
+
+        try {
+            $result = $this->processFiles($logger);
+
+            // Inside a queued batch the job is the only thing that knows its chunk
+            // is done, so it reports progress. An inline run is counted by the
+            // ChunkedBatchDispatcher driving it; reporting here too would double it.
+            if ($this->batchId !== null) {
+                app(SeederRunTracker::class)->advance(IchavaSeeder::trackingKey($this->packageName), by: $fileCount);
+            }
+
+            $logger->info("Job {$this->jobIndex} completed", [
+                'package'         => $this->packageName,
+                'files_received'  => $fileCount,
+                'files_processed' => $result['processed'],
+                'files_skipped'   => $result['skipped'],
+                'files_new'       => $result['new'],
+                'files_updated'   => $result['updated'],
+            ]);
+        } catch (Throwable $e) {
+            if ($this->batchId !== null) {
+                app(SeederRunTracker::class)->advance(IchavaSeeder::trackingKey($this->packageName), failed: true, by: $fileCount);
+            }
+
+            $logger->jobFailed(self::class, $e, [
+                'package'   => $this->packageName,
+                'job_index' => $this->jobIndex,
+            ]);
+            throw $e;
+        }
     }
 }

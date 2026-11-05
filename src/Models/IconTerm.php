@@ -40,7 +40,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property-read int $icons_count Cached icon count
  * @property-read int $depth Term depth in hierarchy
  */
-class IconTerm extends Model
+final class IconTerm extends Model
 {
     public const TYPE_CATEGORY = 'category';
 
@@ -80,7 +80,7 @@ class IconTerm extends Model
             SELECT * FROM term_tree;
         ', [$termId]);
 
-        return static::hydrate($rows);
+        return self::hydrate($rows);
     }
 
     /**
@@ -225,7 +225,7 @@ class IconTerm extends Model
     /** @return Collection<int, IconTerm> */
     public function descendants(): Collection
     {
-        return static::descendantsOf($this->id);
+        return self::descendantsOf($this->id);
     }
 
     /**

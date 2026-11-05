@@ -19,7 +19,7 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
  * § "Icon Path Format" for the path grammar; both slash and dot separators
  * after `::` are accepted and normalized to slash form.
  */
-class PathResolver
+final class PathResolver
 {
     /**
      * Default SVG assets path constant
@@ -28,17 +28,17 @@ class PathResolver
     private const SVG_PATH = IchavaConstants::SVG_ASSETS_PATH;
 
     /** @var non-empty-string */
-    protected string $pathSeparator;
+    private string $pathSeparator;
 
     /** @var non-empty-string */
-    protected string $variantSeparator;
+    private string $variantSeparator;
 
     /** @var non-empty-string */
-    protected string $categorySeparator;
+    private string $categorySeparator;
 
-    protected ?string $iconPathPattern;
+    private ?string $iconPathPattern;
 
-    protected ?string $iconNamePattern;
+    private ?string $iconNamePattern;
 
     public function __construct()
     {

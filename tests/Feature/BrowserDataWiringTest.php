@@ -9,7 +9,6 @@ use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Data\VariantData;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
-use Simtabi\Laranail\Ichava\Support\ServiceProvider;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -17,6 +16,7 @@ use Simtabi\Laranail\Ichava\Drivers\DirectoryIconDriver;
 use Simtabi\Laranail\Ichava\Services\IconBrowserService;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Constants\JsonConfigConstants;
+use Simtabi\Laranail\Ichava\Providers\PackServiceProvider;
 use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 
 /*
@@ -40,7 +40,7 @@ final class VariantPackConstants extends JsonConfigConstants
     }
 }
 
-final class KindFixtureProvider extends ServiceProvider
+final class KindFixtureProvider extends PackServiceProvider
 {
     public function configurePackage(Package $package): void {}
 }

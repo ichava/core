@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Contracts\Console\Kernel;
 use Simtabi\Laranail\Ichava\Commands\CacheCommand;
 use Symfony\Component\Console\Output\OutputInterface;
-use Simtabi\Laranail\Ichava\Actions\ClearDiscoveryCaches;
 use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
+use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 use Simtabi\Laranail\Ichava\Tests\Support\RunsCommandsForCharacterization;
 
 /*
@@ -146,7 +146,7 @@ it('prints the stack trace at -vvv', function (): void {
 it('clears the discovery caches, each pack count cache and the watcher fingerprints', function (): void {
     // clear used to call IconCacheService::forgetPattern(), which never
     // existed, so it failed on every run.
-    $generation = ClearDiscoveryCaches::generation();
+    $generation = DiscoveryCacheGeneration::current();
 
     [$exit, $display] = $this->runCommand(
         CACHE_COMMAND,
@@ -155,7 +155,7 @@ it('clears the discovery caches, each pack count cache and the watcher fingerpri
     );
 
     $this->assertSame(0, $exit);
-    $this->assertSame($generation + 1, ClearDiscoveryCaches::generation(), 'The discovery caches were not retired.');
+    $this->assertSame($generation + 1, DiscoveryCacheGeneration::current(), 'The discovery caches were not retired.');
     $this->assertDisplayContains($display, [
         '🧹 Clearing icon caches',
         'Cleared 3 cache group(s)',
@@ -169,12 +169,12 @@ it('clears the discovery caches, each pack count cache and the watcher fingerpri
 });
 
 it('clears one pack with --package', function (): void {
-    $generation = ClearDiscoveryCaches::generation();
+    $generation = DiscoveryCacheGeneration::current();
 
     [$exit, $display] = $this->runCommand(CACHE_COMMAND, ['action' => 'clear', '--package' => 'ichava/test-icons']);
 
     $this->assertSame(0, $exit);
-    $this->assertSame($generation + 1, ClearDiscoveryCaches::generation());
+    $this->assertSame($generation + 1, DiscoveryCacheGeneration::current());
     $this->assertDisplayContains($display, [
         'Clearing cache for package: ichava/test-icons...',
         'Cleared 2 cache group(s)',

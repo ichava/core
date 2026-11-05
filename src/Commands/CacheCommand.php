@@ -16,6 +16,7 @@ use function Laravel\Prompts\confirm;
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Console\Tools\Support\FileSize;
 use Simtabi\Laranail\Console\Tools\Support\TimeFormat;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
@@ -60,7 +61,7 @@ final class CacheCommand extends BaseCommand
         parent::__construct();
     }
 
-    public function handle(): int
+    public function handle(RuntimeLimits $limits): int
     {
         $action = Coerce::string($this->argument('action'));
 
@@ -81,7 +82,8 @@ final class CacheCommand extends BaseCommand
             );
         }
 
-        return match ($action) {
+        // Cache builds run under Ichava's limits, restored when they return (C-01).
+        return $limits->scope(fn (): int => match ($action) {
             'clear'    => $this->handleClear(),
             'rebuild'  => $this->handleRebuild(),
             'refresh'  => $this->handleRefresh(),
@@ -89,7 +91,7 @@ final class CacheCommand extends BaseCommand
             'manifest' => $this->handleManifest(),
             'stats'    => $this->handleStats(),
             default    => $this->handleInvalidAction((string) $action, $this->validActions),
-        };
+        });
     }
 
     /**

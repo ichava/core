@@ -58,7 +58,7 @@ use Illuminate\Support\Facades\Facade;
  *
  * @see Ichava
  */
-class IchavaFacade extends Facade
+final class IchavaFacade extends Facade
 {
     protected static function getFacadeAccessor(): string
     {

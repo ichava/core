@@ -1,0 +1,1625 @@
+{
+    "<root>/resources/assets/svg/test-icons": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/resources/assets/svg/test-icons",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "Internal test icon sets for development, testing, and quality assurance purposes",
+            "homepage": "https://github.com/simtabi/ichava",
+            "icon_set_name": "ichava/test-icons",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "test",
+                "development",
+                "qa",
+                "internal"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Test Icons Collection",
+            "package_name": "ichava/test-icons",
+            "prefix": "test",
+            "provider_class": null,
+            "repository": "https://github.com/simtabi/ichava",
+            "theme_variants": [],
+            "total": 4,
+            "variant_metadata": [],
+            "vendor": "ichava",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/BasePack/resources/assets/svg": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/BasePack/resources/assets/svg",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "A pack built on IconPackServiceProvider",
+            "homepage": null,
+            "icon_set_name": "ichava/icon-sets-base-fixture",
+            "item_kinds": [],
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Base Fixture",
+            "package_name": "ichava/icon-sets-base-fixture",
+            "prefix": "bf",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": [],
+            "total": 1,
+            "variant_metadata": [],
+            "vendor": "ichava",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/BrokenKindPack": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/BrokenKindPack",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "Every kind mistake doctor reports, in one pack.",
+            "homepage": null,
+            "icon_set_name": "ichava-fixtures/broken-kind-pack",
+            "item_kinds": {
+                "glyphs/ghost": "illustration"
+            },
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [
+                {
+                    "check": "kind.invalid_value",
+                    "key": "package.kind",
+                    "value": "animation"
+                },
+                {
+                    "check": "kind.invalid_value",
+                    "key": "metadata.data.categories.glyphs.kind",
+                    "value": "bogus"
+                },
+                {
+                    "check": "kind.invalid_glob",
+                    "key": "metadata.data.kinds.rules.0.match",
+                    "value": "a**",
+                    "index": 0,
+                    "pattern": "a**"
+                },
+                {
+                    "check": "kind.invalid_value",
+                    "key": "metadata.data.kinds.rules.1.kind",
+                    "value": "nope"
+                },
+                {
+                    "check": "kind.invalid_value",
+                    "key": "metadata.data.items.glyphs/star.kind",
+                    "value": "sticker"
+                }
+            ],
+            "kind_rules": [
+                {
+                    "match": "unused/**",
+                    "kind": "illustration"
+                },
+                {
+                    "match": "scenes/park-dark",
+                    "kind": "illustration"
+                },
+                {
+                    "match": "scenes/*",
+                    "kind": "illustration"
+                }
+            ],
+            "labels": [],
+            "license": "MIT",
+            "name": "Broken kind fixture pack",
+            "package_name": "ichava-fixtures/broken-kind-pack",
+            "prefix": "brokenfix",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": {
+                "scenes": {
+                    "dark": "-dark"
+                }
+            },
+            "total": 3,
+            "variant_metadata": [],
+            "vendor": "ichava-fixtures",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/HeuristicPack": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/HeuristicPack",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "A flag that must not be suggested and a scene that must.",
+            "homepage": null,
+            "icon_set_name": "ichava-fixtures/heuristic-pack",
+            "item_kinds": [],
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Heuristic fixture pack",
+            "package_name": "ichava-fixtures/heuristic-pack",
+            "prefix": "heurfix",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": [],
+            "total": 3,
+            "variant_metadata": [],
+            "vendor": "ichava-fixtures",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/IconAliases": {
+        "aliases": {
+            "shapes/circle": "shapes/dot",
+            "shapes/ring": "shapes/dot"
+        },
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/IconAliases",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "Test fixture: a pack that kept one of two identical icons and aliases the dropped name",
+            "homepage": null,
+            "icon_set_name": "ichava-fixtures/aliased",
+            "item_kinds": [],
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Fixture pack (aliases.json)",
+            "package_name": "ichava-fixtures/aliased",
+            "prefix": "fxa",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": [],
+            "total": 2,
+            "variant_metadata": [],
+            "vendor": "ichava-fixtures",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/KindPack": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/KindPack",
+            "blade_component": null,
+            "category_kinds": {
+                "scenes": "illustration"
+            },
+            "declared_kind": "icon",
+            "description": "Icons and illustrations side by side, with a dark theme twin.",
+            "homepage": null,
+            "icon_set_name": "ichava-fixtures/kind-pack",
+            "item_kinds": [],
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Kind fixture pack",
+            "package_name": "ichava-fixtures/kind-pack",
+            "prefix": "kindfix",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": {
+                "scenes": {
+                    "dark": "-dark"
+                }
+            },
+            "total": 4,
+            "variant_metadata": [],
+            "vendor": "ichava-fixtures",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/MixedKindPack": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/MixedKindPack",
+            "blade_component": null,
+            "category_kinds": {
+                "illustrations": "illustration"
+            },
+            "declared_kind": "icon",
+            "description": "The contract's mixed pack: item, rule, category and pack kinds side by side.",
+            "homepage": null,
+            "icon_set_name": "ichava-fixtures/mixed-pack",
+            "item_kinds": {
+                "glyphs/hero-banner": "illustration"
+            },
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [
+                {
+                    "match": "spot/tiny-*",
+                    "kind": "icon"
+                },
+                {
+                    "match": "spot/**",
+                    "kind": "illustration"
+                }
+            ],
+            "labels": [],
+            "license": "MIT",
+            "name": "Mixed kind fixture pack",
+            "package_name": "ichava-fixtures/mixed-pack",
+            "prefix": "mixfix",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": {
+                "illustrations": {
+                    "dark": "-dark"
+                }
+            },
+            "total": 6,
+            "variant_metadata": [],
+            "vendor": "ichava-fixtures",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/PackConfigShapes/nested": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/PackConfigShapes/nested",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "Test fixture: config.json with variants and categories at metadata.data, the shape every pack ships",
+            "homepage": null,
+            "icon_set_name": "ichava-fixtures/nested-shape",
+            "item_kinds": [],
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Fixture pack (metadata.data shape)",
+            "package_name": "ichava-fixtures/nested-shape",
+            "prefix": "fxn",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": [],
+            "total": 4,
+            "variant_metadata": {
+                "default": {
+                    "name": "Default",
+                    "slug": "default",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": []
+                }
+            },
+            "vendor": "ichava-fixtures",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/PackConfigShapes/top-level": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/PackConfigShapes/top-level",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "Test fixture: config.json with variants and categories only at the top level, a shape core does not read",
+            "homepage": null,
+            "icon_set_name": "ichava-fixtures/top-level-shape",
+            "item_kinds": [],
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Fixture pack (top-level shape)",
+            "package_name": "ichava-fixtures/top-level-shape",
+            "prefix": "fxt",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": [],
+            "total": 1,
+            "variant_metadata": [],
+            "vendor": "ichava-fixtures",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/bootstrap": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/bootstrap",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "2,078 Bootstrap Icons from v1.13.2, 16px, flat; filled forms keep their -fill suffix.",
+            "homepage": "https://icons.getbootstrap.com/",
+            "icon_set_name": "ichava/icon-sets-bootstrap",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "bootstrap",
+                "bootstrap-icons",
+                "laravel",
+                "ichava"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Bootstrap Icons",
+            "package_name": "ichava/icon-sets-bootstrap",
+            "prefix": "bi",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-bootstrap",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": [],
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/carbon": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/carbon",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "IBM's Carbon Design System icons: the full set at 32 px and the 16 px redraws.",
+            "homepage": "https://carbondesignsystem.com/elements/icons/library/",
+            "icon_set_name": "ichava/icon-sets-carbon",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "carbon",
+                "ibm",
+                "carbon-design-system"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT (code) / Apache-2.0 (icons)",
+            "name": "Carbon Icons",
+            "package_name": "ichava/icon-sets-carbon",
+            "prefix": "carbon",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-carbon",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "size-32": {
+                    "name": "32 px",
+                    "slug": "size-32",
+                    "description": "The full set, drawn on the 32 px grid",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": [],
+                    "preview_icon": "add",
+                    "color_scheme": "fill-based"
+                },
+                "size-16": {
+                    "name": "16 px",
+                    "slug": "size-16",
+                    "description": "Glyphs redrawn for 16 px, where upstream ships one",
+                    "default": false,
+                    "icon_suffix": "",
+                    "display_order": 2,
+                    "attributes": [],
+                    "preview_icon": "add",
+                    "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/emoji": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/emoji",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "Twemoji, Twitter/X's open-source emoji set, as SVG. Unicode 17 / Emoji 17 spec. Categorised by Unicode CLDR groups. OpenMoji is in ichava/icon-sets-openmoji.",
+            "homepage": null,
+            "icon_set_name": "ichava/icon-sets-emoji",
+            "item_kinds": [],
+            "keywords": [
+                "emoji",
+                "twemoji",
+                "svg",
+                "unicode",
+                "bundle"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT (code) / CC-BY 4.0 (Twemoji assets)",
+            "name": "Emoji Sets",
+            "package_name": "ichava/icon-sets-emoji",
+            "prefix": "emoji",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-emoji",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "default": {
+                    "name": "Default",
+                    "slug": "default",
+                    "description": "Standard Twemoji style",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": [],
+                    "color_scheme": "adaptive"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/extras": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/extras",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "20 smaller open-licence icon, logo and emoji sets in one pack, one directory per set, each under its own licence (MIT, Apache-2.0, CC0-1.0 or CC BY).",
+            "homepage": "https://github.com/ichava/icon-sets-extras#readme",
+            "icon_set_name": "ichava/icon-sets-extras",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "emoji",
+                "logos",
+                "bundle",
+                "open-source"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT (code); icons per set, see ATTRIBUTION.md",
+            "name": "Ichava Extras",
+            "package_name": "ichava/icon-sets-extras",
+            "prefix": "extras",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-extras",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "default": {
+                    "name": "Default",
+                    "slug": "default",
+                    "description": "Each set's own style",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": [],
+                    "color_scheme": "adaptive"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/flag": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/flag",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "271 country flag SVGs sourced from lipis/flag-icons, available in 4x3 and 1x1 aspect ratios. Replaces the flag half of the deprecated simtabi/laflamoji.",
+            "homepage": "https://github.com/lipis/flag-icons",
+            "icon_set_name": "ichava/icon-sets-flag",
+            "item_kinds": [],
+            "keywords": [
+                "flags",
+                "country-flags",
+                "svg",
+                "lipis",
+                "iso-3166"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Flag Icons",
+            "package_name": "ichava/icon-sets-flag",
+            "prefix": "flag",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-flag",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "4x3": {
+                    "name": "4:3",
+                    "slug": "4x3",
+                    "description": "Canonical 4:3 aspect ratio. Best fit for most flags.",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": []
+                },
+                "1x1": {
+                    "name": "1:1",
+                    "slug": "1x1",
+                    "description": "Square 1:1 aspect ratio. Useful for badges, round avatars, picker grids.",
+                    "default": false,
+                    "icon_suffix": "",
+                    "display_order": 2,
+                    "attributes": []
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/fluent": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/fluent",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "Microsoft's Fluent UI System Icons at 24 px, in regular and filled.",
+            "homepage": "https://github.com/microsoft/fluentui-system-icons",
+            "icon_set_name": "ichava/icon-sets-fluent",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "fluent",
+                "fluentui",
+                "microsoft"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Fluent UI System Icons",
+            "package_name": "ichava/icon-sets-fluent",
+            "prefix": "fluent",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-fluent",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "regular": {
+                    "name": "Regular",
+                    "slug": "regular",
+                    "description": "Outlined style at 24 px",
+                    "default": true,
+                    "icon_suffix": "_24_regular",
+                    "display_order": 1,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                },
+                "filled": {
+                    "name": "Filled",
+                    "slug": "filled",
+                    "description": "Solid style at 24 px",
+                    "default": false,
+                    "icon_suffix": "_24_filled",
+                    "display_order": 2,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/font-awesome-free": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/font-awesome-free",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "2,883 Font Awesome Free icons (2,001 solid, 273 regular, 609 brands) by @fontawesome, vendored from Font Awesome 7.3.1. Icons CC BY 4.0, attribution required.",
+            "homepage": "https://fontawesome.com/",
+            "icon_set_name": "ichava/icon-sets-font-awesome-free",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "font-awesome",
+                "fontawesome",
+                "cc-by-4.0",
+                "brands"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT (code) / CC-BY-4.0 (Font Awesome Free icons)",
+            "name": "Font Awesome Free",
+            "package_name": "ichava/icon-sets-font-awesome-free",
+            "prefix": "fa",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-font-awesome-free",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "solid": {
+                    "name": "Solid",
+                    "slug": "solid",
+                    "description": "Filled glyphs. The largest Free style.",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": [],
+                    "preview_icon": "house",
+                    "color_scheme": "fill-based"
+                },
+                "regular": {
+                    "name": "Regular",
+                    "slug": "regular",
+                    "description": "Outlined glyphs. Free covers only part of the Regular style.",
+                    "default": false,
+                    "icon_suffix": "",
+                    "display_order": 2,
+                    "attributes": [],
+                    "preview_icon": "house",
+                    "color_scheme": "fill-based"
+                },
+                "brands": {
+                    "name": "Brands",
+                    "slug": "brands",
+                    "description": "Logos of companies, products and services. Trademarks of their owners.",
+                    "default": false,
+                    "icon_suffix": "",
+                    "display_order": 3,
+                    "attributes": [],
+                    "preview_icon": "house",
+                    "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/heroicons": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/heroicons",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "1,288 Heroicons from v2.2.0 in four variants: outline and solid (24px), mini (20px) and micro (16px).",
+            "homepage": "https://heroicons.com/",
+            "icon_set_name": "ichava/icon-sets-heroicons",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "heroicons",
+                "tailwind",
+                "outline",
+                "solid",
+                "laravel",
+                "ichava"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Heroicons",
+            "package_name": "ichava/icon-sets-heroicons",
+            "prefix": "heroicon",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-heroicons",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "outline": {
+                    "name": "Outline",
+                    "slug": "outline",
+                    "description": "24px, 1.5px stroke",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": {
+                        "fill": "none",
+                        "stroke": "currentColor",
+                        "stroke_width": 1.5
+                    }
+                },
+                "solid": {
+                    "name": "Solid",
+                    "slug": "solid",
+                    "description": "24px, filled",
+                    "default": false,
+                    "icon_suffix": "",
+                    "display_order": 2,
+                    "attributes": {
+                        "fill": "currentColor"
+                    }
+                },
+                "mini": {
+                    "name": "Mini",
+                    "slug": "mini",
+                    "description": "20px, filled, for smaller UI",
+                    "default": false,
+                    "icon_suffix": "",
+                    "display_order": 3,
+                    "attributes": {
+                        "fill": "currentColor"
+                    }
+                },
+                "micro": {
+                    "name": "Micro",
+                    "slug": "micro",
+                    "description": "16px, filled, for dense UI",
+                    "default": false,
+                    "icon_suffix": "",
+                    "display_order": 4,
+                    "attributes": {
+                        "fill": "currentColor"
+                    }
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/iconoir": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/iconoir",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "An open-source library of 24px stroke icons with a smaller solid set, drawn on a 1.5px stroke.",
+            "homepage": "https://iconoir.com/",
+            "icon_set_name": "ichava/icon-sets-iconoir",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "iconoir",
+                "stroke",
+                "solid",
+                "open-source"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Iconoir",
+            "package_name": "ichava/icon-sets-iconoir",
+            "prefix": "iconoir",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-iconoir",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "regular": {
+                    "name": "Regular",
+                    "slug": "regular",
+                    "description": "Stroked icons on a 1.5px line, transparent fill",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": {
+                        "stroke_width": 1.5,
+                        "fill": "none",
+                        "stroke": "currentColor"
+                    },
+                    "preview_icon": "heart",
+                    "color_scheme": "stroke-based"
+                },
+                "solid": {
+                    "name": "Solid",
+                    "slug": "solid",
+                    "description": "Solid icons filled with the current colour",
+                    "default": false,
+                    "icon_suffix": "",
+                    "display_order": 2,
+                    "attributes": {
+                        "fill": "currentColor",
+                        "stroke": "none"
+                    },
+                    "preview_icon": "heart",
+                    "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/ionicons": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/ionicons",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "Ionic's Ionicons in filled, outline and sharp, with the logo icons under filled.",
+            "homepage": "https://ionic.io/ionicons",
+            "icon_set_name": "ichava/icon-sets-ionicons",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "ionicons",
+                "ionic"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Ionicons",
+            "package_name": "ichava/icon-sets-ionicons",
+            "prefix": "ion",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-ionicons",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "filled": {
+                    "name": "Filled",
+                    "slug": "filled",
+                    "description": "Solid style, and the 94 logo icons",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                },
+                "outline": {
+                    "name": "Outline",
+                    "slug": "outline",
+                    "description": "Stroked style",
+                    "default": false,
+                    "icon_suffix": "-outline",
+                    "display_order": 2,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "stroke-based"
+                },
+                "sharp": {
+                    "name": "Sharp",
+                    "slug": "sharp",
+                    "description": "Solid style with square corners",
+                    "default": false,
+                    "icon_suffix": "-sharp",
+                    "display_order": 3,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/lucide": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/lucide",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "2,313 Lucide icons: one 24px stroke style, vendored from lucide-static 1.68.0. ISC, with MIT for the Feather-derived icons.",
+            "homepage": "https://lucide.dev/",
+            "icon_set_name": "ichava/icon-sets-lucide",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "lucide",
+                "feather",
+                "stroke",
+                "laravel",
+                "ichava"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "ISC",
+            "name": "Lucide Icons",
+            "package_name": "ichava/icon-sets-lucide",
+            "prefix": "lucide",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-lucide",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": [],
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/material-symbols": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/material-symbols",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "Google's Material Symbols at weight 400: 3,940 icons in outlined, rounded and sharp, each unfilled and filled.",
+            "homepage": "https://fonts.google.com/icons",
+            "icon_set_name": "ichava/icon-sets-material-symbols",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "material",
+                "material-symbols",
+                "google"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT (code) / Apache-2.0 (icons)",
+            "name": "Material Symbols",
+            "package_name": "ichava/icon-sets-material-symbols",
+            "prefix": "material-symbols",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-material-symbols",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "outlined": {
+                    "name": "Outlined",
+                    "slug": "outlined",
+                    "description": "Outlined style, weight 400, unfilled",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                },
+                "outlined-fill": {
+                    "name": "Outlined filled",
+                    "slug": "outlined-fill",
+                    "description": "Outlined style, weight 400, filled",
+                    "default": false,
+                    "icon_suffix": "-fill",
+                    "display_order": 2,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                },
+                "rounded": {
+                    "name": "Rounded",
+                    "slug": "rounded",
+                    "description": "Rounded style, weight 400, unfilled",
+                    "default": false,
+                    "icon_suffix": "",
+                    "display_order": 3,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                },
+                "rounded-fill": {
+                    "name": "Rounded filled",
+                    "slug": "rounded-fill",
+                    "description": "Rounded style, weight 400, filled",
+                    "default": false,
+                    "icon_suffix": "-fill",
+                    "display_order": 4,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                },
+                "sharp": {
+                    "name": "Sharp",
+                    "slug": "sharp",
+                    "description": "Sharp style, weight 400, unfilled",
+                    "default": false,
+                    "icon_suffix": "",
+                    "display_order": 5,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                },
+                "sharp-fill": {
+                    "name": "Sharp filled",
+                    "slug": "sharp-fill",
+                    "description": "Sharp style, weight 400, filled",
+                    "default": false,
+                    "icon_suffix": "-fill",
+                    "display_order": 6,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/mdi": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/mdi",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "7,447 Material Design Icons by Pictogrammers, one 24px style, vendored from @mdi/svg 7.4.47.",
+            "homepage": "https://pictogrammers.com/library/mdi/",
+            "icon_set_name": "ichava/icon-sets-mdi",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "mdi",
+                "material-design-icons",
+                "pictogrammers",
+                "apache-2.0"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT (code) / Apache-2.0 (Material Design Icons assets)",
+            "name": "Material Design Icons",
+            "package_name": "ichava/icon-sets-mdi",
+            "prefix": "mdi",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-mdi",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "default": {
+                    "name": "Default",
+                    "slug": "default",
+                    "description": "The one style: 24px filled glyphs. Outlined designs are separate icons whose names end in -outline.",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": [],
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/octicons": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/octicons",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "GitHub's Primer icon set at two optical sizes, 16px and 24px. The GitHub logos and product marks are excluded: they are trademarks, not part of the MIT grant.",
+            "homepage": "https://primer.style/octicons/",
+            "icon_set_name": "ichava/icon-sets-octicons",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "octicons",
+                "primer",
+                "github"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Octicons",
+            "package_name": "ichava/icon-sets-octicons",
+            "prefix": "octicon",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-octicons",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "16px": {
+                    "name": "16px",
+                    "slug": "16px",
+                    "description": "Drawn for a 16 by 16 grid, the size GitHub uses in dense UI",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": {
+                        "fill": "currentColor"
+                    },
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                },
+                "24px": {
+                    "name": "24px",
+                    "slug": "24px",
+                    "description": "Drawn for a 24 by 24 grid, for larger touch targets",
+                    "default": false,
+                    "icon_suffix": "",
+                    "display_order": 2,
+                    "attributes": {
+                        "fill": "currentColor"
+                    },
+                    "preview_icon": "home",
+                    "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/openmoji": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/openmoji",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "OpenMoji emoji in two sets (colour and black outline), Unicode emoji 16.0, grouped by Unicode CLDR category. Moved verbatim from ichava/icon-sets-emoji.",
+            "homepage": "https://openmoji.org/",
+            "icon_set_name": "ichava/icon-sets-openmoji",
+            "item_kinds": [],
+            "keywords": [
+                "emoji",
+                "openmoji",
+                "svg",
+                "unicode"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT (code) / CC-BY-SA 4.0 (OpenMoji assets)",
+            "name": "OpenMoji",
+            "package_name": "ichava/icon-sets-openmoji",
+            "prefix": "openmoji",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-openmoji",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "default": {
+                    "name": "Default",
+                    "slug": "default",
+                    "description": "OpenMoji's own style in each set",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": [],
+                    "color_scheme": "adaptive"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/phosphor": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/phosphor",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "9,072 Phosphor icons: 1,512 designs in six weights (regular, thin, light, bold, fill, duotone), vendored from @phosphor-icons/core 2.1.1.",
+            "homepage": "https://phosphoricons.com/",
+            "icon_set_name": "ichava/icon-sets-phosphor",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "phosphor",
+                "phosphor-icons",
+                "duotone"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Phosphor Icons",
+            "package_name": "ichava/icon-sets-phosphor",
+            "prefix": "ph",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-phosphor",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "regular": {
+                    "name": "Regular",
+                    "slug": "regular",
+                    "description": "The default line weight.",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": [],
+                    "preview_icon": "house",
+                    "color_scheme": "fill-based"
+                },
+                "thin": {
+                    "name": "Thin",
+                    "slug": "thin",
+                    "description": "The lightest weight.",
+                    "default": false,
+                    "icon_suffix": "-thin",
+                    "display_order": 2,
+                    "attributes": [],
+                    "preview_icon": "house",
+                    "color_scheme": "fill-based"
+                },
+                "light": {
+                    "name": "Light",
+                    "slug": "light",
+                    "description": "Between thin and regular.",
+                    "default": false,
+                    "icon_suffix": "-light",
+                    "display_order": 3,
+                    "attributes": [],
+                    "preview_icon": "house",
+                    "color_scheme": "fill-based"
+                },
+                "bold": {
+                    "name": "Bold",
+                    "slug": "bold",
+                    "description": "The heaviest line weight.",
+                    "default": false,
+                    "icon_suffix": "-bold",
+                    "display_order": 4,
+                    "attributes": [],
+                    "preview_icon": "house",
+                    "color_scheme": "fill-based"
+                },
+                "fill": {
+                    "name": "Fill",
+                    "slug": "fill",
+                    "description": "Solid shapes.",
+                    "default": false,
+                    "icon_suffix": "-fill",
+                    "display_order": 5,
+                    "attributes": [],
+                    "preview_icon": "house",
+                    "color_scheme": "fill-based"
+                },
+                "duotone": {
+                    "name": "Duotone",
+                    "slug": "duotone",
+                    "description": "A line layer over a 20% opacity fill layer, both in currentColor.",
+                    "default": false,
+                    "icon_suffix": "-duotone",
+                    "display_order": 6,
+                    "attributes": [],
+                    "preview_icon": "house",
+                    "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/remix": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/remix",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "3,188 Remix Icon SVGs in 20 categories, line and fill designs, pinned to Remix Icon v4.8.0, the last release under Apache-2.0.",
+            "homepage": "https://remixicon.com/",
+            "icon_set_name": "ichava/icon-sets-remix",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "remix",
+                "remixicon",
+                "apache-2.0"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT (code) / Apache-2.0 (Remix Icon v4.8.0 assets)",
+            "name": "Remix Icon",
+            "package_name": "ichava/icon-sets-remix",
+            "prefix": "ri",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-remix",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "default": {
+                    "name": "Default",
+                    "slug": "default",
+                    "description": "Remix Icon's own style. Line and fill designs are separate icons, named -line and -fill.",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": [],
+                    "preview_icon": "home-line",
+                    "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/simple-icons": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/simple-icons",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "3,255 single-colour brand glyphs from Simple Icons 16.36.0. Artwork CC0-1.0; the brands are their owners' trademarks. 212 icons whose upstream data names another licence are left out.",
+            "homepage": "https://simpleicons.org/",
+            "icon_set_name": "ichava/icon-sets-simple-icons",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "simple-icons",
+                "brands",
+                "logos",
+                "laravel",
+                "ichava"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "CC0-1.0",
+            "name": "Simple Icons",
+            "package_name": "ichava/icon-sets-simple-icons",
+            "prefix": "si",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-simple-icons",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": [],
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/tabler": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/tabler",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "Over 5,200 pixel-perfect icons for web apps. Free and open source icons designed with attention to detail to make your design stand out.",
+            "homepage": "https://tabler-icons.io/",
+            "icon_set_name": "ichava/icon-sets-tabler",
+            "item_kinds": [],
+            "keywords": [
+                "icons",
+                "svg",
+                "tabler",
+                "outline",
+                "filled",
+                "open-source",
+                "pixel-perfect"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Tabler Icons",
+            "package_name": "ichava/icon-sets-tabler",
+            "prefix": "ti",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-tabler",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "outline": {
+                    "name": "Outline",
+                    "slug": "outline",
+                    "description": "Outlined icon style with 2px stroke width",
+                    "default": true,
+                    "icon_suffix": "-outline",
+                    "display_order": 1,
+                    "attributes": {
+                        "stroke_width": 2,
+                        "fill": "none",
+                        "stroke": "currentColor"
+                    },
+                    "preview_icon": "home-outline",
+                    "color_scheme": "stroke-based"
+                },
+                "filled": {
+                    "name": "Filled",
+                    "slug": "filled",
+                    "description": "Solid filled icon style",
+                    "default": false,
+                    "icon_suffix": "-filled",
+                    "display_order": 2,
+                    "attributes": {
+                        "fill": "currentColor",
+                        "stroke": "none"
+                    },
+                    "preview_icon": "home-filled",
+                    "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/SpecPack/resources/assets/svg": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/SpecPack/resources/assets/svg",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "",
+            "homepage": null,
+            "icon_set_name": "ichava/icon-sets-spec-fixture",
+            "item_kinds": [],
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Spec Fixture",
+            "package_name": "ichava/icon-sets-spec-fixture",
+            "prefix": "spec",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": [],
+            "total": 3,
+            "variant_metadata": [],
+            "vendor": "ichava",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/TranslatedPack/resources/assets/svg": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/TranslatedPack/resources/assets/svg",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "Canonical description, from config.json",
+            "homepage": null,
+            "icon_set_name": "ichava/fixture-pack",
+            "item_kinds": [],
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Fixture Pack",
+            "package_name": "ichava/fixture-pack",
+            "prefix": "fx",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": [],
+            "total": 1,
+            "variant_metadata": [],
+            "vendor": "ichava",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/VariantPack": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/VariantPack",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "Two variants declared out of display order.",
+            "homepage": null,
+            "icon_set_name": "ichava-fixtures/variant-pack",
+            "item_kinds": [],
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Variant fixture pack",
+            "package_name": "ichava-fixtures/variant-pack",
+            "prefix": "varfix",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": [],
+            "total": 2,
+            "variant_metadata": {
+                "filled": {
+                    "name": "Filled",
+                    "description": "Solid shapes",
+                    "display_order": 2,
+                    "attributes": {
+                        "fill": "currentColor"
+                    },
+                    "preview_icon": "filled/home",
+                    "color_scheme": "fill-based"
+                },
+                "outline": {
+                    "name": "Outline",
+                    "description": "Stroked shapes",
+                    "default": true,
+                    "display_order": 1,
+                    "attributes": {
+                        "stroke_width": 2,
+                        "fill": "none"
+                    },
+                    "preview_icon": "outline/home",
+                    "color_scheme": "stroke-based"
+                }
+            },
+            "vendor": "ichava-fixtures",
+            "version": "1.0.0"
+        }
+    },
+    "<root>/tests/fixtures/ViewfulPack/resources/assets/svg": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/ViewfulPack/resources/assets/svg",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "Ships a Blade template.",
+            "homepage": null,
+            "icon_set_name": "ichava/viewful-pack",
+            "item_kinds": [],
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "Commercial",
+            "name": "Viewful Pack",
+            "package_name": "ichava/viewful-pack",
+            "prefix": "vf",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": [],
+            "total": 1,
+            "variant_metadata": [],
+            "vendor": "ichava",
+            "version": "1.0.0"
+        }
+    }
+}

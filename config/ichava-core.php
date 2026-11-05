@@ -118,8 +118,8 @@ return [
     |--------------------------------------------------------------------------
     | PHP runtime
     |--------------------------------------------------------------------------
-    | Applied at provider registration so heavy operations (seeding 100k+
-    | icons, batch processing) get the headroom they need.
+    | Applied only around Ichava's own seed, watch and cache operations, and
+    | restored when each returns. The host's limits are never changed.
     */
     'runtime' => [
         'memory_limit'               => env('ICHAVA_MEMORY_LIMIT', '2G'),
@@ -289,7 +289,16 @@ return [
     |--------------------------------------------------------------------------
     */
     'components' => [
-        'enabled'    => env('ICHAVA_COMPONENTS_ENABLED', true),
+        // Core's whole Blade surface. false registers neither tag below.
+        'enabled' => env('ICHAVA_COMPONENTS_ENABLED', true),
+
+        // `<x-ichava-core::icon>` is always registered. This is the short
+        // prefix registered beside it: `<x-ichava::icon>` by default, any
+        // lowercase prefix Blade can parse (letters, digits, hyphens), or
+        // null/'' to turn it off. Packs follow it: `<x-icon-sets-tabler-icon>`
+        // beside the canonical `<x-ichava-icon-sets-tabler::icon>`.
+        'short_prefix' => env('ICHAVA_COMPONENT_SHORT_PREFIX', 'ichava'),
+
         'test_icons' => env('ICHAVA_TEST_COMPONENT_ENABLED', env('APP_ENV') === 'local'),
     ],
 

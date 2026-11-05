@@ -28,7 +28,7 @@ use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;
  * Removes Ichava log files older than the configured retention period.
  * Runs daily via the scheduler or on demand.
  */
-class CleanupIchavaLogsCommand extends BaseCommand
+final class CleanupIchavaLogsCommand extends BaseCommand
 {
     /**
      * What happened to each file, on the shared status vocabulary.

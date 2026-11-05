@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Tests\Fixtures\BasePack\Providers;
 
 use Simtabi\Laranail\Ichava\View\Components\IconComponent;
-use Simtabi\Laranail\Ichava\Support\IconPackServiceProvider;
+use Simtabi\Laranail\Ichava\Providers\IconPackServiceProvider;
 use Simtabi\Laranail\Ichava\Tests\Fixtures\BasePack\Constants\IconsConstants;
 
 /**

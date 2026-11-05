@@ -9,8 +9,10 @@ use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Data\VariantData;
 use Simtabi\Laranail\Ichava\Support\KindResolver;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\PackConfigData;
 use Simtabi\Laranail\Ichava\Services\ConfigurationService;
+use Simtabi\Laranail\Ichava\Support\Pack\PackConfigReader;
 
 /**
  * Abstract base for icon-package metadata classes that derive their values
@@ -546,7 +548,9 @@ abstract class JsonConfigConstants
     }
 
     /**
-     * Load and cache config data from config.json for the calling child class.
+     * The set's effective config for the calling child class: what it
+     * registered with, PackBuilder overrides included, or its config.json
+     * before it registers.
      *
      * @return array<array-key, mixed>
      */
@@ -554,13 +558,29 @@ abstract class JsonConfigConstants
     {
         $class = static::class;
 
-        if (! isset(self::$configs[$class])) {
-            $service = resolve(ConfigurationService::class);
-            $path = static::getConfigPath();
-            self::$configs[$class] = $service->rememberPackageConfig($path);
+        if (isset(self::$configs[$class])) {
+            return self::$configs[$class];
         }
 
-        return self::$configs[$class];
+        $path = static::getConfigPath();
+
+        // Before core's provider has bound the registry there is nothing
+        // registered to read; building a throwaway registry here would be worse.
+        if (! app()->bound(IconRegistry::class)) {
+            return resolve(ConfigurationService::class)->rememberPackageConfig($path);
+        }
+
+        $reader = resolve(PackConfigReader::class);
+        $registered = $reader->registered($path);
+
+        // Memoised once the set has registered, overrides included. Before
+        // that the file is read through ConfigurationService's cache and not
+        // memoised here, so a set that registers later is seen as registered.
+        if ($registered !== null) {
+            return self::$configs[$class] = $registered;
+        }
+
+        return $reader->read($path);
     }
 
     /**

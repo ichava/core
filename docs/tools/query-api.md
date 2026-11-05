@@ -71,7 +71,7 @@ Host events (`FavoriteToggled`, `CollectionChanged`, `PreferencesChanged`) are i
 
 ## Extension interfaces
 
-- **`IchavaPackageInterface`** is implemented by `Support\ServiceProvider`, the base every pack extends. `getPackageName()`, `getIconSetName()` and `getPackageMetadata()` read the registry, which is the one reader of `config.json`. `getPackageVersion()` reads Composer (`dev` when Composer does not know the package).
+- **`IchavaPackageInterface`** is implemented by `Providers\PackServiceProvider`, the base every pack extends. `getPackageName()`, `getIconSetName()` and `getPackageMetadata()` read the registry, which is the one reader of `config.json`. `getPackageVersion()` reads Composer (`dev` when Composer does not know the package).
 - **`IconDriverInterface`** is implemented by `Drivers\DirectoryIconDriver`, which serves icons from one directory: `setIconPath()`, then `all()`, `has()` and `render()`. Rendering goes through `SvgDriver`, so containment, the size limit and the sanitiser all apply. `SvgDriver` itself does not implement the interface, because its `render()` takes a resolved `IconData`.
 
 ## Status

@@ -19,7 +19,7 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
  * - Language support
  * - Common operations
  */
-class Helpers
+final class Helpers
 {
     /**
      * Check if database driver is PostgreSQL

@@ -6,7 +6,7 @@ namespace Simtabi\Laranail\Ichava\Tests\Fixtures\TranslatedPack\Providers;
 
 use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
-use Simtabi\Laranail\Ichava\Support\ServiceProvider;
+use Simtabi\Laranail\Ichava\Providers\PackServiceProvider;
 use Simtabi\Laranail\Ichava\View\Components\IconComponent;
 
 /**
@@ -22,7 +22,7 @@ use Simtabi\Laranail\Ichava\View\Components\IconComponent;
  * Note what this class does NOT do: it never calls `hasTranslations()`. That is
  * the point -- a pack gets translations by existing, not by remembering.
  */
-class IconsServiceProvider extends ServiceProvider
+class IconsServiceProvider extends PackServiceProvider
 {
     public function configurePackage(Package $package): void
     {

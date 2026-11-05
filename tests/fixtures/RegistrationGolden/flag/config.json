@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-flag",
+    "title": "Flag Icons",
+    "description": "271 country flag SVGs sourced from lipis/flag-icons, available in 4x3 and 1x1 aspect ratios. Replaces the flag half of the deprecated simtabi/laflamoji.",
+    "keywords": [
+      "flags",
+      "country-flags",
+      "svg",
+      "lipis",
+      "iso-3166"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "7.6.0",
+    "type": "single",
+    "kind": "icon",
+    "license": "MIT"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "Panayiotis Lipiridis (lipis)",
+        "role": "Creator -- lipis/flag-icons",
+        "url": "https://github.com/lipis/flag-icons"
+      }
+    ],
+    "homepage": "https://github.com/lipis/flag-icons",
+    "repository": "https://github.com/ichava/icon-sets-flag",
+    "data": {
+      "variants": {
+        "4x3": {
+          "name": "4:3",
+          "slug": "4x3",
+          "description": "Canonical 4:3 aspect ratio. Best fit for most flags.",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {}
+        },
+        "1x1": {
+          "name": "1:1",
+          "slug": "1x1",
+          "description": "Square 1:1 aspect ratio. Useful for badges, round avatars, picker grids.",
+          "default": false,
+          "icon_suffix": "",
+          "display_order": 2,
+          "attributes": {}
+        }
+      },
+      "categories": {
+        "country": {
+          "name": "Country flags",
+          "description": "ISO 3166-1 alpha-2 country codes (us, gb, de, jp, ...)",
+          "sets": [
+            "country"
+          ]
+        }
+      }
+    }
+  },
+  "config": {
+    "icon_prefix": "flag"
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "flag-icons"
+    },
+    "current_version": "7.6.0",
+    "version_check_url": "https://registry.npmjs.org/flag-icons/latest",
+    "license": "MIT",
+    "cdn": {
+      "jsdelivr": "https://cdn.jsdelivr.net/npm/flag-icons@{version}/flags/{ratio}/{code}.svg",
+      "unpkg": "https://unpkg.com/flag-icons@{version}/flags/{ratio}/{code}.svg",
+      "github_raw": "https://raw.githubusercontent.com/lipis/flag-icons/v{version}/flags/{ratio}/{code}.svg"
+    },
+    "update_command": {
+      "type": "github-archive",
+      "_note": "Re-runs the bundled fetch + categorise. Run when assets need refreshing past the snapshot vendored here, which is `current_version`.",
+      "archive_url": "https://github.com/lipis/flag-icons/archive/refs/tags/v{version}.zip",
+      "source_path": "flag-icons-{version}/flags"
+    }
+  }
+}

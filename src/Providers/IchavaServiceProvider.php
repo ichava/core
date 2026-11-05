@@ -17,6 +17,7 @@ use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Package\Tools\Package;
 use Illuminate\Contracts\Container\Container;
+use Simtabi\Laranail\Ichava\Data\BulkOptions;
 use Simtabi\Laranail\Ichava\Enums\KindSource;
 use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Simtabi\Laranail\Ichava\Support\AuditLogger;
@@ -29,29 +30,33 @@ use Simtabi\Laranail\Ichava\Commands\CacheCommand;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\Auth\HostUser;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Ichava\Support\SecurityNonce;
 use Simtabi\Laranail\Ichava\Contracts\PresentsUser;
 use Simtabi\Laranail\Ichava\Contracts\ResolvesUser;
 use Simtabi\Laranail\Ichava\Services\IconsManifest;
+use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Simtabi\Laranail\Ichava\Commands\InstallCommand;
-use Simtabi\Laranail\Ichava\Support\ServiceProvider;
 use Simtabi\Laranail\Ichava\Commands\DatabaseCommand;
 use Simtabi\Laranail\Ichava\Support\Auth\IchavaGates;
+use Simtabi\Laranail\Ichava\Support\Pack\PackBuilder;
 use Simtabi\Laranail\Ichava\Commands\JobStatusCommand;
 use Simtabi\Laranail\Ichava\Contracts\PreferenceStore;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+use Simtabi\Laranail\Ichava\Contracts\ChecksPackUpdates;
 use Simtabi\Laranail\Ichava\Services\IconBrowserService;
 use Simtabi\Laranail\Ichava\Services\IconWatcherService;
 use Simtabi\Laranail\Ichava\Services\InformationService;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 use Simtabi\Laranail\Ichava\Support\IchavaSessionManager;
 use Illuminate\Contracts\Auth\Access\Gate as GateContract;
 use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 use Simtabi\Laranail\Ichava\Support\DeferredIconsRegistry;
-use Simtabi\Laranail\Ichava\View\Components\IconComponent;
 use Simtabi\Laranail\Ichava\Commands\WatchIconFilesCommand;
 use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
 use Simtabi\Laranail\Ichava\Services\IconPreferenceService;
@@ -73,20 +78,21 @@ use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
  *
  * Bootstraps the entire Ichava icon ecosystem for a Laravel application.
  * Auto-discovered via composer.json, no manual registration needed.
- * Child icon packages must extend Support\ServiceProvider, not this class.
+ * Child icon packages extend Providers\IconPackServiceProvider, not this class.
  *
  * Full list of registered services, commands, Blade components, middleware,
  * and log channels: see README.md § Architecture.
  *
- * @see ServiceProvider
+ * @see IconPackServiceProvider
  * @see IchavaFacade
  */
-class IchavaServiceProvider extends PackageServiceProvider
+final class IchavaServiceProvider extends PackageServiceProvider
 {
     /**
      * The vendor-scoped Blade component prefix: `<x-ichava-core::icon>`.
+     * The same value as ComponentPrefixes::CANONICAL, which owns it.
      */
-    public const string SCOPED_COMPONENT_PREFIX = 'ichava-core';
+    public const string SCOPED_COMPONENT_PREFIX = ComponentPrefixes::CANONICAL;
 
     /**
      * Declare the Ichava core package metadata, assets, and commands.
@@ -100,7 +106,7 @@ class IchavaServiceProvider extends PackageServiceProvider
             ->hasConfigFile('ichava-core')
             ->hasAboutSection('Ichava', fn (): array => $this->aboutEcosystem())
             // Core extends PackageServiceProvider directly, so it does NOT
-            // inherit the default-on registration Support\ServiceProvider gives
+            // inherit the default-on registration PackServiceProvider gives
             // the packs -- it has to ask. That asymmetry has already cost one
             // defect class here; anything added to the packs' default needs a
             // deliberate counterpart on this line.
@@ -133,8 +139,10 @@ class IchavaServiceProvider extends PackageServiceProvider
      */
     public function registeringPackage(): void
     {
-        // Configure runtime settings for heavy operations (seeding, processing)
-        $this->configureRuntimeSettings();
+        // No runtime limits here. A library must not change the host's
+        // process-wide memory or time limits, and the config has not merged
+        // yet in this phase. Ichava's own seed, watch and cache operations
+        // run inside RuntimeLimits::scope(), which restores them after (C-01).
 
         // Register morph map for polymorphic relationships
         Relation::morphMap([
@@ -215,6 +223,12 @@ class IchavaServiceProvider extends PackageServiceProvider
         $this->app->singleton(IchavaSeeder::class);
         $this->app->singleton(IconPackUpdateChecker::class);
 
+        // The two I/O services with a second implementation today (the test
+        // doubles), behind contracts. Each resolves the concrete singleton, so
+        // a binding of the class (as icon-browser's tests make) still wins (C-06).
+        $this->app->bind(ChecksPackUpdates::class, fn (Container $app): ChecksPackUpdates => $app->make(IconPackUpdateChecker::class));
+        $this->app->bind(DatabaseOperations::class, fn (Container $app): DatabaseOperations => $app->make(DatabaseOperationsService::class));
+
         // Manifest service
         $this->app->singleton(IconsManifest::class, function (Container $app) {
             $pathResolver = $app->make(PathResolver::class);
@@ -278,69 +292,14 @@ class IchavaServiceProvider extends PackageServiceProvider
      * Boot the Ichava ecosystem once all providers are registered.
      *
      * Execution sequence:
-     * 1. Blade::componentNamespace()    , 'ichava' component namespace (the entire HTTP layer, routes, middleware, controllers, layouts, lives in IconBrowserServiceProvider in ichava/icon-browser)
      * 2. IconRegistry::fromDirectory() , register bundled test-icons set (core test fixtures)
      * 3. registerCustomIconSets()      , user-defined sets from ichava.ichava-core.custom-icons.sets
-     * 4. registerCoreIconComponent()   , register the generic <x-ichava::icon> Blade component
+     * 4. registerCoreIconComponent()   , <x-ichava-core::icon>, and the configured short <x-ichava::icon>
      * 5. registerFileWatcher()         , schedule ichava:watch if database.auto_sync enabled
      * 6. scheduleLogCleanup()          , schedule ichava:cleanup-logs if logging.auto_cleanup enabled
      */
     public function bootingPackage(): void
     {
-        // Register class-based components under the 'ichava' namespace so
-        // packages registering their own short-name components (e.g. browser's
-        // <x-ichava::ichava-test-icons>) can do so via Blade::component(...).
-        // The HTTP layer (routes, middleware, controllers, requests, resources)
-        // is owned entirely by IconBrowserServiceProvider in ichava/icon-browser ,
-        // core ships zero HTTP surface.
-        // DEFERRED, not overlooked: `ichava` is a bare generic slug in a flat
-        // map, the same class of claim `ichava/icon-browser` corrected for view
-        // hints. It is deliberate here -- packs register their own short-name
-        // components under one shared ecosystem prefix -- but the standard's
-        // reasoning about silent replacement applies to it unchanged.
-        //
-        // Left in place because `<x-ichava::icon>` is the ecosystem's
-        // documented public API. Renaming it to `ichava-core::` is a breaking
-        // change for every consumer and belongs in its own release with a
-        // migration note, not folded into unrelated work. Revisit at 1.0.
-        //
-        // 112 lines across the eight package repos, measured 2026-09-21:
-        //
-        //   for p in core browser icon-sets-*; do
-        //     git -C "$p" grep -I -c -F 'x-ichava::' origin/main \
-        //       -- 'src/*' 'resources/*' 'docs/*'
-        //   done | awk -F: '{s+=$NF} END{print s}'
-        //
-        // Do not cite that number without re-running the command. An earlier
-        // revision of this comment read "~85 ... plus 24 in
-        // `ichava/documentation`", which was true when measured and was made
-        // wrong by the docs decentralisation: those pages moved into the
-        // packages, so the per-package count rose and `ichava/documentation`
-        // now holds **zero** -- it would send a reader to the one place with
-        // nothing left to find.
-        //
-        // Three flat maps carry the bare `ichava` key, not one, so Decision B
-        // is wider than this call site:
-        //
-        //   1. this class-component namespace;
-        //   2. the class-component aliases -- core's `ichava::icon` in
-        //      registerCoreIconComponent() below, plus five in browser;
-        //   3. browser's `Blade::anonymousComponentPath(..., 'ichava')`, which
-        //      Laravel stores as addNamespace(hash('xxh128', $prefix), $path)
-        //      -- so the slug still determines a key in the *view-hint* map
-        //      that ichava/icon-browser#33 otherwise cleared of it.
-        //
-        // The fourth, the view hints themselves, is the one already corrected.
-        Blade::componentNamespace('Simtabi\\Laranail\\Ichava\\View\\Components', 'ichava');
-
-        // The vendor-scoped prefix, `ichava-core` (vendor `ichava`, package
-        // `core`; Blade prefixes keep the hyphen because a tag cannot hold a
-        // slash). Registered over the same classes as the bare prefix, so
-        // `<x-ichava-core::icon>` and `<x-ichava::icon>` resolve the same
-        // component. Additive: the bare prefix above is unchanged, and whether
-        // it is ever deprecated is a separate owner decision.
-        Blade::componentNamespace('Simtabi\\Laranail\\Ichava\\View\\Components', self::SCOPED_COMPONENT_PREFIX);
-
         // Register core's bundled icon set (test fixtures shipped for the
         // API/test suite; multi-set structure: svg/{set-name}/config.json +
         // files/{set-name}/*.svg). The browser package's `ui-icons` set is
@@ -361,6 +320,13 @@ class IchavaServiceProvider extends PackageServiceProvider
         // Schedule automatic log cleanup
         $this->scheduleLogCleanup();
 
+        // The morph map is flat: a provider registered after core can map
+        // Icon's alias to its own model, and stored termable rows would then
+        // load the wrong class. Checked once every provider has registered.
+        $this->app->booted(function (): void {
+            $this->assertIconMorphAlias();
+        });
+
         // Default-deny Gates, defined after every provider has booted so a
         // host's own definitions are seen first and never overwritten.
         $this->app->booted(function (): void {
@@ -368,6 +334,25 @@ class IchavaServiceProvider extends PackageServiceProvider
                 IchavaGates::define($this->app->make(GateContract::class));
             }
         });
+    }
+
+    /**
+     * Fail at boot when the live morph map resolves Icon's alias to another class.
+     *
+     * @throws IchavaException
+     */
+    protected function assertIconMorphAlias(): void
+    {
+        $model = Relation::getMorphedModel(Icon::MORPH_ALIAS);
+
+        if ($model !== Icon::class) {
+            throw IchavaException::invalidConfiguration(sprintf(
+                "the morph alias '%s' resolves to %s, not %s. Another provider has claimed it; map that model under its own alias.",
+                Icon::MORPH_ALIAS,
+                $model ?? 'nothing',
+                Icon::class,
+            ));
+        }
     }
 
     /**
@@ -382,9 +367,16 @@ class IchavaServiceProvider extends PackageServiceProvider
 
         $testPath = config('ichava.ichava-core.test.path');
 
-        $this->app->make(IconRegistry::class)->fromDirectory(
-            is_string($testPath) && $testPath !== '' ? $testPath : $this->package->basePath('resources/assets/svg/test-icons'),
-            self::class,
+        // Through the bulk path, so registerMany() runs on every boot: the
+        // bundled set sits in the multi-set layout (svg/{set}/config.json).
+        // failFast keeps a broken test set loud, as fromDirectory() was.
+        $sets = is_string($testPath) && $testPath !== ''
+            ? [PackBuilder::fromDirectory($testPath)]
+            : PackBuilder::discover($this->package->basePath('resources/assets/svg'), only: ['test-icons']);
+
+        $this->app->make(IconRegistry::class)->registerMany(
+            array_map(static fn (PackBuilder $set): PackBuilder => $set->providedBy(self::class), $sets),
+            new BulkOptions(name: 'ichava/core', failFast: true),
         );
     }
 
@@ -542,9 +534,11 @@ class IchavaServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Register core's generic developer-facing Blade icon component.
-     *
-     * - `<x-ichava::icon name="vendor/package::path" />`  → IconComponent
+     * Register core's Blade tags: `<x-ichava-core::icon>` always, and the short
+     * `<x-ichava::icon>` while `components.short_prefix` names one, each with
+     * the component namespace over the same classes. `components.enabled`
+     * false registers neither. ComponentPrefixes validates the short prefix
+     * against Blade's tag parser and throws at boot on one it cannot parse.
      *
      * Browser-only demo components (`<x-ichava::ichava-test-icons>`,
      * `<x-ichava::ichava-ui-icons>`) are registered by
@@ -552,23 +546,17 @@ class IchavaServiceProvider extends PackageServiceProvider
      */
     protected function registerCoreIconComponent(): void
     {
-        // `ichava::` here is the deferred bare slug -- see the DEFERRED note in
-        // bootingPackage(). This alias is the one the deferral is actually
-        // about, so do not "tidy" it in isolation.
-        Blade::component('ichava::icon', IconComponent::class);
-
-        // The vendor-scoped spelling of the same alias. A class namespace
-        // alone would look for `Components\Icon`, so the alias is needed too.
-        Blade::component(self::SCOPED_COMPONENT_PREFIX . '::icon', IconComponent::class);
+        $this->app->make(ComponentPrefixes::class)->register();
     }
 
     /**
      * Register user-defined icon sets from the ichava.ichava-core.custom-icons.sets config.
      *
-     * Each entry in the array may be a plain path string or an associative array
-     * with a 'path' key. Registration is deferred to app()->booted() to ensure
-     * all service providers have finished registering before icons are loaded.
-     * Empty or missing config silently no-ops.
+     * Each entry is a path, or an array of options: `path`, `enabled`,
+     * `package`, `bulk`/`only`, and the PackBuilder keys (`prefix`,
+     * `default_class`, `blade_component`, ...); IconRegistry::registerFromConfig()
+     * documents them. Registration is deferred to app()->booted() so every
+     * provider has registered first. Empty or missing config no-ops.
      */
     protected function registerCustomIconSets(): void
     {
@@ -645,34 +633,17 @@ class IchavaServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Configure PHP runtime settings for heavy Ichava operations.
+     * The PHP runtime settings Ichava's heavy operations run under.
      *
-     * Ichava processes large icon sets (100k+ SVGs) which requires:
-     * - Higher memory limits for bulk operations
-     * - Extended execution time for seeding/processing
-     * - Disabled Telescope during queue jobs to prevent memory leaks
-     *
-     * Settings are configurable via ichava.php config file.
+     * Ichava processes large icon sets (100k+ SVGs), which needs a higher
+     * memory limit, a longer execution time and Telescope paused. This builds
+     * that configurator from the merged config and applies nothing: the
+     * operations call RuntimeLimits::scope(), so the host keeps its limits
+     * everywhere else.
      */
-    protected function configureRuntimeSettings(): void
+    protected function configureRuntimeSettings(): RuntimeConfigurator
     {
-        // Get configured values with sensible defaults
-        $memoryLimit = Coerce::string(config('ichava.ichava-core.runtime.memory_limit', '1G'));
-        $maxExecutionTime = Coerce::int(config('ichava.ichava-core.runtime.max_execution_time', 0));
-        $disableTelescopeInQueue = config('ichava.ichava-core.runtime.disable_telescope_in_queue', true);
-
-        // Build runtime configurator with settings from config
-        $configurator = RuntimeConfigurator::make()
-            ->memory($memoryLimit)
-            ->timeout($maxExecutionTime);
-
-        // Disable Telescope during queue processing to prevent memory exhaustion
-        if ($disableTelescopeInQueue && $this->isIchavaQueueCommand()) {
-            $configurator->disableTelescope();
-        }
-
-        // Apply all settings
-        $configurator->apply();
+        return $this->app->make(RuntimeLimits::class)->configurator();
     }
 
     /**

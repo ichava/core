@@ -15,11 +15,12 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Simtabi\Laranail\Ichava\Models\Icon;
-use Simtabi\Laranail\Ichava\Actions\CountSvgFiles;
+use Simtabi\Laranail\Ichava\Support\SvgFileCounter;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Actions\BuildIconUsageSyntax;
 use Simtabi\Laranail\Ichava\Actions\ClearDiscoveryCaches;
 use Simtabi\Laranail\Ichava\Actions\SearchIconsInDatabase;
+use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 use Simtabi\Laranail\Ichava\Actions\DiscoverInstalledPackages;
 
 /**
@@ -49,7 +50,7 @@ class IconDiscoveryService
         protected IconRegistry $registry,
         protected IconCacheService $cache,
         protected DiscoverInstalledPackages $discoverInstalled,
-        protected CountSvgFiles $svgCounter,
+        protected SvgFileCounter $svgCounter,
         protected BuildIconUsageSyntax $buildUsageSyntax,
         protected SearchIconsInDatabase $searchDatabase,
         protected ClearDiscoveryCaches $clearCaches,
@@ -275,7 +276,7 @@ class IconDiscoveryService
      */
     public function getIconSyntax(string $package, string $name, ?string $variant = null): array
     {
-        return ($this->buildUsageSyntax)($package, $this->getPackage($package) ?? [], $name, $variant);
+        return $this->buildUsageSyntax->handle($package, $this->getPackage($package) ?? [], $name, $variant);
     }
 
     /**
@@ -325,7 +326,7 @@ class IconDiscoveryService
         // -- it forgot two keys of six and could not reach two of the rest --
         // and the keys and the clear now live in one object that owns the
         // question "what did we write?".
-        ($this->clearCaches)();
+        $this->clearCaches->handle();
     }
 
     /**
@@ -356,7 +357,7 @@ class IconDiscoveryService
     protected function generation(): int
     {
         // One definition, on the action that owns invalidation.
-        return ClearDiscoveryCaches::generation();
+        return DiscoveryCacheGeneration::current();
     }
 
     /**
@@ -376,7 +377,7 @@ class IconDiscoveryService
      */
     protected function scanComposerLock(): array
     {
-        return ($this->discoverInstalled)(base_path('composer.lock'));
+        return $this->discoverInstalled->handle(base_path('composer.lock'));
     }
 
     /**
@@ -452,7 +453,7 @@ class IconDiscoveryService
         // Enrichment passes as closures rather than handing the action this
         // service: package metadata and usage syntax live here, and injecting
         // the service into its own collaborator would be a cycle.
-        return ($this->searchDatabase)(
+        return $this->searchDatabase->handle(
             query: $query,
             packages: $packages,
             categories: $categories,
