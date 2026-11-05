@@ -65,19 +65,19 @@ describe('ConfigurationService::loadPackageConfig', function () {
 
 describe('ConfigurationService accessor helpers', function () {
     it('detects variants when populated', function () {
-        expect($this->service->hasVariants(['variants' => ['a', 'b']]))->toBeTrue();
-        expect($this->service->hasVariants(['variants' => []]))->toBeFalse();
+        expect($this->service->hasVariants(['metadata' => ['data' => ['variants' => ['a', 'b']]]]))->toBeTrue();
+        expect($this->service->hasVariants(['metadata' => ['data' => ['variants' => []]]]))->toBeFalse();
         expect($this->service->hasVariants([]))->toBeFalse();
     });
 
     it('returns variants array or empty', function () {
-        expect($this->service->getVariants(['variants' => ['outline']]))->toBe(['outline']);
+        expect($this->service->getVariants(['metadata' => ['data' => ['variants' => ['outline']]]]))->toBe(['outline']);
         expect($this->service->getVariants([]))->toBe([]);
     });
 
     it('detects categories when populated', function () {
-        expect($this->service->hasCategories(['categories' => ['ui']]))->toBeTrue();
-        expect($this->service->hasCategories(['categories' => []]))->toBeFalse();
+        expect($this->service->hasCategories(['metadata' => ['data' => ['categories' => ['ui']]]]))->toBeTrue();
+        expect($this->service->hasCategories(['metadata' => ['data' => ['categories' => []]]]))->toBeFalse();
         expect($this->service->hasCategories([]))->toBeFalse();
     });
 

@@ -17,8 +17,9 @@ use Simtabi\Laranail\Ichava\Services\ConfigurationService;
  * first unreachable (15,393 in icon-sets-bundled, all 10,567 in
  * icon-sets-emoji).
  *
- * The top-level shape is still read as a fallback, so a pack written against
- * the old lookup keeps working.
+ * The top-level shape is not read at all: the estate is forward-only, and the
+ * fallback that kept a pack written against the old lookup working was
+ * removed (no pack ships it).
  */
 function packShapeFixture(string $shape): string
 {
@@ -38,11 +39,11 @@ it('reads variants and categories from metadata.data, the shape every pack ships
         ->and($config->variants)->toBe(['default']);
 });
 
-it('still reads variants and categories from the top level', function (): void {
+it('ignores variants and categories at the top level', function (): void {
     $config = $this->registry->set('ichava-fixtures/top-level-shape')->config();
 
-    expect($config->supportsCategories)->toBeTrue()
-        ->and($config->variants)->toBe(['default']);
+    expect($config->supportsCategories)->toBeFalse()
+        ->and($config->variants)->toBe([]);
 });
 
 it('resolves a three-segment path in a metadata.data pack', function (string $set): void {
@@ -52,19 +53,21 @@ it('resolves a three-segment path in a metadata.data pack', function (string $se
         ->and($this->registry->render($path))->toContain('<circle');
 })->with([
     'metadata.data shape' => 'ichava-fixtures/nested-shape',
-    'top-level shape'     => 'ichava-fixtures/top-level-shape',
 ]);
 
-it('prefers metadata.data over the top level when both are present', function (): void {
+it('reads metadata.data only, whatever the top level holds', function (): void {
     $service = app(ConfigurationService::class);
     $config = [
-        'variants' => ['legacy' => []],
-        'metadata' => ['data' => ['variants' => ['current' => []], 'categories' => ['ui' => []]]],
+        'variants'   => ['old' => []],
+        'categories' => ['old' => []],
+        'metadata'   => ['data' => ['variants' => ['current' => []], 'categories' => ['ui' => []]]],
     ];
 
     expect(array_keys($service->getVariants($config)))->toBe(['current'])
         ->and($service->hasVariants($config))->toBeTrue()
-        ->and($service->hasCategories($config))->toBeTrue();
+        ->and($service->hasCategories($config))->toBeTrue()
+        ->and($service->hasVariants(['variants' => ['a' => []]]))->toBeFalse()
+        ->and($service->hasCategories(['categories' => ['a' => []]]))->toBeFalse();
 });
 
 it('reports no variants or categories when metadata.data holds empty maps', function (): void {

@@ -194,17 +194,19 @@ it('chains every row on one item: 1 > 2 > 3 > 4 > 5 > 6', function (): void {
     expect($seen)->toBe(KindSource::cases());
 });
 
-it('reads the new pack keys from the documented shape, and the top level as a fallback', function (): void {
+it('reads the new pack keys from metadata.data only', function (): void {
     $rules = [['match' => 'a/**', 'kind' => 'illustration'], ['match' => 'a**', 'kind' => 'icon'], ['match' => 'b/*', 'kind' => 'nope'], ['kind' => 'icon']];
     $items = ['a/x' => ['kind' => 'Illustration '], 'a/y' => ['kind' => 'sticker'], 'a/z' => 'icon'];
 
     $documented = ['metadata' => ['data' => ['kinds' => ['rules' => $rules], 'items' => $items]]];
-    $legacy = ['kinds' => ['rules' => $rules], 'items' => $items];
+    $topLevel = ['kinds' => ['rules' => $rules], 'items' => $items];
 
-    foreach ([$documented, $legacy] as $config) {
-        expect(PackConfigData::kindRules($config))->toBe([['match' => 'a/**', 'kind' => IconKind::Illustration]])
-            ->and(PackConfigData::items($config))->toBe(['a/x' => IconKind::Illustration]);
-    }
+    expect(PackConfigData::kindRules($documented))->toBe([['match' => 'a/**', 'kind' => IconKind::Illustration]])
+        ->and(PackConfigData::items($documented))->toBe(['a/x' => IconKind::Illustration])
+        // The top level is not read: the estate is forward-only.
+        ->and(PackConfigData::kindRules($topLevel))->toBe([])
+        ->and(PackConfigData::items($topLevel))->toBe([])
+        ->and(PackConfigData::kindIssues($topLevel))->toBe([]);
 
     expect(PackConfigData::kindRules([]))->toBe([])
         ->and(PackConfigData::items([]))->toBe([]);

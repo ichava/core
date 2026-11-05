@@ -42,7 +42,7 @@ The **item path** is the SVG's path under `files/`, with forward slashes, `.svg`
 
 - `items` maps an item path to an object. Only `kind` is read; other keys are ignored, so per-item metadata can grow later.
 - `kinds.rules` is an array, not a map, because the first matching rule wins and JSON object order is not guaranteed. Put specific rules before broad ones. A rule is `{ "match", "kind", "note"? }`.
-- Every key is also read from the top level of `config.json` (`items`, `kinds.rules`, `categories`) when the documented `metadata.data` shape does not hold it.
+- Every key is read from `metadata.data` only. The same keys at the top level of `config.json` are ignored.
 - **A mixed pack is derived, never declared.** There is no `"kind": "mixed"`: a pack is mixed when its rows hold both kinds, and `package.kind` stays its default.
 - A pack written before these keys existed loads exactly as before: every item is an icon.
 
