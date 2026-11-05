@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Data\IconData;
 use Simtabi\Laranail\Ichava\Data\PackDefinition;
+use Simtabi\Laranail\Ichava\Data\BulkOptions;
+use Simtabi\Laranail\Ichava\Data\BulkResult;
 use Simtabi\Laranail\Ichava\Support\Pack\PackBuilder;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Helpers;
@@ -91,6 +93,9 @@ final class IconRegistry
      */
     private array $definitions = [];
 
+    /** The registrar id of the registerMany() run in progress, so its sets share it. */
+    private ?string $bulkRegistrarId = null;
+
     /**
      * Pending registrations (lazy loading)
      *
@@ -135,23 +140,50 @@ final class IconRegistry
     }
 
     /**
-     * Register multiple icon set directories from a config array.
+     * Register the sets `ichava.ichava-core.custom-icons.sets` declares.
      *
-     * Each entry may be a plain path string or an associative array with a 'path' key.
-     * Invalid or empty paths are silently skipped. Useful for registering custom icon
-     * sets declared in ichava.ichava-core.custom-icons.sets config.
+     * Each entry is a path, or an array of options keyed by the entry's name:
+     *
+     * - `path` (required): a directory holding a config.json, or a directory
+     *   of SVGs with none;
+     * - `enabled` (default true): false skips the entry;
+     * - `package`: the `vendor/package` a set without a config.json registers
+     *   as (default `app/{entry key}`);
+     * - `bulk` with `only`: register every config-bearing sub-directory of
+     *   `path`, or only those named, through registerMany();
+     * - every key {@see PackBuilder::withOptions()} reads (`prefix`,
+     *   `default_class`, `default_attributes`, `fallback`, `variants`,
+     *   `default_variant`, `supports_categories`, `blade_namespace`,
+     *   `blade_component`, ...), applied over the set's config.json.
      *
      * @param array<int|string, string|array<string, mixed>> $sets
-     *                                                             Example: ['/path/to/set', ['path' => '/other/set', 'label' => 'Custom']]
      */
     public function registerFromConfig(array $sets): void
     {
-        foreach ($sets as $set) {
-            $path = is_array($set) ? ($set['path'] ?? null) : $set;
+        foreach ($sets as $key => $set) {
+            $options = is_array($set) ? $set : ['path' => $set];
+            $path = $options['path'] ?? null;
 
-            if (is_string($path) && $path !== '') {
-                $this->fromDirectory($path);
+            if (($options['enabled'] ?? true) === false || ! is_string($path) || $path === '') {
+                continue;
             }
+
+            if (($options['bulk'] ?? false) === true) {
+                $only = array_values(array_filter(is_array($options['only'] ?? null) ? $options['only'] : [], is_string(...)));
+
+                $this->registerMany(
+                    array_map(fn (PackBuilder $pack): PackBuilder => $pack->withOptions($options), PackBuilder::discover($path, $only)),
+                    new BulkOptions(name: 'custom-icons.' . $key),
+                );
+
+                continue;
+            }
+
+            $pack = is_file(rtrim($path, '/\\') . '/config.json')
+                ? PackBuilder::fromDirectory($path)
+                : PackBuilder::make(is_string($options['package'] ?? null) ? $options['package'] : 'app/' . Str::slug((string) $key), $path);
+
+            $this->register($pack->withOptions($options)->build());
         }
     }
 
@@ -239,6 +271,88 @@ final class IconRegistry
     }
 
     /**
+     * Register several sets as one run (Proposal 3).
+     *
+     * Each item is a definition, or a builder built here so a broken
+     * config.json fails inside the run. Every set goes through register(), so
+     * a set registered in bulk is the same as one registered alone. One
+     * registrar id covers the run: `started`, then each set's `processing` and
+     * `registered` (or `failed`), then one `completed` with the counts. By
+     * default a broken set is reported and the rest register; a builder whose
+     * directory does not exist is skipped.
+     *
+     * @param iterable<PackDefinition|PackBuilder> $definitions
+     */
+    public function registerMany(iterable $definitions, ?BulkOptions $options = null): BulkResult
+    {
+        $options ??= new BulkOptions;
+        $items = is_array($definitions) ? array_values($definitions) : iterator_to_array($definitions, false);
+        $registrarId = Str::uuid()->toString();
+        $startedAt = microtime(true);
+        $announce = ! $this->recentlyAnnounced('bulk:' . $options->name);
+        $registered = $skipped = $failed = [];
+
+        if ($announce) {
+            Event::dispatch(IconRegistrationEvent::started($registrarId, $options->name, count($items), 'bulk'));
+        }
+
+        $previous = $this->bulkRegistrarId;
+        $this->bulkRegistrarId = $registrarId;
+
+        try {
+            foreach ($items as $item) {
+                $label = $item instanceof PackBuilder ? $item->basePath() : $item->name;
+
+                if ($item instanceof PackBuilder && ! is_dir($item->basePath())) {
+                    $skipped[] = $label;
+
+                    continue;
+                }
+
+                $definition = $item instanceof PackDefinition ? $item : null;
+
+                try {
+                    $definition ??= $item instanceof PackBuilder ? $item->build() : $item;
+                    $this->register($definition);
+                    $registered[] = $definition->name;
+                } catch (Throwable $e) {
+                    if ($definition === null) {
+                        // A set that failed to build never reached
+                        // registerIconSet(), which announces its own failures.
+                        Event::dispatch(IconRegistrationEvent::failed($registrarId, $label, [], $e));
+                    }
+
+                    if ($options->failFast) {
+                        throw $e;
+                    }
+
+                    $failed[$definition->name ?? $label] = $e->getMessage();
+                    $this->logger->warning("Bulk registration [{$options->name}] skipped a set that failed", ['set' => $label, 'error' => $e->getMessage()]);
+                }
+            }
+        } finally {
+            $this->bulkRegistrarId = $previous;
+        }
+
+        $result = new BulkResult($registered, $skipped, $failed, round((microtime(true) - $startedAt) * 1000, 2));
+
+        if ($announce) {
+            $this->markAnnounced('bulk:' . $options->name);
+            Event::dispatch(IconRegistrationEvent::completed($registrarId, $options->name, $result->counts(), $result->durationMs));
+        }
+
+        if ($options->log) {
+            $this->logger->info(sprintf(
+                'Bulk registration [%s]: registered %d set(s), skipped %d, failed %d.',
+                $options->name,
+                ...array_values($result->counts()),
+            ));
+        }
+
+        return $result;
+    }
+
+    /**
      * The definition a set was registered from, or null when it was registered
      * through registerIconSet() with prebuilt metadata.
      */
@@ -322,7 +436,7 @@ final class IconRegistry
         // completed, or failed. Announced at most once per deduplication
         // window, as `registered` always was: the registry is rebuilt on every
         // request, and a listener must not hear the same pack every time.
-        $registrarId = Str::uuid()->toString();
+        $registrarId = $this->bulkRegistrarId ?? Str::uuid()->toString();
         $announce = ! $this->recentlyAnnounced($name);
         $startedAt = microtime(true);
 
@@ -364,6 +478,10 @@ final class IconRegistry
         if ($announce) {
             $this->markAnnounced($name);
             Event::dispatch(IconRegistrationEvent::registered($registrarId, $name, $metadata, 0));
+        }
+
+        // A bulk run announces one `completed` for all its sets.
+        if ($announce && $this->bulkRegistrarId === null) {
             Event::dispatch(IconRegistrationEvent::completed(
                 $registrarId,
                 $name,

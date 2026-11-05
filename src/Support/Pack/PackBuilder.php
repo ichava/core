@@ -376,6 +376,79 @@ final class PackBuilder
     }
 
     /**
+     * Apply an options array, the shape `custom-icons.sets.*` entries and
+     * registerBulkIconSets() values use. Each key maps to one method:
+     * `prefix`, `title`/`description`/`version`/`license`/`keywords`/
+     * `homepage`/`repository`, `kind`, `variants` (a list of names),
+     * `default_variant`, `supports_categories`, `default_class`,
+     * `default_attributes`, `fallback`, and `blade_component` (with
+     * `blade_namespace`, recorded as `{namespace}-{component}`). Other keys
+     * (`enabled`, `path`, `bulk`, `only`, `package`) belong to the caller and
+     * are ignored here.
+     *
+     * @param array<array-key, mixed> $options
+     *
+     * @throws IchavaException when `kind` names no kind
+     */
+    public function withOptions(array $options): self
+    {
+        foreach (self::ABOUT_KEYS as $key => $section) {
+            if (is_string($options[$key] ?? null) || ($key === 'keywords' && is_array($options[$key] ?? null))) {
+                $this->about($key, $options[$key]);
+            }
+        }
+
+        if (is_string($options['prefix'] ?? null) && $options['prefix'] !== '') {
+            $this->prefix($options['prefix']);
+        }
+
+        if (array_key_exists('kind', $options) && $options['kind'] !== null) {
+            $this->kind(IconKind::fromConfig($options['kind']) ?? throw IchavaException::invalidConfiguration(
+                sprintf("'%s' is not an icon kind", is_scalar($options['kind']) ? (string) $options['kind'] : get_debug_type($options['kind'])),
+            ));
+        }
+
+        foreach (is_array($options['variants'] ?? null) ? $options['variants'] : [] as $variant) {
+            if (is_string($variant) && $variant !== '') {
+                $this->variant($variant);
+            }
+        }
+
+        if (is_string($options['default_variant'] ?? null) && $options['default_variant'] !== '') {
+            $this->defaultVariant($options['default_variant']);
+        }
+
+        if (is_bool($options['supports_categories'] ?? null)) {
+            $this->categories($options['supports_categories']);
+        }
+
+        if (is_string($options['default_class'] ?? null) && $options['default_class'] !== '') {
+            $this->defaultClass($options['default_class']);
+        }
+
+        if (is_array($options['default_attributes'] ?? null)) {
+            $attributes = [];
+
+            foreach ($options['default_attributes'] as $name => $value) {
+                $attributes[(string) $name] = $value;
+            }
+
+            $this->defaultAttributes($attributes);
+        }
+
+        if (is_string($options['fallback'] ?? null) && $options['fallback'] !== '') {
+            $this->fallback($options['fallback']);
+        }
+
+        if (is_string($options['blade_component'] ?? null) && $options['blade_component'] !== '') {
+            $namespace = is_string($options['blade_namespace'] ?? null) && $options['blade_namespace'] !== '' ? $options['blade_namespace'] . '-' : '';
+            $this->component($namespace . $options['blade_component']);
+        }
+
+        return $this;
+    }
+
+    /**
      * Apply $then when $condition holds.
      *
      * @param Closure(self): mixed $then

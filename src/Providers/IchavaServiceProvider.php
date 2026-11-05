@@ -26,6 +26,8 @@ use Simtabi\Laranail\Ichava\Facades\IchavaFacade;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Support\IconRenderer;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
+use Simtabi\Laranail\Ichava\Data\BulkOptions;
+use Simtabi\Laranail\Ichava\Support\Pack\PackBuilder;
 use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Ichava\Commands\CacheCommand;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
@@ -412,9 +414,16 @@ class IchavaServiceProvider extends PackageServiceProvider
 
         $testPath = config('ichava.ichava-core.test.path');
 
-        $this->app->make(IconRegistry::class)->fromDirectory(
-            is_string($testPath) && $testPath !== '' ? $testPath : $this->package->basePath('resources/assets/svg/test-icons'),
-            self::class,
+        // Through the bulk path, so registerMany() runs on every boot: the
+        // bundled set sits in the multi-set layout (svg/{set}/config.json).
+        // failFast keeps a broken test set loud, as fromDirectory() was.
+        $sets = is_string($testPath) && $testPath !== ''
+            ? [PackBuilder::fromDirectory($testPath)]
+            : PackBuilder::discover($this->package->basePath('resources/assets/svg'), only: ['test-icons']);
+
+        $this->app->make(IconRegistry::class)->registerMany(
+            array_map(static fn (PackBuilder $set): PackBuilder => $set->providedBy(self::class), $sets),
+            new BulkOptions(name: 'ichava/core', failFast: true),
         );
     }
 
@@ -595,10 +604,11 @@ class IchavaServiceProvider extends PackageServiceProvider
     /**
      * Register user-defined icon sets from the ichava.ichava-core.custom-icons.sets config.
      *
-     * Each entry in the array may be a plain path string or an associative array
-     * with a 'path' key. Registration is deferred to app()->booted() to ensure
-     * all service providers have finished registering before icons are loaded.
-     * Empty or missing config silently no-ops.
+     * Each entry is a path, or an array of options: `path`, `enabled`,
+     * `package`, `bulk`/`only`, and the PackBuilder keys (`prefix`,
+     * `default_class`, `blade_component`, ...); IconRegistry::registerFromConfig()
+     * documents them. Registration is deferred to app()->booted() so every
+     * provider has registered first. Empty or missing config no-ops.
      */
     protected function registerCustomIconSets(): void
     {

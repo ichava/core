@@ -4,19 +4,29 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
-use Illuminate\Support\Facades\File;
+use Simtabi\Laranail\Ichava\Data\BulkResult;
+use Simtabi\Laranail\Ichava\Data\BulkOptions;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\Pack\PackBuilder;
 
 /**
- * Fluent helper for registering multiple icon-set sub-directories from one
- * shared base path, intended for large bundles. Single-package consumers
- * should use `IconRegistry::fromDirectory()` directly.
+ * Registers several icon sets under one base directory, through
+ * {@see IconRegistry::registerMany()} (Proposal 3).
  *
- * See README § "IchavaRegistrar, Bulk Registration Helper" for usage.
+ * The fluent front of `ServiceProvider::registerBulkIconSets()`. Each key of
+ * the map given to configure() is a sub-directory of the base path holding a
+ * config.json; its value is that set's overrides, in the shape
+ * {@see PackBuilder::withOptions()} reads (`['prefix' => 'fa']`). An empty map
+ * registers every such sub-directory.
  *
- * @see IconRegistry
- * @see ServiceProvider
+ * ```php
+ * IchavaRegistrar::register('acme/icons')
+ *     ->basePath($svg)
+ *     ->trackStatistics()
+ *     ->enableLogging()
+ *     ->configure(['fontawesome' => ['prefix' => 'fa'], 'bootstrap' => []]);
+ * ```
  */
 final class IchavaRegistrar
 {
@@ -24,13 +34,13 @@ final class IchavaRegistrar
 
     private string $basePath = '';
 
-    // @phpstan-ignore property.onlyWritten (set by the fluent API and kept; nothing reads it yet)
+    /** Prepended to each set's directory name to form its prefix, when the set names none. */
     private string $packagePrefix = '';
 
-    // @phpstan-ignore property.onlyWritten (set by the fluent API and kept; nothing reads it yet)
+    /** Appended to each set's directory name to form its prefix, when the set names none. */
     private string $iconSetSuffix = '';
 
-    // @phpstan-ignore property.onlyWritten (set by the fluent API and kept; nothing reads it yet)
+    /** The Blade namespace each set's component alias is recorded under: `{namespace}-{set}`. */
     private string $bladeNamespace = '';
 
     private string $providerClass = '';
@@ -40,15 +50,11 @@ final class IchavaRegistrar
     /** @var array<string, array<string, mixed>> */
     private array $iconSets = [];
 
-    // @phpstan-ignore property.onlyWritten (set by the fluent API and kept; nothing reads it yet)
     private bool $trackStats = false;
 
-    // @phpstan-ignore property.onlyWritten (set by the fluent API and kept; nothing reads it yet)
     private bool $logging = false;
 
-    private int $registered = 0;
-
-    private int $skipped = 0;
+    private ?BulkResult $result = null;
 
     private function __construct(string $name)
     {
@@ -56,22 +62,13 @@ final class IchavaRegistrar
     }
 
     /**
-     * Start building a registrar for the given bundle name.
-     *
-     * @param string $name A unique identifier for this icon bundle (e.g. 'icons-bundle').
+     * Start a bulk registration, named for the events and logs it produces.
      */
     public static function register(string $name): static
     {
         return new self($name);
     }
 
-    /**
-     * Absolute path to the directory that contains the icon-set sub-directories.
-     *
-     * Use PathResolver::svgPathFromIconSet() to resolve this from a relative path:
-     *
-     *   ->basePath(PathResolver::svgPathFromIconSet('platform/icons-bundle/assets'))
-     */
     public function basePath(string $path): static
     {
         $this->basePath = $path;
@@ -79,12 +76,6 @@ final class IchavaRegistrar
         return $this;
     }
 
-    /**
-     * Optional prefix for icon set namespacing (e.g. 'icons-bundle').
-     *
-     * Extensibility hook: stored on the registrar and available inside a custom
-     * registerIconSet() override. Not used by the default implementation.
-     */
     public function packagePrefix(string $prefix): static
     {
         $this->packagePrefix = $prefix;
@@ -92,12 +83,6 @@ final class IchavaRegistrar
         return $this;
     }
 
-    /**
-     * Optional suffix appended to each icon set namespace (e.g. '-bundle').
-     *
-     * Extensibility hook: stored on the registrar and available inside a custom
-     * registerIconSet() override. Not used by the default implementation.
-     */
     public function iconSetSuffix(string $suffix): static
     {
         $this->iconSetSuffix = $suffix;
@@ -105,14 +90,6 @@ final class IchavaRegistrar
         return $this;
     }
 
-    /**
-     * Blade namespace prefix for icon components (e.g. 'icons-bundle').
-     *
-     * Extensibility hook: stored on the registrar and available inside a custom
-     * registerIconSet() override. Not used by the default implementation, which
-     * only calls IconRegistry::fromDirectory(). Override registerIconSet() to
-     * act on this value (e.g. to call Blade::component() per icon set).
-     */
     public function bladeNamespace(string $namespace): static
     {
         $this->bladeNamespace = $namespace;
@@ -120,12 +97,6 @@ final class IchavaRegistrar
         return $this;
     }
 
-    /**
-     * The FQCN of the ServiceProvider calling this registrar.
-     * Passed to IconRegistry for source-tracking. Defaults to IchavaRegistrar::class.
-     *
-     *   ->providerClass(self::class)
-     */
     public function providerClass(string $class): static
     {
         $this->providerClass = $class;
@@ -133,9 +104,7 @@ final class IchavaRegistrar
         return $this;
     }
 
-    /**
-     * Human-readable vendor label (used in logging output).
-     */
+    /** A label for the vendor of the sets, carried in the log line. */
     public function vendor(string $vendor): static
     {
         $this->vendor = $vendor;
@@ -144,17 +113,10 @@ final class IchavaRegistrar
     }
 
     /**
-     * Provide the icon sets array and trigger registration immediately.
+     * Register the sets. Values are each set's overrides; an empty map
+     * registers every config-bearing sub-directory of the base path.
      *
-     * Array format: [ 'dir-name' => ['name' => '...', 'prefix' => '...'], ... ]
-     *
-     * Each key is a sub-directory name under basePath. Missing directories
-     * are skipped automatically.
-     *
-     * This MUST be called to trigger processing, call it after all
-     * configuration methods, then chain trackStatistics()/enableLogging().
-     *
-     * @param array<string, array<string, mixed>> $iconSets
+     * @param array<string, array<string, mixed>> $iconSets directory name => overrides
      */
     public function configure(array $iconSets): static
     {
@@ -164,10 +126,7 @@ final class IchavaRegistrar
         return $this;
     }
 
-    /**
-     * Enable registration statistics (registered count, skipped count).
-     * Totals are included in the log output when enableLogging() is also called.
-     */
+    /** Keep the run's BulkResult, for statistics(). */
     public function trackStatistics(): static
     {
         $this->trackStats = true;
@@ -176,65 +135,68 @@ final class IchavaRegistrar
     }
 
     /**
-     * Log registration results to the 'ichava' log channel.
-     * Call after configure() so the counts are already populated.
+     * Log the run's counts. Called before configure() the registry logs the
+     * run; called after, the result already recorded is logged now.
      */
     public function enableLogging(): static
     {
-        $this->logging = true;
-
-        if ($this->registered > 0 || $this->skipped > 0) {
-            $message = sprintf(
-                'IchavaRegistrar [%s] (%s): registered %d set(s), skipped %d.',
-                $this->name,
-                $this->vendor ?: 'unknown vendor',
-                $this->registered,
-                $this->skipped,
-            );
-
-            app(IchavaLogger::class)->debug($message);
+        if (! $this->logging && $this->result !== null) {
+            app(IchavaLogger::class)->info($this->summary($this->result));
         }
+
+        $this->logging = true;
 
         return $this;
     }
 
-    /**
-     * Iterate over configured icon sets and register each valid directory.
-     */
+    /** The run's counts, when trackStatistics() was called; null otherwise or before configure(). */
+    public function statistics(): ?BulkResult
+    {
+        return $this->trackStats ? $this->result : null;
+    }
+
     private function process(): void
     {
-        if (! File::isDirectory($this->basePath)) {
+        if ($this->basePath === '' || ! is_dir($this->basePath) || ! app()->bound(IconRegistry::class)) {
             return;
         }
 
-        foreach ($this->iconSets as $dirName => $meta) {
-            $path = rtrim($this->basePath, '/\\') . DIRECTORY_SEPARATOR . $dirName;
+        $root = rtrim($this->basePath, '/\\');
+        $builders = $this->iconSets === []
+            ? PackBuilder::discover($root)
+            : array_map(
+                fn (string $set): PackBuilder => PackBuilder::fromDirectory($root . DIRECTORY_SEPARATOR . $set),
+                array_map(strval(...), array_keys($this->iconSets)),
+            );
 
-            if (! File::isDirectory($path)) {
-                $this->skipped++;
+        foreach ($builders as $builder) {
+            $this->shape($builder, basename($builder->basePath()));
+        }
 
-                continue;
-            }
+        $this->result = app(IconRegistry::class)->registerMany($builders, new BulkOptions(name: $this->name));
 
-            $this->registerIconSet($path);
-            $this->registered++;
+        if ($this->logging) {
+            app(IchavaLogger::class)->info($this->summary($this->result));
         }
     }
 
-    /**
-     * Delegate a single directory to IconRegistry::fromDirectory().
-     * No-ops gracefully if IconRegistry is not yet bound (should not happen
-     * when called from boot(), but safe-guards against mis-use in register()).
-     */
-    private function registerIconSet(string $path): void
+    /** Apply the registrar-wide settings, then the set's own overrides, which win. */
+    private function shape(PackBuilder $builder, string $set): void
     {
-        if (! app()->bound(IconRegistry::class)) {
-            return;
-        }
+        $builder
+            ->providedBy($this->providerClass !== '' ? $this->providerClass : self::class)
+            ->when($this->packagePrefix !== '' || $this->iconSetSuffix !== '', fn (PackBuilder $pack) => $pack->prefix($this->packagePrefix . $set . $this->iconSetSuffix))
+            ->when($this->bladeNamespace !== '', fn (PackBuilder $pack) => $pack->component("{$this->bladeNamespace}-{$set}"))
+            ->withOptions($this->iconSets[$set] ?? []);
+    }
 
-        app(IconRegistry::class)->fromDirectory(
-            $path,
-            $this->providerClass ?: self::class,
+    private function summary(BulkResult $result): string
+    {
+        return sprintf(
+            'IchavaRegistrar [%s] (%s): registered %d set(s), skipped %d, failed %d.',
+            $this->name,
+            $this->vendor !== '' ? $this->vendor : 'unknown vendor',
+            ...array_values($result->counts()),
         );
     }
 }
