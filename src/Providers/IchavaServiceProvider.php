@@ -55,7 +55,7 @@ use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 use Simtabi\Laranail\Ichava\Support\DeferredIconsRegistry;
-use Simtabi\Laranail\Ichava\View\Components\IconComponent;
+use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use Simtabi\Laranail\Ichava\Commands\WatchIconFilesCommand;
 use Simtabi\Laranail\Ichava\Services\IconPackUpdateChecker;
 use Simtabi\Laranail\Ichava\Services\IconPreferenceService;
@@ -89,8 +89,9 @@ class IchavaServiceProvider extends PackageServiceProvider
 {
     /**
      * The vendor-scoped Blade component prefix: `<x-ichava-core::icon>`.
+     * The same value as ComponentPrefixes::CANONICAL, which owns it.
      */
-    public const string SCOPED_COMPONENT_PREFIX = 'ichava-core';
+    public const string SCOPED_COMPONENT_PREFIX = ComponentPrefixes::CANONICAL;
 
     /**
      * Declare the Ichava core package metadata, assets, and commands.
@@ -284,69 +285,14 @@ class IchavaServiceProvider extends PackageServiceProvider
      * Boot the Ichava ecosystem once all providers are registered.
      *
      * Execution sequence:
-     * 1. Blade::componentNamespace()    , 'ichava' component namespace (the entire HTTP layer, routes, middleware, controllers, layouts, lives in IconBrowserServiceProvider in ichava/icon-browser)
      * 2. IconRegistry::fromDirectory() , register bundled test-icons set (core test fixtures)
      * 3. registerCustomIconSets()      , user-defined sets from ichava.ichava-core.custom-icons.sets
-     * 4. registerCoreIconComponent()   , register the generic <x-ichava::icon> Blade component
+     * 4. registerCoreIconComponent()   , <x-ichava-core::icon>, and the configured short <x-ichava::icon>
      * 5. registerFileWatcher()         , schedule ichava:watch if database.auto_sync enabled
      * 6. scheduleLogCleanup()          , schedule ichava:cleanup-logs if logging.auto_cleanup enabled
      */
     public function bootingPackage(): void
     {
-        // Register class-based components under the 'ichava' namespace so
-        // packages registering their own short-name components (e.g. browser's
-        // <x-ichava::ichava-test-icons>) can do so via Blade::component(...).
-        // The HTTP layer (routes, middleware, controllers, requests, resources)
-        // is owned entirely by IconBrowserServiceProvider in ichava/icon-browser ,
-        // core ships zero HTTP surface.
-        // DEFERRED, not overlooked: `ichava` is a bare generic slug in a flat
-        // map, the same class of claim `ichava/icon-browser` corrected for view
-        // hints. It is deliberate here -- packs register their own short-name
-        // components under one shared ecosystem prefix -- but the standard's
-        // reasoning about silent replacement applies to it unchanged.
-        //
-        // Left in place because `<x-ichava::icon>` is the ecosystem's
-        // documented public API. Renaming it to `ichava-core::` is a breaking
-        // change for every consumer and belongs in its own release with a
-        // migration note, not folded into unrelated work. Revisit at 1.0.
-        //
-        // 112 lines across the eight package repos, measured 2026-09-21:
-        //
-        //   for p in core browser icon-sets-*; do
-        //     git -C "$p" grep -I -c -F 'x-ichava::' origin/main \
-        //       -- 'src/*' 'resources/*' 'docs/*'
-        //   done | awk -F: '{s+=$NF} END{print s}'
-        //
-        // Do not cite that number without re-running the command. An earlier
-        // revision of this comment read "~85 ... plus 24 in
-        // `ichava/documentation`", which was true when measured and was made
-        // wrong by the docs decentralisation: those pages moved into the
-        // packages, so the per-package count rose and `ichava/documentation`
-        // now holds **zero** -- it would send a reader to the one place with
-        // nothing left to find.
-        //
-        // Three flat maps carry the bare `ichava` key, not one, so Decision B
-        // is wider than this call site:
-        //
-        //   1. this class-component namespace;
-        //   2. the class-component aliases -- core's `ichava::icon` in
-        //      registerCoreIconComponent() below, plus five in browser;
-        //   3. browser's `Blade::anonymousComponentPath(..., 'ichava')`, which
-        //      Laravel stores as addNamespace(hash('xxh128', $prefix), $path)
-        //      -- so the slug still determines a key in the *view-hint* map
-        //      that ichava/icon-browser#33 otherwise cleared of it.
-        //
-        // The fourth, the view hints themselves, is the one already corrected.
-        Blade::componentNamespace('Simtabi\\Laranail\\Ichava\\View\\Components', 'ichava');
-
-        // The vendor-scoped prefix, `ichava-core` (vendor `ichava`, package
-        // `core`; Blade prefixes keep the hyphen because a tag cannot hold a
-        // slash). Registered over the same classes as the bare prefix, so
-        // `<x-ichava-core::icon>` and `<x-ichava::icon>` resolve the same
-        // component. Additive: the bare prefix above is unchanged, and whether
-        // it is ever deprecated is a separate owner decision.
-        Blade::componentNamespace('Simtabi\\Laranail\\Ichava\\View\\Components', self::SCOPED_COMPONENT_PREFIX);
-
         // Register core's bundled icon set (test fixtures shipped for the
         // API/test suite; multi-set structure: svg/{set-name}/config.json +
         // files/{set-name}/*.svg). The browser package's `ui-icons` set is
@@ -581,9 +527,11 @@ class IchavaServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Register core's generic developer-facing Blade icon component.
-     *
-     * - `<x-ichava::icon name="vendor/package::path" />`  → IconComponent
+     * Register core's Blade tags: `<x-ichava-core::icon>` always, and the short
+     * `<x-ichava::icon>` while `components.short_prefix` names one, each with
+     * the component namespace over the same classes. `components.enabled`
+     * false registers neither. ComponentPrefixes validates the short prefix
+     * against Blade's tag parser and throws at boot on one it cannot parse.
      *
      * Browser-only demo components (`<x-ichava::ichava-test-icons>`,
      * `<x-ichava::ichava-ui-icons>`) are registered by
@@ -591,14 +539,7 @@ class IchavaServiceProvider extends PackageServiceProvider
      */
     protected function registerCoreIconComponent(): void
     {
-        // `ichava::` here is the deferred bare slug -- see the DEFERRED note in
-        // bootingPackage(). This alias is the one the deferral is actually
-        // about, so do not "tidy" it in isolation.
-        Blade::component('ichava::icon', IconComponent::class);
-
-        // The vendor-scoped spelling of the same alias. A class namespace
-        // alone would look for `Components\Icon`, so the alias is needed too.
-        Blade::component(self::SCOPED_COMPONENT_PREFIX . '::icon', IconComponent::class);
+        $this->app->make(ComponentPrefixes::class)->register();
     }
 
     /**

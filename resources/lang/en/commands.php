@@ -341,6 +341,7 @@ return [
             'gates'         => 'ichava.admin Gate defined',
             'routes'        => 'Browser routes mounted',
             'orphans'       => 'No orphaned icon rows',
+            'short_prefix_shadowed' => 'Short component prefix resolves to the icon component',
             'kinds'         => [
                 'kind.invalid_value'    => 'Kind values name a kind',
                 'kind.invalid_glob'     => 'Kind rule patterns are valid',

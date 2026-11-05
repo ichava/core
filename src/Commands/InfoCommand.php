@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
+use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
 use function Laravel\Prompts\spin;
@@ -321,6 +322,8 @@ final class InfoCommand extends BaseCommand
             ? array_filter(array_keys(app('router')->getRoutes()->getRoutesByName()), static fn (string $name): bool => str_starts_with($name, 'ichava.'))
             : [];
 
+        $shadowed = app(ComponentPrefixes::class)->shadowedShortAlias();
+
         // id => [label, state, detail]; the ids are what --format=json reports.
         $install = [
             'packages'   => [__('ichava/ichava-core::commands.info.doctor.packages'), $health->packages > 0, (string) $health->packages],
@@ -332,6 +335,9 @@ final class InfoCommand extends BaseCommand
             'gates'      => [__('ichava/ichava-core::commands.info.doctor.gates'), $gateDefined ? true : Status::Warning, null],
             'routes'     => [__('ichava/ichava-core::commands.info.doctor.routes'), $routes !== [] ? true : Status::Warning, (string) count($routes)],
             'orphans'    => [__('ichava/ichava-core::commands.info.doctor.orphans'), $health->orphans === [] ? true : Status::Warning, $health->orphans === [] ? null : implode(', ', $health->orphans)],
+            // Registration cannot stop a later provider overwriting the short
+            // alias, so the live map is read after boot.
+            'component.short_prefix_shadowed' => [__('ichava/ichava-core::commands.info.doctor.short_prefix_shadowed'), $shadowed === null ? true : Status::Warning, $shadowed],
         ];
 
         $kindChecks = ($this->kindDoctor ?? app(KindDoctor::class))->checks($this->suggestKinds());
