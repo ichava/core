@@ -11,20 +11,10 @@ Targets PHP `^8.4.1 || ^8.5` on Laravel `^13`, against SQLite, PostgreSQL, MySQL
 
 ## Install
 
-Core is on Packagist, but four of its dependencies (`laranail/package-tools`, `laranail/console`,
-`laranail/enumerator` and `laranail/db-tools`) are not yet, so add them as VCS repositories to your
-application's `composer.json` first:
-
-```json
-{
-    "repositories": [
-        { "type": "vcs", "url": "https://github.com/laranail/package-tools.git" },
-        { "type": "vcs", "url": "https://github.com/laranail/console.git" },
-        { "type": "vcs", "url": "https://github.com/laranail/enumerator.git" },
-        { "type": "vcs", "url": "https://github.com/laranail/db-tools.git" }
-    ]
-}
-```
+Nothing in the Ichava family is on Packagist yet, so the application's `composer.json` first names
+the VCS repositories for core, the four `laranail/*` packages core depends on, and each pack you
+install. [Installation](docs/installation.md#1-point-composer-at-the-repositories) holds that block,
+and it is the one place that lists them. Then:
 
 ```bash
 composer require ichava/core:^0.1
