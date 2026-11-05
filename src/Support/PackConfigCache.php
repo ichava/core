@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Support;
 
 use Throwable;
+use Illuminate\Contracts\Cache\Repository;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 
 /**
@@ -19,7 +21,12 @@ final readonly class PackConfigCache
 {
     private const int TTL_SECONDS = 86_400;
 
-    public function __construct(private CacheFactory $cache) {}
+    /**
+     * The container, not the cache factory: a pack's constants class reads its
+     * config while the providers register, before the cache store exists, so
+     * the store is resolved on use and a failure falls back to reading the file.
+     */
+    public function __construct(private Container $app) {}
 
     /** The cache key for the config.json in $directoryPath. */
     public function key(string $directoryPath): string
@@ -36,7 +43,7 @@ final readonly class PackConfigCache
     public function remember(string $directoryPath, callable $load): mixed
     {
         try {
-            return $this->cache->store('file')->remember($this->key($directoryPath), self::TTL_SECONDS, $load(...));
+            return $this->store()->remember($this->key($directoryPath), self::TTL_SECONDS, $load(...));
         } catch (Throwable) {
             return $load();
         }
@@ -46,9 +53,16 @@ final readonly class PackConfigCache
     public function forget(string $directoryPath): bool
     {
         try {
-            return $this->cache->store('file')->forget($this->key($directoryPath));
+            return $this->store()->forget($this->key($directoryPath));
         } catch (Throwable) {
             return false;
         }
+    }
+
+    private function store(): Repository
+    {
+        $factory = $this->app->make(CacheFactory::class);
+
+        return $factory->store('file');
     }
 }
