@@ -42,6 +42,12 @@
         "pestphp/pest": "^5.0",
         "phpstan/phpstan": "^2.1"
     },
+    "conflict": {
+        "symfony/http-foundation": "<7.4.23 || >=8.0,<8.1.11",
+        "symfony/http-kernel": "<7.4.23 || >=8.0,<8.1.11",
+        "symfony/routing": "<7.4.23 || >=8.0,<8.1.11",
+        "symfony/yaml": "<7.4.23 || >=8.0,<8.1.11"
+    },
     "suggest": {
         "ichava/icon-sets-package-scaffolder": "Scaffold a new Ichava icon package: php artisan ichava::icon-sets-package-scaffolder.make"
     },
