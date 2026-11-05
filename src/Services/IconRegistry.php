@@ -7,6 +7,7 @@ namespace Simtabi\Laranail\Ichava\Services;
 use Exception;
 use Throwable;
 use Illuminate\Support\Str;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Event;
 use Simtabi\Laranail\Ichava\Data\IconData;
@@ -114,6 +115,9 @@ final class IconRegistry
         private IchavaLogger $logger,
         private PathResolver $pathResolver,
         private IconAliasMap $aliases,
+        private IconCacheService $cache,
+        private Filesystem $files,
+        private SvgFileCounter $svgCounter,
     ) {
         $this->initializeBootstrap();
     }
@@ -221,7 +225,7 @@ final class IconRegistry
     public function register(PackDefinition $definition, ?IconSetInterface $set = null): void
     {
         if ($set === null) {
-            $set = IconSetBuilder::make($definition->name)
+            $set = new IconSetBuilder($definition->name, $this->cache, $this->files)
                 ->setBasePath($definition->filesPath)
                 ->prefix($definition->prefix);
 
@@ -912,7 +916,7 @@ final class IconRegistry
         // One counter for the whole package. This method used to carry its own
         // copy, catching Exception where SvgFileCounter learned to catch
         // Throwable -- so the failure that action was fixed for still escaped here.
-        return app(SvgFileCounter::class)->recursively($path);
+        return $this->svgCounter->recursively($path);
     }
 
     /**

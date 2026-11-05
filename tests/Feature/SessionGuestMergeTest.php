@@ -31,7 +31,7 @@ beforeEach(function (): void {
     HostCapabilities::getInstance()->reset();
     InMemoryOwnerPreferenceStore::$rows = [];
 
-    $this->session = new IchavaSessionManager;
+    $this->session = new IchavaSessionManager(app(Simtabi\Laranail\Ichava\Services\IchavaLogger::class));
 });
 
 afterEach(function (): void {
