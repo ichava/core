@@ -77,10 +77,9 @@ abstract class IconPackServiceProvider extends PackServiceProvider
             ->setName(($this->constantsClass())::getVendorPackage())
             ->setPathFrom(source: $this, levelsUp: 2);
 
-        $this->spec = PackSpec::forProvider(static::class, ($this->constantsClass())::getVendorPackage(), $package->basePath(), $this->componentClass());
-        $this->pack($this->spec);
+        $spec = $this->packSpec($package);
 
-        $config = $this->spec->configFileName() ?? $this->packSlug();
+        $config = $spec->configFileName() ?? $this->packSlug();
 
         if (is_file($package->basePath("config/{$config}.php"))) {
             $package->hasConfigFile($config);
@@ -132,14 +131,19 @@ abstract class IconPackServiceProvider extends PackServiceProvider
         return ($this->constantsClass())::getPackageName();
     }
 
-    /** The pack's spec; built here when bootingPackage() runs before configurePackage() did. */
-    private function packSpec(): PackSpec
+    /**
+     * The pack's spec, built once: in configurePackage(), or here when
+     * bootingPackage() runs on a provider whose configurePackage() did not.
+     */
+    private function packSpec(?Package $package = null): PackSpec
     {
-        if ($this->spec === null) {
-            $this->spec = PackSpec::forProvider(static::class, ($this->constantsClass())::getVendorPackage(), $this->package->basePath(), $this->componentClass());
-            $this->pack($this->spec);
+        if ($this->spec instanceof PackSpec) {
+            return $this->spec;
         }
 
-        return $this->spec;
+        $spec = PackSpec::forProvider(static::class, ($this->constantsClass())::getVendorPackage(), ($package ?? $this->package)->basePath(), $this->componentClass());
+        $this->pack($spec);
+
+        return $this->spec = $spec;
     }
 }

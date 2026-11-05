@@ -393,8 +393,12 @@ final class PackBuilder
     public function withOptions(array $options): self
     {
         foreach (self::ABOUT_KEYS as $key => $section) {
-            if (is_string($options[$key] ?? null) || ($key === 'keywords' && is_array($options[$key] ?? null))) {
-                $this->about($key, $options[$key]);
+            $value = $options[$key] ?? null;
+
+            if (is_string($value)) {
+                $this->about($key, $value);
+            } elseif ($key === 'keywords' && is_array($value)) {
+                $this->about($key, array_values(array_filter($value, is_string(...))));
             }
         }
 
@@ -568,9 +572,10 @@ final class PackBuilder
     /** @return array<array-key, mixed> one `metadata.data` block */
     private function data(string $key): array
     {
-        $block = $this->config['metadata']['data'][$key] ?? null;
+        $metadata = is_array($this->config['metadata'] ?? null) ? $this->config['metadata'] : [];
+        $data = is_array($metadata['data'] ?? null) ? $metadata['data'] : [];
 
-        return is_array($block) ? $block : [];
+        return is_array($data[$key] ?? null) ? $data[$key] : [];
     }
 
     /** @param array<array-key, mixed> $value */

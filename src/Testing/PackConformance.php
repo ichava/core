@@ -29,7 +29,7 @@ final class PackConformance
     /** composer.json `require` is exactly `php` and `ichava/core`. */
     public static function requiresOnlyCore(string $root): void
     {
-        $require = array_keys(self::composer($root)['require'] ?? []);
+        $require = array_map(strval(...), array_keys(self::section(self::composer($root), 'require')));
         sort($require);
 
         Assert::assertSame(['ichava/core', 'php'], $require, 'A pack requires php and ichava/core, and nothing else.');
@@ -87,10 +87,13 @@ final class PackConformance
         $found = 0;
 
         foreach (['require', 'require-dev'] as $section) {
-            foreach ($composer[$section] ?? [] as $package => $constraint) {
-                if (str_starts_with((string) $package, 'ichava/')) {
+            foreach (self::section($composer, $section) as $package => $constraint) {
+                $package = (string) $package;
+                $constraint = is_string($constraint) ? $constraint : '';
+
+                if (str_starts_with($package, 'ichava/')) {
                     $found++;
-                    Assert::assertTrue(Semver::satisfies($version, (string) $constraint), "{$section}.{$package} is '{$constraint}', which {$version} does not satisfy.");
+                    Assert::assertTrue(Semver::satisfies($version, $constraint), "{$section}.{$package} is '{$constraint}', which {$version} does not satisfy.");
                 }
             }
         }
@@ -101,12 +104,14 @@ final class PackConformance
     /** The sync caller calls the reusable sync-pack workflow pinned to one 40-hex commit. */
     public static function syncCallerIsPinned(string $root): void
     {
-        $job = self::syncCaller($root)['jobs']['sync'] ?? [];
-        $uses = (string) ($job['uses'] ?? '');
+        $job = self::section(self::section(self::syncCaller($root), 'jobs'), 'sync');
+        $uses = is_string($job['uses'] ?? null) ? $job['uses'] : '';
+        $ref = self::section($job, 'with')['toolkit-ref'] ?? null;
+        $ref = is_string($ref) ? $ref : '';
 
         Assert::assertMatchesRegularExpression('#^ichava/icon-sets-sync/\.github/workflows/sync-pack\.yml@[0-9a-f]{40}$#', $uses);
-        Assert::assertMatchesRegularExpression('/^[0-9a-f]{40}$/', (string) ($job['with']['toolkit-ref'] ?? ''));
-        Assert::assertSame(explode('@', $uses)[1], $job['with']['toolkit-ref']);
+        Assert::assertMatchesRegularExpression('/^[0-9a-f]{40}$/', $ref);
+        Assert::assertSame(explode('@', $uses)[1] ?? null, $ref);
     }
 
     /** The sync caller runs on one schedule and a manual dispatch, never on push. */
@@ -125,8 +130,10 @@ final class PackConformance
         $workflow = self::syncCaller($root);
 
         Assert::assertSame(['contents' => 'read'], $workflow['permissions'] ?? null);
-        Assert::assertSame(['contents' => 'read', 'issues' => 'write'], $workflow['jobs']['sync']['permissions'] ?? null);
-        Assert::assertSame(['sync'], array_keys($workflow['jobs'] ?? []));
+        $jobs = self::section($workflow, 'jobs');
+
+        Assert::assertSame(['contents' => 'read', 'issues' => 'write'], self::section($jobs, 'sync')['permissions'] ?? null);
+        Assert::assertSame(['sync'], array_keys($jobs));
     }
 
     /** Every workflow declares a top-level `permissions:` block; at least $minFiles are read. */
@@ -205,9 +212,7 @@ final class PackConformance
      */
     private static function composer(string $root): array
     {
-        $composer = json_decode((string) file_get_contents($root . '/composer.json'), true, flags: JSON_THROW_ON_ERROR);
-
-        return is_array($composer) ? $composer : [];
+        return self::stringKeyed(json_decode((string) file_get_contents($root . '/composer.json'), true, flags: JSON_THROW_ON_ERROR));
     }
 
     /**
@@ -217,8 +222,33 @@ final class PackConformance
     {
         $path = $root . '/.github/workflows/sync-upstream.yml';
         Assert::assertFileExists($path);
-        $workflow = Yaml::parseFile($path);
 
-        return is_array($workflow) ? $workflow : [];
+        return self::stringKeyed(Yaml::parseFile($path));
+    }
+
+    /**
+     * One array value of $data, or [] when it is absent or not an array.
+     *
+     * @param array<array-key, mixed> $data
+     *
+     * @return array<array-key, mixed>
+     */
+    private static function section(array $data, string $key): array
+    {
+        return is_array($data[$key] ?? null) ? $data[$key] : [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function stringKeyed(mixed $value): array
+    {
+        $out = [];
+
+        foreach (is_array($value) ? $value : [] as $key => $item) {
+            $out[(string) $key] = $item;
+        }
+
+        return $out;
     }
 }

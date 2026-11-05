@@ -37,6 +37,7 @@ final class IconSetBuilder implements IconSetInterface
     private IconSetConfig $config;
 
     /** @var array<array-key, IconData> */
+    // @phpstan-ignore property.onlyWritten (written and never read since before 2026-11-05; listed for an owner decision, not removed)
     private array $discoveredIcons = [];
 
     // From IconSetBuilder (fluent configuration)
@@ -61,6 +62,7 @@ final class IconSetBuilder implements IconSetInterface
 
     private ?string $fallback = null;
 
+    // @phpstan-ignore property.onlyWritten (written and never read since before 2026-11-05; listed for an owner decision, not removed)
     private bool $enableCache = false;
 
     /** @var IconSetInterface[] Merged icon sets */
@@ -70,6 +72,7 @@ final class IconSetBuilder implements IconSetInterface
     private bool $isMerged = false;
 
     /** @var bool Whether the parent has been initialized */
+    // @phpstan-ignore property.onlyWritten (written and never read since before 2026-11-05; listed for an owner decision, not removed)
     private bool $initialized = false;
 
     /**

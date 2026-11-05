@@ -54,7 +54,7 @@ final class SvgInspector
         $fragment = SvgPolicy::fragmentPattern();
 
         self::walk($root, function (DOMElement $element) use (&$found, $tags, $forbidden, $attributes, $references, $fragment): void {
-            $name = $element->localName;
+            $name = (string) $element->localName;
 
             if (isset($forbidden[$name]) || ! isset($tags[$name])) {
                 $found[] = "tag {$name}";

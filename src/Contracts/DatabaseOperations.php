@@ -14,9 +14,14 @@ use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
  */
 interface DatabaseOperations
 {
+    /** @phpstan-impure reads the database */
     public function tablesExist(): bool;
 
-    /** @return list<string> */
+    /**
+     * @phpstan-impure reads the database
+     *
+     * @return list<string>
+     */
     public function getMissingTables(): array;
 
     /** @return list<string> */
@@ -46,5 +51,6 @@ interface DatabaseOperations
     /** @return array<array-key, mixed> package name => icon count */
     public function getPackageStatistics(): array;
 
+    /** @phpstan-impure reads the database */
     public function hasSeeds(): bool;
 }

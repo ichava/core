@@ -139,7 +139,7 @@ final readonly class ComponentPrefixes
 
         $class = $this->blade->getClassComponentAliases()[$short . '::icon'] ?? null;
 
-        if ($class === null || $class === IconComponent::class || is_subclass_of($class, IconComponent::class)) {
+        if (! is_string($class) || $class === IconComponent::class || is_subclass_of($class, IconComponent::class)) {
             return null;
         }
 
