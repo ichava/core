@@ -24,6 +24,15 @@ namespace Simtabi\Laranail\Ichava\Constants;
 final class IchavaConstants
 {
     /**
+     * The composer `type` every icon pack declares.
+     *
+     * Discovery asks Composer for it (`InstalledVersions::getInstalledPackagesByType()`),
+     * so a pack is found by what it says it is rather than by the name of the
+     * directory it happened to install into.
+     */
+    public const string PACK_COMPOSER_TYPE = 'ichava-icon-set';
+
+    /**
      * Default cache TTL (Time To Live) in seconds
      *
      * Used for caching icon discovery results, rendered SVGs, and configuration.
