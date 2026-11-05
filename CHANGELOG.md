@@ -22,6 +22,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ### Fixed
 
+- **The US and UM flags keep their stars.** Both draw the fifty stars as one `<marker>` repeated by `marker-mid="url(#us-a)"`, and `resources/security/svg-policy.json` did not allow `<marker>`, so the sanitiser removed it and the reference pointed at nothing. The policy now allows `<marker>` and its geometry (`refX`, `refY`, `markerWidth`, `markerHeight`, `orient`, `markerUnits`), the same bytes as ichava/icon-sets-sync#91. Scripts, `on*` handlers and external `href` on or inside a marker are still stripped, and `marker-*` still take only `none` or `url(#fragment)`. `tests/fixtures/svg/presentation-vectors.json` gains 8 attribute rows and 6 whole-document rows, which `SvgPresentationParityTest` runs through the full sanitiser.
 - **The discovery-cache tests no longer fail under `--parallel`.** The services write through `cache()->store('file')`, and Testbench points that store at one directory under `vendor/`, shared by every test and every parallel worker. Two workers searching for the same term wrote the same key, so one read the other's result against its own empty database, and a `flush()` in one worker deleted directories another was scanning (`UnexpectedValueException`). `DiscoveryCacheInvalidationTest` or `DiscoveryActionsTest` failed in 6 of 10 parallel runs; with each test owning a temporary file-cache directory, 10 of 10 pass. Test-only: no production code changed. `tests/Feature/FileCacheIsolationTest.php`.
 
 ### Security
