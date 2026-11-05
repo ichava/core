@@ -7,6 +7,7 @@ namespace Simtabi\Laranail\Ichava\Services;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Support\PackConfigCache;
 use Simtabi\Laranail\Ichava\Support\PackConfigData;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
@@ -27,7 +28,7 @@ final class ConfigurationService
      * Constructor with dependency injection
      */
     public function __construct(
-        private IconCacheService $cache,
+        private PackConfigCache $configCache,
     ) {}
 
     /**
@@ -41,12 +42,8 @@ final class ConfigurationService
     {
         $configPath = $this->resolveConfigPath($directoryPath);
 
-        if (! File::exists($configPath)) {
-            throw IchavaException::missingConfigFile($configPath);
-        }
-
-        $json = File::get($configPath);
-        $config = $this->parseJson($json, $configPath);
+        // One config.json parser in core: Helpers::loadConfigJson() (C-04).
+        $config = Helpers::loadConfigJson($directoryPath);
         $this->validatePackageConfig($config, $configPath);
 
         return $config;
@@ -59,11 +56,7 @@ final class ConfigurationService
      */
     public function rememberPackageConfig(string $directoryPath): array
     {
-        $cacheKey = $this->getCacheKey($directoryPath);
-
-        $config = $this->cache->rememberConfig($cacheKey, function () use ($directoryPath) {
-            return $this->loadPackageConfig($directoryPath);
-        });
+        $config = $this->configCache->remember($directoryPath, fn (): array => $this->loadPackageConfig($directoryPath));
 
         return is_array($config) ? $this->stringKeyed($config, $this->resolveConfigPath($directoryPath)) : $this->loadPackageConfig($directoryPath);
     }
@@ -73,9 +66,7 @@ final class ConfigurationService
      */
     public function forgetPackageConfig(string $directoryPath): bool
     {
-        $cacheKey = $this->getCacheKey($directoryPath);
-
-        return $this->cache->forgetConfig($cacheKey);
+        return $this->configCache->forget($directoryPath);
     }
 
     /**
@@ -199,39 +190,5 @@ final class ConfigurationService
         }
 
         return $object;
-    }
-
-    /**
-     * Parse JSON with error handling
-     *
-     * @return array<string, mixed>
-     */
-    private function parseJson(string $json, string $configPath): array
-    {
-        $config = json_decode($json, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw IchavaException::invalidConfig(
-                'JSON parse error: ' . json_last_error_msg(),
-                $configPath,
-            );
-        }
-
-        if (! is_array($config)) {
-            throw IchavaException::invalidConfig(
-                'Config must be a JSON object',
-                $configPath,
-            );
-        }
-
-        return $this->stringKeyed($config, $configPath);
-    }
-
-    /**
-     * Generate cache key
-     */
-    private function getCacheKey(string $directoryPath): string
-    {
-        return 'config:' . md5($directoryPath);
     }
 }

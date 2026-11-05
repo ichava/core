@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Simtabi\Laranail\Ichava\Support\PackConfigCache;
 use Closure;
 use Exception;
 use __PHP_Incomplete_Class;
@@ -27,6 +28,7 @@ final class IconCacheService
 
     public function __construct(
         private IchavaLogger $logger,
+        private PackConfigCache $configCache,
     ) {
         // Use config() directly instead of injecting ConfigurationService
         $this->ttl = config()->integer('ichava.ichava-core.cache.ttl', IchavaConstants::DEFAULT_CACHE_TTL);
@@ -82,7 +84,7 @@ final class IconCacheService
             foreach (app(IconRegistry::class)->all() as $metadata) {
                 $path = $metadata['base_path'] ?? null;
 
-                if (is_string($path) && app(ConfigurationService::class)->forgetPackageConfig($path)) {
+                if (is_string($path) && $this->configCache->forget($path)) {
                     $cleared['configs']++;
                 }
             }
@@ -542,7 +544,10 @@ final class IconCacheService
     }
 
     /**
-     * Get IconWatcherService instance (lazy loading to avoid circular dependency)
+     * The watcher, resolved on first use. It cannot be constructor-injected:
+     * the watcher needs the registry, the registry needs SvgDriver, and
+     * SvgDriver needs this service. The watcher no longer reaches back here
+     * through ConfigurationService (it forgets configs via PackConfigCache).
      */
     private function watcher(): IconWatcherService
     {

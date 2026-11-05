@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Simtabi\Laranail\Ichava\Support\PackConfigCache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
 use Simtabi\Laranail\Ichava\Events\IconCacheEvent;
@@ -58,7 +59,7 @@ it('logs a missing migration directory instead of throwing', function (): void {
 it('logs a directory the watcher cannot scan instead of throwing', function (): void {
     File::shouldReceive('allFiles')->andThrow(IchavaException::invalidConfiguration('unreadable'));
 
-    $watcher = new IconWatcherService(app(IconRegistry::class), app(IchavaLogger::class));
+    $watcher = new IconWatcherService(app(IconRegistry::class), app(IchavaLogger::class), app(PackConfigCache::class));
     $scan = new ReflectionMethod($watcher, 'scanDiskIcons');
 
     expect($scan->invoke($watcher, '/nowhere', 'tests/pack'))->toBe([]);
