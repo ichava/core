@@ -347,22 +347,6 @@ class IconDiscoveryService
     }
 
     /**
-     * Register package metadata (for icon browser)
-     *
-     * Note: Packages are now auto-registered via IconRegistry.
-     * This method allows manual registration for testing/legacy purposes.
-     *
-     * @param array<string, mixed> $metadata
-     */
-    public function registerPackage(string $alias, array $metadata): void
-    {
-        // For testing purposes, we can manually add to cache
-        // In production, packages register via IconRegistry automatically
-        $cacheKey = self::CACHE_PREFIX . '.manual.' . $alias;
-        Cache::put($cacheKey, $metadata, self::CACHE_DURATION);
-    }
-
-    /**
      * The invalidation generation, mixed into every key this class builds.
      *
      * Read on every key construction rather than memoised: `clearCache()` may

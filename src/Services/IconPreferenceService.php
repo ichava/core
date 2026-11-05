@@ -7,7 +7,6 @@ namespace Simtabi\Laranail\Ichava\Services;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Events\FavoriteToggled;
@@ -881,18 +880,9 @@ final class IconPreferenceService
      */
     private function getAvailableCategories(): array
     {
-        // Get categories from terms table if using new structure
-        if (Schema::hasTable('ichava_icon_terms')) {
-            return self::nonEmptyStrings(DB::table('ichava_icon_terms')
-                ->where('type', 'category')
-                ->pluck('slug'));
-        }
-
-        // Fallback to old structure
-        return self::nonEmptyStrings(Icon::query()
-            ->whereNotNull('category')
-            ->distinct()
-            ->pluck('category'));
+        return self::nonEmptyStrings(DB::table('ichava_icon_terms')
+            ->where('type', 'category')
+            ->pluck('slug'));
     }
 
     /**
@@ -902,18 +892,9 @@ final class IconPreferenceService
      */
     private function getAvailableVariants(): array
     {
-        // Get variants from terms table if using new structure
-        if (Schema::hasTable('ichava_icon_terms')) {
-            return self::nonEmptyStrings(DB::table('ichava_icon_terms')
-                ->where('type', 'variant')
-                ->pluck('slug'));
-        }
-
-        // Fallback to old structure
-        return self::nonEmptyStrings(Icon::query()
-            ->whereNotNull('variant')
-            ->distinct()
-            ->pluck('variant'));
+        return self::nonEmptyStrings(DB::table('ichava_icon_terms')
+            ->where('type', 'variant')
+            ->pluck('slug'));
     }
 
     /**

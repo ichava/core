@@ -118,7 +118,7 @@ Replace `vendor/your-icons` with the actual package you're trying to seed.
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | Generated package has `IconsIcons` in class names | You typed `HeroIcons` (with the suffix) instead of `Hero`. The stubs append the literal `Icons` suffix themselves. | Re-run with the bare short name: `php artisan ichava::icon-sets-package-scaffolder.make Hero`. |
-| Composer name is `your company/...` (with a space) | A vendor with spaces ended up in `{{vendorLower}}` somewhere. | Use `{{vendorKebab}}` for any composer-name or URL context. |
+| Composer name is `your company/...` (with a space) | A hand-edited stub uses `{{vendor}}`, which keeps the vendor as typed, in a composer-name or URL context. | Use `{{vendorKebab}}` there. |
 | `Class ... not found` after `composer install` | The psr-4 namespace key in `composer.json` doesn't match the file's `namespace` declaration. | Both should derive from `{{namespace}}` (or `{{namespaceEscaped}}` in JSON). Re-scaffold or align manually. |
 | Multi-variant scaffold has `getDefaultVariant() === null` | `config.json` was edited and the `default: true` flag was removed from every variant. | Set `default: true` on exactly one variant, or rely on the `array_key_first()` fallback. |
 | `No stub files found in: ...` warning | `getStubsPath()` points at an empty directory. | Verify `vendor/ichava/core/stubs/icon-package/` is populated. Re-install if you copied the package manually. |
