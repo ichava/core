@@ -127,17 +127,9 @@ abstract class ServiceProvider extends PackageServiceProvider implements IchavaP
 
         $package->loadAllResources(['configs', 'translations']);
 
-        // The packs still call `hasConfigFile('icon-sets-<vendor>')` in their own
-        // configurePackage(). That is now redundant -- autoLoadConfigs() globs
-        // `config/*.php` and calls the same method -- and it is deliberately
-        // kept. Upstream de-duplicates by name (`in_array` before append), so
-        // the second call is a true no-op rather than a double merge; checked,
-        // not assumed. Keeping it means a pack's manifest still states its
-        // config file where a reader looks for it, and a pack that renames the
-        // file gets a loud mismatch instead of silently following the rename.
-        // Removing them across six repos to save a no-op is churn with a
-        // failure mode; if they ever go, they go in one pass with a test that
-        // the key still resolves.
+        // A pack's `config/{slug}.php`, when it ships one, is registered here by
+        // autoLoadConfigs(). IconPackServiceProvider::configurePackage() also
+        // names it, which upstream de-duplicates by name, so it is one merge.
 
         // Views are deliberately NOT left to loadAllResources(). Upstream's
         // autoLoadViews() registers on directory presence, and every pack in
@@ -183,11 +175,11 @@ abstract class ServiceProvider extends PackageServiceProvider implements IchavaP
     /**
      * Give every pack a `php artisan about` section, without it asking.
      *
-     * Registered here rather than in `bootingPackage()` because every pack in
-     * this family overrides that hook and none calls `parent::` -- a default
-     * placed there would be silently lost by exactly the packages it exists
-     * for. `bootPackageAboutSections()` is a boot *step*, not an extension
-     * point, and the package name is resolved by the time it runs.
+     * Registered here rather than in `bootingPackage()` because
+     * IconPackServiceProvider implements that hook without calling `parent::`,
+     * so a default placed there would be lost by every pack.
+     * `bootPackageAboutSections()` is a boot *step*, not an extension point,
+     * and the package name is resolved by the time it runs.
      *
      * Everything reported comes from `IconRegistry`, which already reads
      * `resources/assets/svg/config.json`. Nothing is re-stated: a second

@@ -3,7 +3,7 @@
     "package": {
         "name": "ichava-fixtures/top-level-shape",
         "title": "Fixture pack (top-level shape)",
-        "description": "Test fixture: config.json with variants and categories at the top level, the legacy shape",
+        "description": "Test fixture: config.json with variants and categories only at the top level, a shape core does not read",
         "version": "1.0.0",
         "type": "collection",
         "license": "MIT"

@@ -14,11 +14,9 @@ use Simtabi\Laranail\Ichava\Enums\IconKind;
  *
  *     { "metadata": { "data": { "variants": {...}, "categories": {...} } } }
  *
- * The top-level `variants` / `categories` keys are read as a fallback, because
- * that is the only shape IconRegistry and ConfigurationService looked at before
- * this class existed, and a pack written against it must keep working.
- *
- * The documented shape wins whenever it holds a non-empty array.
+ * That is the only shape read. Top-level `variants` / `categories` keys are
+ * ignored: no pack ships them, and the earlier top-level fallback was removed
+ * when the estate went forward-only (nothing had been released).
  */
 final class PackConfigData
 {
@@ -176,9 +174,8 @@ final class PackConfigData
     /**
      * Every kind key the pack got wrong, for doctor.
      *
-     * Each entry names its doctor check, the key path as the pack wrote it
-     * (documented shape or legacy top level, whichever was read) and the
-     * offending value.
+     * Each entry names its doctor check, the key path under `metadata.data`
+     * and the offending value.
      *
      * @param array<string, mixed> $config Parsed config.json data
      *
@@ -193,37 +190,31 @@ final class PackConfigData
             $issues[] = ['check' => 'kind.invalid_value', 'key' => 'package.kind', 'value' => $package['kind']];
         }
 
-        $prefix = self::sectionPrefix($config, 'categories');
-
         foreach (self::categories($config) as $slug => $category) {
             if (is_array($category) && array_key_exists('kind', $category) && IconKind::fromConfig($category['kind']) === null) {
-                $issues[] = ['check' => 'kind.invalid_value', 'key' => "{$prefix}categories.{$slug}.kind", 'value' => $category['kind']];
+                $issues[] = ['check' => 'kind.invalid_value', 'key' => "metadata.data.categories.{$slug}.kind", 'value' => $category['kind']];
             }
         }
-
-        $prefix = self::sectionPrefix($config, 'kinds');
 
         foreach (self::rawKindRules($config) as $index => $rule) {
             $match = is_array($rule) ? ($rule['match'] ?? null) : null;
 
             if (! is_string($match) || ! KindGlob::isValid($match)) {
-                $issues[] = ['check' => 'kind.invalid_glob', 'key' => "{$prefix}kinds.rules.{$index}.match", 'value' => $match, 'index' => (int) $index, 'pattern' => is_string($match) ? $match : ''];
+                $issues[] = ['check' => 'kind.invalid_glob', 'key' => "metadata.data.kinds.rules.{$index}.match", 'value' => $match, 'index' => (int) $index, 'pattern' => is_string($match) ? $match : ''];
 
                 continue;
             }
 
             if (IconKind::fromConfig($rule['kind'] ?? null) === null) {
-                $issues[] = ['check' => 'kind.invalid_value', 'key' => "{$prefix}kinds.rules.{$index}.kind", 'value' => $rule['kind'] ?? null];
+                $issues[] = ['check' => 'kind.invalid_value', 'key' => "metadata.data.kinds.rules.{$index}.kind", 'value' => $rule['kind'] ?? null];
             }
         }
-
-        $prefix = self::sectionPrefix($config, 'items');
 
         foreach (self::section($config, 'items') as $path => $item) {
             $value = is_array($item) ? ($item['kind'] ?? null) : $item;
 
             if (IconKind::fromConfig($value) === null) {
-                $issues[] = ['check' => 'kind.invalid_value', 'key' => "{$prefix}items.{$path}.kind", 'value' => $value];
+                $issues[] = ['check' => 'kind.invalid_value', 'key' => "metadata.data.items.{$path}.kind", 'value' => $value];
             }
         }
 
@@ -308,21 +299,6 @@ final class PackConfigData
     }
 
     /**
-     * `metadata.data.` when the documented shape holds the section, else ``
-     * for the legacy top level -- so doctor names the key the pack wrote.
-     *
-     * @param array<string, mixed> $config
-     */
-    private static function sectionPrefix(array $config, string $key): string
-    {
-        $metadata = $config['metadata'] ?? null;
-        $data = is_array($metadata) ? ($metadata['data'] ?? null) : null;
-        $documented = is_array($data) ? ($data[$key] ?? null) : null;
-
-        return is_array($documented) && $documented !== [] ? 'metadata.data.' : '';
-    }
-
-    /**
      * @param array<string, mixed> $config
      *
      * @return array<int|string, mixed>
@@ -331,14 +307,8 @@ final class PackConfigData
     {
         $metadata = $config['metadata'] ?? null;
         $data = is_array($metadata) ? ($metadata['data'] ?? null) : null;
-        $documented = is_array($data) ? ($data[$key] ?? null) : null;
+        $section = is_array($data) ? ($data[$key] ?? null) : null;
 
-        if (is_array($documented) && $documented !== []) {
-            return $documented;
-        }
-
-        $legacy = $config[$key] ?? null;
-
-        return is_array($legacy) ? $legacy : [];
+        return is_array($section) ? $section : [];
     }
 }

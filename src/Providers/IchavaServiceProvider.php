@@ -240,9 +240,6 @@ class IchavaServiceProvider extends PackageServiceProvider
             );
         });
 
-        // Alias for backward compatibility and easy access
-        $this->app->alias(Ichava::class, 'ichava');
-
         // Stateful services (fresh instances)
         $this->app->bind(IconRenderer::class);
     }
