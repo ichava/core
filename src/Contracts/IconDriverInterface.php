@@ -23,8 +23,8 @@ interface IconDriverInterface
      * Render $icon with $attributes applied to its root element.
      *
      * @param array<string, mixed> $attributes
-     * @param string|null          $baseDir    the pack directory the file must stay inside
-     * @param int|null             $maxBytes   the size ceiling for the icon's kind; null keeps the global one
+     * @param string|null $baseDir the pack directory the file must stay inside
+     * @param int|null $maxBytes the size ceiling for the icon's kind; null keeps the global one
      *
      * @throws IchavaException when the file is refused or cannot be read
      */

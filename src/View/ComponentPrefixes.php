@@ -44,6 +44,17 @@ final readonly class ComponentPrefixes
     }
 
     /**
+     * Whether the bundled test-icons component should be registered:
+     * `components.test_icons` (default: on when `APP_ENV` is `local`), and
+     * never while `components.enabled` is false. Core ships no such
+     * component; ichava/icon-browser registers it and reads this.
+     */
+    public function testIconsEnabled(): bool
+    {
+        return $this->enabled() && (bool) $this->config->get('ichava.ichava-core.components.test_icons', false);
+    }
+
+    /**
      * The short prefix, or null when it is off.
      *
      * @throws IchavaException when it is not a prefix Blade can parse, or is the canonical one

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Providers;
 
 use Throwable;
-use Illuminate\Support\Str;
 use Laravel\Horizon\Horizon;
 use Illuminate\Support\Facades\DB;
 use Simtabi\Laranail\Ichava\Ichava;
@@ -33,7 +32,6 @@ use Simtabi\Laranail\Ichava\Support\Auth\HostUser;
 use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Ichava\Support\SecurityNonce;
 use Simtabi\Laranail\Ichava\Contracts\PresentsUser;
-use Simtabi\Laranail\Ichava\Contracts\IconDriverInterface;
 use Simtabi\Laranail\Ichava\Contracts\ResolvesUser;
 use Simtabi\Laranail\Ichava\Services\IconsManifest;
 use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
@@ -54,6 +52,7 @@ use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 use Simtabi\Laranail\Ichava\Support\IchavaSessionManager;
 use Illuminate\Contracts\Auth\Access\Gate as GateContract;
+use Simtabi\Laranail\Ichava\Contracts\IconDriverInterface;
 use Simtabi\Laranail\Ichava\Services\ConfigurationService;
 use Simtabi\Laranail\Ichava\Services\IconDiscoveryService;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
@@ -646,22 +645,5 @@ final class IchavaServiceProvider extends PackageServiceProvider
     protected function configureRuntimeSettings(): RuntimeConfigurator
     {
         return $this->app->make(RuntimeLimits::class)->configurator();
-    }
-
-    /**
-     * Check if we're running an Ichava queue command.
-     */
-    protected function isIchavaQueueCommand(): bool
-    {
-        if (! $this->app->runningInConsole()) {
-            return false;
-        }
-
-        $argv = $_SERVER['argv'] ?? [];
-        $argv = is_array($argv) ? array_map(Coerce::string(...), $argv) : [];
-        $isQueueCommand = collect($argv)->contains(fn (string $arg) => Str::contains($arg, 'queue:'));
-        $isIchavaQueue = collect($argv)->contains(fn (string $arg) => Str::contains($arg, 'ichava'));
-
-        return $isQueueCommand && $isIchavaQueue;
     }
 }

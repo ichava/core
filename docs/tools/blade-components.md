@@ -80,7 +80,7 @@ Both extend `IconComponent` and accept the same `name`, `class`, `title`, `aria`
 <x-ichava::ichava-ui-icons   name="search" class="w-5 h-5" />
 ```
 
-Both are registered by `ichava/icon-browser`, and its `test_component_enabled` key turns the test component off. Core's own `components.test_icons` key is read by nothing today; it is kept, and listed for a decision.
+Both are registered by `ichava/icon-browser`. Whether the test component is registered is core's `components.test_icons` key (`ICHAVA_TEST_COMPONENT_ENABLED`, on by default only when `APP_ENV` is `local`), read through `ComponentPrefixes::testIconsEnabled()`; `components.enabled` false turns it off with every other core tag.
 
 ### Per-package components
 
