@@ -25,6 +25,7 @@ use Simtabi\Laranail\Ichava\Commands\InfoCommand;
 use Simtabi\Laranail\Ichava\Facades\IchavaFacade;
 use Simtabi\Laranail\Ichava\Support\IconRenderer;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Ichava\Commands\CacheCommand;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
@@ -133,8 +134,10 @@ class IchavaServiceProvider extends PackageServiceProvider
      */
     public function registeringPackage(): void
     {
-        // Configure runtime settings for heavy operations (seeding, processing)
-        $this->configureRuntimeSettings();
+        // No runtime limits here. A library must not change the host's
+        // process-wide memory or time limits, and the config has not merged
+        // yet in this phase. Ichava's own seed, watch and cache operations
+        // run inside RuntimeLimits::scope(), which restores them after (C-01).
 
         // Register morph map for polymorphic relationships
         Relation::morphMap([
@@ -645,34 +648,17 @@ class IchavaServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Configure PHP runtime settings for heavy Ichava operations.
+     * The PHP runtime settings Ichava's heavy operations run under.
      *
-     * Ichava processes large icon sets (100k+ SVGs) which requires:
-     * - Higher memory limits for bulk operations
-     * - Extended execution time for seeding/processing
-     * - Disabled Telescope during queue jobs to prevent memory leaks
-     *
-     * Settings are configurable via ichava.php config file.
+     * Ichava processes large icon sets (100k+ SVGs), which needs a higher
+     * memory limit, a longer execution time and Telescope paused. This builds
+     * that configurator from the merged config and applies nothing: the
+     * operations call RuntimeLimits::scope(), so the host keeps its limits
+     * everywhere else.
      */
-    protected function configureRuntimeSettings(): void
+    protected function configureRuntimeSettings(): RuntimeConfigurator
     {
-        // Get configured values with sensible defaults
-        $memoryLimit = Coerce::string(config('ichava.ichava-core.runtime.memory_limit', '1G'));
-        $maxExecutionTime = Coerce::int(config('ichava.ichava-core.runtime.max_execution_time', 0));
-        $disableTelescopeInQueue = config('ichava.ichava-core.runtime.disable_telescope_in_queue', true);
-
-        // Build runtime configurator with settings from config
-        $configurator = RuntimeConfigurator::make()
-            ->memory($memoryLimit)
-            ->timeout($maxExecutionTime);
-
-        // Disable Telescope during queue processing to prevent memory exhaustion
-        if ($disableTelescopeInQueue && $this->isIchavaQueueCommand()) {
-            $configurator->disableTelescope();
-        }
-
-        // Apply all settings
-        $configurator->apply();
+        return $this->app->make(RuntimeLimits::class)->configurator();
     }
 
     /**

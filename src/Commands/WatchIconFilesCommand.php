@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\intro;
@@ -31,7 +32,16 @@ class WatchIconFilesCommand extends BaseCommand
 
     protected $description = 'Watch icon files for changes and auto-sync database';
 
-    public function handle(IconWatcherService $watcher): int
+    public function handle(IconWatcherService $watcher, RuntimeLimits $limits): int
+    {
+        // The scan runs under Ichava's limits, restored when it returns (C-01).
+        return $limits->scope(fn (): int => $this->scan($watcher));
+    }
+
+    /**
+     * Rescan one pack, or scan every pack, and report what changed.
+     */
+    private function scan(IconWatcherService $watcher): int
     {
         intro(__('ichava/ichava-core::commands.watch.intro'));
 

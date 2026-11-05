@@ -23,11 +23,11 @@ use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Enums\KindSource;
 use Simtabi\Laranail\DbTools\Query\ChunkedWriter;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\IconClassifier;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
 use Simtabi\Laranail\Ichava\Support\Seeder\IconSeederHelpers;
-use Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator;
 use Simtabi\Laranail\Package\Tools\Services\Database\SeederRunTracker;
 
 /**
@@ -89,7 +89,7 @@ class SeedIconsJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(IchavaLogger $logger): void
+    public function handle(IchavaLogger $logger, RuntimeLimits $limits): void
     {
         // Check if batch was cancelled
         if ($this->batch()?->cancelled()) {
@@ -101,12 +101,16 @@ class SeedIconsJob implements ShouldQueue
             return;
         }
 
-        RuntimeConfigurator::make()
-            ->memory('512M')
-            ->timeout($this->timeout)
-            ->disableTelescope()
-            ->apply();
+        // The job's own limits, restored when it returns, so a worker that runs
+        // other jobs after this one keeps the limits it started with (C-01).
+        $limits->scope(fn () => $this->seedChunk($logger), timeout: $this->timeout);
+    }
 
+    /**
+     * Seed this job's chunk and report its progress.
+     */
+    private function seedChunk(IchavaLogger $logger): void
+    {
         $fileCount = count($this->files);
         $logger->info("Processing job {$this->jobIndex}/{$this->totalJobs}", [
             'package' => $this->packageName,

@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Schema;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Jobs\SeedIconsJob;
 use Simtabi\Laranail\Ichava\Support\CommandName;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
@@ -362,7 +363,8 @@ class IchavaSeeder extends Seeder
             return;
         }
 
-        $this->seedAllPackages();
+        // Seeding runs under Ichava's limits, restored when it returns (C-01).
+        app(RuntimeLimits::class)->scope(fn () => $this->seedAllPackages());
 
         $this->displayFooter();
     }

@@ -118,8 +118,8 @@ return [
     |--------------------------------------------------------------------------
     | PHP runtime
     |--------------------------------------------------------------------------
-    | Applied at provider registration so heavy operations (seeding 100k+
-    | icons, batch processing) get the headroom they need.
+    | Applied only around Ichava's own seed, watch and cache operations, and
+    | restored when each returns. The host's limits are never changed.
     */
     'runtime' => [
         'memory_limit'               => env('ICHAVA_MEMORY_LIMIT', '2G'),

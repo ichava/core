@@ -249,23 +249,17 @@ Migrations are auto-discovered through `discoversMigrations()`, which uses the s
 
 Public asset publishing for the SPA happens in `IconBrowserServiceProvider::bootingPackage()`, not core. The browser package's `public/` directory is copied to `public/vendor/ichava/` under the `ichava::icon-browser-assets` tag.
 
-## RuntimeConfigurator (PHP runtime tuning)
+## Runtime limits
 
-Heavy operations (seeding 100k+ icons, batch processing) need higher memory limits and longer timeouts. Core uses the `RuntimeConfigurator` utility from `laranail/package-tools`:
+Heavy operations (seeding 100k+ icons, watching, cache builds) need a higher memory limit, a longer time limit and Telescope paused. Core applies them only around its own operations, never to the host: `Support\RuntimeLimits::scope()` applies `ichava.ichava-core.runtime.memory_limit`, `runtime.max_execution_time` and `runtime.disable_telescope_in_queue` from the merged config, runs the operation, and restores the previous values when it returns or throws.
 
 ```php
-use Simtabi\Laranail\PackageTools\Support\RuntimeConfigurator;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 
-RuntimeConfigurator::make()
-    ->memory('2G')
-    ->timeout(0)
-    ->disableTelescope()
-    ->apply();
+app(RuntimeLimits::class)->scope(fn () => $seeder->seedAllPackages());
 ```
 
-`IchavaServiceProvider::configureRuntimeSettings()` calls this automatically during `registeringPackage()`, reading `ichava.ichava-core.runtime.memory_limit`, `ichava.ichava-core.runtime.max_execution_time`, and `ichava.ichava-core.runtime.disable_telescope_in_queue` from config. No manual setup required.
-
-See `Simtabi\Laranail\Packager\Package\Support\RuntimeConfigurator` for the full fluent API (preset factories like `forQueueJob()`, `forBatchProcessing()`, scoped `scope()` callbacks, Xdebug and Debugbar toggles).
+The seed, cache and watch commands, `IchavaSeeder::run()` and each `SeedIconsJob` run inside it (a job passes its own `timeout`). A host request or command that never calls them keeps its own limits. The configurator is `Simtabi\Laranail\Package\Tools\Support\RuntimeConfigurator` from `laranail/package-tools`.
 
 ## IchavaRegistrar (bulk registration helper)
 

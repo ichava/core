@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
 use function Laravel\Prompts\spin;
@@ -68,7 +69,7 @@ final class DatabaseCommand extends BaseCommand
         parent::__construct();
     }
 
-    public function handle(): int
+    public function handle(RuntimeLimits $limits): int
     {
         $action = Coerce::string($this->argument('action'));
 
@@ -101,7 +102,8 @@ final class DatabaseCommand extends BaseCommand
             return self::FAILURE;
         }
 
-        return match ($action) {
+        // Seeding runs under Ichava's limits, restored when it returns (C-01).
+        return $limits->scope(fn (): int => match ($action) {
             'seed'       => $this->handleSeed(),
             'seed:icons' => $this->handleSeedIcons(),
             'seed:terms' => $this->handleSeedTerms(),
@@ -110,7 +112,7 @@ final class DatabaseCommand extends BaseCommand
             'truncate'   => $this->handleTruncate(),
             'stats'      => $this->handleStats(),
             default      => $this->handleInvalidAction((string) $action, $this->validActions),
-        };
+        });
     }
 
     /**
