@@ -35,7 +35,7 @@ function tempTree(): string
 // ---------------------------------------------------------------- syntax ---
 
 it('builds all three usage forms for a pack with a component', function () {
-    $syntax = (new BuildIconUsageSyntax)('ichava/tabler-icons', [
+    $syntax = (new BuildIconUsageSyntax)->handle('ichava/tabler-icons', [
         'prefix'          => 'ti',
         'blade_component' => 'tabler-icons-icon',
     ], 'home');
@@ -59,7 +59,7 @@ it('omits the component form without warning when the pack registered none', fun
     }, E_WARNING);
 
     try {
-        $syntax = (new BuildIconUsageSyntax)('vendor/pack', ['prefix' => 'vp'], 'home');
+        $syntax = (new BuildIconUsageSyntax)->handle('vendor/pack', ['prefix' => 'vp'], 'home');
     } finally {
         restore_error_handler();
     }
@@ -70,13 +70,13 @@ it('omits the component form without warning when the pack registered none', fun
 });
 
 it('falls back to the package name when a pack declares no prefix', function () {
-    $syntax = (new BuildIconUsageSyntax)('vendor/pack', [], 'home');
+    $syntax = (new BuildIconUsageSyntax)->handle('vendor/pack', [], 'home');
 
     expect($syntax['helper'])->toBe("ichava('vendor/pack:home')");
 });
 
 it('appends the variant when one is given', function () {
-    $syntax = (new BuildIconUsageSyntax)('p', ['prefix' => 'ti'], 'home', 'outline');
+    $syntax = (new BuildIconUsageSyntax)->handle('p', ['prefix' => 'ti'], 'home', 'outline');
 
     expect($syntax['helper'])->toBe("ichava('ti:home:outline')");
 })->with([['outline'], ['filled']]);
@@ -93,7 +93,7 @@ it('reads only ichava packages out of a composer.lock', function () {
         ['name' => 'ichava/icon-sets-flag', 'version' => '0.3.0'],
     ]]));
 
-    $found = (new DiscoverInstalledPackages(new Filesystem))($lock);
+    $found = (new DiscoverInstalledPackages(new Filesystem))->handle($lock);
 
     expect(array_column($found, 'name'))->toBe(['ichava/core', 'ichava/icon-sets-flag'])
         ->and($found[0]['version'])->toBe('0.3.2')
@@ -110,7 +110,7 @@ it('returns nothing rather than throwing for a missing or malformed lock', funct
         file_put_contents($lock, $contents);
     }
 
-    expect((new DiscoverInstalledPackages(new Filesystem))($lock))->toBe([]);
+    expect((new DiscoverInstalledPackages(new Filesystem))->handle($lock))->toBe([]);
 
     (new Filesystem)->deleteDirectory($dir);
 })->with([

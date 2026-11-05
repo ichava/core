@@ -25,7 +25,7 @@ final readonly class BuildIconUsageSyntax
      *
      * @return array{helper: string, directive: string, component: string|null}
      */
-    public function __invoke(
+    public function handle(
         string $package,
         array $packageData,
         string $name,

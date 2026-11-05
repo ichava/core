@@ -40,7 +40,7 @@ it('searches the database without the discovery service', function () {
         'file_path' => 'anchor.svg',
     ]);
 
-    $result = app(SearchIconsInDatabase::class)(query: 'anchor');
+    $result = app(SearchIconsInDatabase::class)->handle(query: 'anchor');
 
     expect($result['total'])->toBe(1)
         ->and($result['items'][0]['name'])->toBe('anchor');
@@ -74,7 +74,7 @@ it('clears every cache the discovery service writes', function () {
 
     expect($svc->searchIcons('anchor')['total'] ?? 0)->toBe(0);
 
-    app(ClearDiscoveryCaches::class)();
+    app(ClearDiscoveryCaches::class)->handle();
 
     expect($svc->searchIcons('anchor')['total'] ?? 0)->toBe(1);
 });

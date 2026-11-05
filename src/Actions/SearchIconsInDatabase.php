@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Actions;
 
+use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 use Closure;
 use InvalidArgumentException;
 use Simtabi\Laranail\Ichava\Models\Icon;
@@ -45,7 +46,7 @@ final class SearchIconsInDatabase
      *
      * @return array{items: list<array<string, mixed>>, total: int, page: int, per_page: int, last_page: int}
      */
-    public function __invoke(
+    public function handle(
         string $query = '',
         array $packages = [],
         array $categories = [],
@@ -58,7 +59,7 @@ final class SearchIconsInDatabase
     ): array {
         // The generation is part of the key, so a clear retires every variant
         // at once without enumerating the md5 suffixes.
-        $cacheKey = 'icons.search.db.' . ClearDiscoveryCaches::generation() . '.' . md5(serialize([
+        $cacheKey = 'icons.search.db.' . DiscoveryCacheGeneration::current() . '.' . md5(serialize([
             $query, $packages, $categories, $page, $perPage, $sortBy, $sortDirection,
         ]));
 
@@ -82,7 +83,7 @@ final class SearchIconsInDatabase
     }
 
     /**
-     * Whether a value has the shape `__invoke()` returns.
+     * Whether a value has the shape `handle()` returns.
      *
      * @phpstan-assert-if-true array{items: list<array<string, mixed>>, total: int, page: int, per_page: int, last_page: int} $value
      */

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Actions;
 
+use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -26,12 +27,12 @@ use Illuminate\Support\Facades\Cache;
 final class ClearDiscoveryCaches
 {
     /** The prefix every discovery cache key carries. */
-    public const string PREFIX = 'ichava.discovery';
+    public const string PREFIX = DiscoveryCacheGeneration::PREFIX;
 
     /** The key holding the invalidation generation. */
-    public const string GENERATION_KEY = self::PREFIX . '.generation';
+    public const string GENERATION_KEY = DiscoveryCacheGeneration::KEY;
 
-    public function __invoke(): void
+    public function handle(): void
     {
         // Written with `Cache::remember()` on the default store, so it is
         // forgettable by name and does not need the generation.
@@ -40,20 +41,6 @@ final class ClearDiscoveryCaches
         // Everything else -- `.packages`, `.categories`, `.search` on the file
         // store, and `icons.search.db.*` through IconCacheService -- carries
         // the generation in its key. One increment retires all of them.
-        Cache::increment(self::GENERATION_KEY);
-    }
-
-    /**
-     * The current generation, mixed into every key the service builds.
-     *
-     * Read on each key construction rather than memoised: a clear may run in
-     * another request, and a memoised value would serve the previous
-     * generation for the life of the instance.
-     */
-    public static function generation(): int
-    {
-        $generation = Cache::get(self::GENERATION_KEY, 0);
-
-        return is_numeric($generation) ? (int) $generation : 0;
+        DiscoveryCacheGeneration::advance();
     }
 }
