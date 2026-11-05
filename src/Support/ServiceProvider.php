@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Support;
 
+use Throwable;
 use SplFileInfo;
 use FilesystemIterator;
 use Illuminate\Support\Str;
 use RecursiveIteratorIterator;
 use Composer\InstalledVersions;
 use RecursiveDirectoryIterator;
-use Illuminate\Support\Facades\Blade;
+use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
@@ -227,12 +228,14 @@ abstract class ServiceProvider extends PackageServiceProvider implements IchavaP
     /**
      * Register a Blade component using the Ichava naming convention.
      *
-     * Registers the component under the tag `<x-{packageName}-icon name="..." />`.
+     * Registers `<x-{vendor}-{packageName}::icon name="..." />`, and the short
+     * `<x-{packageName}-icon />` while `components.short_prefix` is on.
      * Call this from bootingPackage() in your child service provider.
      *
      * Example:
      * ```php
-     * // Registers: <x-icon-sets-tabler-icon name="outline/home" />
+     * // Registers: <x-ichava-icon-sets-tabler::icon name="outline/home" />
+     * //       and: <x-icon-sets-tabler-icon name="outline/home" />
      * $this->loadBladeComponent(IconComponent::class, 'icon-sets-tabler');
      * ```
      *
@@ -247,39 +250,34 @@ abstract class ServiceProvider extends PackageServiceProvider implements IchavaP
             throw IchavaException::invalidConfiguration('Package name cannot be empty for Blade component registration');
         }
 
-        $packageName = Str::lower($packageName);
+        // `<x-{vendor}-{package}::icon>` always, and `<x-{package}-icon>` while
+        // `components.short_prefix` is on (C-08). The package name is the
+        // provider's own when it has one, so the vendor is the pack's.
+        $slug = Str::lower($packageName);
+        $vendorPackage = $this->vendorPackageFor($slug);
 
-        // Register as: <x-{package}-icon name="..." />
-        // Example: <x-icon-sets-tabler-icon name="home" />
-        $alias = "{$packageName}-icon";
+        $alias = $this->app->make(ComponentPrefixes::class)->registerPackComponent($vendorPackage, 'icon', $componentClass);
 
-        Blade::component($alias, $componentClass);
-
-        // Tell the registry what was actually registered, so its conflict
-        // detector has something to compare. It reads `blade_component` from
-        // package metadata, and until now nothing ever put it there.
+        // Recorded so IconRegistry can detect two packs claiming the same
+        // alias (the registry's blade_component conflict detector).
         $this->app->make(IconRegistry::class)->noteBladeComponent(static::class, $alias);
     }
 
     /**
-     * Convenience wrapper: register an SVG icon set directory with the global IconRegistry.
-     *
-     * Delegates to IconRegistry::fromDirectory() with the current provider class as the
-     * attribution source. The directory must contain a valid `config.json` file.
-     *
-     * Typical usage in bootingPackage():
-     * ```php
-     * public function bootingPackage(): void
-     * {
-     *     $this->loadBladeComponent(IconComponent::class, 'icon-sets-tabler');
-     *     $this->registerIconDirectory($this->package->basePath('resources/assets/svg'));
-     * }
-     * ```
-     *
-     * @param string $path Absolute path to the icon set directory (must contain config.json)
-     *
-     * @throws IchavaException if config.json is missing or malformed
+     * The provider's `vendor/package` when its package is named and ends in
+     * $slug, else `ichava/{$slug}`.
      */
+    private function vendorPackageFor(string $slug): string
+    {
+        try {
+            $name = isset($this->package) ? Str::lower($this->package->getSlashNamespace()) : '';
+        } catch (Throwable) {
+            $name = '';
+        }
+
+        return str_ends_with($name, '/' . $slug) ? $name : 'ichava/' . $slug;
+    }
+
     protected function registerIconDirectory(string $path): void
     {
         $this->app->make(IconRegistry::class)->fromDirectory($path, static::class);

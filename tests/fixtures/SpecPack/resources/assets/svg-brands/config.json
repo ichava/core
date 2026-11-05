@@ -1,0 +1,4 @@
+{
+    "package": { "name": "ichava/icon-sets-spec-fixture-brands", "title": "Spec Fixture Brands" },
+    "config": { "icon_prefix": "specbrand" }
+}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Illuminate\Support\Str;
 use stdClass;
 use ArrayAccess;
 use InvalidArgumentException;
@@ -177,15 +178,23 @@ final class IconBrowserService
     }
 
     /**
-     * The Blade tag a pack registered with `loadBladeComponent()`, read from Blade's
-     * live alias map so a pack that registered none never gets an invented tag.
+     * The Blade tag a pack registered, read from Blade's live alias map so a
+     * pack that registered none never gets an invented tag: the short
+     * `{package}-icon` while the short prefix is on, else the canonical
+     * `{vendor}-{package}::icon`.
      */
     public function packComponentTag(Icon $icon): ?string
     {
-        $slug = strtolower(substr($icon->package, (int) strrpos('/' . $icon->package, '/')));
-        $alias = "{$slug}-icon";
+        $package = strtolower($icon->package);
+        $aliases = Blade::getClassComponentAliases();
 
-        return array_key_exists($alias, Blade::getClassComponentAliases()) ? $alias : null;
+        foreach ([Str::afterLast($package, '/') . '-icon', str_replace('/', '-', $package) . '::icon'] as $alias) {
+            if (array_key_exists($alias, $aliases)) {
+                return $alias;
+            }
+        }
+
+        return null;
     }
 
     /**

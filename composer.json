@@ -65,7 +65,8 @@
             "Simtabi\\Laranail\\Ichava\\Tests\\": "tests/",
             "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\BasePack\\": "tests/fixtures/BasePack/src/",
             "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\TranslatedPack\\": "tests/fixtures/TranslatedPack/src/",
-            "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\ViewfulPack\\": "tests/fixtures/ViewfulPack/src/"
+            "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\ViewfulPack\\": "tests/fixtures/ViewfulPack/src/",
+            "Simtabi\\Laranail\\Ichava\\Tests\\Fixtures\\SpecPack\\": "tests/fixtures/SpecPack/src/"
         }
     },
     "extra": {

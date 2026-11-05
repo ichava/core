@@ -1483,6 +1483,35 @@
             "version": "0.1.0"
         }
     },
+    "<root>/tests/fixtures/SpecPack/resources/assets/svg": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/SpecPack/resources/assets/svg",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": null,
+            "description": "",
+            "homepage": null,
+            "icon_set_name": "ichava/icon-sets-spec-fixture",
+            "item_kinds": [],
+            "keywords": [],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT",
+            "name": "Spec Fixture",
+            "package_name": "ichava/icon-sets-spec-fixture",
+            "prefix": "spec",
+            "provider_class": null,
+            "repository": null,
+            "theme_variants": [],
+            "total": 3,
+            "variant_metadata": [],
+            "vendor": "ichava",
+            "version": "1.0.0"
+        }
+    },
     "<root>/tests/fixtures/TranslatedPack/resources/assets/svg": {
         "aliases": [],
         "metadata": {
