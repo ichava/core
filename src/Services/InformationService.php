@@ -105,11 +105,11 @@ class InformationService
      * Composer put it. `registered` says whether the pack's provider has
      * registered it with the IconRegistry.
      *
-     * Two older sources are kept, so nothing they found stops being found: the
-     * `vendor/*\/ichava-*` directory glob, which no estate pack matches (packs
-     * install as `vendor/ichava/icon-sets-*`) but a third-party pack named that
-     * way still would, and the `platform/ichava` directory. A name Composer
-     * already reported is not overwritten by either.
+     * The `platform/ichava` directory is also scanned, for packs checked out
+     * there rather than installed by Composer, under the same rule: only a
+     * directory whose composer.json declares the pack type counts, keyed by
+     * that file's `name`. A name Composer already reported is not overwritten.
+     * No directory is ever matched by its folder name alone.
      *
      * @return array<string, array{path: string, registered: bool}>
      */
@@ -130,41 +130,27 @@ class InformationService
             ];
         }
 
-        $vendorPath = base_path('vendor');
-
-        if (File::isDirectory($vendorPath)) {
-            $directories = File::glob($vendorPath . '/*/ichava-*');
-            foreach ($directories as $dir) {
-                if (! is_string($dir)) {
-                    continue;
-                }
-
-                $name = basename(dirname($dir)) . '/' . basename($dir);
-                if (! isset($discovered[$name])) {
-                    $discovered[$name] = [
-                        'path'       => $dir,
-                        'registered' => $this->registry->isRegistered($name),
-                    ];
-                }
-            }
-        }
-
-        // Also check platform/ichava directory
+        // Packs checked out under platform/ichava instead of installed by
+        // Composer. The same rule applies: a directory is a pack only when its
+        // composer.json declares the pack type, and it is keyed by that file's
+        // name, never by the directory's.
         $platformPath = base_path('platform/ichava');
         if (File::isDirectory($platformPath)) {
-            $directories = File::directories($platformPath);
-            foreach ($directories as $dir) {
+            foreach (File::directories($platformPath) as $dir) {
                 if (! is_string($dir)) {
                     continue;
                 }
 
-                $name = 'ichava/' . basename($dir);
-                if (! isset($discovered[$name])) {
-                    $discovered[$name] = [
-                        'path'       => $dir,
-                        'registered' => $this->registry->isRegistered($name),
-                    ];
+                $name = $this->packNameAt($dir);
+
+                if ($name === null || isset($discovered[$name])) {
+                    continue;
                 }
+
+                $discovered[$name] = [
+                    'path'       => $dir,
+                    'registered' => $this->registry->isRegistered($name),
+                ];
             }
         }
 
@@ -387,5 +373,29 @@ class InformationService
 
             return false;
         });
+    }
+
+    /**
+     * The composer name of the pack at $dir, or null when $dir holds no
+     * composer.json declaring `"type": "ichava-icon-set"`.
+     */
+    private function packNameAt(string $dir): ?string
+    {
+        $file = $dir . '/composer.json';
+
+        if (! File::isFile($file)) {
+            return null;
+        }
+
+        $composer = json_decode((string) File::get($file), true);
+
+        if (! is_array($composer)
+            || ($composer['type'] ?? null) !== IchavaConstants::PACK_COMPOSER_TYPE
+            || ! is_string($composer['name'] ?? null)
+            || $composer['name'] === '') {
+            return null;
+        }
+
+        return $composer['name'];
     }
 }
