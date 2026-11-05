@@ -72,7 +72,7 @@ final class ConfigurationService
     /**
      * Check if config has variants
      *
-     * Reads `metadata.data.variants` first, then the top-level `variants` key.
+     * Reads `metadata.data.variants`, the one place config.json declares them.
      *
      * @param array<string, mixed> $config
      */
@@ -84,7 +84,7 @@ final class ConfigurationService
     /**
      * Get variants from config
      *
-     * Reads `metadata.data.variants` first, then the top-level `variants` key.
+     * Reads `metadata.data.variants`, the one place config.json declares them.
      *
      * @param array<string, mixed> $config
      *
@@ -98,7 +98,7 @@ final class ConfigurationService
     /**
      * Check if config has categories
      *
-     * Reads `metadata.data.categories` first, then the top-level `categories` key.
+     * Reads `metadata.data.categories`, the one place config.json declares them.
      *
      * @param array<string, mixed> $config
      */

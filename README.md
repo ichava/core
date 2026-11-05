@@ -45,22 +45,27 @@ Render an icon with the Blade component, which works with any installed pack:
 <x-ichava-core::icon name="ichava/icon-sets-tabler::outline/home" class="w-6 h-6" />
 ```
 
-`<x-ichava::icon>` is the same component under the ecosystem prefix and keeps working.
-
-Or with the fluent helper, which renders when cast to a string:
+`<x-ichava::icon>` is the same component under the configurable short prefix (`components.short_prefix`), on by default. Or use the fluent helper, which renders when cast to a string:
 
 ```blade
 {{ ichava('ichava/icon-sets-tabler::filled/home')->color('#4338ca')->class('w-5 h-5') }}
 ```
 
-Ask what an SVG is, and which rule decided it:
+Register a set of your own, from a pack provider's optional `pack()` hook or straight from code:
 
 ```php
-use Simtabi\Laranail\Ichava\Facades\IchavaFacade as Ichava;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\Pack\PackBuilder;
 
-Ichava::kindOf('ichava/icon-sets-tabler::outline/home');           // IconKind::Icon
-Ichava::kindResolution('ichava/icon-sets-tabler::outline/home');   // kind, source (host, item, rule, category, pack, default) and rule
+app(IconRegistry::class)->register(
+    PackBuilder::make('acme/social', storage_path('icons/social/files'))
+        ->prefix('social')
+        ->variant('outline', ['fill' => 'none', 'stroke' => 'currentColor'])
+        ->build(),
+);
 ```
+
+A pack that keeps everything in its `config.json` needs none of this: its provider names its constants and component classes, and [Pack registration](docs/tools/pack-registration.md) covers both paths and bulk registration.
 
 See [Getting started](docs/getting-started.md) for the full walkthrough, and the [documentation index](#documentation) for everything else.
 
@@ -84,7 +89,8 @@ The full documentation lives in this repository, under `docs/`, and is indexed b
 ### Reference
 
 - [Icon path format](docs/tools/icon-path-format.md) — the one normaliser both spellings go through
-- [Blade components](docs/tools/blade-components.md) — `<x-ichava::icon>` and its attributes
+- [Blade components](docs/tools/blade-components.md) — `<x-ichava-core::icon>`, the short tag, and the attributes
+- [Pack registration](docs/tools/pack-registration.md) — the simple and advanced pack paths, `PackBuilder`, and bulk registration
 - [Global helper](docs/tools/global-helper.md) — the fluent `ichava()` API
 - [Artisan commands](docs/tools/artisan-commands.md) — every command core registers
 - [Query and model API](docs/tools/query-api.md) — scopes, filters, events, status and the extension interfaces

@@ -8,10 +8,22 @@ The single component that renders icons from any registered package. It answers 
 
 | Tag | Prefix | Notes |
 |---|---|---|
-| `<x-ichava-core::icon>` | `ichava-core`, vendor-scoped | Preferred in new code: the prefix names the package that ships it |
-| `<x-ichava::icon>` | `ichava`, the ecosystem prefix | Unchanged and fully supported; packs register their own short names under it |
+| `<x-ichava-core::icon>` | `ichava-core`, canonical | Always registered; the prefix names the package that ships it |
+| `<x-ichava::icon>` | `components.short_prefix`, default `ichava` | The short tag: registered beside the canonical one while the key names a prefix |
 
-Both resolve the same class, `Simtabi\Laranail\Ichava\View\Components\IconComponent`, and render the same bytes. The examples below use the bare prefix; swap in `ichava-core` anywhere.
+Both resolve the same class, `Simtabi\Laranail\Ichava\View\Components\IconComponent`, and render the same bytes. The examples below use the short prefix; swap in `ichava-core` anywhere.
+
+#### Short tag
+
+`components.short_prefix` (`ICHAVA_COMPONENT_SHORT_PREFIX`) names the short prefix:
+
+| Value | Registered |
+|---|---|
+| `'ichava'` (default) | `<x-ichava-core::icon>` and `<x-ichava::icon>` |
+| `'icon'`, or any lowercase prefix of letters, digits and hyphens | `<x-ichava-core::icon>` and `<x-icon::icon>` |
+| `null` or `''` | `<x-ichava-core::icon>` only |
+
+A value Blade cannot parse (a `/`, a `::`, upper case) or `ichava-core` itself throws `IchavaException` at boot rather than registering a tag that silently truncates. `components.enabled` (`ICHAVA_COMPONENTS_ENABLED`) set to `false` registers no core tag at all. Registration cannot stop a provider that boots later from overwriting the short alias, so `php artisan ichava::ichava-core.info doctor` checks the live alias map and warns under `component.short_prefix_shadowed` when it no longer resolves to the icon component.
 
 ```blade
 {{-- Basic usage --}}
@@ -68,11 +80,11 @@ Both extend `IconComponent` and accept the same `name`, `class`, `title`, `aria`
 <x-ichava::ichava-ui-icons   name="search" class="w-5 h-5" />
 ```
 
-The `test_icons` component is auto-disabled in production, see `components.test_icons` in `config/ichava/ichava-core.php`.
+Both are registered by `ichava/icon-browser`, and its `test_component_enabled` key turns the test component off. Core's own `components.test_icons` key is read by nothing today; it is kept, and listed for a decision.
 
 ### Per-package components
 
-Each child icon package registers its own thin wrapper component for ergonomics, e.g. `<x-icon-sets-tabler-icon>`, `<x-icon-sets-flag-icon>`, `<x-icon-sets-emoji-icon>`. They forward to the same underlying `IconComponent`, see each child package's README for the exact tag name and accepted attributes.
+Each icon pack registers its own component under the same two tiers: the canonical `<x-{vendor}-{package}::icon>` always, and the short `<x-{package}-icon>` while `components.short_prefix` names a prefix. For tabler that is `<x-ichava-icon-sets-tabler::icon>` and `<x-icon-sets-tabler-icon>`. A pack can add components through its `pack()` hook ([Pack registration](pack-registration.md#the-advanced-path-packspec)). Both forward to `IconComponent`, and a pack's `config.json` `config.defaults` (class, attributes, `stroke_width`) applies to every tag and to `render()` alike.
 
 ---
 
