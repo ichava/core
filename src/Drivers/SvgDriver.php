@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Drivers;
 
+use Simtabi\Laranail\Ichava\Contracts\IconDriverInterface;
 use Exception;
 use Stringable;
 use Illuminate\Support\Str;
@@ -37,7 +38,7 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * @see IconCacheService
  * @see IchavaConstants
  */
-final class SvgDriver
+final class SvgDriver implements IconDriverInterface
 {
     use ContainsFilePaths;
 

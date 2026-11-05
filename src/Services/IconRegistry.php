@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Simtabi\Laranail\Ichava\Contracts\IconDriverInterface;
 use Exception;
 use Throwable;
 use Illuminate\Support\Str;
@@ -110,7 +111,7 @@ final class IconRegistry
 
     public function __construct(
         private Application $app,
-        private SvgDriver $driver,
+        private IconDriverInterface $driver,
         private IchavaLogger $logger,
         private PathResolver $pathResolver,
         private IconAliasMap $aliases,
@@ -921,7 +922,7 @@ final class IconRegistry
     /**
      * Direct access to the SvgDriver instance (load, process, render SVG files).
      */
-    public function driver(): SvgDriver
+    public function driver(): IconDriverInterface
     {
         return $this->driver;
     }

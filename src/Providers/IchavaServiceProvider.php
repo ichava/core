@@ -33,6 +33,7 @@ use Simtabi\Laranail\Ichava\Support\Auth\HostUser;
 use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Ichava\Support\SecurityNonce;
 use Simtabi\Laranail\Ichava\Contracts\PresentsUser;
+use Simtabi\Laranail\Ichava\Contracts\IconDriverInterface;
 use Simtabi\Laranail\Ichava\Contracts\ResolvesUser;
 use Simtabi\Laranail\Ichava\Services\IconsManifest;
 use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
@@ -195,6 +196,7 @@ final class IchavaServiceProvider extends PackageServiceProvider
 
         $this->app->singleton(PathResolver::class);
         $this->app->singleton(SvgDriver::class);
+        $this->app->bind(IconDriverInterface::class, fn (Container $app): IconDriverInterface => $app->make(SvgDriver::class));
 
         // 3. Cache service (depends on IchavaLogger only)
         $this->app->singleton(IconCacheService::class);

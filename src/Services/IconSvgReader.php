@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
+use Simtabi\Laranail\Ichava\Contracts\IconDriverInterface;
 use Throwable;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
@@ -24,7 +25,7 @@ final readonly class IconSvgReader
 {
     public function __construct(
         private IconCacheService $cache,
-        private SvgDriver $driver,
+        private IconDriverInterface $driver,
         private SvgProcessingService $processor,
         private AuditLogger $audit,
     ) {}

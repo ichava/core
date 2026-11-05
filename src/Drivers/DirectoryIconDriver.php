@@ -10,18 +10,12 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Contracts\IconDriverInterface;
 
 /**
- * `IconDriverInterface` over one directory of SVG files.
- *
- * The extension point for a driver author: list, check and render icons by
- * their path under the directory (`ui/check` → `ui/check.svg`), with no
- * registry, pack or database involved. Rendering goes through SvgDriver, so
- * the same containment checks, size limit and sanitiser apply.
- *
- * SvgDriver itself does not implement the interface: its `render()` takes a
- * resolved IconData, which is what IconRegistry hands it, and changing that
- * signature would break the registry and every subclass.
+ * Lists, checks and renders the icons in one directory of SVG files, by their
+ * path under it (`ui/check` → `ui/check.svg`), with no registry, pack or
+ * database involved. Rendering goes through the bound IconDriverInterface
+ * (SvgDriver), so the same containment checks, size limit and sanitiser apply.
  */
-final class DirectoryIconDriver implements IconDriverInterface
+final class DirectoryIconDriver
 {
     /** @var array<string, mixed> */
     private array $config = [];
@@ -29,7 +23,7 @@ final class DirectoryIconDriver implements IconDriverInterface
     private string $iconPath = '';
 
     public function __construct(
-        private readonly SvgDriver $driver,
+        private readonly IconDriverInterface $driver,
     ) {}
 
     /**
