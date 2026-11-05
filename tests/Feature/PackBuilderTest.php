@@ -106,7 +106,7 @@ it('applies the merge contract over config.json', function (string $method, arra
 
     expect($read($definition))->toBeTrue();
 })->with([
-    'a scalar override replaces the file value' => ['prefix', ['vp'], fn ($d): bool => $d->prefix === 'vp'],
+    'a scalar override replaces the file value'         => ['prefix', ['vp'], fn ($d): bool => $d->prefix === 'vp'],
     'a map entry merges, the file keeps its other keys' => ['variant', ['outline', ['stroke' => 'red']], fn ($d): bool => $d->config['metadata']['data']['variants']['outline']['attributes'] === ['stroke_width' => 2, 'fill' => 'none', 'stroke' => 'red']
         && isset($d->config['metadata']['data']['variants']['filled'])],
     'a fluent rule comes before the file rules' => ['kindRule', ['outline/**', IconKind::Illustration], fn ($d): bool => $d->config['metadata']['data']['kinds']['rules'][0]['match'] === 'outline/**'],
@@ -126,9 +126,9 @@ it('refuses what it cannot register', function (Closure $build, string $message)
     expect($build)->toThrow(IchavaException::class, $message);
 })->with([
     'a name that is not vendor/package' => [fn () => PackBuilder::make('social', '/tmp/x')->build(), 'vendor/package'],
-    'an empty prefix' => [fn () => PackBuilder::make('acme/x', '/tmp/x')->prefix('')->build(), 'non-empty prefix'],
-    'an invalid glob' => [fn () => PackBuilder::make('acme/x', '/tmp/x')->kindRule('a/**b', IconKind::Icon), 'not a valid glob'],
-    'an unknown about key' => [fn () => PackBuilder::make('acme/x', '/tmp/x')->about('colour', 'red'), 'unknown pack field'],
+    'an empty prefix'                   => [fn () => PackBuilder::make('acme/x', '/tmp/x')->prefix('')->build(), 'non-empty prefix'],
+    'an invalid glob'                   => [fn () => PackBuilder::make('acme/x', '/tmp/x')->kindRule('a/**b', IconKind::Icon), 'not a valid glob'],
+    'an unknown about key'              => [fn () => PackBuilder::make('acme/x', '/tmp/x')->about('colour', 'red'), 'unknown pack field'],
 ]);
 
 it('gives a set registered through package() the full metadata fromDirectory() gives (C-03)', function (): void {

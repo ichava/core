@@ -26,10 +26,10 @@ use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
 final class AutoSeedIconsOnRegistration
 {
     public function __construct(
-        protected IchavaLifecycleManager $lifecycle,
-        protected IchavaLogger $logger,
-        protected IchavaSeeder $seeder,
-        protected IconRegistry $registry,
+        private IchavaLifecycleManager $lifecycle,
+        private IchavaLogger $logger,
+        private IchavaSeeder $seeder,
+        private IconRegistry $registry,
     ) {}
 
     /**
@@ -149,7 +149,7 @@ final class AutoSeedIconsOnRegistration
     /**
      * Get SVG path for a package
      */
-    protected function getSvgPath(string $packageName): ?string
+    private function getSvgPath(string $packageName): ?string
     {
         try {
             $iconSet = $this->registry->set($packageName);
@@ -166,7 +166,7 @@ final class AutoSeedIconsOnRegistration
     /**
      * Check if package already has icons in database
      */
-    protected function packageHasIcons(string $packageName): bool
+    private function packageHasIcons(string $packageName): bool
     {
         try {
             return Icon::where('package', $packageName)->exists();
@@ -179,7 +179,7 @@ final class AutoSeedIconsOnRegistration
     /**
      * Check if seeding is already in progress for this package
      */
-    protected function isSeedingInProgress(string $packageName): bool
+    private function isSeedingInProgress(string $packageName): bool
     {
         $cacheKey = "ichava:seeding:{$packageName}";
 
@@ -199,7 +199,7 @@ final class AutoSeedIconsOnRegistration
      * worker exit (SIGTERM, php-fpm reload) clears the marker immediately,
      * not after the full TTL.
      */
-    protected function markSeedingInProgress(string $packageName): void
+    private function markSeedingInProgress(string $packageName): void
     {
         $cacheKey = "ichava:seeding:{$packageName}";
 
@@ -220,7 +220,7 @@ final class AutoSeedIconsOnRegistration
     /**
      * Clear seeding in progress flag
      */
-    protected function clearSeedingInProgress(string $packageName): void
+    private function clearSeedingInProgress(string $packageName): void
     {
         $cacheKey = "ichava:seeding:{$packageName}";
 
@@ -234,7 +234,7 @@ final class AutoSeedIconsOnRegistration
     /**
      * Log migrations warning once per TTL to prevent spam
      */
-    protected function logMigrationsWarningOnce(string $packageName): void
+    private function logMigrationsWarningOnce(string $packageName): void
     {
         $ttl = Coerce::int(config('ichava.ichava-core.logging.deduplication_ttl', 300));
         $cacheKey = "ichava:migration-warning:{$packageName}";
@@ -264,7 +264,7 @@ final class AutoSeedIconsOnRegistration
     /**
      * Check if a database-related command is currently running
      */
-    protected function isRunningDatabaseCommand(): bool
+    private function isRunningDatabaseCommand(): bool
     {
         if (! app()->runningInConsole()) {
             return false;

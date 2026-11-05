@@ -12,9 +12,9 @@ use Simtabi\Laranail\Ichava\Services\IconRegistry;
 final readonly class BulkResult
 {
     /**
-     * @param list<string>          $registered package names, in order
-     * @param list<string>          $skipped    directories that do not exist
-     * @param array<string, string> $failed     set (package name or directory) => message
+     * @param list<string> $registered package names, in order
+     * @param list<string> $skipped directories that do not exist
+     * @param array<string, string> $failed set (package name or directory) => message
      */
     public function __construct(
         public array $registered,

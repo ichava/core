@@ -5,8 +5,8 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Tests\Support\ClaimsIchavaMorphAliasProvider;
 
 /*

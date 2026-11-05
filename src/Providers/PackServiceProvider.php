@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Providers;
 
-use Simtabi\Laranail\Ichava\Support\IchavaRegistrar;
 use Throwable;
 use SplFileInfo;
 use FilesystemIterator;
@@ -12,9 +11,10 @@ use Illuminate\Support\Str;
 use RecursiveIteratorIterator;
 use Composer\InstalledVersions;
 use RecursiveDirectoryIterator;
-use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
+use Simtabi\Laranail\Ichava\Support\IchavaRegistrar;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Contracts\IchavaPackageInterface;
 use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
@@ -263,21 +263,6 @@ abstract class PackServiceProvider extends PackageServiceProvider implements Ich
         $this->app->make(IconRegistry::class)->noteBladeComponent(static::class, $alias);
     }
 
-    /**
-     * The provider's `vendor/package` when its package is named and ends in
-     * $slug, else `ichava/{$slug}`.
-     */
-    private function vendorPackageFor(string $slug): string
-    {
-        try {
-            $name = isset($this->package) ? Str::lower($this->package->getSlashNamespace()) : '';
-        } catch (Throwable) {
-            $name = '';
-        }
-
-        return str_ends_with($name, '/' . $slug) ? $name : 'ichava/' . $slug;
-    }
-
     protected function registerIconDirectory(string $path): void
     {
         $this->app->make(IconRegistry::class)->fromDirectory($path, static::class);
@@ -358,6 +343,21 @@ abstract class PackServiceProvider extends PackageServiceProvider implements Ich
         }
 
         return false;
+    }
+
+    /**
+     * The provider's `vendor/package` when its package is named and ends in
+     * $slug, else `ichava/{$slug}`.
+     */
+    private function vendorPackageFor(string $slug): string
+    {
+        try {
+            $name = isset($this->package) ? Str::lower($this->package->getSlashNamespace()) : '';
+        } catch (Throwable) {
+            $name = '';
+        }
+
+        return str_ends_with($name, '/' . $slug) ? $name : 'ichava/' . $slug;
     }
 
     /**

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Actions;
 
-use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 use Closure;
 use InvalidArgumentException;
 use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
+use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 
 /**
  * Search the icons table, paginate, and shape the result.

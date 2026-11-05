@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 use Exception;
 use Throwable;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +15,7 @@ use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Models\IconTerm;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Console\Tools\Support\FileSize;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 
 /**
  * DatabaseOperationsService

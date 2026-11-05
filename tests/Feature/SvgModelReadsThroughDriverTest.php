@@ -20,7 +20,7 @@ beforeEach(function (): void {
 
     $this->icon = function (string $abs): Icon {
         $icon = Icon::create([
-            'package' => 'ichava/test-pack', 'name' => pathinfo($abs, PATHINFO_FILENAME), 'path' => $abs,
+            'package'   => 'ichava/test-pack', 'name' => pathinfo($abs, PATHINFO_FILENAME), 'path' => $abs,
             'file_hash' => md5($abs), 'keywords' => [], 'tags' => [], 'attributes' => [], 'metadata' => [],
         ]);
         $icon->forceFill(['path' => $abs])->save();

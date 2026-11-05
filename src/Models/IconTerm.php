@@ -80,7 +80,7 @@ final class IconTerm extends Model
             SELECT * FROM term_tree;
         ', [$termId]);
 
-        return static::hydrate($rows);
+        return self::hydrate($rows);
     }
 
     /**
@@ -225,7 +225,7 @@ final class IconTerm extends Model
     /** @return Collection<int, IconTerm> */
     public function descendants(): Collection
     {
-        return static::descendantsOf($this->id);
+        return self::descendantsOf($this->id);
     }
 
     /**

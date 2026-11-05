@@ -2,13 +2,12 @@
 
 declare(strict_types=1);
 
-use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 use Illuminate\Support\Facades\File;
 use Illuminate\Contracts\Console\Kernel;
 use Simtabi\Laranail\Ichava\Commands\CacheCommand;
 use Symfony\Component\Console\Output\OutputInterface;
-use Simtabi\Laranail\Ichava\Actions\ClearDiscoveryCaches;
 use Simtabi\Laranail\Ichava\Services\CacheOperationsService;
+use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 use Simtabi\Laranail\Ichava\Tests\Support\RunsCommandsForCharacterization;
 
 /*

@@ -19,49 +19,49 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
  */
 final class RegistrationConfig
 {
-    protected string $name;
+    private string $name;
 
-    protected IconRegistry $registry;
+    private IconRegistry $registry;
 
-    protected bool $registered = false;
+    private bool $registered = false;
 
     // Configuration
-    protected ?string $path = null;
+    private ?string $path = null;
 
-    protected ?string $prefix = null;
+    private ?string $prefix = null;
 
-    protected ?string $displayName = null;
+    private ?string $displayName = null;
 
-    protected ?string $vendor = null;
+    private ?string $vendor = null;
 
-    protected ?string $description = null;
+    private ?string $description = null;
 
-    protected ?string $version = null;
+    private ?string $version = null;
 
     /** The directory of the config.json fromConfigFile() read, whose whole config the set registers with. */
-    protected ?string $configDirectory = null;
+    private ?string $configDirectory = null;
 
     /** @var array<int, string> */
-    protected array $variants = [];
+    private array $variants = [];
 
     /** @var array<int|string, mixed> */
-    protected array $categories = [];
+    private array $categories = [];
 
-    protected ?string $providerClass = null;
+    private ?string $providerClass = null;
 
-    protected ?IconSetInterface $iconSet = null;
+    private ?IconSetInterface $iconSet = null;
 
     /** @var array<string, mixed> */
-    protected array $metadata = [];
+    private array $metadata = [];
 
     // Callbacks
-    protected ?Closure $onBefore = null;
+    private ?Closure $onBefore = null;
 
-    protected ?Closure $onAfter = null;
+    private ?Closure $onAfter = null;
 
-    protected ?Closure $onSuccess = null;
+    private ?Closure $onSuccess = null;
 
-    protected ?Closure $onError = null;
+    private ?Closure $onError = null;
 
     public function __construct(string $name, IconRegistry $registry)
     {
@@ -256,39 +256,6 @@ final class RegistrationConfig
         return $this;
     }
 
-    /**
-     * Mark as registered (internal use).
-     *
-     * Returns the config so the call can sit in a `return` -- it returned void
-     * until IconRegistry::registerIconSet() did exactly that, and a second
-     * registration of one set in a request threw a TypeError.
-     */
-    /**
-     * The definition this configuration describes. $path is the directory of
-     * SVGs; when it is named `files`, its parent is the set's base directory.
-     */
-    private function definition(string $path): PackDefinition
-    {
-        $pack = $this->configDirectory !== null
-            ? PackBuilder::fromDirectory($this->configDirectory)->named($this->name)
-            : PackBuilder::make($this->name, $path);
-
-        foreach ($this->variants as $variant) {
-            $pack->variant((string) $variant);
-        }
-
-        return $pack
-            ->prefix($this->prefix ?? $this->name)
-            ->about('title', $this->displayName ?? $this->name)
-            ->when($this->description !== null, fn (PackBuilder $pack) => $pack->about('description', (string) $this->description))
-            ->when($this->version !== null, fn (PackBuilder $pack) => $pack->about('version', (string) $this->version))
-            ->when($this->categories !== [], fn (PackBuilder $pack) => $pack->categories())
-            ->when($this->providerClass !== null, fn (PackBuilder $pack) => $pack->providedBy((string) $this->providerClass))
-            ->when($this->vendor !== null && $this->vendor !== '', fn (PackBuilder $pack) => $pack->metadata(['vendor' => $this->vendor]))
-            ->metadata($this->metadata)
-            ->build();
-    }
-
     public function markRegistered(): static
     {
         $this->registered = true;
@@ -323,5 +290,38 @@ final class RegistrationConfig
         $value = is_array($values) ? ($values[$key] ?? null) : null;
 
         return is_string($value) ? $value : '';
+    }
+
+    /**
+     * Mark as registered (internal use).
+     *
+     * Returns the config so the call can sit in a `return` -- it returned void
+     * until IconRegistry::registerIconSet() did exactly that, and a second
+     * registration of one set in a request threw a TypeError.
+     */
+    /**
+     * The definition this configuration describes. $path is the directory of
+     * SVGs; when it is named `files`, its parent is the set's base directory.
+     */
+    private function definition(string $path): PackDefinition
+    {
+        $pack = $this->configDirectory !== null
+            ? PackBuilder::fromDirectory($this->configDirectory)->named($this->name)
+            : PackBuilder::make($this->name, $path);
+
+        foreach ($this->variants as $variant) {
+            $pack->variant((string) $variant);
+        }
+
+        return $pack
+            ->prefix($this->prefix ?? $this->name)
+            ->about('title', $this->displayName ?? $this->name)
+            ->when($this->description !== null, fn (PackBuilder $pack) => $pack->about('description', (string) $this->description))
+            ->when($this->version !== null, fn (PackBuilder $pack) => $pack->about('version', (string) $this->version))
+            ->when($this->categories !== [], fn (PackBuilder $pack) => $pack->categories())
+            ->when($this->providerClass !== null, fn (PackBuilder $pack) => $pack->providedBy((string) $this->providerClass))
+            ->when($this->vendor !== null && $this->vendor !== '', fn (PackBuilder $pack) => $pack->metadata(['vendor' => $this->vendor]))
+            ->metadata($this->metadata)
+            ->build();
     }
 }

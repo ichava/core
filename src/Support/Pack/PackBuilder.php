@@ -10,8 +10,8 @@ use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Support\KindGlob;
 use Simtabi\Laranail\Ichava\Data\PackDefinition;
-use Simtabi\Laranail\Ichava\Support\PackConfigData;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\Support\PackConfigData;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
 /**
@@ -517,6 +517,26 @@ final class PackBuilder
         );
     }
 
+    /**
+     * @param array<string, mixed> $config
+     *
+     * @throws IchavaException
+     */
+    private static function requiredString(array $config, string $section, string $key, string $path): string
+    {
+        $values = $config[$section] ?? null;
+        $value = is_array($values) ? ($values[$key] ?? null) : null;
+
+        if (! is_string($value)) {
+            throw IchavaException::invalidConfig(
+                "config.json must declare {$section}.{$key} as a string",
+                Str::finish($path, '/') . 'config.json',
+            );
+        }
+
+        return $value;
+    }
+
     /** @return array<array-key, mixed> `config.defaults` */
     private function defaults(): array
     {
@@ -562,7 +582,7 @@ final class PackBuilder
     }
 
     /**
-     * @param array<string, mixed>    $config
+     * @param array<string, mixed> $config
      * @param array<array-key, mixed> $value
      *
      * @return array<string, mixed>
@@ -576,25 +596,5 @@ final class PackBuilder
         $config['metadata'] = $metadata;
 
         return $config;
-    }
-
-    /**
-     * @param array<string, mixed> $config
-     *
-     * @throws IchavaException
-     */
-    private static function requiredString(array $config, string $section, string $key, string $path): string
-    {
-        $values = $config[$section] ?? null;
-        $value = is_array($values) ? ($values[$key] ?? null) : null;
-
-        if (! is_string($value)) {
-            throw IchavaException::invalidConfig(
-                "config.json must declare {$section}.{$key} as a string",
-                Str::finish($path, '/') . 'config.json',
-            );
-        }
-
-        return $value;
     }
 }

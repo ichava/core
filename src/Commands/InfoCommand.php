@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
 use function Laravel\Prompts\spin;
@@ -20,6 +19,7 @@ use Simtabi\Laranail\Ichava\Data\StatusData;
 use Simtabi\Laranail\Ichava\Services\KindDoctor;
 use Simtabi\Laranail\Console\Tools\Support\Status;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use Simtabi\Laranail\Console\Tools\Widgets\CheckList;
 use Simtabi\Laranail\Ichava\Support\Auth\IchavaGates;
 use Simtabi\Laranail\Console\Tools\Widgets\StatusBadge;

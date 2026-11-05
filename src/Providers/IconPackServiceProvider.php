@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Simtabi\Laranail\Ichava\Providers;
 
 use Illuminate\View\Component;
+use Simtabi\Laranail\Package\Tools\Package;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\Pack\PackSpec;
 use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
-use Simtabi\Laranail\Ichava\Services\IconRegistry;
-use Simtabi\Laranail\Package\Tools\Package;
 use Simtabi\Laranail\Ichava\Constants\JsonConfigConstants;
 use Simtabi\Laranail\Package\Tools\Exceptions\InvalidPath;
 use Simtabi\Laranail\Package\Tools\Exceptions\InvalidPackage;

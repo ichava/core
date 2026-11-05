@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Actions;
 
-use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 use Illuminate\Support\Facades\Cache;
+use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 
 /**
  * Invalidate everything `IconDiscoveryService` caches.

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Simtabi\Laranail\Ichava\Contracts\ChecksPackUpdates;
 use Closure;
 use Throwable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use Simtabi\Laranail\Ichava\Contracts\ChecksPackUpdates;
 use Simtabi\Laranail\Ichava\Constants\JsonConfigConstants;
 use Simtabi\Laranail\Ichava\Events\IconPackUpdateAvailable;
 

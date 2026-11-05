@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Models;
 
-use Throwable;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -12,19 +11,17 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
-use Simtabi\Laranail\Ichava\Services\IconSvgReader;
 use Illuminate\Database\Eloquent\Collection;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Enums\KindSource;
-use Simtabi\Laranail\Ichava\Support\AuditLogger;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Simtabi\Laranail\Ichava\Services\IconSvgReader;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Simtabi\Laranail\Ichava\Services\IconCacheService;
 use Simtabi\Laranail\Ichava\Support\FtsLanguageHelper;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
 
 /**

@@ -30,47 +30,47 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 final class IconSetBuilder implements IconSetInterface
 {
     // From IchavaSet (base functionality)
-    protected Filesystem $files;
+    private Filesystem $files;
 
-    protected IconCacheService $cache;
+    private IconCacheService $cache;
 
-    protected IconSetConfig $config;
+    private IconSetConfig $config;
 
     /** @var array<array-key, IconData> */
-    protected array $discoveredIcons = [];
+    private array $discoveredIcons = [];
 
     // From IconSetBuilder (fluent configuration)
-    protected string $name;
+    private string $name;
 
     /** @var string|list<string>|null */
-    protected string|array|null $paths = null;
+    private string|array|null $paths = null;
 
-    protected ?string $prefix = null;
+    private ?string $prefix = null;
 
-    protected ?string $defaultVariant = null;
+    private ?string $defaultVariant = null;
 
     /** @var array<int, string> */
-    protected array $variants = [];
+    private array $variants = [];
 
-    protected bool $supportsCategories = false;
+    private bool $supportsCategories = false;
 
-    protected string $defaultClass = 'icon';
+    private string $defaultClass = 'icon';
 
     /** @var array<string, mixed> */
-    protected array $defaultAttributes = [];
+    private array $defaultAttributes = [];
 
-    protected ?string $fallback = null;
+    private ?string $fallback = null;
 
-    protected bool $enableCache = false;
+    private bool $enableCache = false;
 
     /** @var IconSetInterface[] Merged icon sets */
-    protected array $mergedSets = [];
+    private array $mergedSets = [];
 
     /** @var bool Whether this is a merged set */
-    protected bool $isMerged = false;
+    private bool $isMerged = false;
 
     /** @var bool Whether the parent has been initialized */
-    protected bool $initialized = false;
+    private bool $initialized = false;
 
     /**
      * Create new icon set
@@ -89,7 +89,7 @@ final class IconSetBuilder implements IconSetInterface
             $this->files = $nameOrFiles;
 
             if (! $cache) {
-                throw IchavaException::dependencyNotInjected('IconCacheService', static::class);
+                throw IchavaException::dependencyNotInjected('IconCacheService', self::class);
             }
             $this->cache = $cache;
             $this->config = $this->buildConfig();
@@ -98,12 +98,12 @@ final class IconSetBuilder implements IconSetInterface
             $this->name = $nameOrFiles;
 
             if (! $files) {
-                throw IchavaException::dependencyNotInjected('Filesystem', static::class);
+                throw IchavaException::dependencyNotInjected('Filesystem', self::class);
             }
             $this->files = $files;
 
             if (! $cache) {
-                throw IchavaException::dependencyNotInjected('IconCacheService', static::class);
+                throw IchavaException::dependencyNotInjected('IconCacheService', self::class);
             }
             $this->cache = $cache;
         }
@@ -116,7 +116,7 @@ final class IconSetBuilder implements IconSetInterface
      */
     public static function make(string $name): static
     {
-        return new static(
+        return new self(
             $name,
             app(IconCacheService::class),
             app(Filesystem::class),
@@ -147,7 +147,7 @@ final class IconSetBuilder implements IconSetInterface
         int $levelsUp = 3,
         string $append = '',
     ): static {
-        $instance = new static($name);
+        $instance = new self($name);
 
         if ($append) {
             $path = PathResolver::resolvePackagePath($class, $levelsUp, $append);
@@ -521,7 +521,7 @@ final class IconSetBuilder implements IconSetInterface
      * Build the icon set configuration
      * Can be overridden by extending classes
      */
-    protected function buildConfig(): IconSetConfig
+    private function buildConfig(): IconSetConfig
     {
         // If this is a merged set, use first set's config as base
         if ($this->isMerged && ! empty($this->mergedSets)) {
@@ -551,7 +551,7 @@ final class IconSetBuilder implements IconSetInterface
     /**
      * Build merged configuration from multiple sets
      */
-    protected function buildMergedConfig(): IconSetConfig
+    private function buildMergedConfig(): IconSetConfig
     {
         $baseConfig = $this->mergedSets[0]->config();
 
@@ -586,7 +586,7 @@ final class IconSetBuilder implements IconSetInterface
     /**
      * Discover a single SVG icon
      */
-    protected function discoverIcon(string $name, ?string $variant, ?string $category): ?IconData
+    private function discoverIcon(string $name, ?string $variant, ?string $category): ?IconData
     {
         $path = $this->buildIconPath($name, $variant, $category);
 
@@ -620,7 +620,7 @@ final class IconSetBuilder implements IconSetInterface
      *
      * @return array<array-key, IconData>
      */
-    protected function discoverAllIcons(?string $variant, ?string $category): array
+    private function discoverAllIcons(?string $variant, ?string $category): array
     {
         $searchPath = $this->buildSearchPath($variant, $category);
         $files = $this->files->glob($searchPath . '/*.svg');
@@ -647,7 +647,7 @@ final class IconSetBuilder implements IconSetInterface
     /**
      * Build SVG icon file path
      */
-    protected function buildIconPath(string $name, ?string $variant, ?string $category): string
+    private function buildIconPath(string $name, ?string $variant, ?string $category): string
     {
         $parts = [$this->basePath()];
 
@@ -667,7 +667,7 @@ final class IconSetBuilder implements IconSetInterface
     /**
      * Build search path for discovery
      */
-    protected function buildSearchPath(?string $variant, ?string $category): string
+    private function buildSearchPath(?string $variant, ?string $category): string
     {
         $parts = [$this->basePath()];
 
@@ -687,7 +687,7 @@ final class IconSetBuilder implements IconSetInterface
      *
      * @return array<int, string>
      */
-    protected function discoverCategories(?string $variant): array
+    private function discoverCategories(?string $variant): array
     {
         $searchPath = $this->buildSearchPath($variant, null);
 
@@ -709,7 +709,7 @@ final class IconSetBuilder implements IconSetInterface
     /**
      * Verify file is an SVG
      */
-    protected function isSvgFile(string $path): bool
+    private function isSvgFile(string $path): bool
     {
         $extension = pathinfo($path, PATHINFO_EXTENSION);
 
@@ -725,7 +725,7 @@ final class IconSetBuilder implements IconSetInterface
     /**
      * Cache key for one icon.
      */
-    protected function getCacheKey(string $name, ?string $variant, ?string $category): string
+    private function getCacheKey(string $name, ?string $variant, ?string $category): string
     {
         return $this->namespacedCacheKey('icon', $name, $variant, $category);
     }
@@ -739,7 +739,7 @@ final class IconSetBuilder implements IconSetInterface
      * the wrong shape -- a map of icon arrays where get() expects one icon array,
      * which fromArray() then reads as a single malformed icon.
      */
-    protected function getAllCacheKey(?string $variant, ?string $category): string
+    private function getAllCacheKey(?string $variant, ?string $category): string
     {
         return $this->namespacedCacheKey('set', 'all', $variant, $category);
     }

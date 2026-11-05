@@ -20,13 +20,6 @@ abstract class TestCase extends Orchestra
     use RefreshDatabase;
 
     /**
-     * This test's own file-cache directory, created per application boot.
-     *
-     * @var list<string>
-     */
-    private array $fileCacheDirectories = [];
-
-    /**
      * Providers a test registers after core's, for the next refreshApplication().
      *
      * @var list<class-string>
@@ -39,6 +32,13 @@ abstract class TestCase extends Orchestra
      * @var array<string, mixed>
      */
     protected array $configOverrides = [];
+
+    /**
+     * This test's own file-cache directory, created per application boot.
+     *
+     * @var list<string>
+     */
+    private array $fileCacheDirectories = [];
 
     protected function setUp(): void
     {

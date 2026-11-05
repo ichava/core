@@ -6,9 +6,9 @@ namespace Simtabi\Laranail\Ichava\Data;
 
 use Simtabi\Laranail\Ichava\Enums\IconKind;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Services\IconRegistry;
 use Simtabi\Laranail\Ichava\Support\PackConfigData;
 use Simtabi\Laranail\Ichava\Support\Pack\PackBuilder;
-use Simtabi\Laranail\Ichava\Services\IconRegistry;
 
 /**
  * Everything the registry needs to register one icon set, as one value.
@@ -24,14 +24,14 @@ use Simtabi\Laranail\Ichava\Services\IconRegistry;
 final readonly class PackDefinition
 {
     /**
-     * @param string                $name           `vendor/package`
-     * @param string                $basePath       the directory holding config.json; icon paths are stored relative to it
-     * @param string                $filesPath      the directory holding the SVGs, usually `{$basePath}/files`
-     * @param array<string, mixed>  $config         the effective config.json
-     * @param bool                  $hasCategories  whether the set files its icons under category folders
-     * @param array<string, string> $aliases        old path => kept path, registered beside any `aliases.json`
-     * @param array<string, mixed>  $extraMetadata  merged over the built metadata, last
-     * @param string|null           $defaultVariant the variant a name without one resolves in
+     * @param string $name `vendor/package`
+     * @param string $basePath the directory holding config.json; icon paths are stored relative to it
+     * @param string $filesPath the directory holding the SVGs, usually `{$basePath}/files`
+     * @param array<string, mixed> $config the effective config.json
+     * @param bool $hasCategories whether the set files its icons under category folders
+     * @param array<string, string> $aliases old path => kept path, registered beside any `aliases.json`
+     * @param array<string, mixed> $extraMetadata merged over the built metadata, last
+     * @param string|null $defaultVariant the variant a name without one resolves in
      */
     public function __construct(
         public string $name,
@@ -91,15 +91,6 @@ final readonly class PackDefinition
         return is_string($fallback) && $fallback !== '' ? $fallback : null;
     }
 
-    /** @return array<array-key, mixed> */
-    private function defaults(): array
-    {
-        $config = $this->config['config'] ?? null;
-        $defaults = is_array($config) ? ($config['defaults'] ?? null) : null;
-
-        return is_array($defaults) ? $defaults : [];
-    }
-
     /**
      * The variant names, in declared order.
      *
@@ -113,7 +104,7 @@ final readonly class PackDefinition
     /**
      * The registry's metadata for this set.
      *
-     * @param int         $total               SVGs counted under the files path
+     * @param int $total SVGs counted under the files path
      * @param string|null $notedBladeComponent the alias the provider noted with the registry, used when the definition names none
      *
      * @return array<string, mixed>
@@ -162,6 +153,15 @@ final readonly class PackDefinition
             // The variant blocks as declared, for VariantData and the terms seeder.
             'variant_metadata' => array_filter(PackConfigData::variants($config), is_array(...)),
         ], $this->extraMetadata);
+    }
+
+    /** @return array<array-key, mixed> */
+    private function defaults(): array
+    {
+        $config = $this->config['config'] ?? null;
+        $defaults = is_array($config) ? ($config['defaults'] ?? null) : null;
+
+        return is_array($defaults) ? $defaults : [];
     }
 
     /** One key of one config section, or null when either is absent. */

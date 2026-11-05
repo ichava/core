@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
-use Illuminate\Support\Str;
 use stdClass;
 use ArrayAccess;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +22,7 @@ use Simtabi\Laranail\Ichava\Data\VariantData;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 
 /**
  * Icon Browser Service

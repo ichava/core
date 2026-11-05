@@ -33,8 +33,8 @@ final readonly class IconSvgReader
      * The served form of the file at $path, or null when the cache holds
      * something that is not a string; '' when the file is refused.
      *
-     * @param string      $storedPath the path as the icon row stores it, for ids and audit lines
-     * @param string|null $baseDir    the pack directory the file must stay inside
+     * @param string $storedPath the path as the icon row stores it, for ids and audit lines
+     * @param string|null $baseDir the pack directory the file must stay inside
      *
      * @see Icon::svgContent()
      */

@@ -22,7 +22,7 @@ final class IchavaException extends RuntimeException
      */
     public static function invalidSvgContent(string $reason): static
     {
-        return new static("Invalid SVG content: {$reason}");
+        return new self("Invalid SVG content: {$reason}");
     }
 
     /**
@@ -30,7 +30,7 @@ final class IchavaException extends RuntimeException
      */
     public static function svgTooLarge(int $bytes, int $limit): static
     {
-        return new static("Invalid SVG content: {$bytes} bytes exceeds the limit of {$limit} bytes");
+        return new self("Invalid SVG content: {$bytes} bytes exceeds the limit of {$limit} bytes");
     }
 
     /**
@@ -38,7 +38,7 @@ final class IchavaException extends RuntimeException
      */
     public static function svgTooComplex(int $limit): static
     {
-        return new static("Invalid SVG content: more than {$limit} elements");
+        return new self("Invalid SVG content: more than {$limit} elements");
     }
 
     /**
@@ -46,7 +46,7 @@ final class IchavaException extends RuntimeException
      */
     public static function iconSetAlreadyRegistered(string $name): static
     {
-        return new static(
+        return new self(
             "Icon set '{$name}' is already registered. " .
             "Use IconRegistry::package('{$name}') to register a different icon set.",
         );
@@ -57,7 +57,7 @@ final class IchavaException extends RuntimeException
      */
     public static function iconSetNotFound(string $name): static
     {
-        return new static("Icon set '{$name}' not found.");
+        return new self("Icon set '{$name}' not found.");
     }
 
     /**
@@ -65,7 +65,7 @@ final class IchavaException extends RuntimeException
      */
     public static function invalidConfiguration(string $reason): static
     {
-        return new static("Invalid icon set configuration: {$reason}");
+        return new self("Invalid icon set configuration: {$reason}");
     }
 
     /**
@@ -73,7 +73,7 @@ final class IchavaException extends RuntimeException
      */
     public static function missingConfigFile(string $configPath): static
     {
-        return new static(
+        return new self(
             "Icon set configuration file not found: '{$configPath}'. " .
             'Each icon set must have a config.json file in its directory.',
         );
@@ -84,7 +84,7 @@ final class IchavaException extends RuntimeException
      */
     public static function invalidConfig(string $reason, string $configPath): static
     {
-        return new static(
+        return new self(
             "Invalid icon set configuration at '{$configPath}': {$reason}",
         );
     }
@@ -98,7 +98,7 @@ final class IchavaException extends RuntimeException
     {
         $errorList = implode("\n  - ", $errors);
 
-        return new static(
+        return new self(
             "Ichava package configuration failed for '{$providerClass}'.\n\n" .
             "Missing or invalid configuration:\n  - {$errorList}\n\n" .
             'Fix these issues in your service provider to register this package.',
@@ -110,7 +110,7 @@ final class IchavaException extends RuntimeException
      */
     public static function configurationBuildFailed(string $iconSetClass, string $message): static
     {
-        return new static(
+        return new self(
             "Icon set configuration build failed for '{$iconSetClass}'.\n\n" .
             "Error: {$message}\n\n" .
             "Check your icon set's buildConfig() method implementation.",
@@ -128,7 +128,7 @@ final class IchavaException extends RuntimeException
             $message .= " in package '{$package}'";
         }
 
-        return new static($message . '.');
+        return new self($message . '.');
     }
 
     /**
@@ -136,7 +136,7 @@ final class IchavaException extends RuntimeException
      */
     public static function iconNotFoundInSet(string $name, string $set): static
     {
-        return new static("Icon '{$name}' not found in set '{$set}'.");
+        return new self("Icon '{$name}' not found in set '{$set}'.");
     }
 
     /**
@@ -144,7 +144,7 @@ final class IchavaException extends RuntimeException
      */
     public static function invalidIconPath(string $path, string $expectedFormat = 'vendor/package::variant/category/icon'): static
     {
-        return new static(
+        return new self(
             "Invalid icon path format: '{$path}'. " .
             "Expected format: '{$expectedFormat}'. Example: 'ichava/icon-sets-tabler::outline/home'",
         );
@@ -155,7 +155,7 @@ final class IchavaException extends RuntimeException
      */
     public static function missingPackageInPath(string $path): static
     {
-        return new static(
+        return new self(
             "Icon path must include vendor/package: '{$path}'. " .
             "Expected format: vendor/package::icon (e.g., 'ichava/icon-sets-tabler::outline/home')",
         );
@@ -166,7 +166,7 @@ final class IchavaException extends RuntimeException
      */
     public static function pathTraversalAttempt(string $path): static
     {
-        return new static(
+        return new self(
             "Icon path contains path traversal attempt: '{$path}'. " .
             'Path traversal (../) is not allowed for security reasons.',
         );
@@ -179,7 +179,7 @@ final class IchavaException extends RuntimeException
     {
         $length = strlen($path);
 
-        return new static(
+        return new self(
             "Icon path exceeds maximum length of {$maxLength} characters: {$length} characters. " .
             'Please use a shorter path.',
         );
@@ -190,7 +190,7 @@ final class IchavaException extends RuntimeException
      */
     public static function pathTooDeep(string $path, int $maxDepth = 10): static
     {
-        return new static(
+        return new self(
             "Icon path has too many nested levels (max {$maxDepth}): '{$path}'. " .
             'Please reduce path nesting depth.',
         );
@@ -201,7 +201,7 @@ final class IchavaException extends RuntimeException
      */
     public static function invalidIdentifier(string $path): static
     {
-        return new static(
+        return new self(
             "Icon path contains invalid vendor or package identifier: '{$path}'. " .
             'Only alphanumeric characters, dashes, and underscores are allowed.',
         );
@@ -212,7 +212,7 @@ final class IchavaException extends RuntimeException
      */
     public static function invalidIconName(string $name): static
     {
-        return new static(
+        return new self(
             "Invalid icon name: '{$name}'. " .
             'Only alphanumeric characters, dashes, underscores, and dots are allowed. ' .
             'If extension is present, it must be .svg',
@@ -224,7 +224,7 @@ final class IchavaException extends RuntimeException
      */
     public static function invalidPathSegment(string $segment): static
     {
-        return new static(
+        return new self(
             "Invalid path segment: '{$segment}'. " .
             'Only alphanumeric characters, dashes, and underscores are allowed.',
         );
@@ -235,7 +235,7 @@ final class IchavaException extends RuntimeException
      */
     public static function pathNotFound(string $path): static
     {
-        return new static("Required path not found: '{$path}'");
+        return new self("Required path not found: '{$path}'");
     }
 
     /**
@@ -243,7 +243,7 @@ final class IchavaException extends RuntimeException
      */
     public static function directoryNotFound(string $path): static
     {
-        return new static("Directory not found: '{$path}'");
+        return new self("Directory not found: '{$path}'");
     }
 
     /**
@@ -251,7 +251,7 @@ final class IchavaException extends RuntimeException
      */
     public static function filesystemFailure(string $operation, string $path): static
     {
-        return new static("Filesystem {$operation} failed for: '{$path}'");
+        return new self("Filesystem {$operation} failed for: '{$path}'");
     }
 
     /**
@@ -259,7 +259,7 @@ final class IchavaException extends RuntimeException
      */
     public static function invalidSvg(string $reason): static
     {
-        return new static("Invalid SVG content: {$reason}");
+        return new self("Invalid SVG content: {$reason}");
     }
 
     /**
@@ -267,7 +267,7 @@ final class IchavaException extends RuntimeException
      */
     public static function renderFailed(string $iconName, string $reason, ?Throwable $previous = null): static
     {
-        return new static("Failed to render icon '{$iconName}': {$reason}", previous: $previous);
+        return new self("Failed to render icon '{$iconName}': {$reason}", previous: $previous);
     }
 
     /**
@@ -275,7 +275,7 @@ final class IchavaException extends RuntimeException
      */
     public static function packageNotRegistered(string $packageKey): static
     {
-        return new static(
+        return new self(
             "Package '{$packageKey}' is not registered. " .
             'Register it first using IconRegistry::register().',
         );
@@ -290,7 +290,7 @@ final class IchavaException extends RuntimeException
     {
         $fieldList = implode("\n  - ", $missingFields);
 
-        return new static(
+        return new self(
             "Package registration failed for '{$packageName}'.\n\n" .
             "Missing required metadata:\n  - {$fieldList}\n\n" .
             "These fields are mandatory. Fix them in your service provider's registerWithIconRegistry() method.",
@@ -302,7 +302,7 @@ final class IchavaException extends RuntimeException
      */
     public static function packageClassNotFound(string $packageName, string $className): static
     {
-        return new static(
+        return new self(
             "Package registration failed for '{$packageName}'.\n\n" .
             "Icon set class does not exist: {$className}\n\n" .
             'Ensure the class is properly autoloaded and the namespace is correct.',
@@ -314,7 +314,7 @@ final class IchavaException extends RuntimeException
      */
     public static function packagePathNotFound(string $packageName, string $path): static
     {
-        return new static(
+        return new self(
             "Package registration failed for '{$packageName}'.\n\n" .
             "Icon base path does not exist: {$path}\n\n" .
             'Ensure the path is correct and the directory exists.',
@@ -330,7 +330,7 @@ final class IchavaException extends RuntimeException
         string $newPackage,
         string $providerClass,
     ): static {
-        return new static(
+        return new self(
             "Icon set name conflict: '{$iconSetName}' is already registered by '{$existingPackage}'.\n\n" .
             "Package '{$newPackage}' cannot reuse that name.\n\n" .
             "To resolve: change the icon set name in {$providerClass}::getIconSetName(), or remove one of the conflicting packages.",
@@ -346,7 +346,7 @@ final class IchavaException extends RuntimeException
     {
         $packageList = implode(', ', $packages);
 
-        return new static(
+        return new self(
             "Icon prefix conflict: '{$prefix}' is used by multiple packages: {$packageList}.\n\n" .
             'Consider using unique prefixes for each package.',
         );
@@ -361,7 +361,7 @@ final class IchavaException extends RuntimeException
     {
         $packageList = implode(', ', $packages);
 
-        return new static(
+        return new self(
             "Blade component conflict: '{$componentName}' is used by multiple packages: {$packageList}.\n\n" .
             'Only one component will be registered. Consider using unique component names.',
         );
@@ -376,7 +376,7 @@ final class IchavaException extends RuntimeException
     {
         $packageList = implode("\n  - ", $packages);
 
-        return new static(
+        return new self(
             "Package prefix conflict: '{$prefix}' is already used by: {$packageList}.\n\n" .
             'Each package must have a unique prefix.',
         );
@@ -391,7 +391,7 @@ final class IchavaException extends RuntimeException
     {
         $packageList = implode("\n  - ", $packages);
 
-        return new static(
+        return new self(
             "Blade component conflict: '{$componentName}' is already registered by: {$packageList}.\n\n" .
             'Each package must have a unique blade component name.',
         );
@@ -402,7 +402,7 @@ final class IchavaException extends RuntimeException
      */
     public static function configurationMissingMethod(string $providerClass, string $methodName): static
     {
-        return new static(
+        return new self(
             "Configuration method missing in '{$providerClass}'.\n\n" .
             "Required method '{$methodName}()' is not defined.\n\n" .
             'Ensure your provider implements all required methods.',
@@ -414,7 +414,7 @@ final class IchavaException extends RuntimeException
      */
     public static function seedingFailed(string $package, string $reason): static
     {
-        return new static("Icon seeding failed for package '{$package}': {$reason}");
+        return new self("Icon seeding failed for package '{$package}': {$reason}");
     }
 
     /**
@@ -422,7 +422,7 @@ final class IchavaException extends RuntimeException
      */
     public static function seedingRequiresConsole(): static
     {
-        return new static('Icon seeding can only be run from the console.');
+        return new self('Icon seeding can only be run from the console.');
     }
 
     /**
@@ -430,7 +430,7 @@ final class IchavaException extends RuntimeException
      */
     public static function dependencyNotInjected(string $dependency, string $class): static
     {
-        return new static(
+        return new self(
             "Dependency not injected in '{$class}'.\n\n" .
             "Missing: {$dependency}\n\n" .
             "Ensure {$dependency} is registered as a singleton and all constructor dependencies are wired through the service container.",
@@ -442,7 +442,7 @@ final class IchavaException extends RuntimeException
      */
     public static function operationFailed(string $operation, string $reason): static
     {
-        return new static("{$operation} failed: {$reason}");
+        return new self("{$operation} failed: {$reason}");
     }
 
     /**
@@ -456,7 +456,7 @@ final class IchavaException extends RuntimeException
             $message .= "\nContext: {$context}\n";
         }
 
-        return new static($message);
+        return new self($message);
     }
 
     /**
@@ -464,7 +464,7 @@ final class IchavaException extends RuntimeException
      */
     public static function securityViolation(string $reason): static
     {
-        return new static("Security violation: {$reason}");
+        return new self("Security violation: {$reason}");
     }
 
     /**
@@ -472,7 +472,7 @@ final class IchavaException extends RuntimeException
      */
     public static function invalidPathType(string $path, string $expectedType, string $actualType): static
     {
-        return new static(
+        return new self(
             "Invalid path type for '{$path}': expected {$expectedType}, got {$actualType}.\n\n" .
             'Ensure the path points to the correct resource type.',
         );

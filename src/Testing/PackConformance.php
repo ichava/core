@@ -7,9 +7,9 @@ namespace Simtabi\Laranail\Ichava\Testing;
 use SplFileInfo;
 use FilesystemIterator;
 use Composer\Semver\Semver;
+use PHPUnit\Framework\Assert;
 use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
-use PHPUnit\Framework\Assert;
 use Symfony\Component\Yaml\Yaml;
 use Simtabi\Laranail\Ichava\Support\SvgInspector;
 

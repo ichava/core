@@ -6,8 +6,8 @@ namespace Simtabi\Laranail\Ichava\Support\Pack;
 
 use Closure;
 use Simtabi\Laranail\Ichava\Data\BulkOptions;
-use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use Simtabi\Laranail\Ichava\Services\IconRegistry;
+use Simtabi\Laranail\Ichava\View\ComponentPrefixes;
 use Simtabi\Laranail\Ichava\Providers\IconPackServiceProvider;
 
 /**
@@ -46,11 +46,11 @@ final class PackSpec
     private ?string $configFile = null;
 
     /**
-     * @param string       $vendorPackage  the pack's `vendor/package`
-     * @param string       $packRoot       the pack's root directory
-     * @param string       $svgPath        the default set's directory, `resources/assets/svg`
+     * @param string $vendorPackage the pack's `vendor/package`
+     * @param string $packRoot the pack's root directory
+     * @param string $svgPath the default set's directory, `resources/assets/svg`
      * @param class-string $componentClass the pack's main Blade component
-     * @param string       $providerClass  the provider the pack's sets are attributed to
+     * @param string $providerClass the provider the pack's sets are attributed to
      */
     private function __construct(
         private string $vendorPackage,
@@ -98,7 +98,7 @@ final class PackSpec
      * Every sub-directory of $relativePath holding a config.json, or only those
      * named, each shaped by $shape.
      *
-     * @param list<string>                       $only
+     * @param list<string> $only
      * @param (Closure(PackBuilder): mixed)|null $shape
      */
     public function sets(string $relativePath, array $only = [], ?Closure $shape = null): self

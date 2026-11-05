@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Commands;
 
-use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
 use function Laravel\Prompts\spin;
@@ -17,10 +16,11 @@ use function Laravel\Prompts\warning;
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Ichava\Services\IchavaLogger;
+use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
 use Simtabi\Laranail\Console\Tools\Widgets\MetricTable;
 use Simtabi\Laranail\Ichava\Support\Seeder\IchavaSeeder;
-use Simtabi\Laranail\Ichava\Support\Seeder\IconTermsSeeder;
 use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
+use Simtabi\Laranail\Ichava\Support\Seeder\IconTermsSeeder;
 
 /**
  * Unified Icon Database Command

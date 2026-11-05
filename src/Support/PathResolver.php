@@ -28,17 +28,17 @@ final class PathResolver
     private const SVG_PATH = IchavaConstants::SVG_ASSETS_PATH;
 
     /** @var non-empty-string */
-    protected string $pathSeparator;
+    private string $pathSeparator;
 
     /** @var non-empty-string */
-    protected string $variantSeparator;
+    private string $variantSeparator;
 
     /** @var non-empty-string */
-    protected string $categorySeparator;
+    private string $categorySeparator;
 
-    protected ?string $iconPathPattern;
+    private ?string $iconPathPattern;
 
-    protected ?string $iconNamePattern;
+    private ?string $iconNamePattern;
 
     public function __construct()
     {

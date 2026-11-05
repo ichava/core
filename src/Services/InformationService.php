@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 use stdClass;
 use Exception;
 use Throwable;
@@ -15,6 +14,7 @@ use Simtabi\Laranail\Ichava\Models\Icon;
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Data\StatusData;
 use Simtabi\Laranail\Ichava\Constants\IchavaConstants;
+use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
 use Simtabi\Laranail\Ichava\Listeners\RecordCacheRebuild;
 
 /**
@@ -31,12 +31,12 @@ use Simtabi\Laranail\Ichava\Listeners\RecordCacheRebuild;
 final class InformationService
 {
     public function __construct(
-        protected IconRegistry $registry,
-        protected IchavaLifecycleManager $lifecycle,
-        protected DatabaseOperations $databaseService,
-        protected IchavaLogger $logger,
-        protected IconDiscoveryService $discovery,
-        protected SvgProcessingService $svg,
+        private IconRegistry $registry,
+        private IchavaLifecycleManager $lifecycle,
+        private DatabaseOperations $databaseService,
+        private IchavaLogger $logger,
+        private IconDiscoveryService $discovery,
+        private SvgProcessingService $svg,
     ) {}
 
     /**

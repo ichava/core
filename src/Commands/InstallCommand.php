@@ -18,8 +18,8 @@ use Symfony\Component\Process\Process;
 use Simtabi\Laranail\Ichava\Support\Coerce;
 use Simtabi\Laranail\Ichava\Support\CommandName;
 use Simtabi\Laranail\Console\Tools\Support\Status;
-use Simtabi\Laranail\Ichava\Services\IconSetCatalogService;
 use Simtabi\Laranail\Ichava\Contracts\DatabaseOperations;
+use Simtabi\Laranail\Ichava\Services\IconSetCatalogService;
 
 /**
  * Install an Ichava icon set.

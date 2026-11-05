@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Simtabi\Laranail\Ichava\Services;
 
-use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 use Generator;
 use Throwable;
 use SplFileInfo;
@@ -21,6 +20,7 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Actions\BuildIconUsageSyntax;
 use Simtabi\Laranail\Ichava\Actions\ClearDiscoveryCaches;
 use Simtabi\Laranail\Ichava\Actions\SearchIconsInDatabase;
+use Simtabi\Laranail\Ichava\Support\DiscoveryCacheGeneration;
 use Simtabi\Laranail\Ichava\Actions\DiscoverInstalledPackages;
 
 /**
