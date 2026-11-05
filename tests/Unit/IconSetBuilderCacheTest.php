@@ -136,3 +136,23 @@ describe('IconSetBuilder hardened cache', function () {
         }
     });
 });
+
+describe('cache() switches the set cache', function () {
+    it('serves a looked-up icon from the cache by default, and rediscovers with cache(false)', function () {
+        $dir = makeCacheTestDir();
+        $cached = makeCacheTestSet($dir);
+        $uncached = IconSetBuilder::make('test-cache-set-off')->setBasePath($dir)->prefix('tco')->cache(false);
+
+        expect($cached->get('check', 'outline'))->not->toBeNull()
+            ->and($uncached->get('check', 'outline'))->not->toBeNull();
+
+        File::delete($dir . '/outline/check.svg');
+
+        // cache(false) used to set a flag nothing read, so both still answered.
+        expect($cached->get('check', 'outline'))->not->toBeNull()
+            ->and($uncached->get('check', 'outline'))->toBeNull()
+            ->and($uncached->all('outline'))->toBe([]);
+
+        File::deleteDirectory($dir);
+    });
+});
