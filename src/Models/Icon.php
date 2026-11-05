@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Simtabi\Laranail\Ichava\Enums\IconKind;
+use Simtabi\Laranail\Ichava\Drivers\SvgDriver;
 use Illuminate\Database\Eloquent\Collection;
 use Simtabi\Laranail\Ichava\Support\Helpers;
 use Simtabi\Laranail\Ichava\Enums\KindSource;
@@ -1185,24 +1186,26 @@ final class Icon extends Model
                 /*
                  * The kind's byte budget is enforced at seed time, but the
                  * file is read again here, on every cache miss -- and it may
-                 * have been replaced or grown since. Check it before reading,
-                 * so an oversized file costs a stat rather than a parse (S2).
+                 * have been replaced or grown since. SvgDriver::load() is the
+                 * one safe reader (C-12): it refuses a symlink, an escape from
+                 * the pack's directory, a file under the minimum size and one
+                 * over this kind's budget, before reading (S2). A refusal
+                 * fails closed, as a sanitiser rejection does.
                  */
                 $kind = $this->kind instanceof IconKind ? $this->kind : IconKind::Icon;
-                $limit = $kind->maxFileSize();
-                $size = @filesize($path);
+                $base = $this->getPackageBasePath();
 
-                if ($size !== false && $size > $limit) {
+                try {
+                    $raw = app(SvgDriver::class)->load($path, baseDir: $base !== '' ? $base : null, maxBytes: $kind->maxFileSize());
+                } catch (IchavaException $e) {
                     app(AuditLogger::class)->warning('svg.sanitiser_rejected', [
                         'path'    => $storedPath,
                         'package' => $this->package,
-                        'reason'  => IchavaException::svgTooLarge($size, $limit)->getMessage(),
+                        'reason'  => $e->getMessage(),
                     ]);
 
                     return '';
                 }
-
-                $raw = File::get($path);
 
                 try {
                     $svg = app(SvgProcessingService::class);
