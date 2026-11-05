@@ -27,7 +27,7 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
  *
  * @phpstan-consistent-constructor
  */
-class IconSetBuilder implements IconSetInterface
+final class IconSetBuilder implements IconSetInterface
 {
     // From IchavaSet (base functionality)
     protected Filesystem $files;

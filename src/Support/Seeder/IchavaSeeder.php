@@ -49,7 +49,7 @@ use Simtabi\Laranail\Package\Tools\Services\Database\ChunkedBatchDispatcher;
  *
  * @see SeedIconsJob
  */
-class IchavaSeeder extends Seeder
+final class IchavaSeeder extends Seeder
 {
     /**
      * Default number of icons per job.

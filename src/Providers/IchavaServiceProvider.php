@@ -85,7 +85,7 @@ use Simtabi\Laranail\Package\Tools\Providers\PackageServiceProvider;
  * @see ServiceProvider
  * @see IchavaFacade
  */
-class IchavaServiceProvider extends PackageServiceProvider
+final class IchavaServiceProvider extends PackageServiceProvider
 {
     /**
      * The vendor-scoped Blade component prefix: `<x-ichava-core::icon>`.

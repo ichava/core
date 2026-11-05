@@ -13,7 +13,7 @@ use Simtabi\Laranail\Ichava\Services\DatabaseOperationsService;
 /**
  * Removes a package's icon rows + orphaned terms when the package unregisters.
  */
-class AutoUnseedOnUnregistration
+final class AutoUnseedOnUnregistration
 {
     public function __construct(
         protected DatabaseOperationsService $databaseService,

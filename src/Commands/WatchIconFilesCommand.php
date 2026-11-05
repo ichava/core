@@ -23,7 +23,7 @@ use Simtabi\Laranail\Ichava\Services\IconWatcherService;
  *
  * @see https://laravel.com/docs/12.x/prompts
  */
-class WatchIconFilesCommand extends BaseCommand
+final class WatchIconFilesCommand extends BaseCommand
 {
     protected $signature = 'ichava::ichava-core.watch
                             {--force : Force scan even if already running}

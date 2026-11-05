@@ -33,7 +33,7 @@ use Simtabi\Laranail\Package\Tools\Services\Database\SeederRunTracker;
  *
  * @see https://laravel.com/docs/12.x/prompts
  */
-class JobStatusCommand extends BaseCommand
+final class JobStatusCommand extends BaseCommand
 {
     protected $signature = 'ichava::ichava-core.job-status
                             {package? : Specific package to check}

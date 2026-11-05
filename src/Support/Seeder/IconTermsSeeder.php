@@ -32,7 +32,7 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
  *
  * @see IchavaSeeder Main seeder that orchestrates term + icon seeding
  */
-class IconTermsSeeder extends Seeder
+final class IconTermsSeeder extends Seeder
 {
     protected IconRegistry $packageRegistry;
 

@@ -19,7 +19,7 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
  * § "Icon Path Format" for the path grammar; both slash and dot separators
  * after `::` are accepted and normalized to slash form.
  */
-class PathResolver
+final class PathResolver
 {
     /**
      * Default SVG assets path constant

@@ -17,7 +17,7 @@ use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
  *
  * Fluent API for configuring icon package registration.
  */
-class RegistrationConfig
+final class RegistrationConfig
 {
     protected string $name;
 

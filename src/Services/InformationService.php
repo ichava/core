@@ -27,7 +27,7 @@ use Simtabi\Laranail\Ichava\Listeners\RecordCacheRebuild;
  *
  * Extracted from BaseInformationCommand and IchavaStatusCommand for maximum reusability.
  */
-class InformationService
+final class InformationService
 {
     public function __construct(
         protected IconRegistry $registry,

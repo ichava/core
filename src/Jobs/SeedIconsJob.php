@@ -48,7 +48,7 @@ use Simtabi\Laranail\Package\Tools\Services\Database\SeederRunTracker;
  * @see IchavaSeeder::seed() Dispatches these jobs
  * @see IconSeederHelpers Trait for path/tag extraction
  */
-class SeedIconsJob implements ShouldQueue
+final class SeedIconsJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use IconSeederHelpers;

@@ -37,7 +37,7 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * @see IconCacheService
  * @see IchavaConstants
  */
-class SvgDriver
+final class SvgDriver
 {
     use ContainsFilePaths;
 

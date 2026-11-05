@@ -23,7 +23,7 @@ use Simtabi\Laranail\Ichava\Services\IchavaLifecycleManager;
  * Only seeds when the package has zero icons in the database, preventing
  * duplicate work. The recommended approach is `php artisan ichava::ichava-core.database seed`.
  */
-class AutoSeedIconsOnRegistration
+final class AutoSeedIconsOnRegistration
 {
     public function __construct(
         protected IchavaLifecycleManager $lifecycle,

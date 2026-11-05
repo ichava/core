@@ -15,7 +15,7 @@ use RuntimeException;
  *
  * @phpstan-consistent-constructor
  */
-class IchavaException extends RuntimeException
+final class IchavaException extends RuntimeException
 {
     /**
      * SVG content rejected by the sanitizer (empty, malformed, or non-svg root).

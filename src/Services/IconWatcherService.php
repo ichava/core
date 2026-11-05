@@ -31,7 +31,7 @@ use Symfony\Component\Finder\Exception\DirectoryNotFoundException;
  * Supports both single-set and multi-set layouts via IconPathStructureDetector;
  * stored paths are always relative for cross-environment portability.
  */
-class IconWatcherService
+final class IconWatcherService
 {
     use ContainsFilePaths;
 

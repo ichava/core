@@ -40,7 +40,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property-read int $icons_count Cached icon count
  * @property-read int $depth Term depth in hierarchy
  */
-class IconTerm extends Model
+final class IconTerm extends Model
 {
     public const TYPE_CATEGORY = 'category';
 
