@@ -7,6 +7,8 @@ namespace Simtabi\Laranail\Ichava\Services;
 use Closure;
 use Throwable;
 use Simtabi\Laranail\Ichava\Support\Helpers;
+use Simtabi\Laranail\Ichava\Data\PackDefinition;
+use Simtabi\Laranail\Ichava\Support\Pack\PackBuilder;
 use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
 use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 
@@ -35,6 +37,9 @@ class RegistrationConfig
     protected ?string $description = null;
 
     protected ?string $version = null;
+
+    /** The directory of the config.json fromConfigFile() read, whose whole config the set registers with. */
+    protected ?string $configDirectory = null;
 
     /** @var array<int, string> */
     protected array $variants = [];
@@ -75,6 +80,7 @@ class RegistrationConfig
     {
         // Load config.json using centralized helper
         $config = Helpers::loadConfigJson(dirname($path));
+        $this->configDirectory = dirname($path);
 
         $this->path = dirname($path) . '/files';
         $this->prefix = self::configString($config, 'config', 'icon_prefix');
@@ -223,38 +229,10 @@ class RegistrationConfig
                 "no icon directory was given for '{$this->name}'",
             );
 
-            // Build icon set if not provided
-            if ($this->iconSet === null) {
-                $this->iconSet = IconSetBuilder::make($this->name)
-                    ->setBasePath($path)
-                    ->prefix($this->prefix ?? $this->name);
-
-                if (! empty($this->variants)) {
-                    $this->iconSet->withVariants($this->variants);
-                }
-
-                if (! empty($this->categories)) {
-                    $this->iconSet->withCategories(true);
-                }
-            }
-
-            // Build metadata
-            $metadata = array_merge([
-                'package_name'   => $this->name,
-                'name'           => $this->displayName ?? $this->name,
-                'description'    => $this->description ?? '',
-                'vendor'         => $this->vendor ?? '',
-                'version'        => $this->version ?? '1.0.0',
-                'base_path'      => $this->path,
-                'icon_set_name'  => $this->name,
-                'provider_class' => $this->providerClass,
-                'prefix'         => $this->prefix ?? $this->name,
-                'total'          => $this->registry->countIconsInDirectory($path),
-            ], $this->metadata);
-
-            // Register
-            $this->registry->registerIconSet($this->name, $this->iconSet, $metadata);
-
+            // One registration path (C-03): this builds the same definition
+            // fromDirectory() does, from the fields set on this object, so a
+            // set registered here carries the full metadata.
+            $this->registry->register($this->definition($path), $this->iconSet);
             $this->registered = true;
 
             // Fire onSuccess
@@ -285,6 +263,32 @@ class RegistrationConfig
      * until IconRegistry::registerIconSet() did exactly that, and a second
      * registration of one set in a request threw a TypeError.
      */
+    /**
+     * The definition this configuration describes. $path is the directory of
+     * SVGs; when it is named `files`, its parent is the set's base directory.
+     */
+    private function definition(string $path): PackDefinition
+    {
+        $pack = $this->configDirectory !== null
+            ? PackBuilder::fromDirectory($this->configDirectory)->named($this->name)
+            : PackBuilder::make($this->name, $path);
+
+        foreach ($this->variants as $variant) {
+            $pack->variant((string) $variant);
+        }
+
+        return $pack
+            ->prefix($this->prefix ?? $this->name)
+            ->about('title', $this->displayName ?? $this->name)
+            ->when($this->description !== null, fn (PackBuilder $pack) => $pack->about('description', (string) $this->description))
+            ->when($this->version !== null, fn (PackBuilder $pack) => $pack->about('version', (string) $this->version))
+            ->when($this->categories !== [], fn (PackBuilder $pack) => $pack->categories())
+            ->when($this->providerClass !== null, fn (PackBuilder $pack) => $pack->providedBy((string) $this->providerClass))
+            ->when($this->vendor !== null && $this->vendor !== '', fn (PackBuilder $pack) => $pack->metadata(['vendor' => $this->vendor]))
+            ->metadata($this->metadata)
+            ->build();
+    }
+
     public function markRegistered(): static
     {
         $this->registered = true;
