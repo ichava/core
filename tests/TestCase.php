@@ -33,6 +33,13 @@ abstract class TestCase extends Orchestra
      */
     protected array $extraProviders = [];
 
+    /**
+     * Config a test sets before the providers boot, for the next refreshApplication().
+     *
+     * @var array<string, mixed>
+     */
+    protected array $configOverrides = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -86,6 +93,10 @@ abstract class TestCase extends Orchestra
         // package namespaces its config under the short name it registers, so the
         // live key carries it.
         $app['config']->set('ichava.ichava-core.default_set', 'test');
+
+        foreach ($this->configOverrides as $key => $value) {
+            $app['config']->set($key, $value);
+        }
     }
 
     /**
