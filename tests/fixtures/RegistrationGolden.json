@@ -442,52 +442,6 @@
             "version": "0.1.0"
         }
     },
-    "<root>/tests/fixtures/RegistrationGolden/emoji": {
-        "aliases": [],
-        "metadata": {
-            "base_path": "<root>/tests/fixtures/RegistrationGolden/emoji",
-            "blade_component": null,
-            "category_kinds": [],
-            "declared_kind": "icon",
-            "description": "Twemoji, Twitter/X's open-source emoji set, as SVG. Unicode 17 / Emoji 17 spec. Categorised by Unicode CLDR groups. OpenMoji is in ichava/icon-sets-openmoji.",
-            "homepage": null,
-            "icon_set_name": "ichava/icon-sets-emoji",
-            "item_kinds": [],
-            "keywords": [
-                "emoji",
-                "twemoji",
-                "svg",
-                "unicode",
-                "bundle"
-            ],
-            "kind": "icon",
-            "kind_issues": [],
-            "kind_rules": [],
-            "labels": [],
-            "license": "MIT (code) / CC-BY 4.0 (Twemoji assets)",
-            "name": "Emoji Sets",
-            "package_name": "ichava/icon-sets-emoji",
-            "prefix": "emoji",
-            "provider_class": null,
-            "repository": "https://github.com/ichava/icon-sets-emoji",
-            "theme_variants": [],
-            "total": 0,
-            "variant_metadata": {
-                "default": {
-                    "name": "Default",
-                    "slug": "default",
-                    "description": "Standard Twemoji style",
-                    "default": true,
-                    "icon_suffix": "",
-                    "display_order": 1,
-                    "attributes": [],
-                    "color_scheme": "adaptive"
-                }
-            },
-            "vendor": "ichava",
-            "version": "0.1.0"
-        }
-    },
     "<root>/tests/fixtures/RegistrationGolden/extras": {
         "aliases": [],
         "metadata": {
@@ -1192,7 +1146,7 @@
             "blade_component": null,
             "category_kinds": [],
             "declared_kind": "icon",
-            "description": "OpenMoji emoji in two sets (colour and black outline), Unicode emoji 16.0, grouped by Unicode CLDR category. Moved verbatim from ichava/icon-sets-emoji.",
+            "description": "OpenMoji emoji in two sets (colour and black outline), Unicode emoji 16.0, grouped by Unicode CLDR category. Moved verbatim from ichava/icon-sets-twemoji, which now ships Twemoji only.",
             "homepage": "https://openmoji.org/",
             "icon_set_name": "ichava/icon-sets-openmoji",
             "item_kinds": [],
@@ -1477,6 +1431,52 @@
                     },
                     "preview_icon": "home-filled",
                     "color_scheme": "fill-based"
+                }
+            },
+            "vendor": "ichava",
+            "version": "0.1.0"
+        }
+    },
+    "<root>/tests/fixtures/RegistrationGolden/twemoji": {
+        "aliases": [],
+        "metadata": {
+            "base_path": "<root>/tests/fixtures/RegistrationGolden/twemoji",
+            "blade_component": null,
+            "category_kinds": [],
+            "declared_kind": "icon",
+            "description": "Twemoji, Twitter/X's open-source emoji set, as SVG. Twemoji 15, on the Unicode emoji 16.0 taxonomy. Categorised by Unicode CLDR groups. OpenMoji is in ichava/icon-sets-openmoji.",
+            "homepage": null,
+            "icon_set_name": "ichava/icon-sets-twemoji",
+            "item_kinds": [],
+            "keywords": [
+                "emoji",
+                "twemoji",
+                "svg",
+                "unicode",
+                "bundle"
+            ],
+            "kind": "icon",
+            "kind_issues": [],
+            "kind_rules": [],
+            "labels": [],
+            "license": "MIT (code) / CC-BY 4.0 (Twemoji assets)",
+            "name": "Twemoji",
+            "package_name": "ichava/icon-sets-twemoji",
+            "prefix": "twemoji",
+            "provider_class": null,
+            "repository": "https://github.com/ichava/icon-sets-twemoji",
+            "theme_variants": [],
+            "total": 0,
+            "variant_metadata": {
+                "default": {
+                    "name": "Default",
+                    "slug": "default",
+                    "description": "Standard Twemoji style",
+                    "default": true,
+                    "icon_suffix": "",
+                    "display_order": 1,
+                    "attributes": [],
+                    "color_scheme": "adaptive"
                 }
             },
             "vendor": "ichava",

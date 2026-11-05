@@ -69,7 +69,7 @@ it('lists the catalog and stops when Composer is declined', function (): void {
         'Tabler Icons (',
         ' icons, outline + filled) — ○ not installed · ○ not seeded',
         'Flag Icons (',
-        'Emoji Sets (',
+        'Twemoji (',
         'Latest release: ',
         "Require '{$target}' via Composer? (yes/no) [yes]",
         'Operation cancelled.',
@@ -96,7 +96,7 @@ it('fails for an unknown set and lists the available keys', function (): void {
     [$exit, $display] = $this->runCommand(INSTALL_COMMAND, ['set' => 'nope']);
 
     $this->assertSame(1, $exit);
-    $this->assertDisplayContains($display, ["✗ Unknown icon set 'nope'.", 'Available: tabler, flags, emoji']);
+    $this->assertDisplayContains($display, ["✗ Unknown icon set 'nope'.", 'Available: tabler, flags, twemoji']);
 });
 
 it('fails when the catalog cannot be loaded', function (): void {

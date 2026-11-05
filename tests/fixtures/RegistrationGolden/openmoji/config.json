@@ -3,7 +3,7 @@
   "package": {
     "name": "ichava/icon-sets-openmoji",
     "title": "OpenMoji",
-    "description": "OpenMoji emoji in two sets (colour and black outline), Unicode emoji 16.0, grouped by Unicode CLDR category. Moved verbatim from ichava/icon-sets-emoji.",
+    "description": "OpenMoji emoji in two sets (colour and black outline), Unicode emoji 16.0, grouped by Unicode CLDR category. Moved verbatim from ichava/icon-sets-twemoji, which now ships Twemoji only.",
     "keywords": [
       "emoji",
       "openmoji",
@@ -78,11 +78,11 @@
       "openmoji_black_jsdelivr": "https://cdn.jsdelivr.net/gh/hfg-gmuend/openmoji@{version}/black/svg/{codepoint}.svg"
     },
     "update_command": {
-      "_note": "Refreshed by ichava/icon-sets-sync from config/icon-sets-openmoji.json, through its `openmoji-sets` recipe: both sets from one pinned hfg-gmuend/openmoji release tag, categorised by the Unicode taxonomy, with the guards that keep every icon. The weekly sync-upstream run here calls it. ichava/icon-sets-emoji no longer carries OpenMoji, so this pack is its only home.",
+      "_note": "Refreshed by ichava/icon-sets-sync from config/icon-sets-openmoji.json, through its `openmoji-sets` recipe: both sets from one pinned hfg-gmuend/openmoji release tag, categorised by the Unicode taxonomy, with the guards that keep every icon. The weekly sync-upstream run here calls it. ichava/icon-sets-twemoji no longer carries OpenMoji, so this pack is its only home.",
       "type": "recipe",
       "recipe": "openmoji-sets"
     },
-    "_vendored_note": "The files were moved verbatim from ichava/icon-sets-emoji, where they were produced from OpenMoji 15.1.0 and categorised with Unicode emoji 16.0 (emoji-test.txt).",
+    "_vendored_note": "The files were moved verbatim from ichava/icon-sets-twemoji, where they were produced from OpenMoji 15.1.0 and categorised with Unicode emoji 16.0 (emoji-test.txt).",
     "cldr_version": "16.0"
   }
 }
