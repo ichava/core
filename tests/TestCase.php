@@ -26,6 +26,13 @@ abstract class TestCase extends Orchestra
      */
     private array $fileCacheDirectories = [];
 
+    /**
+     * Providers a test registers after core's, for the next refreshApplication().
+     *
+     * @var list<class-string>
+     */
+    protected array $extraProviders = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -61,6 +68,7 @@ abstract class TestCase extends Orchestra
     {
         return [
             IchavaServiceProvider::class,
+            ...$this->extraProviders,
         ];
     }
 

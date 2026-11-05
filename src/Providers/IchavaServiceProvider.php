@@ -23,6 +23,7 @@ use Simtabi\Laranail\Ichava\Support\AuditLogger;
 use Simtabi\Laranail\DbTools\Query\PortableQuery;
 use Simtabi\Laranail\Ichava\Commands\InfoCommand;
 use Simtabi\Laranail\Ichava\Facades\IchavaFacade;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
 use Simtabi\Laranail\Ichava\Support\IconRenderer;
 use Simtabi\Laranail\Ichava\Support\PathResolver;
 use Simtabi\Laranail\Ichava\Support\RuntimeLimits;
@@ -364,6 +365,13 @@ class IchavaServiceProvider extends PackageServiceProvider
         // Schedule automatic log cleanup
         $this->scheduleLogCleanup();
 
+        // The morph map is flat: a provider registered after core can map
+        // Icon's alias to its own model, and stored termable rows would then
+        // load the wrong class. Checked once every provider has registered.
+        $this->app->booted(function (): void {
+            $this->assertIconMorphAlias();
+        });
+
         // Default-deny Gates, defined after every provider has booted so a
         // host's own definitions are seen first and never overwritten.
         $this->app->booted(function (): void {
@@ -371,6 +379,25 @@ class IchavaServiceProvider extends PackageServiceProvider
                 IchavaGates::define($this->app->make(GateContract::class));
             }
         });
+    }
+
+    /**
+     * Fail at boot when the live morph map resolves Icon's alias to another class.
+     *
+     * @throws IchavaException
+     */
+    protected function assertIconMorphAlias(): void
+    {
+        $model = Relation::getMorphedModel(Icon::MORPH_ALIAS);
+
+        if ($model !== Icon::class) {
+            throw IchavaException::invalidConfiguration(sprintf(
+                "the morph alias '%s' resolves to %s, not %s. Another provider has claimed it; map that model under its own alias.",
+                Icon::MORPH_ALIAS,
+                $model ?? 'nothing',
+                Icon::class,
+            ));
+        }
     }
 
     /**

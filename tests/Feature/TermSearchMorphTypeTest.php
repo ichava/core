@@ -11,8 +11,8 @@ use Simtabi\Laranail\Ichava\Models\IconTerm;
 | Category and variant names are searchable on PostgreSQL
 |--------------------------------------------------------------------------
 |
-| Core registers `Relation::morphMap(['icon' => Icon::class])`, so every
-| termables row the seeder writes carries `termable_type = 'icon'`. The
+| Core registers `Relation::morphMap(['ichava-icon' => Icon::class])`, so every
+| termables row the seeder writes carries `termable_type = 'ichava-icon'`. The
 | PostgreSQL search clause and the search-text functions compared that column
 | with the fully-qualified class name instead, so no term ever matched and a
 | search for a category or variant name found nothing.
@@ -110,7 +110,7 @@ it('installs search-text functions that compare the morph alias', function (stri
 
     $definition = DB::selectOne('SELECT pg_get_functiondef(?::regprocedure) AS def', [$function])->def;
 
-    expect($definition)->toContain("termable_type = 'icon'")
+    expect($definition)->toContain("termable_type = '" . Icon::MORPH_ALIAS . "'")
         ->and($definition)->not->toContain('Models');
 })->with([
     'refresh_ichava_icon_search_text(bigint)',

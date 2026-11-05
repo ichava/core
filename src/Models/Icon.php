@@ -76,8 +76,12 @@ final class Icon extends Model
     /**
      * The morph alias core registers for this model, and so the value every
      * `termable_type` row holds. A literal so raw search SQL can quote it.
+     *
+     * Vendor-scoped: the morph map is one flat map per application, and a bare
+     * `icon` is a name a host or another package may claim for its own model.
+     * Migration 2026_11_05_000001 moves rows stored under `icon` (C-02).
      */
-    public const MORPH_ALIAS = 'icon';
+    public const MORPH_ALIAS = 'ichava-icon';
 
     /** @var string */
     protected $table = self::TABLE;
