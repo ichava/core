@@ -17,6 +17,12 @@ declare(strict_types=1);
  * Usage:
  *   php bin/sync-icon-sets.php
  *
+ * A set may carry a `hold`: {"tag", "commit", "reason"}. While the pack's latest
+ * release tag is still that tag at that commit, the set keeps its recorded
+ * snapshot instead of being re-read, because the recorded values describe work
+ * on the pack's default branch that the tag does not hold yet. The hold lifts by
+ * itself once a newer tag is cut or the tag points elsewhere, and is then dropped.
+ *
  * Env:
  *   GITHUB_TOKEN  optional, raises the API rate limit (workflow provides it)
  */
@@ -66,7 +72,11 @@ function main(string $manifestPath): int
             continue;
         }
 
-        $manifest['sets'][$index] = array_merge($set, $snapshot);
+        $manifest['sets'][$index] = array_filter(
+            array_merge($set, $snapshot),
+            static fn (mixed $value, string $field): bool => $field !== 'hold' || $value !== null,
+            ARRAY_FILTER_USE_BOTH,
+        );
 
         printf(
             "[%s] %s | %d icons (%s) | latest %s\n",
@@ -127,7 +137,14 @@ function withoutStamp(array $manifest): array
  */
 function snapshot(string $repository, string $configPath, array $previous): ?array
 {
-    $tag = latestTag($repository);
+    $tags = getJson("https://api.github.com/repos/{$repository}/tags?per_page=100");
+    $tag = is_array($tags) ? highestVersionTag($tags) : null;
+
+    if (is_array($tags) && isHeld($previous, $tags)) {
+        fwrite(STDERR, "[{$repository}] held at {$tag}: " . ($previous['hold']['reason'] ?? 'no reason given') . "\n");
+
+        return $previous;
+    }
 
     $refs = array_filter([$tag, CONFIG_FALLBACK_BRANCH]);
     $config = null;
@@ -159,7 +176,39 @@ function snapshot(string $repository, string $configPath, array $previous): ?arr
         'variants'       => is_array($variants) ? array_keys($variants) : ($previous['variants'] ?? null),
         'latest_version' => $tag !== null ? ltrim($tag, 'vV') : ($previous['latest_version'] ?? null),
         'visibility'     => $visibility,
+        'hold'           => null,
     ];
+}
+
+/**
+ * Whether a set's `hold` still applies: its tag is the highest release tag in the
+ * tags API response and still points at the recorded commit. A hold without both
+ * a tag and a commit never applies, so a malformed entry cannot freeze a set.
+ *
+ * @param array<string, mixed> $set  the set as recorded in icon-sets.json
+ * @param array<mixed>         $tags the tags API response
+ */
+function isHeld(array $set, array $tags): bool
+{
+    $hold = $set['hold'] ?? null;
+    $tag = is_array($hold) ? ($hold['tag'] ?? null) : null;
+    $commit = is_array($hold) ? ($hold['commit'] ?? null) : null;
+
+    if (! is_string($tag) || $tag === '' || ! is_string($commit) || $commit === '') {
+        return false;
+    }
+
+    if (highestVersionTag($tags) !== $tag) {
+        return false;
+    }
+
+    foreach ($tags as $entry) {
+        if (is_array($entry) && ($entry['name'] ?? null) === $tag) {
+            return (is_array($entry['commit'] ?? null) ? ($entry['commit']['sha'] ?? null) : null) === $commit;
+        }
+    }
+
+    return false;
 }
 
 /**
