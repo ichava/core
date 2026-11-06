@@ -185,8 +185,8 @@ function snapshot(string $repository, string $configPath, array $previous): ?arr
  * tags API response and still points at the recorded commit. A hold without both
  * a tag and a commit never applies, so a malformed entry cannot freeze a set.
  *
- * @param array<string, mixed> $set  the set as recorded in icon-sets.json
- * @param array<mixed>         $tags the tags API response
+ * @param array<string, mixed> $set the set as recorded in icon-sets.json
+ * @param array<mixed> $tags the tags API response
  */
 function isHeld(array $set, array $tags): bool
 {
