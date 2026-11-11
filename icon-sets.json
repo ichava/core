@@ -10,14 +10,14 @@
             "title": "Tabler Icons",
             "description": "Over 5,200 pixel-perfect icons for web apps. Free and open source icons designed with attention to detail to make your design stand out.",
             "license": "MIT",
-            "icon_count": 6238,
+            "icon_count": 6257,
             "variants": [
                 "outline",
                 "filled"
             ],
             "latest_version": "0.1.0",
             "icon_counts": {
-                "icon": 6238,
+                "icon": 6257,
                 "illustration": 0
             },
             "visibility": "public"
@@ -46,7 +46,7 @@
             "package": "ichava/icon-sets-twemoji",
             "repository": "ichava/icon-sets-twemoji",
             "title": "Twemoji",
-            "description": "Twemoji, Twitter/X's open-source emoji set, as SVG. Unicode 17 / Emoji 17 spec. Categorised by Unicode CLDR groups. OpenMoji is in ichava/icon-sets-openmoji.",
+            "description": "Twemoji, Twitter/X's open-source emoji set, as SVG. Twemoji 15, on the Unicode emoji 16.0 taxonomy. Categorised by Unicode CLDR groups. OpenMoji is in ichava/icon-sets-openmoji.",
             "license": "MIT (code) / CC-BY 4.0 (Twemoji assets)",
             "icon_count": 3435,
             "variants": [
@@ -57,12 +57,7 @@
                 "icon": 3435,
                 "illustration": 0
             },
-            "visibility": "public",
-            "hold": {
-                "tag": "v0.1.0",
-                "commit": "d7af0a20af8c5501ff5857c144573b1cf9329d16",
-                "reason": "v0.1.0 still carries the OpenMoji sets; the recorded values follow the default branch (Twemoji only) until the next release."
-            }
+            "visibility": "public"
         },
         {
             "key": "openmoji",
@@ -75,7 +70,7 @@
             "variants": [
                 "default"
             ],
-            "latest_version": null,
+            "latest_version": "0.1.0",
             "icon_counts": {
                 "icon": 8568,
                 "illustration": 0
@@ -83,5 +78,5 @@
             "visibility": "public"
         }
     ],
-    "synced_at": "2026-11-03T10:18:20Z"
+    "synced_at": "2026-11-11T10:02:11Z"
 }
