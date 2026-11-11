@@ -70,7 +70,7 @@ the repositories block in step 1, then require it. Some of the public ones:
 
 | Pack | Icons | Add this repository |
 |---|---|---|
-| `ichava/icon-sets-tabler` | 6,238 | `https://github.com/ichava/icon-sets-tabler` |
+| `ichava/icon-sets-tabler` | 6,257 | `https://github.com/ichava/icon-sets-tabler` |
 | `ichava/icon-sets-flag` | 542 | `https://github.com/ichava/icon-sets-flag` |
 | `ichava/icon-sets-twemoji` | 3,435 | `https://github.com/ichava/icon-sets-twemoji` |
 | `ichava/icon-sets-openmoji` | 8,568 | `https://github.com/ichava/icon-sets-openmoji` |
