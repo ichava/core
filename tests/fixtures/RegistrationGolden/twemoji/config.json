@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-twemoji",
+    "title": "Twemoji",
+    "description": "Twemoji, Twitter/X's open-source emoji set, as SVG. Twemoji 15, on the Unicode emoji 16.0 taxonomy. Categorised by Unicode CLDR groups. OpenMoji is in ichava/icon-sets-openmoji.",
+    "keywords": [
+      "emoji",
+      "twemoji",
+      "svg",
+      "unicode",
+      "bundle"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "15.0.0",
+    "type": "bulk",
+    "kind": "icon",
+    "license": "MIT (code) / CC-BY 4.0 (Twemoji assets)"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "Twitter, Inc. and other contributors (Twemoji)",
+        "role": "Creator -- Twemoji",
+        "url": "https://github.com/jdecked/twemoji"
+      }
+    ],
+    "repository": "https://github.com/ichava/icon-sets-twemoji",
+    "data": {
+      "variants": {
+        "default": {
+          "name": "Default",
+          "slug": "default",
+          "description": "Standard Twemoji style",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {},
+          "color_scheme": "adaptive"
+        }
+      },
+      "categories": {
+        "twemoji": {
+          "name": "Twemoji",
+          "description": "Twitter/X's open-source emoji set (CC-BY 4.0). Recognisable rounded colourful style. Default set.",
+          "sets": [
+            "twemoji"
+          ]
+        }
+      },
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "twemoji"
+  },
+  "upstream": {
+    "_comment": "Each emoji set has its own upstream; Twemoji is the only one.",
+    "source": {
+      "type": "npm",
+      "package": "@twemoji/svg",
+      "_why_npm": "NPM publishes new Twemoji releases the same day as GitHub but with no rate-limit ceiling and a simpler API contract."
+    },
+    "current_version": "15.0.0",
+    "twemoji_github_tag": "v15.1.0",
+    "version_check_url": "https://registry.npmjs.org/@twemoji/svg/latest",
+    "license": "CC-BY 4.0 (Twemoji assets)",
+    "cdn": {
+      "twemoji_jsdelivr": "https://cdn.jsdelivr.net/npm/@twemoji/svg@{version}/{codepoint}.svg",
+      "twemoji_unpkg": "https://unpkg.com/@twemoji/svg@{version}/{codepoint}.svg",
+      "twemoji_github_raw": "https://raw.githubusercontent.com/jdecked/twemoji/{twemoji_github_tag}/assets/svg/{codepoint}.svg"
+    },
+    "update_command": {
+      "_note": "Refresh runs in ichava/icon-sets-sync via the `twemoji-sets` recipe -- Twemoji (npm) + Unicode CLDR. No pack-side script.",
+      "type": "recipe",
+      "recipe": "twemoji-sets"
+    },
+    "_vendored_note": "Versions of the upstreams that produced the shipped assets. They move independently and conflating them is what left this pack empty: current_version read 17.0.0, which @twemoji/svg has never published, so `npm pack` failed and no assets were ever written (V4). Twemoji 15.0.0 is npm's latest; Unicode emoji 16.0 is the newest emoji-test.txt that exists and is what the CLDR categorisation used. The jdecked/twemoji repository tags independently of the npm package: npm's 15.0.0 has no v15.0.0 tag, only v15.1.0. `twemoji_github_raw` therefore carries `{twemoji_github_tag}` rather than `{version}` -- a caller substituting only `{version}` leaves a visible placeholder in the URL instead of building a plausible v15.0.0 that 404s.",
+    "cldr_version": "16.0"
+  }
+}

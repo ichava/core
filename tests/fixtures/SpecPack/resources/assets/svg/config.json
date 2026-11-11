@@ -1,0 +1,6 @@
+{
+    "schema_version": "1.0",
+    "package": { "name": "ichava/icon-sets-spec-fixture", "title": "Spec Fixture", "version": "1.0.0", "license": "MIT" },
+    "metadata": { "data": { "categories": { "shapes": { "name": "Shapes" }, "illustrations": { "name": "Illustrations" } } } },
+    "config": { "icon_prefix": "spec" }
+}

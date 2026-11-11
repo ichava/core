@@ -1,0 +1,21 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_archetype_gradient)">
+<path d="M12 2L21 12L12 22L3 12L12 2Z" fill="url(#paint0_linear_archetype_gradient)"/>
+<path d="M4 20H20V22H4V20Z" fill="#1C7CFF"/>
+<path d="M12 7.5C14.4853 7.5 16.5 9.51472 16.5 12C16.5 14.4853 14.4853 16.5 12 16.5C9.51472 16.5 7.5 14.4853 7.5 12C7.5 9.51472 9.51472 7.5 12 7.5Z" fill="url(#paint1_linear_archetype_gradient)"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_archetype_gradient" x1="12" y1="2" x2="12" y2="22" gradientUnits="userSpaceOnUse">
+<stop stop-color="#00C2A8"/>
+<stop offset="1" stop-color="#1C3FFF"/>
+</linearGradient>
+<linearGradient id="paint1_linear_archetype_gradient" x1="7.5" y1="7.5" x2="16.5" y2="16.5" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FFD400"/>
+<stop offset="0.5" stop-color="#FF6A00"/>
+<stop offset="1" stop-color="#E0005A"/>
+</linearGradient>
+<clipPath id="clip0_archetype_gradient">
+<rect width="20" height="20" fill="white" transform="translate(2 2)"/>
+</clipPath>
+</defs>
+</svg>

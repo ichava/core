@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-carbon",
+    "title": "Carbon Icons",
+    "description": "IBM's Carbon Design System icons: the full set at 32 px and the 16 px redraws.",
+    "keywords": [
+      "icons",
+      "svg",
+      "carbon",
+      "ibm",
+      "carbon-design-system"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "11.91.0",
+    "type": "multi",
+    "kind": "icon",
+    "license": "MIT (code) / Apache-2.0 (icons)"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "IBM Corp.",
+        "role": "Creator -- Carbon Design System icons",
+        "url": "https://github.com/carbon-design-system/carbon"
+      }
+    ],
+    "homepage": "https://carbondesignsystem.com/elements/icons/library/",
+    "repository": "https://github.com/ichava/icon-sets-carbon",
+    "data": {
+      "variants": {
+        "size-32": {
+          "name": "32 px",
+          "slug": "size-32",
+          "description": "The full set, drawn on the 32 px grid",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {},
+          "preview_icon": "add",
+          "color_scheme": "fill-based"
+        },
+        "size-16": {
+          "name": "16 px",
+          "slug": "size-16",
+          "description": "Glyphs redrawn for 16 px, where upstream ships one",
+          "default": false,
+          "icon_suffix": "",
+          "display_order": 2,
+          "attributes": {},
+          "preview_icon": "add",
+          "color_scheme": "fill-based"
+        }
+      },
+      "categories": {},
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "carbon"
+  },
+  "license": {
+    "spdx": "Apache-2.0",
+    "sha256": "037b3e9eaff51477b270e9082f54b99175e4dd893548654f00995045b68294b8",
+    "checked_at": "2026-11-04",
+    "file": "resources/assets/svg/licenses/carbon/LICENSE",
+    "source": "https://github.com/carbon-design-system/carbon/blob/v11.119.0/LICENSE",
+    "notice": "resources/assets/svg/NOTICE"
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "@carbon/icons",
+      "_ref": "v11.119.0",
+      "_repository": "https://github.com/carbon-design-system/carbon"
+    },
+    "current_version": "11.91.0",
+    "version_check_url": "https://registry.npmjs.org/@carbon/icons/latest",
+    "license": "Apache-2.0",
+    "update_command": {
+      "type": "recipe",
+      "recipe": "icon-sets-carbon",
+      "_note": "icon-sets-sync has no config/icon-sets-carbon.json yet; the proposed recipe is pack-recipes/icon-sets-carbon.json in the ichava design folder, and lands with the one icon-sets-sync pull request that adds the v0.1.0 packs. Until then the weekly sync-upstream run has nothing to run."
+    },
+    "_subset": "Sizes 32 and 16 only. Dropped: size 20 (9 files), size 24 (8 files) and the 18 unsized status glyphs at the root of `svg/`. Names are slugged (`chevron--down` is `chevron-down`); the `watson-health/` and `Q/` namespaces become name prefixes (`watson-health-study-view`, `q-h`). No two names collide after slugging."
+  }
+}

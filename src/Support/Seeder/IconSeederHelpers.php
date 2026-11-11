@@ -1,0 +1,156 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Simtabi\Laranail\Ichava\Support\Seeder;
+
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Simtabi\Laranail\Ichava\Support\IconClassifier;
+
+/**
+ * Path/tag/keyword extraction helpers shared by SeedIconsJob.
+ * Stored paths are always relative to the package's IconRegistry base_path.
+ */
+trait IconSeederHelpers
+{
+    /**
+     * Extract relative path from absolute path.
+     *
+     * Removes the base_path prefix to get a portable relative path.
+     * Works for both SINGLE-SET and MULTI-SET structures.
+     *
+     * @param string $absolutePath Full filesystem path to icon
+     * @param string $basePath Base path from IconRegistry
+     *
+     * @return string Relative path
+     */
+    protected function extractRelativePath(string $absolutePath, string $basePath): string
+    {
+        $basePath = rtrim($basePath, '/\\');
+        $absolutePath = str_replace('\\', '/', $absolutePath);
+        $basePath = str_replace('\\', '/', $basePath);
+
+        $effectiveRoot = rtrim($basePath, '/') . '/';
+
+        return str_replace($effectiveRoot, '', $absolutePath);
+    }
+
+    /**
+     * Extract category slug from relative path.
+     *
+     * The category is the first directory AFTER 'files/' in the path.
+     *
+     * Examples:
+     * - files/fontawesome/solid/icon.svg → fontawesome
+     * - files/test-icons/icon.svg → test-icons
+     *
+     * @param string $relativePath Relative path to icon
+     *
+     * @return string|null Category slug or null if not found
+     */
+    protected function extractCategorySlug(string $relativePath): ?string
+    {
+        // One rule, shared with the file watcher through IconClassifier, so
+        // the two writers file the same path under the same category.
+        return IconClassifier::categoryOf($relativePath);
+    }
+
+    /**
+     * Extract variant slug from relative path.
+     *
+     * The variant is the first directory AFTER 'files/' when it matches a
+     * variant the pack declares (passed as slug => id map keys). Anything
+     * else -- plain folders like `test-icons` -- is not a variant.
+     *
+     * Examples (tabler declares outline/filled):
+     * - files/outline/a-b.svg → outline
+     * - files/filled/a-b.svg → filled
+     * - files/test-icons/triangle.svg → null
+     *
+     * @param string $relativePath Relative path to icon
+     * @param array<array-key, mixed> $variantMap Declared variant slugs (only the keys are read)
+     *
+     * @return string|null Variant slug or null if not found
+     */
+    protected function extractVariantSlug(string $relativePath, array $variantMap): ?string
+    {
+        $parts = array_values(array_filter(explode('/', $relativePath)));
+
+        if (empty($parts)) {
+            return null;
+        }
+
+        $filesIndex = array_search('files', $parts);
+        $candidate = $filesIndex !== false
+            ? ($parts[$filesIndex + 1] ?? null)
+            : ($parts[0] ?? null);
+
+        if ($candidate === null || pathinfo($candidate, PATHINFO_EXTENSION) === 'svg') {
+            return null;
+        }
+
+        $slug = Str::slug($candidate);
+
+        return isset($variantMap[$slug]) ? $slug : null;
+    }
+
+    /**
+     * Extract tags from path and filename.
+     *
+     * Tags include directory names and the icon name itself.
+     *
+     * @param string $relativePath Relative path to icon
+     * @param string $name Icon filename (without extension)
+     *
+     * @return array<string> Array of tags
+     */
+    protected function extractTags(string $relativePath, string $name): array
+    {
+        $tags = [];
+
+        $parts = array_filter(explode('/', $relativePath));
+        foreach ($parts as $part) {
+            if ($part !== basename($relativePath)) {
+                $tags[] = Str::slug($part);
+            }
+        }
+
+        $tags[] = Str::slug($name);
+
+        return array_unique(array_filter($tags));
+    }
+
+    /**
+     * Extract keywords from path and filename.
+     *
+     * Keywords are individual words extracted from icon name and path.
+     * Words shorter than 3 characters are excluded.
+     *
+     * @param string $relativePath Relative path to icon
+     * @param string $name Icon filename (without extension)
+     *
+     * @return array<string> Array of keywords
+     */
+    protected function extractKeywords(string $relativePath, string $name): array
+    {
+        $keywords = [];
+
+        // Extract words from icon name
+        $nameWords = preg_split('/[-_\s]+/', $name);
+        $keywords = array_merge($keywords, $nameWords ?: []);
+
+        // Extract words from path parts
+        $pathParts = array_filter(explode('/', $relativePath));
+        foreach ($pathParts as $part) {
+            $partWords = preg_split('/[-_\s]+/', pathinfo($part, PATHINFO_FILENAME));
+            $keywords = array_merge($keywords, $partWords ?: []);
+        }
+
+        // Normalize: lowercase and filter short words
+        $keywords = array_map('strtolower', $keywords);
+        $keywords = Arr::where($keywords, fn ($k) => strlen($k) > 2);
+
+        return array_values(array_unique($keywords));
+    }
+}

@@ -1,0 +1,14 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "ichava-fixtures/aliased",
+        "title": "Fixture pack (aliases.json)",
+        "description": "Test fixture: a pack that kept one of two identical icons and aliases the dropped name",
+        "version": "1.0.0",
+        "type": "collection",
+        "license": "MIT"
+    },
+    "config": {
+        "icon_prefix": "fxa"
+    }
+}

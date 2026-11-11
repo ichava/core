@@ -1,0 +1,29 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "ichava-fixtures/kind-pack",
+        "title": "Kind fixture pack",
+        "description": "Icons and illustrations side by side, with a dark theme twin.",
+        "version": "1.0.0",
+        "type": "single",
+        "license": "MIT",
+        "kind": "icon"
+    },
+    "metadata": {
+        "data": {
+            "variants": {},
+            "categories": {
+                "glyphs": { "name": "Glyphs" },
+                "scenes": {
+                    "name": "Scenes",
+                    "kind": "illustration",
+                    "theme_variants": { "dark": "-dark" }
+                }
+            }
+        }
+    },
+    "config": {
+        "icon_prefix": "kindfix",
+        "defaults": { "class": "", "attributes": {} }
+    }
+}

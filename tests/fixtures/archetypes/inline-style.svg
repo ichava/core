@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- Synthetic archetype fixture, hand-written for ichava/core's tests. Not derived from any icon set. -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<rect style="fill:#F2F2F2;" width="512" height="512"/>
+<g>
+	<rect style="fill:#2E7D5B;" width="512" height="170.67"/>
+	<rect y="341.33" style="fill:#2E7D5B;" width="512" height="170.67"/>
+</g>
+<g>
+	<rect y="170.67" style="fill:#F2B705;" width="512" height="170.66"/>
+</g>
+<g>
+	<path style="fill:#1D3557;" d="M256,176c44.183,0,80,35.817,80,80s-35.817,80-80,80s-80-35.817-80-80S211.817,176,256,176z"/>
+	<path style="fill:#F2F2F2;" d="M256,196c33.137,0,60,26.863,60,60s-26.863,60-60,60s-60-26.863-60-60S222.863,196,256,196z"/>
+</g>
+<polygon style="fill:#D62839;" points="256,206 268.5,240.5 305,240.5 275.5,262 286.5,296.5 256,275 225.5,296.5 236.5,262 207,240.5 243.5,240.5 "/>
+<rect x="250" y="120" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -14.2843 214.4975)" style="fill:#1D3557;" width="12" height="12"/>
+<rect x="250" y="380" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -198.1316 290.6497)" style="fill:#1D3557;" width="12" height="12"/>
+<g>
+	<polygon style="fill:#D62839;" points="40,40 72,40 56,68 "/>
+	<polygon style="fill:#D62839;" points="440,472 472,472 456,444 "/>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+</svg>
