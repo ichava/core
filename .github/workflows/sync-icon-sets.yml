@@ -73,7 +73,8 @@ jobs:
           # the first run after a merge passed and every run after it failed.
           git fetch origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" || true
           git checkout -B "$BRANCH"
-          git add icon-sets.json
+          # The sync sets docs/installation.md's pack-table counts from the catalogue too.
+          git add icon-sets.json docs/installation.md
           git commit -m 'docs: sync icon-sets catalog' || true
           # Lease kept rather than dropped for --force: it still refuses to clobber a
           # push that arrived after the fetch above, which is the case it exists for.
