@@ -10,14 +10,14 @@
             "title": "Tabler Icons",
             "description": "Over 5,200 pixel-perfect icons for web apps. Free and open source icons designed with attention to detail to make your design stand out.",
             "license": "MIT",
-            "icon_count": 6257,
+            "icon_count": 6287,
             "variants": [
                 "outline",
                 "filled"
             ],
             "latest_version": "0.1.0",
             "icon_counts": {
-                "icon": 6257,
+                "icon": 6287,
                 "illustration": 0
             },
             "visibility": "public"
@@ -66,17 +66,17 @@
             "title": "OpenMoji",
             "description": "OpenMoji emoji in two sets (colour and black outline), Unicode emoji 16.0, grouped by Unicode CLDR category. Moved verbatim from ichava/icon-sets-twemoji, which now ships Twemoji only.",
             "license": "MIT (code) / CC-BY-SA 4.0 (OpenMoji assets)",
-            "icon_count": 8568,
+            "icon_count": 8990,
             "variants": [
                 "default"
             ],
             "latest_version": "0.1.0",
             "icon_counts": {
-                "icon": 8568,
+                "icon": 8990,
                 "illustration": 0
             },
             "visibility": "public"
         }
     ],
-    "synced_at": "2026-11-11T10:02:11Z"
+    "synced_at": "2026-11-12T18:16:53Z"
 }
