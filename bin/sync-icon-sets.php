@@ -31,10 +31,10 @@ const DEFAULT_CONFIG_PATH = 'resources/assets/svg/config.json';
 
 // Run only when executed as a script, so the functions below can be loaded and tested on their own.
 if (realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')) === __FILE__) {
-    exit(main(dirname(__DIR__) . '/icon-sets.json'));
+    exit(main(dirname(__DIR__) . '/icon-sets.json', dirname(__DIR__) . '/docs/installation.md'));
 }
 
-function main(string $manifestPath): int
+function main(string $manifestPath, ?string $docPath = null): int
 {
     $raw = @file_get_contents($manifestPath);
 
@@ -113,7 +113,46 @@ function main(string $manifestPath): int
     file_put_contents($manifestPath, $encoded . "\n");
     echo "Wrote {$manifestPath}\n";
 
+    // docs/installation.md shows each set's count, and InstallationPackTableTest fails when it
+    // disagrees with the catalogue. Writing the catalogue alone opened a pull request that
+    // could never go green (core#179), so the table moves with it.
+    if ($docPath !== null && is_file($docPath)) {
+        $doc = (string) file_get_contents($docPath);
+        $updated = withPackTableCounts($doc, $manifest['sets']);
+
+        if ($updated !== $doc) {
+            file_put_contents($docPath, $updated);
+            echo "Wrote {$docPath}\n";
+        }
+    }
+
     return 0;
+}
+
+/**
+ * The installation guide with each pack-table row's count set from the catalogue.
+ *
+ * Only the count cell of a row whose package is in the catalogue changes; rows, order and
+ * repositories are left as written, so a set added or removed still fails the table test
+ * rather than being papered over here.
+ *
+ * @param list<array<string, mixed>> $sets
+ */
+function withPackTableCounts(string $doc, array $sets): string
+{
+    $counts = [];
+
+    foreach ($sets as $set) {
+        if (isset($set['package'], $set['icon_count']) && is_int($set['icon_count'])) {
+            $counts[(string) $set['package']] = number_format($set['icon_count']);
+        }
+    }
+
+    return (string) preg_replace_callback(
+        '/^(\| `(ichava\/[\w-]+)` \| )([^|]+?)( \| `https:\/\/github\.com\/[\w\/.-]+` \|)$/m',
+        static fn (array $m): string => isset($counts[$m[2]]) ? $m[1] . $counts[$m[2]] . $m[4] : $m[0],
+        $doc,
+    );
 }
 
 /**
