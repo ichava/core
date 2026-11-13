@@ -1,0 +1,290 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Simtabi\Laranail\Ichava\Constants;
+
+/**
+ * IchavaConstants - Ecosystem-Wide Constants
+ *
+ * Centralised repository of numeric and string constants used across the
+ * Ichava ecosystem. Grouping them here prevents magic numbers from being
+ * scattered through services, drivers, and commands.
+ *
+ * Constant groups:
+ * - Cache configuration (TTL values for dev and production)
+ * - Path validation limits (max length, depth, segment size)
+ * - File size limits (min/max SVG byte sizes)
+ * - Queue configuration (timeout, retries, stagger delay, progress TTL)
+ * - Logging configuration (retention days, performance threshold)
+ * - Browser UI pagination (per-page limits)
+ * - Rate limiting (browser, API, cache operation limits)
+ * - Database sync interval
+ */
+final class IchavaConstants
+{
+    /**
+     * The composer `type` every icon pack declares.
+     *
+     * Discovery asks Composer for it (`InstalledVersions::getInstalledPackagesByType()`),
+     * so a pack is found by what it says it is rather than by the name of the
+     * directory it happened to install into.
+     */
+    public const string PACK_COMPOSER_TYPE = 'ichava-icon-set';
+
+    /**
+     * Default cache TTL (Time To Live) in seconds
+     *
+     * Used for caching icon discovery results, rendered SVGs, and configuration.
+     *
+     * @var int 3600 seconds = 1 hour
+     */
+    public const DEFAULT_CACHE_TTL = 3600;
+
+    /**
+     * Cache TTL for production environments (24 hours)
+     *
+     * Longer cache duration for production to reduce filesystem I/O
+     *
+     * @var int 86400 seconds = 24 hours
+     */
+    public const PRODUCTION_CACHE_TTL = 86400;
+
+    /**
+     * Maximum icon path length
+     *
+     * Prevents DoS attacks via excessively long paths.
+     * Based on filesystem path length limits across major operating systems.
+     *
+     * @var int 255 characters (Linux: 4096, Windows: 260, macOS: 1024 - using conservative limit)
+     */
+    public const MAX_PATH_LENGTH = 255;
+
+    /**
+     * Maximum icon name length
+     *
+     * Reasonable limit for icon filenames to prevent storage issues.
+     *
+     * @var int 100 characters
+     */
+    public const MAX_ICON_NAME_LENGTH = 100;
+
+    /**
+     * Maximum path segment length
+     *
+     * Individual segments in icon path (variant/category/etc.)
+     *
+     * @var int 50 characters per segment
+     */
+    public const MAX_PATH_SEGMENT_LENGTH = 50;
+
+    /**
+     * Maximum nesting depth for icon paths
+     *
+     * Prevents DoS attacks via deeply nested paths.
+     * Example: vendor/package::variant/category/sub1/sub2/.../icon.svg
+     *
+     * @var int 10 levels deep
+     */
+    public const MAX_NESTING_DEPTH = 10;
+
+    /**
+     * Maximum SVG file size in bytes
+     *
+     * Prevents loading excessively large SVG files that could impact performance.
+     * Most icon SVGs are < 10KB, this allows for complex illustrations.
+     *
+     * @var int 1048576 bytes = 1 MB
+     */
+    public const MAX_SVG_FILE_SIZE = 1048576;
+
+    /**
+     * Largest input, in bytes, the SVG sanitiser will parse at all.
+     *
+     * A ceiling for every caller, checked before the document is parsed. It is
+     * not the per-kind serving budget (`max_file_size`, `kinds.max_file_size`),
+     * which stays the tighter limit on the serve path. Measured 2026-11-04 over
+     * all 135,112 SVGs under the icon-sets-* packs: the largest is 1,053,328
+     * bytes (a parked metronic brand logo), so 4,500,000 is at least 4x that.
+     * The value matches react-icon-browser and icon-sets-sync, so the three
+     * runtimes refuse the same files.
+     *
+     * Because it bounds the whole input, it also bounds the text and
+     * whitespace nodes the element cap below does not count.
+     *
+     * @var int 4500000 bytes
+     */
+    public const SVG_SANITIZER_MAX_BYTES = 4500000;
+
+    /**
+     * Most ELEMENTS the SVG sanitiser will walk before refusing the document.
+     *
+     * Elements, not nodes: the same count react-icon-browser and icon-sets-sync
+     * use, and the same value, so the three runtimes agree. Text and whitespace
+     * nodes are bounded by the byte cap above instead. Measured 2026-11-04 over
+     * the same 135,112 SVGs: the most elements in one file is 6,741 (bundled
+     * country-flags `4x3-do.svg`), so 30,000 is at least 4x that. Counting
+     * every node, whitespace text included, gives 13,485 for `1x1-do.svg`; do
+     * not size this cap against that figure. A 5 MB file of about 374k trivial
+     * nodes took 9.5 s to sanitise before this cap existed (S2).
+     *
+     * @var int
+     */
+    public const SVG_SANITIZER_MAX_ELEMENTS = 30000;
+
+    /**
+     * Minimum SVG file size in bytes
+     *
+     * Files smaller than this are considered invalid/corrupt.
+     *
+     * @var int 10 bytes (minimum valid SVG: <svg></svg>)
+     */
+    public const MIN_SVG_FILE_SIZE = 10;
+
+    /*
+     * Kind heuristic (D6 row 7): thresholds for the signals that suggest an
+     * SVG is an illustration. It suggests only; nothing applies a suggestion.
+     * icon-sets-sync's `internal/core/kinds` carries identical values, so the
+     * sync tool and doctor suggest the same items.
+     */
+
+    /** `aspect` fires when viewBox width / height is below this. */
+    public const KIND_HEURISTIC_ASPECT_MIN = 0.8;
+
+    /** `aspect` fires when viewBox width / height is above this. */
+    public const KIND_HEURISTIC_ASPECT_MAX = 1.25;
+
+    /** `palette` fires at this many distinct literal colours or more. */
+    public const KIND_HEURISTIC_PALETTE_MIN = 4;
+
+    /** `bytes` fires above this many bytes. */
+    public const KIND_HEURISTIC_MAX_BYTES = 20000;
+
+    /** `elements` fires above this many elements. */
+    public const KIND_HEURISTIC_MAX_ELEMENTS = 150;
+
+    /** `canvas` fires when the larger viewBox side is above this. */
+    public const KIND_HEURISTIC_MAX_CANVAS = 256;
+
+    /** At least this many signals must fire for a suggestion. */
+    public const KIND_HEURISTIC_MIN_SIGNALS = 3;
+
+    /** A folder with at least this many items can be suggested as one rule. */
+    public const KIND_HEURISTIC_GROUP_MIN_ITEMS = 5;
+
+    /** ...when at least this share of its items is suggested. */
+    public const KIND_HEURISTIC_GROUP_MIN_SHARE = 0.8;
+
+    /**
+     * Default SVG assets path relative to package root.
+     */
+    public const SVG_ASSETS_PATH = 'resources/assets/svg';
+
+    /**
+     * Default levels to traverse up from ServiceProvider file to package root.
+     *
+     * Standard Laravel package structure:
+     *   - src/Providers/ServiceProvider.php (3 levels up to root)
+     *   - Level 1: Providers/
+     *   - Level 2: src/
+     *   - Level 3: package-root/
+     *
+     * @var int 3 directory levels
+     */
+    public const PROVIDER_LEVELS_UP = 3;
+
+    /**
+     * Default queue timeout in seconds
+     *
+     * Maximum time allowed for icon seeding jobs before timeout.
+     *
+     * @var int 600 seconds = 10 minutes
+     */
+    public const QUEUE_TIMEOUT = 600;
+
+    /**
+     * Default queue retry attempts
+     *
+     * Number of times to retry failed icon seeding jobs.
+     *
+     * @var int 3 attempts
+     */
+    public const QUEUE_RETRIES = 3;
+
+    /**
+     * Queue job stagger delay in seconds
+     *
+     * Delay between dispatching multiple jobs to prevent overwhelming queue worker.
+     *
+     * @var int 2 seconds
+     */
+    public const QUEUE_STAGGER_DELAY = 2;
+
+    /**
+     * Progress tracking TTL in seconds
+     *
+     * How long to keep job progress data in cache before cleanup.
+     *
+     * @var int 86400 seconds = 24 hours
+     */
+    public const PROGRESS_TTL = 86400;
+
+    /**
+     * Default log retention in days
+     *
+     * Logs older than this are automatically deleted during cleanup.
+     *
+     * @var int 7 days
+     */
+    public const LOG_RETENTION_DAYS = 7;
+
+    /**
+     * Performance logging threshold in milliseconds
+     *
+     * Only log operations exceeding this duration to reduce log noise.
+     *
+     * @var int 100 milliseconds
+     */
+    public const PERFORMANCE_THRESHOLD_MS = 100;
+
+    /**
+     * Default icons per page in browser UI
+     *
+     * Balances performance with usability for icon grid display.
+     *
+     * @var int 60 icons per page
+     */
+    public const BROWSER_PER_PAGE = 60;
+
+    /**
+     * Maximum icons per page (hard limit)
+     *
+     * Prevents performance issues from loading too many icons at once.
+     *
+     * @var int 200 icons per page
+     */
+    public const BROWSER_MAX_PER_PAGE = 200;
+
+    /**
+     * Browser route rate limit (requests per minute)
+     *
+     * @var int 300 requests/min
+     */
+    public const RATE_LIMIT_BROWSER = 300;
+
+    /**
+     * API route rate limit (requests per minute)
+     *
+     * @var int 600 requests/min
+     */
+    public const RATE_LIMIT_API = 600;
+
+    /**
+     * Database auto-sync interval in seconds
+     *
+     * How often to check for icon file changes and sync to database.
+     *
+     * @var int 60 seconds = 1 minute
+     */
+    public const DB_SYNC_INTERVAL = 60;
+}

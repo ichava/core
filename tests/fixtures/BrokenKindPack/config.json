@@ -1,0 +1,38 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "ichava-fixtures/broken-kind-pack",
+        "title": "Broken kind fixture pack",
+        "description": "Every kind mistake doctor reports, in one pack.",
+        "version": "1.0.0",
+        "type": "single",
+        "license": "MIT",
+        "kind": "animation"
+    },
+    "metadata": {
+        "data": {
+            "variants": {},
+            "categories": {
+                "glyphs": { "name": "Glyphs", "kind": "bogus" },
+                "scenes": { "name": "Scenes", "theme_variants": { "dark": "-dark" } }
+            },
+            "kinds": {
+                "rules": [
+                    { "match": "a**", "kind": "icon" },
+                    { "match": "glyphs/*", "kind": "nope" },
+                    { "match": "unused/**", "kind": "illustration" },
+                    { "match": "scenes/park-dark", "kind": "illustration" },
+                    { "match": "scenes/*", "kind": "illustration" }
+                ]
+            },
+            "items": {
+                "glyphs/ghost": { "kind": "illustration" },
+                "glyphs/star": { "kind": "sticker" }
+            }
+        }
+    },
+    "config": {
+        "icon_prefix": "brokenfix",
+        "defaults": { "class": "", "attributes": {} }
+    }
+}

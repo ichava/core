@@ -1,0 +1,106 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-iconoir",
+    "title": "Iconoir",
+    "description": "An open-source library of 24px stroke icons with a smaller solid set, drawn on a 1.5px stroke.",
+    "keywords": [
+      "icons",
+      "svg",
+      "iconoir",
+      "stroke",
+      "solid",
+      "open-source"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "7.12.2",
+    "type": "multi",
+    "kind": "icon",
+    "license": "MIT"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "Luca Burgio",
+        "email": "",
+        "role": "Creator",
+        "url": "https://iconoir.com/"
+      }
+    ],
+    "homepage": "https://iconoir.com/",
+    "repository": "https://github.com/ichava/icon-sets-iconoir",
+    "data": {
+      "variants": {
+        "regular": {
+          "name": "Regular",
+          "slug": "regular",
+          "description": "Stroked icons on a 1.5px line, transparent fill",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {
+            "stroke_width": 1.5,
+            "fill": "none",
+            "stroke": "currentColor"
+          },
+          "preview_icon": "heart",
+          "color_scheme": "stroke-based"
+        },
+        "solid": {
+          "name": "Solid",
+          "slug": "solid",
+          "description": "Solid icons filled with the current colour",
+          "default": false,
+          "icon_suffix": "",
+          "display_order": 2,
+          "attributes": {
+            "fill": "currentColor",
+            "stroke": "none"
+          },
+          "preview_icon": "heart",
+          "color_scheme": "fill-based"
+        }
+      },
+      "categories": {},
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "iconoir",
+    "defaults": {
+      "class": "w-6 h-6",
+      "attributes": {}
+    }
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "iconoir",
+      "source_path": "icons",
+      "_why_npm": "Iconoir publishes icons/regular and icons/solid to npm with every release, already in the pack's layout."
+    },
+    "current_version": "7.12.2",
+    "version_check_url": "https://registry.npmjs.org/iconoir/latest",
+    "license": "MIT",
+    "cdn": {
+      "jsdelivr": "https://cdn.jsdelivr.net/npm/iconoir@{version}/icons/{variant}/{name}.svg",
+      "unpkg": "https://unpkg.com/iconoir@{version}/icons/{variant}/{name}.svg",
+      "github_raw": "https://raw.githubusercontent.com/iconoir-icons/iconoir/v{version}/icons/{variant}/{name}.svg"
+    },
+    "update_command": {
+      "type": "github-archive",
+      "_note": "Refresh bundled SVGs from a tagged release. Re-run the pack's seeder after extracting.",
+      "archive_url": "https://github.com/iconoir-icons/iconoir/archive/refs/tags/v{version}.zip",
+      "source_path": "iconoir-{version}/icons"
+    }
+  },
+  "license": {
+    "spdx": "MIT",
+    "sha256": "869b60da1ada5b896d1f285c3c24ca193d612e308d1710a77a58f2f572eb4fa2",
+    "checked_at": "2026-11-04",
+    "file": "resources/assets/svg/licenses/iconoir/LICENSE"
+  }
+}

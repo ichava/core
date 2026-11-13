@@ -1,0 +1,14 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "ichava/icon-sets-base-fixture",
+        "title": "Base Fixture",
+        "description": "A pack built on IconPackServiceProvider",
+        "version": "1.0.0",
+        "type": "single",
+        "license": "MIT",
+        "keywords": []
+    },
+    "metadata": { "homepage": null, "repository": null },
+    "config": { "icon_prefix": "bf", "defaults": {} }
+}

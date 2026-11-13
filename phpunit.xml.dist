@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         processIsolation="false"
+         stopOnFailure="false"
+         executionOrder="random"
+         failOnWarning="true"
+         failOnRisky="true"
+         failOnEmptyTestSuite="true"
+         beStrictAboutOutputDuringTests="true"
+         cacheDirectory=".phpunit.cache"
+         backupStaticProperties="false">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+        <!--
+          Exclude framework boilerplate from coverage measurement.
+
+          - Providers/: Laravel service-provider register/boot wiring;
+            integration-tested implicitly when Testbench boots.
+          - Commands/: Artisan command classes; their behaviour is exercised
+            by the Feature suite (e.g. MakeIconPackageCommandTest).
+          - Jobs/, Listeners/: queue-dispatched payloads; tested by feature
+            tests that assert dispatch + side effects.
+          - View/: Blade x-component classes; tested by rendering the actual
+            view, not by instantiating the class directly.
+          - Facades/: thin accessor wrappers around container bindings.
+
+          Pure logic stays in coverage scope: Constants, Contracts, Data,
+          Drivers, Enums, Events, Exceptions, Models, Services, Support,
+          Traits, plus the root Ichava.php aggregator.
+        -->
+        <exclude>
+            <directory>src/Providers</directory>
+            <directory>src/Commands</directory>
+            <directory>src/Jobs</directory>
+            <directory>src/Listeners</directory>
+            <directory>src/View</directory>
+            <directory>src/Facades</directory>
+        </exclude>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="DB_CONNECTION" value="testing"/>
+        <env name="CACHE_DRIVER" value="array"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+    </php>
+</phpunit>
