@@ -163,8 +163,8 @@ string, never raw.
 | `svg.max_bytes` (`ICHAVA_SVG_MAX_BYTES`) | 4,500,000 | before the SVG is parsed |
 | `svg.max_elements` (`ICHAVA_SVG_MAX_ELEMENTS`) | 30,000 | while the tree is walked; counts elements only, since `max_bytes` bounds text and whitespace |
 
-Both values match `react-icon-browser` and `icon-sets-sync`, so all three runtimes refuse the same
-files. On 2026-11-04, across all 135,112 SVGs in the `icon-sets-*` packs, the largest file was
+Both values match icon-browser's browser (`limits.svgMaxChars` and `svgMaxNodes`, formerly in
+react-icon-browser) and `icon-sets-sync`, so all three runtimes refuse the same files. On 2026-11-04, across all 135,112 SVGs in the `icon-sets-*` packs, the largest file was
 1,053,328 bytes and the most elements in one file was 6,741, so both caps are at least 4x the
 largest real file. The serve path also checks the kind's `max_file_size` before it reads the file.
 

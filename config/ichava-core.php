@@ -496,8 +496,8 @@ return [
         | is served as an empty string, never raw.
         |
         | `max_elements` counts elements, not nodes: text and whitespace nodes
-        | are bounded by `max_bytes`. Both values match react-icon-browser and
-        | icon-sets-sync, so the three runtimes refuse the same files. Both are
+        | are bounded by `max_bytes`. Both values match icon-browser's browser
+        | and icon-sets-sync, so the three runtimes refuse the same files. Both are
         | at least 4x the largest measured across all 135,112 SVGs in the
         | icon-sets-* packs on 2026-11-04 (1,053,328 bytes; 6,741 elements).
         | The per-kind serving budget (`max_file_size`,

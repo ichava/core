@@ -35,7 +35,7 @@ flowchart TB
     meta["<i>ichava/ichava</i><br/>pre-split monolith, superseded by core<br/>ARCHIVED 2026-09-22, read-only"]
     toolkit["<b>ichava/icon-sets-sync</b><br/>Docker-first sync tool<br/>refreshes vendored SVGs via PR<br/>(not installed by users)"]
     motion["<i>ichava/js-motion</i><br/>SVG animation engine<br/>~205 presets, no runtime deps<br/>(outside the Composer graph)"]
-    react["<i>@ichava/react-icon-browser</i><br/>React 19 rebuild of the front end<br/>PRIVATE, not on npm"]
+    react["<i>ichava/react-icon-browser</i><br/>React 19 rebuild of the front end<br/>RETIRED 2026-11-13, source now in icon-browser"]
 
     browser -- depends on --> core
     tabler -- depends on --> core
@@ -45,7 +45,7 @@ flowchart TB
     toolkit -. CI refreshes .-> tabler
     toolkit -. CI refreshes .-> flag
     toolkit -. CI refreshes .-> twemoji
-    react -. replaces the SPA in .-> browser
+    react -. folded into .-> browser
 
     classDef engine fill:#1f6feb,stroke:#1f6feb,color:#fff
     classDef http fill:#8957e5,stroke:#8957e5,color:#fff

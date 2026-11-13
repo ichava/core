@@ -128,7 +128,8 @@ trait ConvertsMonochromeToCurrentColor
      * channel at most 0x40 and within 0x18 of the others. Twemoji's heavy dollar sign
      * is #292F33, which pure-black matching missed, so it stayed near-black on a dark
      * page. A dark colour with a hue (navy, maroon) is still a colour. Mirrors
-     * react-icon-browser's monochrome.ts, so both catalogs paint an icon the same way.
+     * icon-browser's resources/js/modules/svg/infrastructure/monochrome.ts (formerly react-icon-browser's), so both
+     * catalogs paint an icon the same way.
      */
     private function isBlackPaint(string $value): bool
     {

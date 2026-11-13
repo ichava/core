@@ -27,8 +27,8 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * This is construct-level rather than pixel-level, and that is a deliberate
  * limit worth stating. It cannot see that a gradient renders the wrong colour;
  * it can see that the gradient lost its stops, which is the failure mode that
- * actually occurred. Pixel comparison for the SPA lives in
- * `react-icon-browser/e2e/svg-baseline.spec.ts`.
+ * actually occurred. Pixel comparison for the browser lives in
+ * `icon-browser/e2e/browser/svg-baseline.spec.ts` (public packs only).
  *
  * Fixtures and their provenance: `tests/fixtures/archetypes/manifest.json`.
  */

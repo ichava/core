@@ -16,7 +16,7 @@ use Simtabi\Laranail\Ichava\Services\SvgProcessingService;
  * stripped.
  *
  * tests/fixtures/svg/presentation-vectors.json is byte-identical in core,
- * react-icon-browser and js-icon-components, and copies its rows from the Go
+ * icon-browser and js-icon-components, and copies its rows from the Go
  * table in icon-sets-sync, so all four sanitisers make the same decisions.
  */
 function presentationSanitise(string $svg): string
