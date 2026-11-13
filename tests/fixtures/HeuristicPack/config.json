@@ -1,0 +1,13 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "ichava-fixtures/heuristic-pack",
+        "title": "Heuristic fixture pack",
+        "description": "A flag that must not be suggested and a scene that must.",
+        "version": "1.0.0",
+        "type": "single",
+        "license": "MIT"
+    },
+    "metadata": { "data": { "variants": {}, "categories": { "flags": { "name": "Flags" }, "scenes": { "name": "Scenes" }, "glyphs": { "name": "Glyphs" } } } },
+    "config": { "icon_prefix": "heurfix", "defaults": { "class": "", "attributes": {} } }
+}

@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-mdi",
+    "title": "Material Design Icons",
+    "description": "7,447 Material Design Icons by Pictogrammers, one 24px style, vendored from @mdi/svg 7.4.47.",
+    "keywords": [
+      "icons",
+      "svg",
+      "mdi",
+      "material-design-icons",
+      "pictogrammers",
+      "apache-2.0"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "7.4.47",
+    "type": "single",
+    "kind": "icon",
+    "license": "MIT (code) / Apache-2.0 (Material Design Icons assets)"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "Pictogrammers (Austin Andrews and contributors)",
+        "role": "Creator -- Material Design Icons",
+        "url": "https://pictogrammers.com/"
+      }
+    ],
+    "homepage": "https://pictogrammers.com/library/mdi/",
+    "repository": "https://github.com/ichava/icon-sets-mdi",
+    "data": {
+      "variants": {
+        "default": {
+          "name": "Default",
+          "slug": "default",
+          "description": "The one style: 24px filled glyphs. Outlined designs are separate icons whose names end in -outline.",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {},
+          "preview_icon": "home",
+          "color_scheme": "fill-based"
+        }
+      },
+      "categories": {},
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "mdi"
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "@mdi/svg",
+      "source_path": "svg"
+    },
+    "current_version": "7.4.47",
+    "version_check_url": "https://registry.npmjs.org/@mdi/svg/latest",
+    "license": "Apache-2.0",
+    "cdn": {
+      "jsdelivr": "https://cdn.jsdelivr.net/npm/@mdi/svg@{version}/svg/{name}.svg",
+      "unpkg": "https://unpkg.com/@mdi/svg@{version}/svg/{name}.svg"
+    },
+    "update_command": {
+      "type": "recipe",
+      "recipe": "generic",
+      "_note": "Refreshed by ichava/icon-sets-sync from config/icon-sets-mdi.json; the recipe is not in icon-sets-sync yet (it lands with the one recipes pull request for the v0.1.0 packs)."
+    }
+  },
+  "license": {
+    "spdx": "Apache-2.0",
+    "file": "resources/assets/svg/licenses/mdi-svg/LICENSE",
+    "sha256": "f3bc8715bad84b26396bb42d2abd11f919cf58163be158eab79ecbaabf84cdf2",
+    "checked_at": "2026-11-04",
+    "source": "LICENSE in the npm tarball @mdi/svg@7.4.47"
+  }
+}

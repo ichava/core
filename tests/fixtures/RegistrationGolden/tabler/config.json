@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-tabler",
+    "title": "Tabler Icons",
+    "description": "Over 5,200 pixel-perfect icons for web apps. Free and open source icons designed with attention to detail to make your design stand out.",
+    "keywords": [
+      "icons",
+      "svg",
+      "tabler",
+      "outline",
+      "filled",
+      "open-source",
+      "pixel-perfect"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "3.50.0",
+    "type": "single",
+    "kind": "icon",
+    "license": "MIT"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "Paweł Kuna",
+        "email": "",
+        "role": "Creator & Designer",
+        "url": "https://twitter.com/codecalm"
+      }
+    ],
+    "homepage": "https://tabler-icons.io/",
+    "repository": "https://github.com/ichava/icon-sets-tabler",
+    "data": {
+      "variants": {
+        "outline": {
+          "name": "Outline",
+          "slug": "outline",
+          "description": "Outlined icon style with 2px stroke width",
+          "default": true,
+          "icon_suffix": "-outline",
+          "display_order": 1,
+          "attributes": {
+            "stroke_width": 2,
+            "fill": "none",
+            "stroke": "currentColor"
+          },
+          "preview_icon": "home-outline",
+          "color_scheme": "stroke-based"
+        },
+        "filled": {
+          "name": "Filled",
+          "slug": "filled",
+          "description": "Solid filled icon style",
+          "default": false,
+          "icon_suffix": "-filled",
+          "display_order": 2,
+          "attributes": {
+            "fill": "currentColor",
+            "stroke": "none"
+          },
+          "preview_icon": "home-filled",
+          "color_scheme": "fill-based"
+        }
+      },
+      "categories": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "ti",
+    "defaults": {
+      "class": "w-6 h-6",
+      "stroke_width": 2,
+      "attributes": {}
+    }
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "@tabler/icons",
+      "_why_npm": "Tabler publishes SVGs to npm same-day as GitHub releases; npm has no rate-limit ceiling."
+    },
+    "current_version": "3.50.0",
+    "version_check_url": "https://registry.npmjs.org/@tabler/icons/latest",
+    "license": "MIT",
+    "cdn": {
+      "jsdelivr": "https://cdn.jsdelivr.net/npm/@tabler/icons@{version}/icons/{variant}/{name}.svg",
+      "unpkg": "https://unpkg.com/@tabler/icons@{version}/icons/{variant}/{name}.svg",
+      "github_raw": "https://raw.githubusercontent.com/tabler/tabler-icons/v{version}/icons/{variant}/{name}.svg"
+    },
+    "update_command": {
+      "type": "github-archive",
+      "_note": "Refresh bundled SVGs from a tagged release. Re-run the pack's seeder after extracting.",
+      "archive_url": "https://github.com/tabler/tabler-icons/archive/refs/tags/v{version}.zip",
+      "source_path": "tabler-icons-{version}/icons"
+    }
+  }
+}
