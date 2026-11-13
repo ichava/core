@@ -4,10 +4,6 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
-### Changed
-
-- Docs, config comments and test notes name icon-browser where they named react-icon-browser, which is retired: the browser that shares the SVG caps and monochrome rule, and its svg-baseline spec, live in icon-browser since 2026-11-12. CHANGELOG history is unchanged.
-
 ## [0.1.0] - 2026-11-13
 
 First release of `ichava/core`. The repository is published as a single commit; the 0.1.x tags cut between 2026-10-23 and 2026-10-27 (v0.1.0 to v0.1.3) are folded into this release, and their notes are kept below under *Archived history*.
@@ -54,6 +50,8 @@ First release of `ichava/core`. The repository is published as a single commit; 
 - **Illustrations render at their own aspect and size limit.** `IconComponent`'s `lockAspectRatio` is now nullable and defaults to the icon's kind: icons still lock to a square, illustrations keep their viewBox aspect and a size preset sets only the width. An explicit value still wins. `kinds.max_file_size.<kind>` (`ICHAVA_ILLUSTRATION_MAX_FILE_SIZE`, 5 MB for illustrations) sets the file-size ceiling per kind, threaded through `SvgDriver::render()`/`load()` as a new optional trailing `$maxBytes` argument and applied by the watcher; icons keep `max_file_size`. A test pins that a multicolour illustration keeps every colour and gradient, with and without the monochrome conversion.
 
 ### Changed
+
+- Docs, config comments and test notes name icon-browser where they named react-icon-browser, which is retired: the browser that shares the SVG caps and monochrome rule, and its svg-baseline spec, live in icon-browser since 2026-11-12. CHANGELOG history is unchanged.
 
 - **The Twemoji pack is `ichava/icon-sets-twemoji`** (owner, 2026-11-05: forward only, no aliases). The emoji pack ships Twemoji only and was renamed from `ichava/icon-sets-emoji`. `icon-sets.json` lists it under key `twemoji` (was `emoji`), package and repository `ichava/icon-sets-twemoji` and title `Twemoji`, so `ichava::ichava-core.install twemoji` installs it and `emoji` is no longer a key; the OpenMoji entry's description follows that pack's `config.json`. The docs pack table, architecture diagrams, pack-docs link and `check-updates` example name the new package, and the registration golden's fixture moved to `RegistrationGolden/twemoji` with the pack's current `config.json`. Stored ids `ichava/icon-sets-emoji::twemoji/...` no longer resolve; hosts delete them and re-seed the pack. `NoFormerTwemojiPackNameTest` fails if the old name appears anywhere in this repository outside this changelog (proven red on a planted line).
 - **`icon-sets.json` records each pack's `visibility`** (`public` or `private`), synced by `bin/sync-icon-sets.php` from the repos API and kept when a response does not state it (F-02). Documented under *The pack catalogue* in `docs/tools/artisan-commands.md`. `tests/Unit/SyncIconSetsVisibilityTest.php`.
