@@ -1,0 +1,132 @@
+# Installation
+
+*How-to guide.*
+
+## Requirements
+
+Relocated from the README, which is now a slim pointer.
+
+- **PHP** `^8.4.1 || ^8.5`
+- **Laravel** `^13`
+- **A database**: SQLite, PostgreSQL, MySQL 8+ or MariaDB 10.3+ -- all four are supported and tested, and they are not equivalent. Only PostgreSQL gets indexed search; see [Database support](databases.md).
+
+## 1. Point Composer at the repositories
+
+**This is the one place that lists them.** Every pack's installation page links here rather than
+repeating it, so this block is the whole answer to "what must my application add".
+
+Nothing in the Ichava family is on Packagist yet: not `ichava/core`, not the packs, and not the four
+`laranail/*` packages core depends on (`repo.packagist.org` answers 404 for each). Composer reads
+`repositories` only from the root package, so a package's own entries do not carry across to yours:
+the **application's** `composer.json` has to name every one of them, core's dependencies included.
+
+```json
+{
+    "repositories": [
+        { "type": "vcs", "url": "https://github.com/ichava/core" },
+        { "type": "vcs", "url": "https://github.com/laranail/package-tools.git" },
+        { "type": "vcs", "url": "https://github.com/laranail/console.git" },
+        { "type": "vcs", "url": "https://github.com/laranail/enumerator.git" },
+        { "type": "vcs", "url": "https://github.com/laranail/db-tools.git" },
+        { "type": "vcs", "url": "https://github.com/ichava/icon-sets-tabler" }
+    ]
+}
+```
+
+The last line is the pack you install, one line per pack, named `https://github.com/ichava/<pack>`.
+A pack requires `ichava/core` and nothing else, so the `laranail/*` lines are core's, and they stay
+the same whichever packs you add. Two packs are private (`icon-sets-bundled`, `icon-sets-metronic`):
+installing those needs read access to the repository through a GitHub token in Composer's
+`auth.json`.
+
+## 2. Require the package
+
+```bash
+composer require ichava/core:^0.1
+```
+
+The `IchavaServiceProvider` registers automatically via Laravel package discovery.
+
+## 3. Publish the config
+
+```bash
+php artisan vendor:publish --tag=ichava::ichava-core-config
+```
+
+Creates `config/ichava/ichava-core.php`. See [configuration](configuration.md) for the keys.
+
+## 4. Run the migrations
+
+```bash
+php artisan migrate
+```
+
+Creates the `icons` and `icon_terms` tables (or your configured table prefix).
+
+## 5. Install at least one icon pack
+
+Core ships with no icons. Each pack is a repository named `ichava/icon-sets-<name>`; add its line to
+the repositories block in step 1, then require it. Some of the public ones:
+
+| Pack | Icons | Add this repository |
+|---|---|---|
+| `ichava/icon-sets-tabler` | 6,287 | `https://github.com/ichava/icon-sets-tabler` |
+| `ichava/icon-sets-flag` | 542 | `https://github.com/ichava/icon-sets-flag` |
+| `ichava/icon-sets-twemoji` | 3,435 | `https://github.com/ichava/icon-sets-twemoji` |
+| `ichava/icon-sets-openmoji` | 8,990 | `https://github.com/ichava/icon-sets-openmoji` |
+
+```bash
+composer require ichava/icon-sets-tabler:^0.1
+```
+
+Or build your own with the dev-only [`ichava/icon-sets-package-scaffolder`](https://github.com/ichava/icon-sets-package-scaffolder) package:
+
+```bash
+composer require --dev ichava/icon-sets-package-scaffolder
+php artisan ichava::icon-sets-package-scaffolder.make
+```
+
+See [creating icon packages](https://github.com/ichava/icon-sets-package-scaffolder/blob/main/docs/creating-icon-packages.md).
+
+## 6. Seed the icon database
+
+```bash
+php artisan ichava::ichava-core.database seed
+```
+
+Optional but recommended. The seeder builds the index used by the icon renderer and (if installed) the visual browser. See [database seeding](recipes/seed-the-database.md).
+
+## 7. Use icons in Blade
+
+```blade
+<x-ichava::icon name="ichava/icon-sets-tabler::home" class="w-6 h-6" />
+```
+
+Or with the helper:
+
+```blade
+{{ ichava('ichava/icon-sets-tabler::home')->color('#4338ca')->class('w-6 h-6') }}
+```
+
+## What you get with just core
+
+- `<x-ichava::icon>` Blade component
+- `ichava()` global helper
+- `ichava::ichava-core.*` Artisan commands
+- The icon registry and seeder
+- No HTTP routes and no JavaScript toolchain
+
+For the visual icon browser at `/ichava/icons` and the REST API, install [`ichava/icon-browser`](https://github.com/ichava/icon-browser/blob/main/docs/installation.md) on top. It is a licensed, proprietary add-on; everything above works without it.
+
+## See also
+
+- [Configuration](configuration.md)
+- [Environment variables](environment.md)
+- [Database support](databases.md)
+- [Database seeding](recipes/seed-the-database.md)
+- [Browser package installation](https://github.com/ichava/icon-browser/blob/main/docs/installation.md)
+- [Troubleshooting](troubleshooting.md)
+
+---
+
+[← Docs index](../README.md#documentation)

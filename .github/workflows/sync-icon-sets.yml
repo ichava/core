@@ -1,0 +1,94 @@
+name: Sync icon sets catalog
+
+on:
+  schedule:
+    # Daily at 03:00 UTC — keeps icon-sets.json (counts, variants, latest
+    # versions) fresh without any runtime network calls in ichava:install.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+# The workflow's own token only reads. The branch and the pull request come from the maintainer-owned
+# Refresh Bot app: a pull request opened with GITHUB_TOKEN starts no workflows, so main's required checks
+# would never report on it, and the organisation no longer lets Actions open pull requests at all.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # A per-run token, scoped to this repository's contents and pull requests and revoked when the job
+      # ends. The client ID and key are organisation-level (REFRESH_APP_CLIENT_ID, REFRESH_APP_PRIVATE_KEY).
+      - name: Mint the Refresh Bot token
+        id: app
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.REFRESH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      # Checked out with the app's token, so the fetch and force-push below are the app's too.
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app.outputs.token }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          extensions: curl, json, mbstring
+
+      - name: Sync icon-sets.json from pack repositories
+        run: php bin/sync-icon-sets.php
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Open catalog sync pull request
+        run: |
+          set -euo pipefail
+          # Single stable branch, so every run updates the same PR instead of
+          # opening duplicates. main is branch-protected (PR-only), so never
+          # push there directly.
+          BRANCH='chore/sync-icon-sets'
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet -- icon-sets.json; then
+            echo 'icon-sets.json unchanged; nothing to do.'
+            exit 0
+          fi
+          # Fetch the stable branch before branching off main, so --force-with-lease
+          # has a remote-tracking ref to compare against. `actions/checkout` fetches
+          # only the default branch, so without this there is no
+          # refs/remotes/origin/$BRANCH, the lease has no basis, and git rejects the
+          # push with "stale info" -- which reads like a race and is not one. It only
+          # bit on days the branch already existed: creating a ref needs no lease, so
+          # the first run after a merge passed and every run after it failed.
+          git fetch origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" || true
+          git checkout -B "$BRANCH"
+          # The sync sets docs/installation.md's pack-table counts from the catalogue too.
+          git add icon-sets.json docs/installation.md
+          git commit -m 'docs: sync icon-sets catalog' || true
+          # Lease kept rather than dropped for --force: it still refuses to clobber a
+          # push that arrived after the fetch above, which is the case it exists for.
+          git push --force-with-lease origin "$BRANCH"
+          # `gh pr view <branch>` resolves to that branch's most recent pull request
+          # whatever its state, so once one was merged this reported "already open"
+          # and stopped creating them -- while still exiting 0. The catalog change
+          # would sit on the branch indefinitely with the run reporting success.
+          # `gh pr list --state open` is the question actually being asked.
+          OPEN=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+          if [ "$OPEN" -gt 0 ]; then
+            echo "Pull request already open for $BRANCH; updated in place."
+          else
+            gh pr create --base main --head "$BRANCH" --title 'docs: sync icon-sets catalog' --body 'Automated refresh of icon-sets.json.'
+          fi
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}

@@ -1,0 +1,41 @@
+{
+  "_note": "One icon per ARCHETYPE, not per pack: a pack is not an archetype, since 6,184 tabler icons are one monochrome shape while five metronic logos are five different problems. Entries with a `source` are real corpus icons from public packs, copied here because core cannot depend on the sibling packs; sha256 records which upstream file each came from, so a refresh is detectable. Entries with `synthetic: true` have no upstream: they replace icons from Metronic (proprietary artwork) and icon-sets-bundled (a private pack since 2026-10-26, not redistributable), which must not ship in this public repository. Each was hand-written to carry the same constructs as the icon it replaced, so the test proves the same thing; sha256 there is of the fixture itself.",
+  "_captured": "2026-09-02",
+  "_synthetic_since": "2026-10-26",
+  "icons": {
+    "gradient": {
+      "source": null,
+      "synthetic": true,
+      "sha256": "9134e2151f63d2ff5d9c2a11afe7ad04e96b169aca0b4c7a8f33d373a4b31219",
+      "replaces": "a Metronic brand logo (proprietary; removed from this public repo)",
+      "constructs": "two linearGradients (2 and 3 stops, offsets, gradientUnits=userSpaceOnUse) painted through fill=\"url(#id)\"; a clipPath applied through clip-path=\"url(#id)\"; author-style ids the namespacing pass must rewrite at both ends; root width/height beside a viewBox for sizing normalisation",
+      "proves": "linearGradient + <stop>: a gradient with no stops paints nothing; and every url(#id) still resolves after ids are namespaced"
+    },
+    "use-fragment": {
+      "source": "flag-icons/resources/assets/svg/files/1x1/hn.svg",
+      "sha256": "545c93c9f9e361604b5ae8a54028e10e84ee6284bb8d74ef67c50baef8cba63b",
+      "proves": "<use href=\"#...\"> sprite: 126 flag icons render as nothing without it"
+    },
+    "inline-style": {
+      "source": null,
+      "synthetic": true,
+      "sha256": "3904a070ab987a18a916d49938225f74fcaa794e93dc56ec84862996cf43e52f",
+      "replaces": "a Metronic flag icon (proprietary; removed from this public repo)",
+      "constructs": "an Illustrator-style export: XML prolog with iso-8859-1 encoding, a comment, root id=\"Layer_1\" with x/y, xml:space and style=\"enable-background:...\"; every paint is style=\"fill:...;\" on rect, path and polygon, with no fill attribute anywhere; nested and empty <g>; transform=\"matrix(...)\"",
+      "proves": "style=\"fill:...\" is the ONLY paint source for 261 of 501 metronic icons"
+    },
+    "title": {
+      "source": null,
+      "synthetic": true,
+      "sha256": "035b603a99e26fced2373d57836e83dcd79fe7fea46bb0f0fba37a3e945323f0",
+      "replaces": "a clarity-icons icon from icon-sets-bundled (MIT upstream, but the pack is private since 2026-10-26; removed from this public repo)",
+      "constructs": "a single-line export: xmlns plus an unused xmlns:xlink, version=\"1.1\", a 36x36 viewBox with no width/height, preserveAspectRatio, fill=\"currentColor\" on the root; a <title> as the first child; three <path>s with multi-token class attributes and compound subpaths (Z then m/H/V); a full-size <rect> with fill-opacity=\"0\" as the hit area",
+      "proves": "<title> is the accessible name; 6,966 bundled icons carry one"
+    },
+    "control": {
+      "source": "tabler-icons/resources/assets/svg/files/outline/a-b-2.svg",
+      "sha256": "9d7501e66352ac414252bed14164cac0d00833584a63a20daaeaa2a0a067f181",
+      "proves": "the archetype the policy was designed against: must never change"
+    }
+  }
+}

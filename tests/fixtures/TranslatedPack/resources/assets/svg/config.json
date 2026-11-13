@@ -1,0 +1,14 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "ichava/fixture-pack",
+        "title": "Fixture Pack",
+        "description": "Canonical description, from config.json",
+        "version": "1.0.0",
+        "type": "single",
+        "license": "MIT",
+        "keywords": []
+    },
+    "metadata": { "homepage": null, "repository": null },
+    "config": { "icon_prefix": "fx", "defaults": {} }
+}

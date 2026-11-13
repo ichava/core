@@ -1,0 +1,35 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "ichava/test-icons",
+        "title": "Test Icons Collection",
+        "description": "Internal test icon sets for development, testing, and quality assurance purposes",
+        "keywords": ["icons", "test", "development", "qa", "internal"],
+        "version": "1.0.0",
+        "type": "collection",
+        "license": "MIT"
+    },
+    "metadata": {
+        "authors": [
+            {
+                "name": "Ichava Team",
+                "email": "",
+                "role": "Developer",
+                "url": "https://github.com/simtabi/ichava"
+            }
+        ],
+        "homepage": "https://github.com/simtabi/ichava",
+        "repository": "https://github.com/simtabi/ichava",
+        "data": {
+            "variants": {},
+            "categories": {}
+        }
+    },
+    "config": {
+        "icon_prefix": "test",
+        "defaults": {
+            "class": "w-6 h-6",
+            "attributes": {}
+        }
+    }
+}

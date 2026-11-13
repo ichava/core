@@ -1,0 +1,35 @@
+{
+    "schema_version": "1.0",
+    "package": {
+        "name": "ichava-fixtures/mixed-pack",
+        "title": "Mixed kind fixture pack",
+        "description": "The contract's mixed pack: item, rule, category and pack kinds side by side.",
+        "version": "1.0.0",
+        "type": "single",
+        "license": "MIT",
+        "kind": "icon"
+    },
+    "metadata": {
+        "data": {
+            "variants": {},
+            "categories": {
+                "glyphs": { "name": "Glyphs" },
+                "spot": { "name": "Spot" },
+                "illustrations": { "name": "Illustrations", "kind": "illustration", "theme_variants": { "dark": "-dark" } }
+            },
+            "kinds": {
+                "rules": [
+                    { "match": "spot/tiny-*", "kind": "icon", "note": "spot glyphs are 24px" },
+                    { "match": "spot/**", "kind": "illustration" }
+                ]
+            },
+            "items": {
+                "glyphs/hero-banner": { "kind": "illustration" }
+            }
+        }
+    },
+    "config": {
+        "icon_prefix": "mixfix",
+        "defaults": { "class": "", "attributes": {} }
+    }
+}

@@ -1,0 +1,136 @@
+{
+  "schema_version": "1.0",
+  "package": {
+    "name": "ichava/icon-sets-phosphor",
+    "title": "Phosphor Icons",
+    "description": "9,072 Phosphor icons: 1,512 designs in six weights (regular, thin, light, bold, fill, duotone), vendored from @phosphor-icons/core 2.1.1.",
+    "keywords": [
+      "icons",
+      "svg",
+      "phosphor",
+      "phosphor-icons",
+      "duotone"
+    ],
+    "version": "0.1.0",
+    "upstream_version": "2.1.1",
+    "type": "multi",
+    "kind": "icon",
+    "license": "MIT"
+  },
+  "metadata": {
+    "authors": [
+      {
+        "name": "Helena Zhang and Tobias Fried (Phosphor Icons)",
+        "role": "Creator -- Phosphor Icons",
+        "url": "https://phosphoricons.com/"
+      }
+    ],
+    "homepage": "https://phosphoricons.com/",
+    "repository": "https://github.com/ichava/icon-sets-phosphor",
+    "data": {
+      "variants": {
+        "regular": {
+          "name": "Regular",
+          "slug": "regular",
+          "description": "The default line weight.",
+          "default": true,
+          "icon_suffix": "",
+          "display_order": 1,
+          "attributes": {},
+          "preview_icon": "house",
+          "color_scheme": "fill-based"
+        },
+        "thin": {
+          "name": "Thin",
+          "slug": "thin",
+          "description": "The lightest weight.",
+          "default": false,
+          "icon_suffix": "-thin",
+          "display_order": 2,
+          "attributes": {},
+          "preview_icon": "house",
+          "color_scheme": "fill-based"
+        },
+        "light": {
+          "name": "Light",
+          "slug": "light",
+          "description": "Between thin and regular.",
+          "default": false,
+          "icon_suffix": "-light",
+          "display_order": 3,
+          "attributes": {},
+          "preview_icon": "house",
+          "color_scheme": "fill-based"
+        },
+        "bold": {
+          "name": "Bold",
+          "slug": "bold",
+          "description": "The heaviest line weight.",
+          "default": false,
+          "icon_suffix": "-bold",
+          "display_order": 4,
+          "attributes": {},
+          "preview_icon": "house",
+          "color_scheme": "fill-based"
+        },
+        "fill": {
+          "name": "Fill",
+          "slug": "fill",
+          "description": "Solid shapes.",
+          "default": false,
+          "icon_suffix": "-fill",
+          "display_order": 5,
+          "attributes": {},
+          "preview_icon": "house",
+          "color_scheme": "fill-based"
+        },
+        "duotone": {
+          "name": "Duotone",
+          "slug": "duotone",
+          "description": "A line layer over a 20% opacity fill layer, both in currentColor.",
+          "default": false,
+          "icon_suffix": "-duotone",
+          "display_order": 6,
+          "attributes": {},
+          "preview_icon": "house",
+          "color_scheme": "fill-based"
+        }
+      },
+      "categories": {},
+      "kinds": {
+        "rules": []
+      },
+      "items": {}
+    }
+  },
+  "config": {
+    "icon_prefix": "ph"
+  },
+  "upstream": {
+    "source": {
+      "type": "npm",
+      "package": "@phosphor-icons/core",
+      "source_path": "assets"
+    },
+    "current_version": "2.1.1",
+    "version_check_url": "https://registry.npmjs.org/@phosphor-icons/core/latest",
+    "license": "MIT",
+    "cdn": {
+      "jsdelivr": "https://cdn.jsdelivr.net/npm/@phosphor-icons/core@{version}/assets/{variant}/{upstream_name}.svg",
+      "unpkg": "https://unpkg.com/@phosphor-icons/core@{version}/assets/{variant}/{upstream_name}.svg",
+      "_upstream_name": "{name} for regular, {name}-{variant} for every other weight: upstream suffixes the weight, this pack strips it."
+    },
+    "update_command": {
+      "type": "recipe",
+      "recipe": "generic",
+      "_note": "Refreshed by ichava/icon-sets-sync from config/icon-sets-phosphor.json; the recipe is not in icon-sets-sync yet (it lands with the one recipes pull request for the v0.1.0 packs)."
+    }
+  },
+  "license": {
+    "spdx": "MIT",
+    "file": "resources/assets/svg/licenses/phosphor-icons-core/LICENSE",
+    "sha256": "ddbe6082ec3cf979db47e5af549d2849c5d6182b3e005ef91ce1dbb9eb122f11",
+    "checked_at": "2026-11-04",
+    "source": "LICENSE in the npm tarball @phosphor-icons/core@2.1.1"
+  }
+}

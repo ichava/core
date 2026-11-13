@@ -1,0 +1,761 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Simtabi\Laranail\Ichava\Services;
+
+use Throwable;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Illuminate\Filesystem\Filesystem;
+use Simtabi\Laranail\Ichava\Data\IconData;
+use Simtabi\Laranail\Ichava\Data\IconSetConfig;
+use Simtabi\Laranail\Ichava\Support\PathResolver;
+use Simtabi\Laranail\Ichava\Contracts\IconSetInterface;
+use Simtabi\Laranail\Ichava\Exceptions\IchavaException;
+
+/**
+ * IconSetBuilder - Universal Icon Set Builder & Base Class
+ *
+ * Merged from IchavaSet + IconSetBuilder for simplified architecture.
+ * Provides both fluent API configuration and core icon discovery functionality.
+ *
+ * All icon sets should extend this class. It serves as:
+ * - Base class for generated icon packages
+ * - Fluent builder for dynamic icon set configuration
+ * - Core icon discovery and caching engine
+ *
+ * @phpstan-consistent-constructor
+ */
+final class IconSetBuilder implements IconSetInterface
+{
+    // From IchavaSet (base functionality)
+    private Filesystem $files;
+
+    private IconCacheService $cache;
+
+    private IconSetConfig $config;
+
+    // From IconSetBuilder (fluent configuration)
+    private string $name;
+
+    /** @var string|list<string>|null */
+    private string|array|null $paths = null;
+
+    private ?string $prefix = null;
+
+    private ?string $defaultVariant = null;
+
+    /** @var array<int, string> */
+    private array $variants = [];
+
+    private bool $supportsCategories = false;
+
+    private string $defaultClass = 'icon';
+
+    /** @var array<string, mixed> */
+    private array $defaultAttributes = [];
+
+    private ?string $fallback = null;
+
+    /** Whether lookups are cached; cache(false) rediscovers on every call. */
+    private bool $enableCache = true;
+
+    /** @var IconSetInterface[] Merged icon sets */
+    private array $mergedSets = [];
+
+    /** @var bool Whether this is a merged set */
+    private bool $isMerged = false;
+
+    /**
+     * Create new icon set
+     */
+    public function __construct(
+        string|Filesystem $nameOrFiles = '',
+        ?IconCacheService $cache = null,
+        ?Filesystem $files = null,
+    ) {
+        // Support two constructor modes:
+        // 1. Fluent builder: new IconSetBuilder('name')
+        // 2. Base class: new IconSetBuilder($files, $cache)
+
+        if ($nameOrFiles instanceof Filesystem) {
+            // Base class mode (for generated packages)
+            $this->files = $nameOrFiles;
+
+            if (! $cache) {
+                throw IchavaException::dependencyNotInjected('IconCacheService', self::class);
+            }
+            $this->cache = $cache;
+            $this->config = $this->buildConfig();
+        } else {
+            // Fluent builder mode
+            $this->name = $nameOrFiles;
+
+            if (! $files) {
+                throw IchavaException::dependencyNotInjected('Filesystem', self::class);
+            }
+            $this->files = $files;
+
+            if (! $cache) {
+                throw IchavaException::dependencyNotInjected('IconCacheService', self::class);
+            }
+            $this->cache = $cache;
+        }
+    }
+
+    /**
+     * Fluent builder factory method
+     *
+     * @param string $name Icon set name
+     */
+    public static function make(string $name): static
+    {
+        return new self(
+            $name,
+            app(IconCacheService::class),
+            app(Filesystem::class),
+        );
+    }
+
+    /**
+     * Create from service provider class reference
+     *
+     * Automatically resolves the path from the calling class location.
+     * Perfect for use in service providers.
+     *
+     * @param string $name Icon set name
+     * @param string $class Caller class (usually self::class from service provider)
+     * @param int $levelsUp Levels to go up from class (default: 3)
+     * @param string $append Path to append (e.g., 'resources/assets/svg/icons')
+     *
+     * @example In Service Provider
+     * ```php
+     * IconSet::makeFromClass('my-icons', self::class, 3, 'resources/assets/svg/icons')
+     *     ->prefix('my')
+     *     ->withVariants(['outline', 'filled']);
+     * ```
+     */
+    public static function makeFromClass(
+        string $name,
+        string $class,
+        int $levelsUp = 3,
+        string $append = '',
+    ): static {
+        $instance = new self($name);
+
+        if ($append) {
+            $path = PathResolver::resolvePackagePath($class, $levelsUp, $append);
+        } else {
+            $path = PathResolver::svgPathFromIconSet($class, $levelsUp);
+        }
+
+        $instance->path($path);
+
+        return $instance;
+    }
+
+    /**
+     * Set icon path
+     *
+     * @param string $path Path to icons
+     *
+     * @return $this
+     */
+    public function path(string $path): static
+    {
+        // Normalize path:
+        // 1. Replace multiple consecutive slashes with single slash
+        // 2. Remove trailing slashes
+        $path = preg_replace('#/+#', '/', $path) ?? $path; // Replace // with /
+        $path = preg_replace('#\\\\+#', '\\\\', $path) ?? $path; // Replace \\\\ with \\
+        $path = rtrim($path, '/\\');
+
+        // Convert relative paths to absolute
+        if (! Str::startsWith($path, '/') && ! preg_match('/^[a-zA-Z]:[\\\\\/]/', $path)) {
+            $path = base_path($path);
+        }
+
+        $this->paths = $path;
+
+        return $this;
+    }
+
+    /**
+     * Set base path (alias for path() for consistency)
+     * Intelligently handles path construction:
+     * - Removes trailing slashes from input
+     * - Ensures proper directory separator when appending
+     *
+     * Examples (all produce same result):
+     *   ->setBasePath('/path/to/icons/files')
+     *   ->setBasePath('/path/to/icons/' . '/files')
+     *   ->setBasePath('/path/to/icons' . '/files')
+     *   ->setBasePath('/path/to/icons/files/')
+     *
+     * @param string $basePath Path to icons (with or without trailing slash)
+     *
+     * @return $this
+     */
+    public function setBasePath(string $basePath): static
+    {
+        return $this->path($basePath);
+    }
+
+    /**
+     * Set multiple icon paths
+     *
+     * @param list<string> $paths Array of paths
+     *
+     * @return $this
+     */
+    public function paths(array $paths): static
+    {
+        $this->paths = $paths;
+
+        return $this;
+    }
+
+    /**
+     * Set icon prefix
+     *
+     * @param string $prefix Icon prefix
+     *
+     * @return $this
+     */
+    public function prefix(string $prefix): static
+    {
+        $this->prefix = $prefix;
+
+        return $this;
+    }
+
+    /**
+     * Set default variant
+     *
+     * @param string $variant Default variant name
+     *
+     * @return $this
+     */
+    public function defaultVariant(string $variant): static
+    {
+        $this->defaultVariant = $variant;
+
+        return $this;
+    }
+
+    /**
+     * Set available variants
+     *
+     * @param array<int, string> $variants Variant names
+     *
+     * @return $this
+     */
+    public function withVariants(array $variants): static
+    {
+        $this->variants = $variants;
+
+        return $this;
+    }
+
+    /**
+     * Set whether categories are supported
+     *
+     * @param bool $supports Support categories
+     *
+     * @return $this
+     */
+    public function withCategories(bool $supports = true): static
+    {
+        $this->supportsCategories = $supports;
+
+        return $this;
+    }
+
+    /**
+     * Set default CSS class
+     *
+     * @param string $class Default class
+     *
+     * @return $this
+     */
+    public function defaultClass(string $class): static
+    {
+        $this->defaultClass = $class;
+
+        return $this;
+    }
+
+    /**
+     * Set default attributes
+     *
+     * @param array<string, mixed> $attributes Default attributes
+     *
+     * @return $this
+     */
+    public function defaultAttributes(array $attributes): static
+    {
+        $this->defaultAttributes = $attributes;
+
+        return $this;
+    }
+
+    /**
+     * Set fallback icon
+     *
+     * @param string|null $icon Fallback icon name
+     *
+     * @return $this
+     */
+    public function fallback(?string $icon): static
+    {
+        $this->fallback = $icon;
+
+        return $this;
+    }
+
+    /**
+     * Enable/disable caching of icon lookups (on by default). Off, get()
+     * and all() read the directory on every call.
+     *
+     * @param bool $enabled Cache enabled
+     *
+     * @return $this
+     */
+    public function cache(bool $enabled = true): static
+    {
+        $this->enableCache = $enabled;
+
+        return $this;
+    }
+
+    /**
+     * Get config
+     */
+    public function config(): IconSetConfig
+    {
+        if (! isset($this->config)) {
+            $this->config = $this->buildConfig();
+        }
+
+        return $this->config;
+    }
+
+    /**
+     * Get base path
+     */
+    public function basePath(): string
+    {
+        return $this->config()->basePath;
+    }
+
+    /**
+     * Get name
+     */
+    public function name(): string
+    {
+        return $this->name ?? $this->config()->name;
+    }
+
+    /**
+     * Check if icon exists
+     */
+    public function has(string $name, ?string $variant = null, ?string $category = null): bool
+    {
+        if ($this->isMerged) {
+            foreach ($this->mergedSets as $set) {
+                if ($set->has($name, $variant, $category)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return $this->discoverIcon($name, $variant, $category) !== null;
+    }
+
+    /**
+     * Get icon with caching.
+     *
+     * Only plain arrays are stored in the cache. Laravel 13 defaults
+     * `cache.serializable_classes` to `false`, so any cached object comes
+     * back as `__PHP_Incomplete_Class` and would violate this method's
+     * `?IconData` return type on the second request. Stale object payloads
+     * from previous versions are detected, forgotten, and rediscovered.
+     */
+    public function get(string $name, ?string $variant = null, ?string $category = null): ?IconData
+    {
+        if ($this->isMerged) {
+            foreach ($this->mergedSets as $set) {
+                if ($icon = $set->get($name, $variant, $category)) {
+                    return $icon;
+                }
+            }
+
+            return null;
+        }
+
+        if (! $this->enableCache) {
+            return $this->discoverIcon($name, $variant, $category);
+        }
+
+        $cacheKey = $this->getCacheKey($name, $variant, $category);
+
+        $cached = $this->cache->remember($cacheKey, function () use ($name, $variant, $category) {
+            return $this->discoverIcon($name, $variant, $category)?->toArray();
+        }, expects: 'array');
+
+        if ($cached === null) {
+            return null;
+        }
+
+        if (is_array($cached)) {
+            try {
+                return IconData::fromArray($cached);
+            } catch (Throwable) {
+                // Malformed payload: drop it and rediscover below.
+            }
+        }
+
+        $this->cache->forget($cacheKey);
+
+        return $this->discoverIcon($name, $variant, $category);
+    }
+
+    /**
+     * Get all icons.
+     *
+     * Cached as `array<string, array>` (never objects) for the same reason
+     * documented on {@see get()}.
+     *
+     * Keyed by icon name; a numeric name becomes an integer key, as PHP
+     * does with any numeric-string key.
+     *
+     * @return array<array-key, IconData>
+     */
+    public function all(?string $variant = null, ?string $category = null): array
+    {
+        if ($this->isMerged) {
+            $allIcons = [];
+            foreach ($this->mergedSets as $set) {
+                $icons = $set->all($variant, $category);
+                $allIcons = array_merge($allIcons, $icons);
+            }
+
+            return $allIcons;
+        }
+
+        if (! $this->enableCache) {
+            return $this->discoverAllIcons($variant, $category);
+        }
+
+        $cacheKey = $this->getAllCacheKey($variant, $category);
+
+        $cached = $this->cache->remember($cacheKey, function () use ($variant, $category) {
+            $icons = $this->discoverAllIcons($variant, $category);
+
+            return array_map(fn (IconData $icon) => $icon->toArray(), $icons);
+        }, expects: 'array');
+
+        if (is_array($cached)) {
+            try {
+                $icons = [];
+                foreach ($cached as $key => $data) {
+                    if (! is_array($data)) {
+                        throw IchavaException::invalidConfiguration('Cached icon payload is malformed');
+                    }
+                    $icons[$key] = IconData::fromArray($data);
+                }
+
+                return $icons;
+            } catch (Throwable) {
+                // Malformed payload: drop it and rediscover below.
+            }
+        }
+
+        $this->cache->forget($cacheKey);
+
+        return $this->discoverAllIcons($variant, $category);
+    }
+
+    /**
+     * Get categories
+     *
+     * @return array<int, string>
+     */
+    public function categories(?string $variant = null): array
+    {
+        if (! $this->config()->supportsCategories) {
+            return [];
+        }
+
+        if ($this->isMerged) {
+            $categories = [];
+            foreach ($this->mergedSets as $set) {
+                $setCategories = $set->categories($variant);
+                $categories = array_merge($categories, $setCategories);
+            }
+
+            return array_unique($categories);
+        }
+
+        return $this->discoverCategories($variant);
+    }
+
+    /**
+     * Check if this is a merged set
+     */
+    public function isMerged(): bool
+    {
+        return $this->isMerged;
+    }
+
+    /**
+     * Get icon variants
+     *
+     * @return array<int, string>
+     */
+    public function variants(): array
+    {
+        return $this->config->variants;
+    }
+
+    /**
+     * Build the icon set configuration
+     * Can be overridden by extending classes
+     */
+    private function buildConfig(): IconSetConfig
+    {
+        // If this is a merged set, use first set's config as base
+        if ($this->isMerged && ! empty($this->mergedSets)) {
+            return $this->buildMergedConfig();
+        }
+
+        // Get base path (first path if multiple)
+        $basePath = is_array($this->paths) ? $this->paths[0] : $this->paths;
+
+        if ($basePath === null) {
+            throw IchavaException::invalidConfiguration("Icon set '{$this->name}' requires a path");
+        }
+
+        return new IconSetConfig(
+            name: $this->name,
+            prefix: $this->prefix ?? '',
+            basePath: $basePath,
+            defaultVariant: $this->defaultVariant,
+            variants: $this->variants,
+            supportsCategories: $this->supportsCategories,
+            defaultClass: $this->defaultClass,
+            defaultAttributes: $this->defaultAttributes,
+            fallback: $this->fallback,
+        );
+    }
+
+    /**
+     * Build merged configuration from multiple sets
+     */
+    private function buildMergedConfig(): IconSetConfig
+    {
+        $baseConfig = $this->mergedSets[0]->config();
+
+        // Read each merged set's resolved config. This called `path()`, `paths()` and
+        // `defaultAttributes()` with no arguments -- the fluent setters, which require one --
+        // and a `supportsCategories()` method no set has, so it could only throw. Its path
+        // list was never used. Nothing builds a merged set today (`$mergedSets` is never
+        // filled), which is how it went unnoticed.
+        $variants = [];
+        $attributes = [];
+        $supportsCategories = false;
+        foreach ($this->mergedSets as $set) {
+            $config = $set->config();
+            $variants = array_merge($variants, $set->variants());
+            $attributes = array_merge($attributes, $config->defaultAttributes);
+            $supportsCategories = $supportsCategories || $config->supportsCategories;
+        }
+
+        return new IconSetConfig(
+            name: $this->name,
+            prefix: $baseConfig->prefix,
+            basePath: $baseConfig->basePath,
+            defaultVariant: $baseConfig->defaultVariant,
+            variants: array_unique($variants),
+            supportsCategories: $supportsCategories,
+            defaultClass: $baseConfig->defaultClass,
+            defaultAttributes: $attributes,
+            fallback: $baseConfig->fallback,
+        );
+    }
+
+    /**
+     * Discover a single SVG icon
+     */
+    private function discoverIcon(string $name, ?string $variant, ?string $category): ?IconData
+    {
+        $path = $this->buildIconPath($name, $variant, $category);
+
+        if (! $this->files->exists($path)) {
+            return null;
+        }
+
+        if (! $this->files->isReadable($path)) {
+            throw IchavaException::filesystemFailure('read', $path);
+        }
+
+        if (! $this->isSvgFile($path)) {
+            return null;
+        }
+
+        if ($this->files->size($path) === 0) {
+            throw IchavaException::invalidSvg("File is empty: {$path}");
+        }
+
+        return new IconData(
+            name: $name,
+            path: $path,
+            variant: $variant ?? $this->config->defaultVariant,
+            category: $category,
+            set: $this->name(),
+        );
+    }
+
+    /**
+     * Discover all SVG icons
+     *
+     * @return array<array-key, IconData>
+     */
+    private function discoverAllIcons(?string $variant, ?string $category): array
+    {
+        $searchPath = $this->buildSearchPath($variant, $category);
+        $files = $this->files->glob($searchPath . '/*.svg');
+
+        $icons = [];
+        foreach ($files as $file) {
+            if (! is_string($file) || ! $this->isSvgFile($file)) {
+                continue;
+            }
+
+            $name = pathinfo($file, PATHINFO_FILENAME);
+            $icons[$name] = new IconData(
+                name: $name,
+                path: $file,
+                variant: $variant ?? $this->config->defaultVariant,
+                category: $category,
+                set: $this->name(),
+            );
+        }
+
+        return $icons;
+    }
+
+    /**
+     * Build SVG icon file path
+     */
+    private function buildIconPath(string $name, ?string $variant, ?string $category): string
+    {
+        $parts = [$this->basePath()];
+
+        if ($variant !== null && $variant !== '') {
+            $parts[] = $variant;
+        }
+
+        if ($category !== null && $category !== '' && $this->config->supportsCategories) {
+            $parts[] = $category;
+        }
+
+        $parts[] = $name . '.svg';
+
+        return implode(DIRECTORY_SEPARATOR, $parts);
+    }
+
+    /**
+     * Build search path for discovery
+     */
+    private function buildSearchPath(?string $variant, ?string $category): string
+    {
+        $parts = [$this->basePath()];
+
+        if ($variant !== null && $variant !== '') {
+            $parts[] = $variant;
+        }
+
+        if ($category !== null && $category !== '' && $this->config->supportsCategories) {
+            $parts[] = $category;
+        }
+
+        return implode(DIRECTORY_SEPARATOR, $parts);
+    }
+
+    /**
+     * Discover categories
+     *
+     * @return array<int, string>
+     */
+    private function discoverCategories(?string $variant): array
+    {
+        $searchPath = $this->buildSearchPath($variant, null);
+
+        if (! $this->files->isDirectory($searchPath)) {
+            return [];
+        }
+
+        $categories = [];
+
+        foreach ($this->files->directories($searchPath) as $key => $dir) {
+            if (is_int($key) && is_string($dir)) {
+                $categories[$key] = basename($dir);
+            }
+        }
+
+        return $categories;
+    }
+
+    /**
+     * Verify file is an SVG
+     */
+    private function isSvgFile(string $path): bool
+    {
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+
+        if ($extension !== 'svg') {
+            return false;
+        }
+
+        $content = $this->files->get($path);
+
+        return Str::contains($content, '<svg');
+    }
+
+    /**
+     * Cache key for one icon.
+     */
+    private function getCacheKey(string $name, ?string $variant, ?string $category): string
+    {
+        return $this->namespacedCacheKey('icon', $name, $variant, $category);
+    }
+
+    /**
+     * Cache key for a whole set.
+     *
+     * Deliberately separate. Both keys used to flatten to
+     * "<set>:<variant>:<category>:<name>", so all() and get('all') addressed the
+     * same entry and whichever ran second overwrote the other with a payload of
+     * the wrong shape -- a map of icon arrays where get() expects one icon array,
+     * which fromArray() then reads as a single malformed icon.
+     */
+    private function getAllCacheKey(?string $variant, ?string $category): string
+    {
+        return $this->namespacedCacheKey('set', 'all', $variant, $category);
+    }
+
+    private function namespacedCacheKey(string $kind, string $name, ?string $variant, ?string $category): string
+    {
+        return implode(':', Arr::where([
+            $kind,
+            $this->name(),
+            $variant,
+            $category,
+            $name,
+        ], fn ($value) => $value !== null));
+    }
+}
