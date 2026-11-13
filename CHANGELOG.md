@@ -4,6 +4,10 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Changed
+
+- Docs, config comments and test notes name icon-browser where they named react-icon-browser, which is retired: the browser that shares the SVG caps and monochrome rule, and its svg-baseline spec, live in icon-browser since 2026-11-12. CHANGELOG history is unchanged.
+
 ## [0.1.0] - 2026-11-13
 
 First release of `ichava/core`. The repository is published as a single commit; the 0.1.x tags cut between 2026-10-23 and 2026-10-27 (v0.1.0 to v0.1.3) are folded into this release, and their notes are kept below under *Archived history*.

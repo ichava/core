@@ -106,7 +106,7 @@ final class IchavaConstants
      * which stays the tighter limit on the serve path. Measured 2026-11-04 over
      * all 135,112 SVGs under the icon-sets-* packs: the largest is 1,053,328
      * bytes (a parked metronic brand logo), so 4,500,000 is at least 4x that.
-     * The value matches react-icon-browser and icon-sets-sync, so the three
+     * The value matches icon-browser's browser and icon-sets-sync, so the three
      * runtimes refuse the same files.
      *
      * Because it bounds the whole input, it also bounds the text and
@@ -119,7 +119,7 @@ final class IchavaConstants
     /**
      * Most ELEMENTS the SVG sanitiser will walk before refusing the document.
      *
-     * Elements, not nodes: the same count react-icon-browser and icon-sets-sync
+     * Elements, not nodes: the same count icon-browser's browser and icon-sets-sync
      * use, and the same value, so the three runtimes agree. Text and whitespace
      * nodes are bounded by the byte cap above instead. Measured 2026-11-04 over
      * the same 135,112 SVGs: the most elements in one file is 6,741 (bundled
