@@ -4,7 +4,7 @@ All notable changes to `ichava/core` follow [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
-## [0.1.0] - TBD
+## [0.1.0] - 2026-11-13
 
 First release of `ichava/core`. The repository is published as a single commit; the 0.1.x tags cut between 2026-10-23 and 2026-10-27 (v0.1.0 to v0.1.3) are folded into this release, and their notes are kept below under *Archived history*.
 
