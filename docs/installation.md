@@ -72,7 +72,7 @@ the repositories block in step 1, then require it. Some of the public ones:
 |---|---|---|
 | `ichava/icon-sets-tabler` | 6,287 | `https://github.com/ichava/icon-sets-tabler` |
 | `ichava/icon-sets-flag` | 542 | `https://github.com/ichava/icon-sets-flag` |
-| `ichava/icon-sets-twemoji` | 3,435 | `https://github.com/ichava/icon-sets-twemoji` |
+| `ichava/icon-sets-twemoji` | 3,444 | `https://github.com/ichava/icon-sets-twemoji` |
 | `ichava/icon-sets-openmoji` | 8,990 | `https://github.com/ichava/icon-sets-openmoji` |
 
 ```bash

@@ -48,13 +48,13 @@
             "title": "Twemoji",
             "description": "Twemoji, Twitter/X's open-source emoji set, as SVG. Twemoji 15, on the Unicode emoji 16.0 taxonomy. Categorised by Unicode CLDR groups. OpenMoji is in ichava/icon-sets-openmoji.",
             "license": "MIT (code) / CC-BY 4.0 (Twemoji assets)",
-            "icon_count": 3435,
+            "icon_count": 3444,
             "variants": [
                 "default"
             ],
             "latest_version": "0.1.0",
             "icon_counts": {
-                "icon": 3435,
+                "icon": 3444,
                 "illustration": 0
             },
             "visibility": "public"
@@ -78,5 +78,5 @@
             "visibility": "public"
         }
     ],
-    "synced_at": "2026-11-12T18:16:53Z"
+    "synced_at": "2026-11-14T09:39:13Z"
 }
